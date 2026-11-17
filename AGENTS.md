@@ -7,6 +7,7 @@
 - [README.md](README.md)：当前完成度、环境、构建与运行命令。
 - [docs/PLAN.md](docs/PLAN.md)：产品需求、架构、交互、实施顺序和验收标准。
 - [docs/DATA_FORMAT.md](docs/DATA_FORMAT.md)：实体、JSON／CSV、校验与兼容契约；修改数据相关代码前必读。
+- [docs/ui/README.md](docs/ui/README.md)：已保存的 UI 设计、离线预览、源稿、截图及演示边界；实现或修改界面前阅读，业务与设计规则仍以 PLAN 为准。
 
 业务和设计规则以上述对应文档为唯一维护位置，本文件不重复抄写。不要因更换模型而重新询问已确认的选择；遇到文档冲突，结合用户最新指示修正来源文档。
 

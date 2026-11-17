@@ -1,0 +1,13 @@
+{
+  "designDate": "2026-11-17",
+  "source": "kitsune-ui.fragment.html",
+  "sourceSha256": "059cdcec7fdac5682f90d49f16c0e88146ff9abf8105b0a880275f1052870628",
+  "preview": "index.html",
+  "previewSha256": "f8c81a2e1ff817e513493ff7338219fdf410009d395b3c68010913fde070a44f",
+  "icons": {
+    "library": "lucide",
+    "version": "1.8.0",
+    "sha256": "ab85225ecc1daa2033607856f03dd2dabcbc08e2d260a5b97e17c690aa929766"
+  },
+  "data": "fictional demonstration records; not Android application storage"
+}

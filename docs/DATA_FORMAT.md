@@ -1,6 +1,6 @@
 # KitsuneApp v1 数据格式与兼容契约
 
-更新日期：2026-11-16。状态：**首版设计契约，尚未发布、尚无数据库或导入导出实现**。
+更新日期：2026-11-17。状态：**首版设计契约，尚未发布、尚无数据库或导入导出实现**。
 
 本文把 [PLAN.md](PLAN.md) 的数据需求具体化，供后续模型建立实体、序列化器、校验器、导入器和测试。示例为虚构数据，不能被标注为真实应用导出。格式在首次发布前可以协调修订并同步计划；一旦发布，须遵守本文的版本兼容规则。
 
@@ -24,6 +24,8 @@
 - datasetId 标识一套业务数据；恢复后采用恢复文件的数据集身份。本机任务代次和安装身份不属于业务备份。
 - 新建或修改实体保留 createdAt、updatedAt；导出使用 UTC 的 `YYYY-MM-DDTHH:mm:ss.SSSZ`。导入允许 UTC `Z` 结尾的有效 ISO 时间，包括没有小数秒的形式，然后统一规范化。
 - date 是严格有效的 `YYYY-MM-DD` 日历日期，不附加时区，不通过 UTC 日期推算餐次或月份。
+- 财务流水另有必填 time，使用本地业务时间字符串 `HH:mm`（24 小时制，00:00–23:59），不含秒或时区。数据库可使用严格校验的文本列，JSON／CSV 均保持相同形式；不用餐次、createdAt 或当前时间猜测缺失值。
+- date＋time 记录用户选择的发生日期时间，保存后不因设备时区变化自动转换；createdAt／updatedAt 仍为独立 UTC 审计时间。
 - 名称非空，保存前去除首尾空白。数据库 normalizedName 按 Unicode NFC、trim、Locale.ROOT 小写计算；不删除名称内部空格。
 - normalizedName 是派生检索字段，不进入 JSON；恢复时重新计算后校验唯一性，不能无提示合并冲突对象。
 - dishes、note 为字符串，未填保存为空字符串，不保存为 null。保留中文、引号和多行内容，不把自由文本当代码执行。
@@ -87,7 +89,7 @@ Wallet 字段：`name,normalizedName,currencyCode,currencyScale,openingBalanceMi
 
 FinancialEntry 字段：
 
-`date,type,walletId,amountMinor,categoryId,toWalletId,toAmountMinor,originalExpenseId,note`。
+`date,time,type,walletId,amountMinor,categoryId,toWalletId,toAmountMinor,originalExpenseId,note`。
 
 | type | walletId | categoryId | toWalletId／toAmountMinor | originalExpenseId |
 | --- | --- | --- | --- | --- |
@@ -101,7 +103,8 @@ FinancialEntry 字段：
 - 退款到账钱包币种与原支出钱包相同，累计退款不能超过原支出；不允许引用收入、转账或另一笔退款。
 - 原支出不存在、删除原支出后留下退款、修改原支出后累计退款超额，均为错误。
 - 退款不保存独立分类，以原支出的当前 categoryId 计算；导入、编辑和统计保持这一规则。
-- 不对业务日期强加“必须晚于 createdAt”等规则，用户可以补录历史日期。
+- 收入、支出、转账和退款都必须填写 date、time；转账两侧共用一组发生日期时间。新建时取表单打开时的本地当前日期和分钟，用户可修改；编辑或保存不重新取当前时钟覆盖。
+- 不对业务日期时间强加“必须晚于 createdAt”等规则，用户可以补录历史记录。列表按 date、time 降序，再按 createdAt 降序、id 升序；业务日／月统计仍按 date。
 
 对钱包 w 的余额贡献：
 
@@ -217,9 +220,9 @@ Outbox 至少能关联 datasetId、snapshotId、revision、不可变 JSON 内容
         {"id":"40000000-0000-4000-8000-000000000002","name":"旅行钱包","currencyCode":"JPY","currencyScale":0,"openingBalanceMinor":"0","sortOrder":1,"archived":false,"createdAt":"2026-11-16T10:00:00.000Z","updatedAt":"2026-11-16T10:00:00.000Z"}
       ],
       "entries": [
-        {"id":"50000000-0000-4000-8000-000000000001","date":"2026-11-16","type":"EXPENSE","walletId":"40000000-0000-4000-8000-000000000001","amountMinor":"1280","categoryId":"20000000-0000-4000-8000-000000000003","toWalletId":null,"toAmountMinor":null,"originalExpenseId":null,"note":"食材","createdAt":"2026-11-16T10:30:00.000Z","updatedAt":"2026-11-16T10:30:00.000Z"},
-        {"id":"50000000-0000-4000-8000-000000000002","date":"2026-11-16","type":"TRANSFER","walletId":"40000000-0000-4000-8000-000000000001","amountMinor":"1000","categoryId":null,"toWalletId":"40000000-0000-4000-8000-000000000002","toAmountMinor":"200","originalExpenseId":null,"note":"跨币种转账示例","createdAt":"2026-11-16T10:40:00.000Z","updatedAt":"2026-11-16T10:40:00.000Z"},
-        {"id":"50000000-0000-4000-8000-000000000003","date":"2026-11-16","type":"REFUND","walletId":"40000000-0000-4000-8000-000000000001","amountMinor":"280","categoryId":null,"toWalletId":null,"toAmountMinor":null,"originalExpenseId":"50000000-0000-4000-8000-000000000001","note":"部分退款","createdAt":"2026-11-16T10:50:00.000Z","updatedAt":"2026-11-16T10:50:00.000Z"}
+        {"id":"50000000-0000-4000-8000-000000000001","date":"2026-11-16","time":"18:30","type":"EXPENSE","walletId":"40000000-0000-4000-8000-000000000001","amountMinor":"1280","categoryId":"20000000-0000-4000-8000-000000000003","toWalletId":null,"toAmountMinor":null,"originalExpenseId":null,"note":"食材","createdAt":"2026-11-16T10:30:00.000Z","updatedAt":"2026-11-16T10:30:00.000Z"},
+        {"id":"50000000-0000-4000-8000-000000000002","date":"2026-11-16","time":"18:40","type":"TRANSFER","walletId":"40000000-0000-4000-8000-000000000001","amountMinor":"1000","categoryId":null,"toWalletId":"40000000-0000-4000-8000-000000000002","toAmountMinor":"200","originalExpenseId":null,"note":"跨币种转账示例","createdAt":"2026-11-16T10:40:00.000Z","updatedAt":"2026-11-16T10:40:00.000Z"},
+        {"id":"50000000-0000-4000-8000-000000000003","date":"2026-11-16","time":"18:50","type":"REFUND","walletId":"40000000-0000-4000-8000-000000000001","amountMinor":"280","categoryId":null,"toWalletId":null,"toAmountMinor":null,"originalExpenseId":"50000000-0000-4000-8000-000000000001","note":"部分退款","createdAt":"2026-11-16T10:50:00.000Z","updatedAt":"2026-11-16T10:50:00.000Z"}
       ]
     },
     "settings": {
@@ -291,6 +294,7 @@ id,date,meal_slot,planned_at_home,meal_method,preparation_categories,dishes,note
 | --- | --- |
 | id | 导出必有 UUID；外部新记录可空 |
 | date | 必填，YYYY-MM-DD |
+| time | 必填，24 小时制 HH:mm，不接受秒、空值或非法时分 |
 | type | INCOME／EXPENSE／TRANSFER／REFUND |
 | wallet | 对应钱包名称；转账为转出钱包 |
 | currency | 钱包币种，必须匹配映射钱包 |
@@ -310,10 +314,10 @@ id,date,meal_slot,planned_at_home,meal_method,preparation_categories,dishes,note
 以下 ledger-v1 与 JSON 示例中的三条账目对应：
 
 ```csv
-id,date,type,wallet,currency,amount,category,to_wallet,to_currency,to_amount,original_expense_id,note
-50000000-0000-4000-8000-000000000001,2026-11-16,EXPENSE,日常钱包,CNY,12.80,未分类,,,,,食材
-50000000-0000-4000-8000-000000000002,2026-11-16,TRANSFER,日常钱包,CNY,10.00,,旅行钱包,JPY,200,,跨币种转账示例
-50000000-0000-4000-8000-000000000003,2026-11-16,REFUND,日常钱包,CNY,2.80,未分类,,,,50000000-0000-4000-8000-000000000001,部分退款
+id,date,time,type,wallet,currency,amount,category,to_wallet,to_currency,to_amount,original_expense_id,note
+50000000-0000-4000-8000-000000000001,2026-11-16,18:30,EXPENSE,日常钱包,CNY,12.80,未分类,,,,,食材
+50000000-0000-4000-8000-000000000002,2026-11-16,18:40,TRANSFER,日常钱包,CNY,10.00,,旅行钱包,JPY,200,,跨币种转账示例
+50000000-0000-4000-8000-000000000003,2026-11-16,18:50,REFUND,日常钱包,CNY,2.80,未分类,,,,50000000-0000-4000-8000-000000000001,部分退款
 ```
 
 ### 5.4 名称映射、重复与事务
@@ -323,7 +327,7 @@ id,date,type,wallet,currency,amount,category,to_wallet,to_currency,to_amount,ori
 3. 方式按规范化名称匹配；未知方式先映射，或在设置中创建后重试，不能猜测分类开关。
 4. 解析制作分类与收支分类，新名称准备为待创建项；预览阶段不写数据库。
 5. 同一文件中重复 ID 直接报告错误。与现有数据 ID 相同且业务字段一致则跳过；内容不同则冲突，不以更新时间推断覆盖。
-6. 业务字段比较包括日期、方式、分类集合、金额、钱包和文本；不比较 CSV 未包含的 createdAt／updatedAt。
+6. 业务字段比较包括日期、财务流水的 time、方式、分类集合、金额、钱包和文本；不比较 CSV 未包含的 createdAt／updatedAt。
 7. 不同 ID 占用同一日期餐次是冲突。不同 ID 的同金额同备注账目仍可是真实独立账目，不以近似内容去重。
 8. 无 ID 行在准备提交时生成 UUID；先通过 ImportReceipt 拦截相同文件的重复导入，不能声称可自动识别所有内容相近的外部文件。
 9. 校验全部引用、退款累计和余额计算约束后，展示新增／跳过／错误数量；有错误则整批不提交。
@@ -334,7 +338,7 @@ id,date,type,wallet,currency,amount,category,to_wallet,to_currency,to_amount,ori
 ### 6.1 恢复前校验顺序
 
 1. 编码、JSON／CSV 语法、format 与版本、字段集合、值类型。
-2. UUID、日期时间、金额整数字符串、币种精度与枚举。
+2. UUID、日历日期、财务流水必填的 HH:mm 业务时间、UTC 审计时间、金额整数字符串、币种精度与枚举。
 3. 每类 ID 唯一、规范化名称约束、日期餐次唯一、必要的兜底分类。
 4. 方式、分类、钱包、转账和退款引用；检查类型、scope 和币种，不只检查 ID 存在。
 5. plannedAtHome 条件、无方式不得有分类、转账双金额、退款累计、受限金额计算。
@@ -344,6 +348,7 @@ id,date,type,wallet,currency,amount,category,to_wallet,to_currency,to_amount,ori
 ### 6.2 版本政策
 
 - Room schemaVersion 与 JSON formatVersion 独立递增，更新应用版本不自动要求更新两者。
+- 2026-11-17 在尚未发布的 v1 设计中加入财务 time 和 ledger-v1 的 time 列；早期文档示例不是已发布格式。缺失时间应报错，不能自动填 00:00 或由 createdAt 推导。
 - 首版目标是数据库 v1、JSON v1。当前没有历史已发布格式，不能声称兼容一个未存在的 v0 或旧 isCooked 数据。
 - 已发布格式增加字段、模块或改变语义时提升 formatVersion，提供旧版本到当前版本的明确迁移和回归样例。
 - 迁移在暂存数据上完成，全量校验成功后才写入业务库；不对源文件原地改写。
@@ -354,6 +359,8 @@ id,date,type,wallet,currency,amount,category,to_wallet,to_currency,to_amount,ori
 
 本节是实现验收清单，不表示测试已运行：
 
+- [ ] 四种流水的 time 必填，00:00／23:59 有效，24:00、12:60、带秒或缺失值被拒绝；补录／编辑不覆盖发生时间，同分钟稳定排序，跨时区显示和跨月统计符合业务日期规则。
+- [ ] JSON／CSV 时间往返一致，相同 ID 不同 time 报冲突，不静默补齐旧设计缺失值。
 - [ ] JSON 示例解析、引用与余额结果正确；导出→恢复→导出保持业务数据等价。
 - [ ] 超出 JavaScript 安全整数范围但在 Long 范围内的金额字符串往返不丢精度。
 - [ ] CNY、JPY 和其他支持精度的金额往返正确，CSV 超精度被拒绝。
