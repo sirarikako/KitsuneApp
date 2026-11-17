@@ -28,6 +28,14 @@ JVM 测试覆盖显式必选计划、条件必选方式、计划与实际方式�
 
 模拟器未使用硬件加速，启动中曾出现系统 UI 无响应与 ADB 属性读取超时；等待系统稳定后最终测试全部通过。此结果只证明上述 API 26 测试范围，不表示真机或新 Android 版本都已验收。
 
+## Android 16 安装反馈与文件检查（2026-11-17）
+
+- 用户设备：三星 Galaxy S25，Android 16。用户反馈聊天内点击“安装”没有弹出安装器；改从“三星我的文件 → 下载”打开原 APK 后，已成功安装并打开 KitsuneApp。这是用户实际设备的确认，非云端模拟结果；并不代表所有业务与外观功能已在该设备验收。
+- APK 未重新构建或重新签名，SHA-256 与上文一致。检查确认包含 arm64-v8a 原生库、没有 maxSdkVersion／testOnly 限制；APK v2 签名校验通过。
+- `zipalign -c -P 16 -v 4` 通过；arm64-v8a 与 x86_64 原生库的 ELF LOAD 段对齐均为 0x4000（16 KiB）。这些静态检查不能替代所有 16 KiB 真机运行测试。
+- 云端 Android 16 软件模拟器未完成稳定启动，没有声称 Android 16 模拟器自动化通过。
+- 首次 GitHub Actions 的 build 作业在 SDK 初始化失败（run 44043896388）：setup-android 默认请求已不存在的 `tools` 包。现改为显式安装 Platform Tools、当前 compileSdk 对应平台和 Build Tools，并将设备测试矩阵扩展为 API 35／36。修改后的远端结果仍以 GitHub Actions 实际运行记录为准。
+
 ## 尚未完成的验收
 
 - Android 12+ 动态取色、Android 13+ 主题图标、不同启动器圆形／圆角方形遮罩。
