@@ -1,0 +1,5 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:left="7dp" android:top="4dp" android:right="7dp" android:bottom="10dp">
+        <bitmap android:src="@drawable/fox_artwork" android:gravity="fill" android:filter="true" />
+    </item>
+</layer-list>
