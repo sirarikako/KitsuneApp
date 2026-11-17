@@ -1,14 +1,20 @@
 # KitsuneApp v1 数据格式与兼容契约
 
-更新日期：2026-11-16。状态：**首版设计契约，尚未发布、尚无数据库或导入导出实现**。
+更新日期：2026-11-17。状态：**首版设计契约，尚未发布；阶段 1 已实现用餐与主题的 Room 数据库，JSON／CSV 尚未实现**。
 
 本文把 [PLAN.md](PLAN.md) 的数据需求具体化，供后续模型建立实体、序列化器、校验器、导入器和测试。示例为虚构数据，不能被标注为真实应用导出。格式在首次发布前可以协调修订并同步计划；一旦发布，须遵守本文的版本兼容规则。
+
+## 当前实现边界
+
+阶段 1 的 Room schema 位于 `app/schemas/`：已实现 MealMethod、Category（含收支兜底项）、MealRecord、MealPreparationCategory、ThemePreferences 与内部 DataState。主题表和数据状态表额外使用固定 singleton=1 主键，该内部字段不属于备份格式。后续阶段通过显式数据库迁移增加其余实体；schemaVersion 与 JSON formatVersion 独立演进。
+
+本文以下完整 JSON／CSV 契约仍为后续实现的目标，尚未提供导入导出功能。现有 DataState 在成功变更时递增 revision，失败和无变化提交不递增；没有配置可用目标时不创建快照队列。该行为不等于已经实现 AUTO／MANUAL／PRE_RESTORE 或每次更新的可靠备份。
 
 ## 1. 版本与数据边界
 
 | 概念 | v1 约定 |
 | --- | --- |
-| Room 数据库 schemaVersion | 计划从 1 开始；当前没有已创建的数据库 |
+| Room 数据库 schemaVersion | 当前为 1，已导出 schema；阶段 2／3 增表时须显式迁移 |
 | 完整 JSON formatVersion | 数字 `1` |
 | 完整 JSON format | 固定字符串 `kitsune-backup` |
 | CSV | 两套固定表头，称为 meals-v1 和 ledger-v1；不在文件开头插入非 CSV 注释 |

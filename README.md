@@ -1,139 +1,121 @@
 # KitsuneApp
 
-一个本地优先的 Android 个人生活记录工具，计划从用餐记录、多钱包记账和数据备份开始，逐步扩展功能。
+本地优先的 Android 个人生活记录工具。采用 Kotlin、Jetpack Compose、Material 3 与 Room，最低 Android 8.0／API 26，界面以简体中文为主。
 
 ## 当前状态
 
-截至 2026-11-16，已完成需求整理与开发交接文档，**尚未初始化 Android 工程**。
+2026-11-17：按设计完成阶段 1 的工程与用餐实现。记账、文件导入导出及备份尚未实现，应用内会明确显示后续阶段与未配置状态。
 
-| 项目 | 状态 |
+| 项目 | 实现状态 |
 | --- | --- |
-| 产品计划与验收标准 | 已整理到 PLAN.md |
-| 开发协作约定 | 已整理到 AGENTS.md |
-| v1 数据格式 | 已设计并提供 JSON／CSV 示例，尚无运行时实现 |
-| Gradle／Android 工程、界面与业务 | 未开始 |
-| 狐狸图标、导入导出、备份 | 未实现 |
-| Android 构建、自动化测试、真机验收 | 未执行，目前没有可运行工程 |
-| APK | 尚未生成 |
+| Android 工程与 Gradle Wrapper | 已建立，依赖版本集中在 `gradle/libs.versions.toml` |
+| 统一外观 | 明暗三模式、五个预设、HEX／HSV 自选、Tonal Spot、动态取色及旧系统回退；预览／应用／取消 |
+| 狐狸图标 | 原创透明 PNG 前景、独立背景、Android 13 单色层；见 [资产说明](artwork/README.md) |
+| 用餐 | 新增／编辑／删除、必选计划、条件必选方式、多选与临时新增分类、多行文本 |
+| 查询与复用 | 日历定位、历史关键词与餐次／方式／分类筛选、复制上一餐内容、月度统计 |
+| 方式与制作分类设置 | 新增、改名、排序、停用／启用；保留历史引用 |
+| 本地数据 | Room v1、唯一索引、外键、统一事务入口与本地修订号；不使用破坏性迁移 |
+| 记账 | 阶段 2，未实现 |
+| JSON／CSV、目录备份与恢复 | 阶段 3，未实现 |
+| GitHub 备份、正式签名 APK | 阶段 4，未实现 |
 
-本次交付限于文档。下一位开发者或模型收到开始开发的指示后，可直接按计划实施，无需重新收集已确认需求。
+日常用餐记录不需要网络或账号。当前数据只保存在应用数据库，尚不能导出或换机恢复；卸载会删除记录。不要将此阶段的调试包作为完整正式版本。
 
 ## 文档入口
 
-| 文档 | 用途 |
+- [AGENTS.md](AGENTS.md)：协作规则与阅读顺序。
+- [docs/PLAN.md](docs/PLAN.md)：完整需求、阶段和验收条件。
+- [docs/DATA_FORMAT.md](docs/DATA_FORMAT.md)：v1 备份／CSV 设计契约，以及当前数据库实现边界。
+- [docs/VERIFICATION.md](docs/VERIFICATION.md)：实际检查结果和未验证项。
+
+## 工具链
+
+| 项目 | 锁定／实测版本 |
 | --- | --- |
-| [AGENTS.md](AGENTS.md) | 开发前必读：文档入口、协作规则、验证要求 |
-| [docs/PLAN.md](docs/PLAN.md) | 完整产品需求、页面、技术方向、实施阶段与验收标准 |
-| [docs/DATA_FORMAT.md](docs/DATA_FORMAT.md) | v1 实体、JSON 备份、CSV、数据校验与迁移契约 |
+| 构建 JDK | 完整 JDK 21；本次使用 Eclipse Temurin 21.0.9+10（仅 JRE 不足以构建） |
+| Java／Kotlin 字节码 | 17 |
+| Gradle | 8.13，Wrapper 校验发行包 SHA-256 |
+| Android Gradle Plugin | 8.10.1 |
+| Kotlin／Compose 编译插件 | 2.1.21 |
+| KSP | 2.1.21-2.0.1 |
+| Compose BOM | 2025.05.01 |
+| Material Components／Color Utilities | 1.12.0 |
+| Room | 2.7.1 |
+| Lifecycle／Activity | 2.9.0／1.10.1 |
+| compileSdk／targetSdk／minSdk | 35／35／26 |
+| Android Build Tools | 35.0.0 |
+| 应用 ID | `com.sirarikako.kitsune` |
+| versionName／versionCode | 0.1.0／1 |
 
-建议交接指令：
+## 构建与安装
 
-> 请先阅读 AGENTS.md、README.md、docs/PLAN.md 和 docs/DATA_FORMAT.md，然后按计划阶段开始实现。采用最新用餐规则，持续维护文档，记录真实构建和测试结果。
+1. 安装 Android Studio 或完整 JDK 21、Android SDK Platform 35、Build Tools 35.0.0、Platform Tools，按 SDK 工具提示接受许可。
+2. 在 Android Studio 打开仓库根目录，等待 Gradle 同步；或配置 `JAVA_HOME` 和 `ANDROID_HOME` 后使用命令行。也可在未跟踪的 `local.properties` 中填写 `sdk.dir=你的SDK路径`。
+3. 所有依赖需在首次构建时下载；日常应用使用不依赖网络。
 
-## 第一版计划提供什么
+Linux／macOS：
 
-### 用餐
+```sh
+./gradlew :app:assembleDebug
+./gradlew :app:testDebugUnitTest :app:lintDebug
+./gradlew :app:assembleDebugAndroidTest
 
-- 按日期记录早餐、午餐、晚餐；同一天同一餐唯一。
-- “是否计划在家吃”必选是／否；为是时必须单选一种用餐方式，为否时方式可不填。
-- 用餐方式在设置中管理，默认下厨、外卖；每种方式可决定是否显示多选制作分类。
-- 制作分类支持下拉选择和录入时新增，例如炒菜、预制菜。
-- 菜品与备注使用多行文本，支持历史搜索、复制和月度统计。
+# 以下需要已连接、解锁的 API 26+ 模拟器或设备
+./gradlew :app:connectedDebugAndroidTest
+./gradlew :app:installDebug
+```
 
-### 记账
-
-- 多钱包，每个钱包独立币种及初始余额。
-- 收支分类、计算器输入、钱包转账、部分／全部退款。
-- 跨币种转账手填两侧金额，按币种分别统计，不做自动汇率或统一资产折算。
-
-### 数据与外观
-
-- 可阅读的完整 JSON 备份与恢复、标准 UTF-8 CSV 导入导出。
-- 指定目录自动备份，每次修改有对应快照，本地保留最近 30 个成功版本。
-- 可选 GitHub 私有仓库备份与历史恢复，单手机为主，不做多设备自动合并。
-- 柔和卡片界面，预设调色板、自选主色、跟随系统明暗、支持的平台上动态取色。
-- 原创暖橙色卡通狐狸头像图标，提供彩色自适应和单色主题版本。
-
-## 技术方向
-
-| 项目 | 已确定方向 |
-| --- | --- |
-| 平台 | Android 8.0／API 26 及以上，默认简体中文 |
-| 语言与界面 | Kotlin、Jetpack Compose、Material 3 |
-| 本地数据 | Room，UI → ViewModel → Repository → 本地数据库 |
-| 后台任务 | WorkManager，文件目录通过系统授权 |
-| 工程组织 | 按用餐、记账、设置分包，统一主题、数据库和备份服务 |
-| 交付 | 可重复构建的工程、签名 APK、运行与升级说明 |
-
-JDK、Gradle、Android Gradle Plugin、Kotlin 和具体库版本尚未选择或锁定。工程初始化时使用相互兼容的稳定版本，并将实际值与验证结果补充到本文。
-
-## 环境、构建与安装
-
-当前仓库只有文档，不能直接导入为一个可构建的 Android 项目，也不能执行以下 Gradle 命令。此处列出的是后续初始化步骤与命令模板，不代表已验证环境。
-
-### 初始化时需要完成
-
-1. 安装或确认 Android Studio、所选 AGP 支持的 JDK、Android SDK 与可用模拟器／真机。
-2. 在此仓库初始化 Kotlin／Compose 工程、app 模块与 Gradle Wrapper，最低 SDK 为 26。
-3. 集中锁定兼容的依赖版本，配置单元测试、设备测试及 lint。
-4. 配置忽略规则，排除本机 SDK 配置、构建目录、签名私钥、Token 和个人数据。
-5. 验证以下命令后，用实际版本、模块名、APK 路径和测试结果更新本文。
-
-### 预期 Windows PowerShell 命令
-
-在工程根目录运行；这些命令要等工程建立后才能使用：
+Windows PowerShell：
 
 ```powershell
-# 编译调试 APK
 .\gradlew.bat :app:assembleDebug
-
-# 运行本地单元测试与 lint
-.\gradlew.bat :app:testDebugUnitTest
-.\gradlew.bat :app:lintDebug
-
-# 以下命令需要已连接的兼容模拟器或真机
+.\gradlew.bat :app:testDebugUnitTest :app:lintDebug
 .\gradlew.bat :app:connectedDebugAndroidTest
 .\gradlew.bat :app:installDebug
 ```
 
-默认单 app 模块的调试 APK 预期位于 `app/build/outputs/apk/debug/app-debug.apk`；该文件当前不存在，生成后须确认实际位置。
+调试包：`app/build/outputs/apk/debug/app-debug.apk`。也可运行：
 
-正式签名、release 打包命令和升级安装说明在发布阶段补充。不能把 debug 安装包标为正式签名版本，也不能把私钥写进仓库。
+```sh
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
 
-### 实际环境记录
+调试包由本机自动生成的 debug 密钥签名，不是正式发布签名。同一应用 ID 且相同签名的升级安装通常保留数据库；不同机器的 debug 签名可能不同。不要通过卸载来解决签名冲突后误认为数据仍会保留。正式签名和长期升级方案在阶段 4 提供，私钥不入库。
 
-| 项目 | 当前记录 |
-| --- | --- |
-| JDK／AGP／Gradle／Kotlin 版本 | 待初始化与验证 |
-| compileSdk／targetSdk | 待选定稳定工具链后锁定 |
-| minSdk | 已确定为 26，尚未写入工程 |
-| 应用标识及版本号 | 待初始化工程确定并记录 |
-| 构建／测试命令结果 | 尚无 Android 工程，未运行 |
-| 设备与 GitHub 实测 | 未进行 |
+CI 位于 `.github/workflows/android.yml`，包含构建、JVM 单元测试、lint、测试 APK 编译，以及 API 35 模拟器设备测试。CI 上传调试 APK 与验证报告。配置存在不代表远端 CI 已执行，实际结果见验证记录。
 
-## 数据使用方式（待实现）
+## 实现结构
 
-- **本地记录**：没有网络、没有配置 GitHub，也能记录和查询。
-- **文件夹备份**：在应用设置中使用系统选择器授权目录，首次授权立即备份当前数据，后续修改自动生成快照。
-- **GitHub**：独立配置用于数据备份的私有仓库、分支和限定仓库权限的 Token；首次发现已有云端文件时不自动覆盖。
-- **完整恢复**：JSON 整体替换业务数据；先校验、显示摘要，并保存恢复前快照。目录授权与凭证需要在设备上配置。
-- **CSV**：用于批量记录和表格查看，导入前预览与校验；钱包、完整设置和全量迁移使用 JSON。
-- **备份形式**：JSON 内容本身不加密；Token 不包含在其中。不要把个人备份作为源码提交。
+```text
+app/src/main/java/com/sirarikako/kitsune/
+  core/data/         Room 实体、DAO、Repository、用餐约束与统计
+  core/theme/        Material Tonal Spot、动态取色、主题偏好
+  feature/meals/     记录表单、日历／历史筛选、月度统计
+  feature/settings/  词表管理与外观预览
+  ui/                ViewModel、四个导航入口与共用组件
+app/schemas/         已导出的 Room v1 schema
+```
 
-实际文件规范、字段和样例见 [DATA_FORMAT.md](docs/DATA_FORMAT.md)。
+UI → ViewModel → Repository → Room。数据库事务是保存成功的边界，新分类和用餐关联一起提交；冲突不覆盖已有记录。名称引用基于 UUID，规范化索引采用 NFC、trim 和 Locale.ROOT 小写；自由文本不裁剪。
+
+Material Color Utilities 通过单一适配函数使用固定版本；该库对工具类标有库内 API 限定，适配函数局部说明并处理此限定。升级该依赖时须复核 API 与种子色对比度测试。
+
+所有业务变更经统一入口递增修订号。阶段 1 没有可用的备份目标，不积累虚构的历史快照任务；阶段 3 引入目标授权及同事务不可变 outbox 后，才能承诺每次更新对应备份。未来新增模块应通过显式 Room 迁移扩展，不能使用 `fallbackToDestructiveMigration`。
 
 ## 实施顺序
 
-- [x] 完整计划、协作约定、README 与数据格式设计。
-- [ ] 阶段 1：Android 工程、统一主题、狐狸图标、用餐与分类管理。
-- [ ] 阶段 2：钱包、计算器、收支、转账、退款与统计。
-- [ ] 阶段 3：JSON／CSV、本地自动备份、恢复与版本保留。
-- [ ] 阶段 4：GitHub 私有库、异常处理、真机验证、签名 APK。
+- [x] 计划、协作约定、README 与数据格式设计。
+- [x] 阶段 1 代码：工程、主题、狐狸图标、用餐与分类管理。
+- [ ] 阶段 1 完整设备验收：所有明暗／动态取色、图标遮罩、大字体与键盘组合。
+- [ ] 阶段 2：多钱包、计算器、收支、转账、退款与统计。
+- [ ] 阶段 3：JSON／CSV、自动目录备份、恢复与 30 版本保留。
+- [ ] 阶段 4：GitHub 私有库、异常与升级验证、正式签名 APK。
 
-完整验收条件见 [PLAN.md](docs/PLAN.md)。完成阶段后更新此清单，并补充实际验证证据。
+## 常见问题
 
-## 已做与未做的验证
-
-目前的验证仅覆盖文档：文件编码与链接、需求一致性、JSON／CSV 示例的可解析性及样例数据关系。数据格式文档中的示例是虚构数据，不是从真实应用导出的结果。
-
-尚未执行 Android 编译、lint、单元测试、设备测试、GitHub 连接或恢复实测；这些工作随实现阶段完成。
+- **找不到 SDK**：通过 Android Studio 安装上述组件，并配置未跟踪的 `local.properties` 或 SDK 环境变量。
+- **找不到 Java 编译器**：确认使用完整 JDK 21，`java -version` 与 `javac -version` 都应可用。
+- **动态取色不可选**：需要 Android 12／API 31+；旧设备使用保留的预设。
+- **同一天同一餐保存冲突**：返回已有记录编辑，不能新增覆盖。
+- **关闭方式的分类开关后仍有历史分类**：这是设计行为；编辑备注保留历史分类，主动清空或切换到不显示分类的方式才清除。
+- **备份显示未配置**：当前版本尚未提供备份，不会把本地保存误报为云端成功。

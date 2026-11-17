@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.Kitsune" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:colorAccent">#C47A4A</item>
+    </style>
+    <color name="icon_background">#FFF3E2</color>
+</resources>
