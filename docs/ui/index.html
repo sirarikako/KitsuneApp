@@ -2028,6 +2028,16 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-app-mark{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:48px;height:48px;border-radius:15px;background:light-dark(#f7dfc6,#59402e);font-size:30px;line-height:1}
   #kitsune-preview .ks-home-brand .ks-title{font-size:25px;letter-spacing:0}
   #kitsune-preview .ks-home-brand .ks-sub{margin-top:3px}
+  #kitsune-preview .ks-home-currency{display:grid;grid-template-columns:36px repeat(2,minmax(0,1fr));align-items:start;gap:9px;padding:10px 0}
+  #kitsune-preview .ks-home-currency + .ks-home-currency{border-top:1px solid var(--ks-line)}
+  #kitsune-preview .ks-home-currency small{display:block;color:var(--ks-dim);font-size:11px;margin-bottom:3px}
+  #kitsune-preview .ks-home-currency strong{display:block;font-size:16px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+  #kitsune-preview .ks-home-currency .ks-money-caption{padding-top:2px;font-weight:600}
+  #kitsune-preview .ks-home-money .ks-primary{width:100%;margin-top:8px}
+  #kitsune-preview .ks-ledger-range{margin:0 0 10px}
+  #kitsune-preview .ks-ledger-range-form{display:grid;gap:9px;margin:9px 0 13px}
+  #kitsune-preview .ks-ledger-range-form .ks-control{min-width:0;padding:8px;font-size:13px}
+  #kitsune-preview .ks-ledger-range-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
   #kitsune-preview .ks-stat-row{padding:10px 0 13px}
   #kitsune-preview .ks-stat-row .ks-row{font-size:13px}
   #kitsune-preview .ks-stat-row strong{font-weight:500;font-variant-numeric:tabular-nums}
@@ -2080,6 +2090,9 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-wallet-scope svg{width:16px;height:16px;flex-shrink:0}
   #kitsune-preview .ks-wallet-chip{display:inline-block;font-size:10px;font-weight:400;line-height:1.6;background:var(--ks-soft);color:var(--ks-dim);border-radius:5px;padding:1px 5px;margin-left:5px;vertical-align:middle}
   #kitsune-preview .ks-currency-amount{display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;font-variant-numeric:tabular-nums}
+  #kitsune-preview .ks-currency-amount strong,#kitsune-preview .ks-currency-group strong,#kitsune-preview .ks-amount{overflow-wrap:anywhere}
+  #kitsune-preview .ks-currency-amount{max-width:55%;text-align:right}
+  #kitsune-preview .ks-summary&gt;div{min-width:0}
   #kitsune-preview .ks-currency-amount small{font-size:10px;color:var(--ks-dim);margin-top:2px}
   #kitsune-preview .ks-flow-button&gt;svg{width:13px;height:13px;flex-shrink:0;color:var(--ks-dim)}
   #kitsune-preview .ks-flow-button{gap:9px}
@@ -2121,6 +2134,8 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-appearance-note{font-size:12px;color:var(--ks-dim);line-height:1.65;margin:0 0 14px}
   #kitsune-preview .ks-appearance-preview{padding:14px;border-radius:16px;background:var(--ks-accent-bg);margin-bottom:12px;color:var(--ks-ink)}
   #kitsune-preview .ks-appearance-preview .ks-row{font-size:13px}
+  #kitsune-preview .ks-preview-modes{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+  #kitsune-preview .ks-preview-modes .ks-choice{min-height:36px;padding:5px 12px}
   #kitsune-preview .ks-theme-swatches{display:flex;gap:6px;margin:10px 0}
   #kitsune-preview .ks-theme-swatches span{height:20px;flex:1;border-radius:6px;background:var(--ks-accent)}
   #kitsune-preview .ks-theme-swatches span:nth-child(2){background:color-mix(in srgb,var(--ks-seed) 70%,var(--ks-paper))}
@@ -2148,12 +2163,17 @@ html&gt;body{padding:0}&lt;/style&gt;
   const slotIcons = [&#x27;sunrise&#x27;,&#x27;sun&#x27;,&#x27;moon&#x27;];
   const normalizeHex=value=&gt;{const text=String(value).trim().replace(/^#/,&#x27;&#x27;);return /^[0-9a-f]{6}$/i.test(text)?`#${text.toUpperCase()}`:null;};
   const demoSystemSeed=&#x27;#6B7650&#x27;;
+  const demoToday=&#x27;2026-11-17&#x27;;
+  const maximumEntryMinor=9223372036854775807n;
+  const themeModes=[[&#x27;system&#x27;,&#x27;跟随系统&#x27;],[&#x27;light&#x27;,&#x27;浅色&#x27;],[&#x27;dark&#x27;,&#x27;深色&#x27;]];
+  const systemDark=window.matchMedia(&#x27;(prefers-color-scheme: dark)&#x27;);
   root.querySelectorAll(&#x27;.ks-phone&#x27;).forEach((phone,index) =&gt; {
     const style = {radius:index ? 13:17, accent:index ? &#x27;#5f7f64&#x27;:&#x27;#c47a4a&#x27;,mode:&#x27;system&#x27;,mealHour:&#x27;auto&#x27;,colorSource:&#x27;PRESET&#x27;,presetColor:index?&#x27;#5f7f64&#x27;:&#x27;#c47a4a&#x27;,customColor:&#x27;#C47A4A&#x27;};
     const state = {page:&#x27;settings&#x27;, date:&#x27;2026-11-17&#x27;, ledgerMonth:&#x27;2026-11&#x27;,mealMonth:&#x27;2026-11&#x27;,ledgerTab:&#x27;统计&#x27;, mealTab:&#x27;记录&#x27;, slot:2, atHome:null, method:null, categories:[], amount:&#x27;&#x27;,calcOpen:false,calcExpression:&#x27;&#x27;,entryType:&#x27;支出&#x27;,entryDraft:{dateTime:&#x27;2026-11-17T09:41&#x27;,note:&#x27;&#x27;,category:&#x27;餐饮&#x27;,walletId:&#x27;daily&#x27;},notice:&#x27;&#x27;, mealReturn:&#x27;home&#x27;, entries:[], records:{}};
+    state.ledgerRange=null;state.ledgerRangeOpen=false;state.previewMode=null;
     const blankMealFilters=()=&gt;({from:&#x27;&#x27;,to:&#x27;&#x27;,slot:&#x27;any&#x27;,atHome:&#x27;any&#x27;,method:&#x27;any&#x27;,preparations:[],keyword:&#x27;&#x27;});
     state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
-    const wallets=[{id:&#x27;daily&#x27;,name:&#x27;日常钱包&#x27;,code:&#x27;CNY&#x27;,scale:2,opening:0},{id:&#x27;pocket&#x27;,name:&#x27;零钱钱包&#x27;,code:&#x27;CNY&#x27;,scale:2,opening:50000},{id:&#x27;travel&#x27;,name:&#x27;旅行钱包&#x27;,code:&#x27;JPY&#x27;,scale:0,opening:20000}];
+    const wallets=[{id:&#x27;daily&#x27;,name:&#x27;日常钱包&#x27;,code:&#x27;CNY&#x27;,scale:2,opening:0n},{id:&#x27;pocket&#x27;,name:&#x27;零钱钱包&#x27;,code:&#x27;CNY&#x27;,scale:2,opening:50000n},{id:&#x27;travel&#x27;,name:&#x27;旅行钱包&#x27;,code:&#x27;JPY&#x27;,scale:0,opening:20000n}];
     const walletById=id=&gt;wallets.find(w=&gt;w.id===id)||wallets[0];
     const entryWallet=()=&gt;walletById(state.entryDraft.walletId);
     state.walletFilterIds=null;state.walletPickerOpen=false;state.walletDraftIds=[];state.lastWalletId=&#x27;daily&#x27;;
@@ -2162,8 +2182,12 @@ html&gt;body{padding:0}&lt;/style&gt;
     if(saved?.[index]){const s=saved[index];if([&#x27;light&#x27;,&#x27;dark&#x27;,&#x27;system&#x27;].includes(s.mode))style.mode=s.mode;for(const key of [&#x27;ledgerMonth&#x27;,&#x27;mealMonth&#x27;])if(/^\d{4}-(0[1-9]|1[0-2])$/.test(s[key]||&#x27;&#x27;)&amp;&amp;s[key].slice(0,4)!==&#x27;0000&#x27;)state[key]=s[key];if(Array.isArray(s.walletFilterIds)){const ids=wallets.filter(w=&gt;s.walletFilterIds.includes(w.id)).map(w=&gt;w.id);if(ids.length&amp;&amp;ids.length&lt;wallets.length)state.walletFilterIds=ids;}const f=s.mealFilters;if(f&amp;&amp;typeof f===&#x27;object&#x27;){for(const key of [&#x27;from&#x27;,&#x27;to&#x27;])if(typeof f[key]===&#x27;string&#x27;&amp;&amp;/^\d{4}-\d{2}-\d{2}$/.test(f[key]))state.mealFilters[key]=f[key];if([&#x27;any&#x27;,&#x27;0&#x27;,&#x27;1&#x27;,&#x27;2&#x27;].includes(f.slot))state.mealFilters.slot=f.slot;if([&#x27;any&#x27;,&#x27;yes&#x27;,&#x27;no&#x27;].includes(f.atHome))state.mealFilters.atHome=f.atHome;if(typeof f.method===&#x27;string&#x27;)state.mealFilters.method=f.method.slice(0,80);if(typeof f.keyword===&#x27;string&#x27;)state.mealFilters.keyword=f.keyword.slice(0,100);if(Array.isArray(f.preparations))state.mealFilters.preparations=f.preparations.filter(x=&gt;typeof x===&#x27;string&#x27;).slice(0,30).map(x=&gt;x.slice(0,80));state.mealListMode=s.mealListMode===true;}}
     state.records[&#x27;2026-11-17&#x27;] = [{atHome:true,method:&#x27;下厨&#x27;,categories:[],dishes:&#x27;燕麦粥、煎蛋&#x27;,note:&#x27;&#x27;},{atHome:false,method:&#x27;外卖&#x27;,categories:[],dishes:&#x27;照烧鸡腿饭&#x27;,note:&#x27;&#x27;},null];
     if(saved?.[index]){const s=saved[index];if([&#x27;PRESET&#x27;,&#x27;CUSTOM&#x27;,&#x27;SYSTEM&#x27;].includes(s.colorSource))style.colorSource=s.colorSource;if(normalizeHex(s.presetColor))style.presetColor=s.presetColor.toLowerCase();if(normalizeHex(s.customColor))style.customColor=normalizeHex(s.customColor);}
-    const appliedColor=()=&gt;({colorSource:style.colorSource,presetColor:style.presetColor,customColor:style.customColor});
-    state.colorDraft=appliedColor();
+    const isDate=value=&gt;/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(value)&amp;&amp;value.slice(0,4)!==&#x27;0000&#x27;&amp;&amp;new Date(value).toJSON()?.slice(0,10)===value;
+    const savedRange=saved?.[index]?.ledgerRange;
+    if(savedRange&amp;&amp;isDate(savedRange.from)&amp;&amp;isDate(savedRange.to)&amp;&amp;savedRange.from&lt;=savedRange.to)state.ledgerRange={from:savedRange.from,to:savedRange.to};
+    const appliedAppearance=()=&gt;({mode:style.mode,colorSource:style.colorSource,presetColor:style.presetColor,customColor:style.customColor});
+    const resetAppearance=()=&gt;{state.appearanceDraft=appliedAppearance();state.previewMode=null;};
+    resetAppearance();
     const colorSeed=theme=&gt;theme.colorSource===&#x27;SYSTEM&#x27;?demoSystemSeed:theme.colorSource===&#x27;CUSTOM&#x27;?(normalizeHex(theme.customColor)||style.customColor):theme.presetColor;
     state.records[&#x27;2026-10-31&#x27;] = [{atHome:true,method:&#x27;下厨&#x27;,categories:[&#x27;炒菜&#x27;],dishes:&#x27;番茄炒蛋&#x27;,note:&#x27;&#x27;},{atHome:false,method:&#x27;外卖&#x27;,categories:[],dishes:&#x27;牛肉面&#x27;,note:&#x27;&#x27;},{atHome:false,method:null,categories:[],dishes:&#x27;和朋友吃饭&#x27;,note:&#x27;&#x27;}];
     const exampleEntries = [
@@ -2176,16 +2200,30 @@ html&gt;body{padding:0}&lt;/style&gt;
       {date:&#x27;2026-10-28&#x27;,time:&#x27;08:30&#x27;,type:&#x27;支出&#x27;,category:&#x27;交通&#x27;,cents:18000,note:&#x27;交通卡充值&#x27;},
       {date:&#x27;2026-10-01&#x27;,time:&#x27;09:00&#x27;,type:&#x27;收入&#x27;,category:&#x27;工资&#x27;,cents:850000,note:&#x27;工资到账&#x27;},
       {date:&#x27;2026-11-16&#x27;,time:&#x27;13:10&#x27;,type:&#x27;支出&#x27;,category:&#x27;餐饮&#x27;,cents:1200,note:&#x27;旅行午餐&#x27;,walletId:&#x27;travel&#x27;},
-      {date:&#x27;2026-11-15&#x27;,time:&#x27;09:00&#x27;,type:&#x27;收入&#x27;,category:&#x27;未分类&#x27;,cents:5000,note:&#x27;旅行备用金&#x27;,walletId:&#x27;travel&#x27;}
+      {date:&#x27;2026-11-15&#x27;,time:&#x27;09:00&#x27;,type:&#x27;收入&#x27;,category:&#x27;未分类&#x27;,cents:5000,note:&#x27;旅行备用金&#x27;,walletId:&#x27;travel&#x27;},
+      {date:&#x27;2026-11-17&#x27;,time:&#x27;20:15&#x27;,type:&#x27;退款&#x27;,originalExpenseId:&#x27;example-1&#x27;,cents:3000,note:&#x27;退回日常钱包&#x27;}
     ];
-    const financialEntries = () =&gt; [...exampleEntries.map((entry,i)=&gt;({walletId:i===1||i===5?&#x27;pocket&#x27;:&#x27;daily&#x27;,...entry,id:`example-${i}`})),...state.entries].filter(entry=&gt;!state.deletedEntryIds.has(entry.id));
+    const sampleEntries=exampleEntries.map((entry,i)=&gt;({walletId:i===1||i===5?&#x27;pocket&#x27;:&#x27;daily&#x27;,...entry,id:`example-${i}`,cents:BigInt(entry.cents)}));
+    const financialEntries=()=&gt;[...sampleEntries,...state.entries].filter(entry=&gt;!state.deletedEntryIds.has(entry.id));
     const monthEntries = month =&gt; financialEntries().filter(e=&gt;e.date.startsWith(month));
-    const money = (minor,code=&#x27;CNY&#x27;) =&gt; {const scale=wallets.find(w=&gt;w.code===code)?.scale??2;return (minor/10**scale).toLocaleString(&#x27;en-US&#x27;,{minimumFractionDigits:scale,maximumFractionDigits:scale});};
-    const inputAmount = minor =&gt; (minor/10**entryWallet().scale).toFixed(entryWallet().scale);
-    const total = (entries,type) =&gt; entries.filter(e=&gt;e.type===type).reduce((sum,e)=&gt;sum+e.cents,0);
+    function formatMinor(minor,scale,grouping){
+      const factor=10n**BigInt(scale),absolute=minor&lt;0n?-minor:minor;
+      const whole=(absolute/factor).toLocaleString(&#x27;en-US&#x27;,{useGrouping:grouping});
+      const fraction=(absolute%factor).toString().padStart(scale,&#x27;0&#x27;);
+      return `${minor&lt;0n?&#x27;-&#x27;:&#x27;&#x27;}${whole}${scale?&#x27;.&#x27;+fraction:&#x27;&#x27;}`;
+    }
+    const money=(minor,code)=&gt;formatMinor(minor,wallets.find(w=&gt;w.code===code).scale,true);
+    const inputAmount=minor=&gt;formatMinor(minor,entryWallet().scale,false);
+    const total=(entries,type)=&gt;entries.filter(e=&gt;e.type===type).reduce((sum,e)=&gt;sum+e.cents,0n);
+    const netExpense=entries=&gt;total(entries,&#x27;支出&#x27;)-total(entries,&#x27;退款&#x27;);
+    const entryCategory=entry=&gt;entry.type===&#x27;退款&#x27;?financialEntries().find(e=&gt;e.id===entry.originalExpenseId).category:entry.category;
     const selectedWallets=()=&gt;wallets.filter(w=&gt;state.walletFilterIds===null||state.walletFilterIds.includes(w.id));
-    const selectedEntries=month=&gt;monthEntries(month).filter(e=&gt;state.walletFilterIds===null||state.walletFilterIds.includes(e.walletId));
-    const currencyGroups=entries=&gt;[...new Set(selectedWallets().map(w=&gt;w.code))].map(code=&gt;({code,entries:entries.filter(e=&gt;walletById(e.walletId).code===code)}));
+    const matchesLedgerScope=entry=&gt;{
+      const range=state.ledgerRange;
+      const dateMatches=range?range.from&lt;=entry.date&amp;&amp;entry.date&lt;=range.to:entry.date.startsWith(state.ledgerMonth);
+      return dateMatches&amp;&amp;(state.walletFilterIds===null||state.walletFilterIds.includes(entry.walletId));
+    };
+    const currencyGroups=(entries,scope)=&gt;[...new Set(scope.map(w=&gt;w.code))].map(code=&gt;({code,entries:entries.filter(e=&gt;walletById(e.walletId).code===code)}));
     const allMeals = () =&gt; Object.entries(state.records).flatMap(([date,records])=&gt;records.flatMap((record,slot)=&gt;record?[{...record,date,slot}]:[]));
     const mealFilterLabels=()=&gt;{const f=state.mealFilters,labels=[];if(f.from||f.to)labels.push(`${f.from||&#x27;最早&#x27;} ～ ${f.to||&#x27;至今&#x27;}`);if(f.slot!==&#x27;any&#x27;)labels.push(slots[Number(f.slot)]);if(f.atHome!==&#x27;any&#x27;)labels.push(`计划在家：${f.atHome===&#x27;yes&#x27;?&#x27;是&#x27;:&#x27;否&#x27;}`);if(f.method!==&#x27;any&#x27;)labels.push(f.method===&#x27;none&#x27;?&#x27;方式未填写&#x27;:f.method);labels.push(...f.preparations);if(f.keyword)labels.push(`关键词：${f.keyword}`);return labels;};
     const filteredMeals=()=&gt;{const f=state.mealFilters,keyword=f.keyword.toLocaleLowerCase();return allMeals().filter(m=&gt;(!f.from||m.date&gt;=f.from)&amp;&amp;(!f.to||m.date&lt;=f.to)&amp;&amp;(f.slot===&#x27;any&#x27;||m.slot===Number(f.slot))&amp;&amp;(f.atHome===&#x27;any&#x27;||m.atHome===(f.atHome===&#x27;yes&#x27;))&amp;&amp;(f.method===&#x27;any&#x27;||(f.method===&#x27;none&#x27;?!m.method:m.method===f.method))&amp;&amp;(!f.preparations.length||f.preparations.some(c=&gt;m.categories.includes(c)))&amp;&amp;(!keyword||`${m.dishes}\n${m.note}`.toLocaleLowerCase().includes(keyword))).sort((a,b)=&gt;b.date.localeCompare(a.date)||a.slot-b.slot);};
@@ -2194,7 +2232,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       const all = [...root.querySelectorAll(&#x27;.ks-phone&#x27;)].map(p =&gt; p.ksSnapshot?.() || {});
       window.openai?.setWidgetState?.({modelContent:{方案:[&#x27;杏橙手账&#x27;,&#x27;清爽日常&#x27;],当前页面:all.map(s=&gt;s.page),用餐筛选:all.map(s=&gt;s.mealListMode?s.mealFilters:null)},privateContent:{kitsune:all}})?.catch(()=&gt;{});
     };
-    phone.ksSnapshot = () =&gt; ({page:navs.some(n=&gt;n[0]===state.page)?state.page:&#x27;home&#x27;,mode:style.mode,...appliedColor(),ledgerMonth:state.ledgerMonth,mealMonth:state.mealMonth,walletFilterIds:state.walletFilterIds,mealListMode:state.mealListMode,mealFilters:state.mealFilters});
+    phone.ksSnapshot=()=&gt;({page:navs.some(n=&gt;n[0]===state.page)?state.page:&#x27;home&#x27;,...appliedAppearance(),ledgerMonth:state.ledgerMonth,ledgerRange:state.ledgerRange,mealMonth:state.mealMonth,walletFilterIds:state.walletFilterIds,mealListMode:state.mealListMode,mealFilters:state.mealFilters});
     const paintColors=(target,seed,system=false)=&gt;{
       target.style.setProperty(&#x27;--ks-seed&#x27;,seed);
       target.style.setProperty(&#x27;--ks-accent-bg&#x27;,`light-dark(color-mix(in srgb, ${seed} 18%, #fffcf7), color-mix(in srgb, ${seed} 23%, #211e1a))`);
@@ -2212,19 +2250,56 @@ html&gt;body{padding:0}&lt;/style&gt;
       const m=records()[i];
       return `&lt;button type=&quot;button&quot; class=&quot;ks-meal ${m?&#x27;&#x27;:&#x27;ks-empty&#x27;} cursor-interaction&quot; data-meal=&quot;${i}&quot;&gt;&lt;span class=&quot;ks-meal-icon&quot;&gt;${icon(slotIcons[i])}&lt;/span&gt;&lt;span class=&quot;ks-meal-copy&quot;&gt;&lt;span class=&quot;ks-meal-title&quot;&gt;${slot}${m?`&lt;span class=&quot;ks-pill&quot;&gt;${escapeText(m.method||&#x27;方式未填写&#x27;)}&lt;/span&gt;`:&#x27;&#x27;}&lt;/span&gt;&lt;span class=&quot;ks-meal-desc&quot;&gt;${m?escapeText(m.dishes||&#x27;已记录，点击查看&#x27;):i===2?&#x27;今晚吃什么？记下来吧&#x27;:&#x27;还没有记录，点此添加&#x27;}&lt;/span&gt;&lt;/span&gt;${icon(m?&#x27;chevron-right&#x27;:&#x27;plus&#x27;)}&lt;/button&gt;`;
     }).join(&#x27;&#x27;)}&lt;/div&gt;`;
-    const moneyCard = (quickAdd=true,month=&#x27;2026-11&#x27;,code=&#x27;CNY&#x27;,data=null) =&gt; {const entries=data||monthEntries(month).filter(e=&gt;walletById(e.walletId).code===code);return `&lt;div class=&quot;ks-money-card&quot; data-currency=&quot;${code}&quot;&gt;&lt;span class=&quot;ks-money-caption&quot;&gt;${Number(month.slice(5))} 月支出 · ${code}&lt;/span&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;div class=&quot;ks-amount&quot;&gt;&lt;small&gt;¥&lt;/small&gt;${money(total(entries,&#x27;支出&#x27;),code)}&lt;/div&gt;${quickAdd?`&lt;button class=&quot;ks-primary cursor-interaction&quot; data-action=&quot;add-entry&quot; type=&quot;button&quot;&gt;${icon(&#x27;plus&#x27;)}记一笔&lt;/button&gt;`:&#x27;&#x27;}&lt;/div&gt;&lt;div class=&quot;ks-money-meta&quot;&gt;&lt;span&gt;收入 ¥${money(total(entries,&#x27;收入&#x27;),code)}&lt;/span&gt;&lt;span&gt;各币种分别统计&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;`;};
+    function moneyCard(code,entries){
+      const period=state.ledgerRange?&#x27;所选期间&#x27;:`${Number(state.ledgerMonth.slice(5))} 月`;
+      return `&lt;div class=&quot;ks-money-card&quot; data-currency=&quot;${code}&quot;&gt;
+        &lt;span class=&quot;ks-money-caption&quot;&gt;${period}净支出 · ${code}&lt;/span&gt;
+        &lt;div class=&quot;ks-amount&quot; data-expense&gt;${money(netExpense(entries),code)}&lt;/div&gt;
+        &lt;div class=&quot;ks-money-meta&quot;&gt;&lt;span&gt;收入 &lt;span data-income&gt;${money(total(entries,&#x27;收入&#x27;),code)}&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+      &lt;/div&gt;`;
+    }
     const week = () =&gt; `&lt;div class=&quot;ks-week&quot; aria-label=&quot;选择日期&quot;&gt;${[&#x27;一&#x27;,&#x27;二&#x27;,&#x27;三&#x27;,&#x27;四&#x27;,&#x27;五&#x27;,&#x27;六&#x27;,&#x27;日&#x27;].map((d,i)=&gt;`&lt;button class=&quot;ks-day cursor-interaction&quot; data-date=&quot;2026-11-${16+i}&quot; type=&quot;button&quot; aria-pressed=&quot;${state.date===`2026-11-${16+i}`}&quot;&gt;&lt;small&gt;${d}&lt;/small&gt;&lt;span&gt;${16+i}&lt;/span&gt;&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`;
     const section = (title,extra=&#x27;&#x27;) =&gt; `&lt;div class=&quot;ks-section ks-row&quot;&gt;&lt;h3&gt;${title}&lt;/h3&gt;${extra}&lt;/div&gt;`;
     const choice = (label,value,current,action) =&gt; `&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-${action}=&quot;${escapeText(value)}&quot; aria-pressed=&quot;${current===value}&quot;&gt;${label}&lt;/button&gt;`;
     const monthPicker = (key,label) =&gt; `&lt;div class=&quot;ks-month-picker&quot; role=&quot;group&quot; aria-label=&quot;${label}月份选择&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-icon-btn cursor-interaction&quot; data-month-step=&quot;-1&quot; data-month-key=&quot;${key}&quot; aria-label=&quot;${label}上个月&quot;&gt;${icon(&#x27;chevron-left&#x27;)}&lt;/button&gt;&lt;label class=&quot;ks-month-field&quot;&gt;&lt;input type=&quot;month&quot; value=&quot;${state[key]}&quot; data-month-input=&quot;${key}&quot; aria-label=&quot;${label}月份&quot; min=&quot;0001-01&quot; max=&quot;9999-12&quot;&gt;&lt;/label&gt;&lt;button type=&quot;button&quot; class=&quot;ks-icon-btn cursor-interaction&quot; data-month-step=&quot;1&quot; data-month-key=&quot;${key}&quot; aria-label=&quot;${label}下个月&quot;&gt;${icon(&#x27;chevron-right&#x27;)}&lt;/button&gt;&lt;/div&gt;`;
+    function ledgerDatePicker(){
+      const range=state.ledgerRange;
+      const label=state.ledgerTab===&#x27;流水&#x27;?&#x27;流水&#x27;:&#x27;收支统计&#x27;;
+      return `&lt;div class=&quot;ks-ledger-range&quot;&gt;
+        ${range?&#x27;&#x27;:monthPicker(&#x27;ledgerMonth&#x27;,label)}
+        &lt;button type=&quot;button&quot; class=&quot;ks-wallet-scope&quot; data-action=&quot;edit-ledger-range&quot; aria-expanded=&quot;${state.ledgerRangeOpen}&quot;&gt;
+          &lt;span&gt;${icon(&#x27;calendar-range&#x27;)}日期范围&lt;/span&gt;
+          &lt;span&gt;${range?`${range.from} 至 ${range.to}`:&#x27;自定义&#x27;}${icon(&#x27;chevron-down&#x27;)}&lt;/span&gt;
+        &lt;/button&gt;
+        ${state.ledgerRangeOpen?`&lt;form class=&quot;ks-ledger-range-form&quot; data-ledger-range-form&gt;
+          &lt;div class=&quot;ks-field-row&quot;&gt;
+            &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;开始日期&lt;/span&gt;&lt;input type=&quot;date&quot; name=&quot;from&quot; class=&quot;ks-control&quot; value=&quot;${range?.from||&#x27;&#x27;}&quot; min=&quot;0001-01-01&quot; max=&quot;9999-12-31&quot; required&gt;&lt;/label&gt;
+            &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;结束日期&lt;/span&gt;&lt;input type=&quot;date&quot; name=&quot;to&quot; class=&quot;ks-control&quot; value=&quot;${range?.to||&#x27;&#x27;}&quot; min=&quot;0001-01-01&quot; max=&quot;9999-12-31&quot; required&gt;&lt;/label&gt;
+          &lt;/div&gt;
+          &lt;p class=&quot;ks-error&quot; role=&quot;alert&quot;&gt;&lt;/p&gt;
+          &lt;div class=&quot;ks-ledger-range-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice&quot; data-action=&quot;cancel-ledger-range&quot;&gt;取消&lt;/button&gt;&lt;button type=&quot;submit&quot; class=&quot;ks-primary&quot;&gt;应用日期&lt;/button&gt;&lt;/div&gt;
+        &lt;/form&gt;`:&#x27;&#x27;}
+        ${range?`&lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-action=&quot;ledger-month-mode&quot;&gt;${icon(&#x27;calendar-days&#x27;)}返回按月&lt;/button&gt;`:&#x27;&#x27;}
+      &lt;/div&gt;`;
+    }
     const walletScope=()=&gt;{const chosen=selectedWallets(),label=state.walletFilterIds===null?&#x27;全部钱包&#x27;:chosen.length===1?`${chosen[0].name} · ${chosen[0].code}`:`已选 ${chosen.length} 个钱包`;return `&lt;button type=&quot;button&quot; class=&quot;ks-wallet-scope cursor-interaction&quot; data-action=&quot;choose-wallets&quot; aria-label=&quot;选择统计与流水的钱包范围&quot;&gt;&lt;span&gt;${icon(&#x27;wallet&#x27;)}钱包范围&lt;/span&gt;&lt;span&gt;${escapeText(label)}${icon(&#x27;chevron-down&#x27;)}&lt;/span&gt;&lt;/button&gt;${state.walletFilterIds&amp;&amp;chosen.length&gt;1?`&lt;p class=&quot;ks-filter-context&quot;&gt;${chosen.map(w=&gt;`${escapeText(w.name)} · ${w.code}`).join(&#x27;、&#x27;)}&lt;/p&gt;`:&#x27;&#x27;}`;};
     const methodCounts = meals =&gt; [...new Set([&#x27;下厨&#x27;,&#x27;外卖&#x27;,&#x27;未填写&#x27;,...meals.map(m=&gt;m.method||&#x27;未填写&#x27;)])].map(method=&gt;({method,count:meals.filter(m=&gt;(m.method||&#x27;未填写&#x27;)===method).length}));
     const recommendedSlot = () =&gt; {const hour=style.mealHour===&#x27;auto&#x27;?new Date().getHours():Number(style.mealHour);return hour&lt;11?0:hour&lt;17?1:2;};
     const countBar = (label,count,denominator,unit=&#x27;餐&#x27;) =&gt; {const percent=denominator?Math.round(count/denominator*100):0;return `&lt;div class=&quot;ks-stat-row&quot;&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;span&gt;${escapeText(label)}&lt;/span&gt;&lt;span&gt;&lt;strong&gt;${count} ${unit}&lt;/strong&gt;&lt;small&gt;${percent}%&lt;/small&gt;&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-bar-track&quot; role=&quot;meter&quot; aria-label=&quot;${escapeText(label)}：${count}${unit}，占${percent}%&quot; aria-valuemin=&quot;0&quot; aria-valuemax=&quot;100&quot; aria-valuenow=&quot;${percent}&quot;&gt;&lt;div class=&quot;ks-bar-fill&quot; style=&quot;width:${denominator?count/denominator*100:0}%&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;`;};
     const mealResult=m=&gt;{const method=m.method||&#x27;方式未填写&#x27;,plan=`计划在家：${m.atHome?&#x27;是&#x27;:&#x27;否&#x27;}`,meta=[plan,...m.categories,m.note?`备注：${m.note.replace(/\s+/g,&#x27; &#x27;)}`:&#x27;&#x27;].filter(Boolean).join(&#x27; · &#x27;),summary=[m.date,slots[m.slot],method,m.dishes||&#x27;未填写菜品&#x27;,meta].join(&#x27;，&#x27;);return `&lt;button type=&quot;button&quot; class=&quot;ks-meal-result cursor-interaction&quot; data-meal=&quot;${m.slot}&quot; data-meal-date=&quot;${m.date}&quot; aria-label=&quot;查看记录：${escapeText(summary)}&quot; title=&quot;${escapeText(summary)}&quot;&gt;&lt;span&gt;&lt;span class=&quot;ks-result-date&quot;&gt;${m.date}&lt;/span&gt;&lt;span class=&quot;ks-result-slot&quot;&gt;${slots[m.slot]}&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;ks-result-body&quot;&gt;&lt;span class=&quot;ks-result-title&quot;&gt;&lt;span class=&quot;ks-result-dishes&quot;&gt;${escapeText(m.dishes||&#x27;未填写菜品&#x27;)}&lt;/span&gt;&lt;span class=&quot;ks-pill&quot;&gt;${escapeText(method)}&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;ks-result-meta&quot;&gt;${escapeText(meta)}&lt;/span&gt;&lt;/span&gt;&lt;/button&gt;`;};
     function pageHome(){
-      const today=state.records[&#x27;2026-11-17&#x27;]||[null,null,null],count=today.filter(Boolean).length,current=recommendedSlot();
-      return `&lt;section class=&quot;ks-daily&quot; aria-label=&quot;今日用餐进度&quot;&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;h3 class=&quot;ks-daily-heading&quot;&gt;今日用餐 &lt;strong&gt;${count}&lt;/strong&gt;&lt;span class=&quot;ks-note&quot;&gt; / 3&lt;/span&gt;&lt;/h3&gt;&lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-page=&quot;meals&quot;&gt;全部记录 ${icon(&#x27;chevron-right&#x27;)}&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;ks-daily-states&quot;&gt;${slots.map((slot,i)=&gt;`&lt;span class=&quot;ks-daily-state ${today[i]?&#x27;&#x27;:&#x27;ks-pending&#x27;}&quot;&gt;${icon(today[i]?&#x27;circle-check&#x27;:&#x27;circle-dashed&#x27;)}&lt;span&gt;${slot}${today[i]?&#x27;已记&#x27;:&#x27;待记&#x27;}&lt;/span&gt;&lt;/span&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary ks-full cursor-interaction&quot; data-home-meal data-meal=&quot;${current}&quot;&gt;${icon(today[current]?&#x27;pencil&#x27;:&#x27;plus&#x27;)}${today[current]?&#x27;编辑&#x27;:&#x27;记录&#x27;}${slots[current]}&lt;/button&gt;&lt;/section&gt;${section(index?&#x27;本月账本&#x27;:&#x27;花销小记&#x27;,`&lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-page=&quot;ledger&quot;&gt;查看账本 ${icon(&#x27;arrow-up-right&#x27;)}&lt;/button&gt;`)}${moneyCard()}`;
+      const today=state.records[demoToday]||[null,null,null],count=today.filter(Boolean).length,current=recommendedSlot();
+      const groups=currencyGroups(monthEntries(demoToday.slice(0,7)),wallets);
+      return `&lt;section class=&quot;ks-daily&quot; aria-label=&quot;今日用餐进度&quot;&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;h3 class=&quot;ks-daily-heading&quot;&gt;今日用餐 &lt;strong&gt;${count}&lt;/strong&gt;&lt;span class=&quot;ks-note&quot;&gt; / 3&lt;/span&gt;&lt;/h3&gt;&lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-page=&quot;meals&quot;&gt;全部记录 ${icon(&#x27;chevron-right&#x27;)}&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;ks-daily-states&quot;&gt;${slots.map((slot,i)=&gt;`&lt;span class=&quot;ks-daily-state ${today[i]?&#x27;&#x27;:&#x27;ks-pending&#x27;}&quot;&gt;${icon(today[i]?&#x27;circle-check&#x27;:&#x27;circle-dashed&#x27;)}&lt;span&gt;${slot}${today[i]?&#x27;已记&#x27;:&#x27;待记&#x27;}&lt;/span&gt;&lt;/span&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary ks-full cursor-interaction&quot; data-home-meal data-meal=&quot;${current}&quot;&gt;${icon(today[current]?&#x27;pencil&#x27;:&#x27;plus&#x27;)}${today[current]?&#x27;编辑&#x27;:&#x27;记录&#x27;}${slots[current]}&lt;/button&gt;&lt;/section&gt;
+        ${section(&#x27;本月收支&#x27;,`&lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-page=&quot;ledger&quot;&gt;查看账本 ${icon(&#x27;arrow-up-right&#x27;)}&lt;/button&gt;`)}
+        &lt;div class=&quot;ks-money-card ks-home-money&quot;&gt;
+          ${groups.map(({code,entries})=&gt;`&lt;div class=&quot;ks-home-currency&quot; data-currency=&quot;${code}&quot;&gt;
+            &lt;span class=&quot;ks-money-caption&quot;&gt;${code}&lt;/span&gt;
+            &lt;span&gt;&lt;small&gt;净支出&lt;/small&gt;&lt;strong data-expense&gt;${money(netExpense(entries),code)}&lt;/strong&gt;&lt;/span&gt;
+            &lt;span&gt;&lt;small&gt;收入&lt;/small&gt;&lt;strong data-income&gt;${money(total(entries,&#x27;收入&#x27;),code)}&lt;/strong&gt;&lt;/span&gt;
+          &lt;/div&gt;`).join(&#x27;&#x27;)}
+          &lt;button class=&quot;ks-primary cursor-interaction&quot; data-action=&quot;add-entry&quot; type=&quot;button&quot;&gt;${icon(&#x27;plus&#x27;)}记一笔&lt;/button&gt;
+        &lt;/div&gt;`;
     }
     function pageMeals(){
       const tabs=`&lt;div class=&quot;ks-segments&quot; aria-label=&quot;用餐视图&quot;&gt;${[&#x27;记录&#x27;,&#x27;统计&#x27;].map(t=&gt;`&lt;button type=&quot;button&quot; data-meal-tab=&quot;${t}&quot; aria-pressed=&quot;${state.mealTab===t}&quot; class=&quot;cursor-interaction&quot;&gt;${t}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`;
@@ -2257,25 +2332,69 @@ html&gt;body{padding:0}&lt;/style&gt;
         &lt;/section&gt;&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 示例数据&lt;/p&gt;`;
     }
     function pageLedger(){
-      const entries=selectedEntries(state.ledgerMonth).sort((a,b)=&gt;(b.date+b.time).localeCompare(a.date+a.time));
-      const tabs=`&lt;div class=&quot;ks-segments&quot; aria-label=&quot;记账视图&quot;&gt;${[&#x27;流水&#x27;,&#x27;钱包&#x27;,&#x27;统计&#x27;].map(t=&gt;`&lt;button type=&quot;button&quot; data-ledger-tab=&quot;${t}&quot; aria-pressed=&quot;${state.ledgerTab===t}&quot; class=&quot;cursor-interaction&quot;&gt;${t}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`;
-      if(state.ledgerTab===&#x27;钱包&#x27;)return `${tabs}${section(&#x27;我的钱包&#x27;,`&lt;span class=&quot;ks-note&quot;&gt;按币种独立核算&lt;/span&gt;`)}${wallets.map(w=&gt;{const related=financialEntries().filter(e=&gt;e.walletId===w.id);return `&lt;div class=&quot;ks-currency-group&quot;&gt;&lt;div class=&quot;ks-money-card&quot; data-wallet-balance=&quot;${w.id}&quot;&gt;&lt;span class=&quot;ks-money-caption&quot;&gt;${w.name} · ${w.code}&lt;/span&gt;&lt;div class=&quot;ks-amount&quot;&gt;&lt;small&gt;¥&lt;/small&gt;${money(w.opening+total(related,&#x27;收入&#x27;)-total(related,&#x27;支出&#x27;),w.code)}&lt;/div&gt;&lt;div class=&quot;ks-note&quot;&gt;初始余额 ¥${money(w.opening,w.code)} · 全部流水&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;`;}).join(&#x27;&#x27;)}&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 示例数据&lt;/p&gt;`;
-      const picker=monthPicker(&#x27;ledgerMonth&#x27;,state.ledgerTab===&#x27;流水&#x27;?&#x27;流水&#x27;:&#x27;收支统计&#x27;)+walletScope(),groups=currencyGroups(entries);
-      if(state.ledgerTab===&#x27;统计&#x27;)return `${tabs}${picker}&lt;div data-ledger-statistics aria-live=&quot;polite&quot;&gt;${groups.map(({code,entries:group})=&gt;`&lt;section class=&quot;ks-currency-group&quot; data-currency=&quot;${code}&quot;&gt;${section(`本月收支 · ${code}`)}&lt;div class=&quot;ks-summary&quot;&gt;&lt;div&gt;&lt;span class=&quot;ks-note&quot;&gt;收入 · ${code}&lt;/span&gt;&lt;strong data-income&gt;¥${money(total(group,&#x27;收入&#x27;),code)}&lt;/strong&gt;&lt;/div&gt;&lt;div&gt;&lt;span class=&quot;ks-note&quot;&gt;支出 · ${code}&lt;/span&gt;&lt;strong data-expense&gt;¥${money(total(group,&#x27;支出&#x27;),code)}&lt;/strong&gt;&lt;/div&gt;&lt;/div&gt;${section(`支出分类 · ${code}`)}&lt;div class=&quot;ks-settings&quot;&gt;${[...new Set(group.filter(e=&gt;e.type===&#x27;支出&#x27;).map(e=&gt;e.category))].map(c=&gt;`&lt;div class=&quot;ks-setting&quot;&gt;&lt;span&gt;${escapeText(c)}&lt;/span&gt;&lt;strong&gt;¥${money(group.filter(e=&gt;e.type===&#x27;支出&#x27;&amp;&amp;e.category===c).reduce((sum,e)=&gt;sum+e.cents,0),code)}&lt;/strong&gt;&lt;/div&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;${!group.length?&#x27;&lt;p class=&quot;ks-empty-state&quot;&gt;所选钱包这个月还没有账目&lt;/p&gt;&#x27;:&#x27;&#x27;}&lt;/section&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 各币种独立统计&lt;/p&gt;`;
-      return `${tabs}${picker}&lt;section data-monthly-ledger aria-label=&quot;所选月份与钱包的流水&quot; aria-live=&quot;polite&quot;&gt;${groups.map(({code,entries:group})=&gt;`&lt;div class=&quot;ks-currency-group&quot;&gt;${moneyCard(false,state.ledgerMonth,code,group)}&lt;/div&gt;`).join(&#x27;&#x27;)}${section(&#x27;本月流水&#x27;,`&lt;span class=&quot;ks-note&quot;&gt;${entries.length} 笔&lt;/span&gt;`)}${entries.map(e=&gt;{const w=walletById(e.walletId);return `&lt;button type=&quot;button&quot; class=&quot;ks-flow ks-flow-button cursor-interaction&quot; data-entry-id=&quot;${e.id}&quot; aria-label=&quot;查看${escapeText(w.name)} ${escapeText(e.category)} ${e.type} ${w.code} ${money(e.cents,w.code)}详情&quot;&gt;&lt;span class=&quot;ks-meal-icon&quot;&gt;${icon(e.category===&#x27;交通&#x27;?&#x27;train-front&#x27;:e.category===&#x27;工资&#x27;?&#x27;briefcase-business&#x27;:&#x27;receipt-text&#x27;)}&lt;/span&gt;&lt;span class=&quot;ks-flow-copy&quot;&gt;&lt;span class=&quot;ks-flow-label&quot;&gt;${escapeText(e.category)}&lt;span class=&quot;ks-wallet-chip&quot;&gt;${escapeText(w.name)}&lt;/span&gt;&lt;/span&gt;&lt;small&gt;${e.date.slice(5)} ${e.time}${e.note?` · ${escapeText(e.note)}`:&#x27;&#x27;}&lt;/small&gt;&lt;/span&gt;&lt;span class=&quot;ks-currency-amount&quot;&gt;&lt;strong&gt;${e.type===&#x27;支出&#x27;?&#x27;-&#x27;:&#x27;+&#x27;}¥${money(e.cents,w.code)}&lt;/strong&gt;&lt;small&gt;${w.code}&lt;/small&gt;&lt;/span&gt;${icon(&#x27;chevron-right&#x27;)}&lt;/button&gt;`;}).join(&#x27;&#x27;)}${!entries.length?&#x27;&lt;p class=&quot;ks-empty-state&quot;&gt;所选钱包这个月还没有账目&lt;/p&gt;&#x27;:&#x27;&#x27;}&lt;/section&gt;&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 示例数据&lt;/p&gt;`;
+      const allEntries=financialEntries();
+      const tabs=`&lt;div class=&quot;ks-segments&quot; aria-label=&quot;记账视图&quot;&gt;${[&#x27;流水&#x27;,&#x27;钱包&#x27;,&#x27;统计&#x27;].map(tab=&gt;`&lt;button type=&quot;button&quot; data-ledger-tab=&quot;${tab}&quot; aria-pressed=&quot;${state.ledgerTab===tab}&quot; class=&quot;cursor-interaction&quot;&gt;${tab}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`;
+      if(state.ledgerTab===&#x27;钱包&#x27;)return `${tabs}${section(&#x27;我的钱包&#x27;,&#x27;&lt;span class=&quot;ks-note&quot;&gt;按币种独立核算&lt;/span&gt;&#x27;)}
+        ${wallets.map(wallet=&gt;{
+          const related=allEntries.filter(entry=&gt;entry.walletId===wallet.id);
+          const balance=wallet.opening+total(related,&#x27;收入&#x27;)-netExpense(related);
+          return `&lt;div class=&quot;ks-currency-group&quot;&gt;&lt;div class=&quot;ks-money-card&quot; data-wallet-balance=&quot;${wallet.id}&quot;&gt;
+            &lt;span class=&quot;ks-money-caption&quot;&gt;${wallet.name} · ${wallet.code}&lt;/span&gt;
+            &lt;div class=&quot;ks-amount&quot;&gt;${money(balance,wallet.code)}&lt;/div&gt;
+            &lt;div class=&quot;ks-note&quot;&gt;初始余额 ${money(wallet.opening,wallet.code)} · 全部流水&lt;/div&gt;
+          &lt;/div&gt;&lt;/div&gt;`;
+        }).join(&#x27;&#x27;)}&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 示例数据&lt;/p&gt;`;
+      const entries=allEntries.filter(matchesLedgerScope).sort((a,b)=&gt;(b.date+b.time).localeCompare(a.date+a.time));
+      const picker=ledgerDatePicker()+walletScope(),groups=currencyGroups(entries,selectedWallets());
+      const period=state.ledgerRange?&#x27;所选期间&#x27;:&#x27;本月&#x27;;
+      const includeYear=state.ledgerRange&amp;&amp;state.ledgerRange.from.slice(0,4)!==state.ledgerRange.to.slice(0,4);
+      const empty=&#x27;&lt;p class=&quot;ks-empty-state&quot;&gt;所选日期和钱包范围内没有账目&lt;/p&gt;&#x27;;
+      if(state.ledgerTab===&#x27;统计&#x27;)return `${tabs}${picker}&lt;div data-ledger-statistics aria-live=&quot;polite&quot;&gt;
+        ${groups.map(({code,entries:group})=&gt;{
+          const expenses=group.filter(entry=&gt;entry.type===&#x27;支出&#x27;||entry.type===&#x27;退款&#x27;);
+          const categories=[...new Set(expenses.map(entryCategory))]
+            .map(name=&gt;({name,amount:netExpense(expenses.filter(entry=&gt;entryCategory(entry)===name))}))
+            .sort((a,b)=&gt;a.amount===b.amount?a.name.localeCompare(b.name,&#x27;zh-CN&#x27;):a.amount&gt;b.amount?-1:1);
+          return `&lt;section class=&quot;ks-currency-group&quot; data-currency=&quot;${code}&quot;&gt;
+            ${section(`${period}收支 · ${code}`)}
+            &lt;div class=&quot;ks-summary&quot;&gt;
+              &lt;div&gt;&lt;span class=&quot;ks-note&quot;&gt;收入 · ${code}&lt;/span&gt;&lt;strong data-income&gt;${money(total(group,&#x27;收入&#x27;),code)}&lt;/strong&gt;&lt;/div&gt;
+              &lt;div&gt;&lt;span class=&quot;ks-note&quot;&gt;净支出 · ${code}&lt;/span&gt;&lt;strong data-expense&gt;${money(netExpense(group),code)}&lt;/strong&gt;&lt;/div&gt;
+            &lt;/div&gt;
+            ${categories.length?section(`净支出分类 · ${code}`)+`&lt;div class=&quot;ks-settings&quot;&gt;${categories.map(({name,amount})=&gt;`&lt;div class=&quot;ks-setting&quot;&gt;&lt;span&gt;${escapeText(name)}&lt;/span&gt;&lt;strong&gt;${money(amount,code)}&lt;/strong&gt;&lt;/div&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`:&#x27;&#x27;}
+            ${group.length?&#x27;&#x27;:empty}
+          &lt;/section&gt;`;
+        }).join(&#x27;&#x27;)}
+      &lt;/div&gt;&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 各币种独立统计&lt;/p&gt;`;
+      return `${tabs}${picker}&lt;section data-monthly-ledger aria-label=&quot;所选日期与钱包的流水&quot; aria-live=&quot;polite&quot;&gt;
+        ${groups.map(({code,entries:group})=&gt;`&lt;div class=&quot;ks-currency-group&quot;&gt;${moneyCard(code,group)}&lt;/div&gt;`).join(&#x27;&#x27;)}
+        ${section(`${period}流水`,`&lt;span class=&quot;ks-note&quot;&gt;${entries.length} 笔&lt;/span&gt;`)}
+        ${entries.map(entry=&gt;{
+          const wallet=walletById(entry.walletId),category=entryCategory(entry);
+          const lineLabel=entry.type===&#x27;退款&#x27;?`退款 · ${category}`:category;
+          const glyph=entry.type===&#x27;退款&#x27;?&#x27;undo-2&#x27;:category===&#x27;交通&#x27;?&#x27;train-front&#x27;:category===&#x27;工资&#x27;?&#x27;briefcase-business&#x27;:&#x27;receipt-text&#x27;;
+          return `&lt;button type=&quot;button&quot; class=&quot;ks-flow ks-flow-button cursor-interaction&quot; data-entry-id=&quot;${entry.id}&quot; aria-label=&quot;查看${escapeText(wallet.name)} ${escapeText(category)} ${entry.type} ${wallet.code} ${money(entry.cents,wallet.code)}详情&quot;&gt;
+            &lt;span class=&quot;ks-meal-icon&quot;&gt;${icon(glyph)}&lt;/span&gt;
+            &lt;span class=&quot;ks-flow-copy&quot;&gt;&lt;span class=&quot;ks-flow-label&quot;&gt;${escapeText(lineLabel)}&lt;span class=&quot;ks-wallet-chip&quot;&gt;${escapeText(wallet.name)}&lt;/span&gt;&lt;/span&gt;&lt;small&gt;${includeYear?entry.date:entry.date.slice(5)} ${entry.time}${entry.note?` · ${escapeText(entry.note)}`:&#x27;&#x27;}&lt;/small&gt;&lt;/span&gt;
+            &lt;span class=&quot;ks-currency-amount&quot;&gt;&lt;strong&gt;${entry.type===&#x27;支出&#x27;?&#x27;-&#x27;:&#x27;+&#x27;}¥${money(entry.cents,wallet.code)}&lt;/strong&gt;&lt;small&gt;${wallet.code}&lt;/small&gt;&lt;/span&gt;${icon(&#x27;chevron-right&#x27;)}
+          &lt;/button&gt;`;
+        }).join(&#x27;&#x27;)}
+        ${entries.length?&#x27;&#x27;:empty}
+      &lt;/section&gt;&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 示例数据&lt;/p&gt;`;
     }
     function pageSettings(){
-      const draft=state.colorDraft;
+      const draft=state.appearanceDraft;
       return `${section(&#x27;外观&#x27;)}&lt;div class=&quot;ks-settings&quot;&gt;
-        &lt;label class=&quot;ks-setting&quot;&gt;${icon(&#x27;sun-moon&#x27;)}&lt;span&gt;明暗模式&lt;/span&gt;&lt;select data-theme aria-label=&quot;明暗模式&quot;&gt;${[[&#x27;system&#x27;,&#x27;跟随系统&#x27;],[&#x27;light&#x27;,&#x27;浅色&#x27;],[&#x27;dark&#x27;,&#x27;深色&#x27;]].map(([v,n])=&gt;`&lt;option value=&quot;${v}&quot; ${style.mode===v?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${n}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;
+        &lt;label class=&quot;ks-setting&quot;&gt;${icon(&#x27;sun-moon&#x27;)}&lt;span&gt;明暗模式&lt;/span&gt;&lt;select data-theme aria-label=&quot;明暗模式&quot;&gt;${themeModes.map(([value,label])=&gt;`&lt;option value=&quot;${value}&quot; ${draft.mode===value?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${label}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;
         &lt;label class=&quot;ks-setting&quot;&gt;${icon(&#x27;palette&#x27;)}&lt;span&gt;配色来源&lt;/span&gt;&lt;select data-color-source aria-label=&quot;配色来源&quot;&gt;${[[&#x27;PRESET&#x27;,&#x27;预设调色板&#x27;],[&#x27;CUSTOM&#x27;,&#x27;自选主色&#x27;],[&#x27;SYSTEM&#x27;,&#x27;跟随系统壁纸&#x27;]].map(([v,n])=&gt;`&lt;option value=&quot;${v}&quot; ${draft.colorSource===v?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${n}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;
         ${draft.colorSource===&#x27;PRESET&#x27;?`&lt;label class=&quot;ks-setting&quot;&gt;${icon(&#x27;swatch-book&#x27;)}&lt;span&gt;调色板&lt;/span&gt;&lt;select data-palette aria-label=&quot;调色板&quot;&gt;${[[&#x27;#c47a4a&#x27;,&#x27;杏橙&#x27;],[&#x27;#5f7f64&#x27;,&#x27;茶绿&#x27;],[&#x27;#587c9b&#x27;,&#x27;雾蓝&#x27;],[&#x27;#8a729f&#x27;,&#x27;薰衣草&#x27;],[&#x27;#a76f82&#x27;,&#x27;豆沙粉&#x27;]].map(([v,n])=&gt;`&lt;option value=&quot;${v}&quot; ${draft.presetColor===v?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${n}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;`:&#x27;&#x27;}
         ${draft.colorSource===&#x27;CUSTOM&#x27;?`&lt;label class=&quot;ks-custom-color-row&quot;&gt;&lt;input type=&quot;color&quot; data-custom-picker aria-label=&quot;选择主色&quot; value=&quot;${normalizeHex(draft.customColor)||style.customColor}&quot;&gt;&lt;input type=&quot;text&quot; data-custom-hex aria-label=&quot;主色 HEX&quot; value=&quot;${escapeText(draft.customColor)}&quot; placeholder=&quot;#C47A4A&quot; maxlength=&quot;7&quot; spellcheck=&quot;false&quot;&gt;&lt;/label&gt;`:&#x27;&#x27;}
         ${draft.colorSource===&#x27;SYSTEM&#x27;?`&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;sparkles&#x27;)}&lt;span&gt;使用系统壁纸配色&lt;/span&gt;&lt;small&gt;Android 12+&lt;/small&gt;&lt;/div&gt;`:&#x27;&#x27;}
       &lt;/div&gt;
-      &lt;p class=&quot;ks-appearance-note&quot;&gt;${draft.colorSource===&#x27;SYSTEM&#x27;?&#x27;卡片、按钮和标签随系统壁纸配色。当前为示意效果，实际颜色由手机系统提供。&#x27;:draft.colorSource===&#x27;CUSTOM&#x27;?&#x27;选择一种主色，或输入六位 HEX。应用后更新全应用配色。&#x27;:&#x27;选择预设，先预览再应用。&#x27;}&lt;/p&gt;
+      ${draft.colorSource===&#x27;SYSTEM&#x27;?&#x27;&lt;p class=&quot;ks-appearance-note&quot;&gt;此处使用示意色板，真实配色由手机系统提供。&lt;/p&gt;&#x27;:&#x27;&#x27;}
+      &lt;div class=&quot;ks-preview-modes&quot; role=&quot;group&quot; aria-label=&quot;预览明暗&quot;&gt;&lt;span class=&quot;ks-note&quot;&gt;预览明暗&lt;/span&gt;&lt;div class=&quot;ks-choices&quot;&gt;${themeModes.slice(1).map(([value,label])=&gt;choice(label,value,null,&#x27;preview-mode&#x27;)).join(&#x27;&#x27;)}&lt;/div&gt;&lt;/div&gt;
       &lt;div class=&quot;ks-appearance-preview&quot; data-appearance-preview aria-label=&quot;配色预览&quot;&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;span&gt;早餐 · 燕麦粥、煎蛋&lt;/span&gt;&lt;span class=&quot;ks-pill&quot;&gt;下厨&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-theme-swatches&quot; aria-hidden=&quot;true&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;span&gt;支出 −¥28.00&lt;/span&gt;&lt;span style=&quot;background:var(--ks-accent);color:var(--ks-paper);padding:6px 15px;border-radius:10px&quot;&gt;保存&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
-      &lt;p class=&quot;ks-error&quot; data-appearance-error role=&quot;alert&quot;&gt;&lt;/p&gt;&lt;div class=&quot;ks-appearance-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-action=&quot;cancel-appearance&quot;&gt;取消&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary cursor-interaction&quot; data-action=&quot;apply-appearance&quot;&gt;应用配色&lt;/button&gt;&lt;/div&gt;
+      &lt;p class=&quot;ks-error&quot; data-appearance-error role=&quot;alert&quot;&gt;&lt;/p&gt;&lt;div class=&quot;ks-appearance-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-action=&quot;cancel-appearance&quot;&gt;取消&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary cursor-interaction&quot; data-action=&quot;apply-appearance&quot;&gt;应用外观&lt;/button&gt;&lt;/div&gt;
       ${section(&#x27;分类管理&#x27;)}&lt;div class=&quot;ks-settings&quot;&gt;&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;utensils&#x27;)}&lt;span&gt;用餐方式&lt;/span&gt;&lt;small&gt;下厨、外卖&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;cooking-pot&#x27;)}&lt;span&gt;制作分类&lt;/span&gt;&lt;small&gt;炒菜、预制菜&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;tags&#x27;)}&lt;span&gt;收支分类&lt;/span&gt;&lt;small&gt;分开管理&lt;/small&gt;&lt;/div&gt;&lt;/div&gt;${section(&#x27;数据与备份&#x27;)}&lt;div class=&quot;ks-settings&quot;&gt;&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;hard-drive&#x27;)}&lt;span&gt;文件夹自动备份&lt;/span&gt;&lt;small&gt;未启用&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;cloud&#x27;)}&lt;span&gt;GitHub 私有仓库&lt;/span&gt;&lt;small&gt;未配置&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;file-json&#x27;)}&lt;span&gt;JSON 备份与恢复&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;sheet&#x27;)}&lt;span&gt;CSV 导入与导出&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;p class=&quot;ks-footnote&quot;&gt;KitsuneApp · 本地优先，安心记录&lt;/p&gt;`;
     }
     function pageMealForm(){return `&lt;form class=&quot;ks-form&quot; data-meal-form&gt;&lt;div class=&quot;ks-field-row&quot;&gt;&lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;日期&lt;/span&gt;&lt;input type=&quot;date&quot; name=&quot;date&quot; class=&quot;ks-control&quot; value=&quot;${state.date}&quot; required&gt;&lt;/label&gt;&lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;餐次&lt;/span&gt;&lt;select name=&quot;slot&quot; class=&quot;ks-control&quot;&gt;${slots.map((s,i)=&gt;`&lt;option value=&quot;${i}&quot; ${i===state.slot?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${s}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;&lt;/div&gt;&lt;div&gt;&lt;span class=&quot;ks-label&quot;&gt;是否计划在家吃&lt;span class=&quot;ks-required&quot;&gt;必选&lt;/span&gt;&lt;/span&gt;&lt;div class=&quot;ks-choices&quot;&gt;${choice(&#x27;是&#x27;,true,state.atHome,&#x27;home-choice&#x27;)}${choice(&#x27;否&#x27;,false,state.atHome,&#x27;home-choice&#x27;)}&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;span class=&quot;ks-label&quot;&gt;用餐方式&lt;span class=&quot;ks-required&quot;&gt;${state.atHome===true?&#x27;必选&#x27;:&#x27;单选 · 可不填&#x27;}&lt;/span&gt;&lt;/span&gt;&lt;div class=&quot;ks-choices&quot;&gt;${[&#x27;下厨&#x27;,&#x27;外卖&#x27;].map(m=&gt;choice(m,m,state.method,&#x27;method&#x27;)).join(&#x27;&#x27;)}&lt;/div&gt;&lt;/div&gt;${state.method===&#x27;下厨&#x27;?`&lt;div&gt;&lt;span class=&quot;ks-label&quot;&gt;制作分类&lt;span class=&quot;ks-required&quot;&gt;多选 · 选填&lt;/span&gt;&lt;/span&gt;&lt;div class=&quot;ks-choices&quot;&gt;${[&#x27;炒菜&#x27;,&#x27;预制菜&#x27;,...state.categories.filter(c=&gt;![&#x27;炒菜&#x27;,&#x27;预制菜&#x27;].includes(c))].map(c=&gt;choice(escapeText(c),c,state.categories.includes(c)?c:null,&#x27;category&#x27;)).join(&#x27;&#x27;)}&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-action=&quot;new-category&quot;&gt;＋ 新建&lt;/button&gt;&lt;/div&gt;&lt;div data-new-category hidden&gt;&lt;label class=&quot;ks-label&quot; style=&quot;margin-top:10px&quot;&gt;新分类名称&lt;input class=&quot;ks-control&quot; data-category-name placeholder=&quot;例如：蒸煮&quot; maxlength=&quot;20&quot;&gt;&lt;/label&gt;&lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-action=&quot;confirm-category&quot;&gt;添加到草稿&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;`:&#x27;&#x27;}&lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;菜品内容&lt;/span&gt;&lt;textarea name=&quot;dishes&quot; class=&quot;ks-control&quot; rows=&quot;2&quot; placeholder=&quot;今天吃了什么？&quot;&gt;${escapeText(state.dishes||&#x27;&#x27;)}&lt;/textarea&gt;&lt;/label&gt;&lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;备注&lt;/span&gt;&lt;textarea name=&quot;note&quot; class=&quot;ks-control&quot; rows=&quot;2&quot; placeholder=&quot;还有什么想记下的？&quot;&gt;${escapeText(state.note||&#x27;&#x27;)}&lt;/textarea&gt;&lt;/label&gt;&lt;p class=&quot;ks-error&quot; role=&quot;alert&quot;&gt;&lt;/p&gt;&lt;button type=&quot;submit&quot; class=&quot;ks-primary ks-full cursor-interaction&quot;&gt;保存${slots[state.slot]}记录&lt;/button&gt;&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 仅保存到当前演示&lt;/p&gt;&lt;/form&gt;`;}
@@ -2317,8 +2436,17 @@ html&gt;body{padding:0}&lt;/style&gt;
     }
     function capture(){const form=phone.querySelector(&#x27;[data-meal-form]&#x27;);if(form){state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);}const entry=phone.querySelector(&#x27;[data-entry-form]&#x27;);if(entry){state.amount=entry.elements.amount.value;state.entryDraft={dateTime:entry.elements.dateTime.value,note:entry.elements.note.value,category:entry.elements.category.value,walletId:entry.elements.wallet.value};}}
     function error(message){phone.querySelector(&#x27;.ks-error&#x27;).textContent=message;}
-    function updateAppearancePreview(){const preview=phone.querySelector(&#x27;[data-appearance-preview]&#x27;);if(preview)paintColors(preview,colorSeed(state.colorDraft),state.colorDraft.colorSource===&#x27;SYSTEM&#x27;);}
-    function pageEntryDetail(){const e=financialEntries().find(e=&gt;e.id===state.selectedEntryId);if(!e)return &#x27;&lt;p class=&quot;ks-empty-state&quot;&gt;这笔账目已不存在&lt;/p&gt;&#x27;;const w=walletById(e.walletId);return `&lt;section class=&quot;ks-entry-detail&quot;&gt;&lt;div class=&quot;ks-detail-amount&quot;&gt;&lt;span class=&quot;ks-note&quot;&gt;${e.type} · ${w.code}&lt;/span&gt;&lt;div class=&quot;ks-amount&quot;&gt;${e.type===&#x27;支出&#x27;?&#x27;-&#x27;:&#x27;+&#x27;}¥${money(e.cents,w.code)}&lt;/div&gt;&lt;/div&gt;&lt;dl class=&quot;ks-detail-list&quot;&gt;${[[&#x27;日期时间&#x27;,`${e.date} ${e.time}`],[&#x27;钱包&#x27;,`${w.name} · ${w.code}`],[&#x27;分类&#x27;,e.category],[&#x27;备注&#x27;,e.note||&#x27;无&#x27;]].map(([label,value])=&gt;`&lt;div&gt;&lt;dt&gt;${label}&lt;/dt&gt;&lt;dd&gt;${escapeText(value)}&lt;/dd&gt;&lt;/div&gt;`).join(&#x27;&#x27;)}&lt;/dl&gt;&lt;button type=&quot;button&quot; class=&quot;ks-delete-btn cursor-interaction&quot; data-action=&quot;delete-entry&quot;&gt;${icon(&#x27;trash-2&#x27;)}删除这笔账目&lt;/button&gt;&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 示例数据&lt;/p&gt;&lt;/section&gt;`;}
+    function updateAppearancePreview(){
+      const preview=phone.querySelector(&#x27;[data-appearance-preview]&#x27;);
+      if(!preview)return;
+      const draft=state.appearanceDraft;
+      const preferredMode=draft.mode===&#x27;system&#x27;?(systemDark.matches?&#x27;dark&#x27;:&#x27;light&#x27;):draft.mode;
+      const mode=state.previewMode||preferredMode;
+      preview.style.colorScheme=mode;
+      paintColors(preview,colorSeed(draft),draft.colorSource===&#x27;SYSTEM&#x27;);
+      for(const button of phone.querySelectorAll(&#x27;[data-preview-mode]&#x27;))button.setAttribute(&#x27;aria-pressed&#x27;,String(button.dataset.previewMode===mode));
+    }
+    function pageEntryDetail(){const e=financialEntries().find(e=&gt;e.id===state.selectedEntryId);if(!e)return &#x27;&lt;p class=&quot;ks-empty-state&quot;&gt;这笔账目已不存在&lt;/p&gt;&#x27;;const w=walletById(e.walletId);return `&lt;section class=&quot;ks-entry-detail&quot;&gt;&lt;div class=&quot;ks-detail-amount&quot;&gt;&lt;span class=&quot;ks-note&quot;&gt;${e.type} · ${w.code}&lt;/span&gt;&lt;div class=&quot;ks-amount&quot;&gt;${e.type===&#x27;支出&#x27;?&#x27;-&#x27;:&#x27;+&#x27;}¥${money(e.cents,w.code)}&lt;/div&gt;&lt;/div&gt;&lt;dl class=&quot;ks-detail-list&quot;&gt;${[[&#x27;日期时间&#x27;,`${e.date} ${e.time}`],[&#x27;钱包&#x27;,`${w.name} · ${w.code}`],[&#x27;分类&#x27;,entryCategory(e)],[&#x27;备注&#x27;,e.note||&#x27;无&#x27;]].map(([label,value])=&gt;`&lt;div&gt;&lt;dt&gt;${label}&lt;/dt&gt;&lt;dd&gt;${escapeText(value)}&lt;/dd&gt;&lt;/div&gt;`).join(&#x27;&#x27;)}&lt;/dl&gt;&lt;button type=&quot;button&quot; class=&quot;ks-delete-btn cursor-interaction&quot; data-action=&quot;delete-entry&quot;&gt;${icon(&#x27;trash-2&#x27;)}删除这笔账目&lt;/button&gt;&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 示例数据&lt;/p&gt;&lt;/section&gt;`;}
     function deleteConfirmation(){const p=state.deletePending;return `&lt;div class=&quot;ks-modal-overlay ks-delete-overlay&quot;&gt;&lt;section class=&quot;ks-delete-sheet&quot; role=&quot;alertdialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;确认删除记录&quot;&gt;&lt;h3&gt;${p.kind===&#x27;meal&#x27;?&#x27;删除这条用餐记录？&#x27;:&#x27;删除这笔账目？&#x27;}&lt;/h3&gt;&lt;p class=&quot;ks-delete-summary&quot;&gt;${escapeText(p.summary)}&lt;/p&gt;&lt;p class=&quot;ks-note&quot;&gt;${p.kind===&#x27;meal&#x27;?&#x27;删除后，将更新今日进度、月度及全部记录统计。&#x27;:&#x27;删除后，将更新流水、收支统计和钱包余额。&#x27;}&lt;/p&gt;&lt;p class=&quot;ks-error&quot; role=&quot;alert&quot; data-delete-error&gt;&lt;/p&gt;&lt;div class=&quot;ks-calc-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-delete-action=&quot;cancel&quot;&gt;取消&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary ks-danger-confirm cursor-interaction&quot; data-delete-action=&quot;confirm&quot;&gt;确认删除&lt;/button&gt;&lt;/div&gt;&lt;/section&gt;&lt;/div&gt;`;}
     function cancelDelete(){const action=state.deletePending.kind===&#x27;meal&#x27;?&#x27;delete-meal&#x27;:&#x27;delete-entry&#x27;;state.deletePending=null;render();phone.querySelector(`[data-action=${action}]`)?.focus({preventScroll:true});}
     function confirmDelete(){const p=state.deletePending;if(p.kind===&#x27;meal&#x27;){if(state.records[p.date])state.records[p.date][p.slot]=null;state.date=p.date;state.page=state.mealReturn;state.editing=false;}else{if(financialEntries().some(e=&gt;e.originalExpenseId===p.id)){phone.querySelector(&#x27;[data-delete-error]&#x27;).textContent=&#x27;请先删除这笔支出关联的退款，再删除原支出。&#x27;;return;}state.deletedEntryIds.add(p.id);state.page=&#x27;ledger&#x27;;state.ledgerTab=&#x27;流水&#x27;;}state.deletePending=null;state.notice=&#x27;已从当前演示删除记录。&#x27;;render();}
@@ -2331,13 +2459,31 @@ html&gt;body{padding:0}&lt;/style&gt;
       const parse=s=&gt;{const [a,b=&#x27;&#x27;]=s.split(&#x27;.&#x27;);return [BigInt(a+b),10n**BigInt(b.length)];};
       const op=(a,b,o)=&gt;{if(o===&#x27;+&#x27;)return[a[0]*b[1]+b[0]*a[1],a[1]*b[1]];if(o===&#x27;-&#x27;)return[a[0]*b[1]-b[0]*a[1],a[1]*b[1]];if(o===&#x27;*&#x27;)return[a[0]*b[0],a[1]*b[1]];if(!b[0])throw Error(&#x27;不能除以 0，请修改计算式。&#x27;);return[a[0]*b[1],a[1]*b[0]];};
       const sums=[];let term=parse(tokens[0]);for(let i=1;i&lt;tokens.length;i+=2){if(tokens[i]===&#x27;*&#x27;||tokens[i]===&#x27;/&#x27;)term=op(term,parse(tokens[i+1]),tokens[i]);else{sums.push(term,tokens[i]);term=parse(tokens[i+1]);}}sums.push(term);let result=sums[0];for(let i=1;i&lt;sums.length;i+=2)result=op(result,sums[i+1],sums[i]);
-      if(result[0]&lt;=0n)throw Error(&#x27;金额需大于 0。&#x27;);const factor=10n**BigInt(entryWallet().scale),cents=(result[0]*factor*2n+result[1])/(result[1]*2n);if(cents&lt;=0n)throw Error(&#x27;金额四舍五入后必须大于 0。&#x27;);if(cents&gt;999999999999n)throw Error(&#x27;金额过大，请减小金额。&#x27;);return Number(cents);
+      if(result[0]&lt;=0n)throw Error(&#x27;金额需大于 0。&#x27;);
+      const factor=10n**BigInt(entryWallet().scale),cents=(result[0]*factor*2n+result[1])/(result[1]*2n);
+      if(cents&lt;=0n)throw Error(&#x27;金额四舍五入后必须大于 0。&#x27;);
+      if(cents&gt;maximumEntryMinor)throw Error(&#x27;超出单笔金额上限，请减小金额。&#x27;);
+      return cents;
     }
     phone.addEventListener(&#x27;click&#x27;,event=&gt;{
       const b=event.target.closest(&#x27;button&#x27;);if(!b)return;
       capture();state.notice=&#x27;&#x27;;
-      if(b.dataset.action===&#x27;cancel-appearance&#x27;){state.colorDraft=appliedColor();render();return;}
-      if(b.dataset.action===&#x27;apply-appearance&#x27;){const draft=state.colorDraft,custom=normalizeHex(draft.customColor);if(draft.colorSource===&#x27;CUSTOM&#x27;&amp;&amp;!custom){phone.querySelector(&#x27;[data-appearance-error]&#x27;).textContent=&#x27;请输入六位 HEX 颜色，例如 #C47A4A。&#x27;;return;}const next={...draft,customColor:custom||style.customColor},changed=JSON.stringify(appliedColor())!==JSON.stringify(next);Object.assign(style,next);state.colorDraft=appliedColor();applyStyle();state.notice=changed?&#x27;配色已应用到当前预览。&#x27;:&#x27;当前配色已应用。&#x27;;render();if(changed)persist();return;}
+      if(b.dataset.previewMode){state.previewMode=b.dataset.previewMode;updateAppearancePreview();return;}
+      if(b.dataset.action===&#x27;cancel-appearance&#x27;){resetAppearance();render();return;}
+      if(b.dataset.action===&#x27;apply-appearance&#x27;){
+        const draft=state.appearanceDraft,custom=normalizeHex(draft.customColor);
+        if(draft.colorSource===&#x27;CUSTOM&#x27;&amp;&amp;!custom){phone.querySelector(&#x27;[data-appearance-error]&#x27;).textContent=&#x27;请输入六位 HEX 颜色，例如 #C47A4A。&#x27;;return;}
+        const next={...draft,customColor:custom||style.customColor};
+        const changed=JSON.stringify(appliedAppearance())!==JSON.stringify(next);
+        Object.assign(style,next);resetAppearance();applyStyle();state.notice=&#x27;已应用外观。&#x27;;render();if(changed)persist();return;
+      }
+      if(b.dataset.action===&#x27;edit-ledger-range&#x27;){
+        state.ledgerRangeOpen=!state.ledgerRangeOpen;render();
+        phone.querySelector(state.ledgerRangeOpen?&#x27;[data-ledger-range-form] [name=from]&#x27;:&#x27;[data-action=edit-ledger-range]&#x27;).focus();
+        return;
+      }
+      if(b.dataset.action===&#x27;cancel-ledger-range&#x27;){state.ledgerRangeOpen=false;render();phone.querySelector(&#x27;[data-action=edit-ledger-range]&#x27;).focus();return;}
+      if(b.dataset.action===&#x27;ledger-month-mode&#x27;){state.ledgerRange=null;state.ledgerRangeOpen=false;render();phone.querySelector(&#x27;[data-month-input=ledgerMonth]&#x27;).focus();persist();return;}
       if(b.dataset.action===&#x27;meal-filter&#x27;){state.mealFilterDraft={...state.mealFilters,preparations:[...state.mealFilters.preparations]};state.page=&#x27;meal-filter&#x27;;render();return;}
       if(b.dataset.action===&#x27;reset-meal-filter&#x27;){state.mealFilterDraft=blankMealFilters();render();return;}
       if(b.dataset.action===&#x27;meal-daily&#x27;){state.mealListMode=false;render();persist();return;}
@@ -2346,22 +2492,22 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(b.dataset.walletAction){closeWalletPicker(b.dataset.walletAction===&#x27;apply&#x27;);return;}
       if(b.dataset.entryId){if(!financialEntries().some(e=&gt;e.id===b.dataset.entryId))return;state.selectedEntryId=b.dataset.entryId;state.page=&#x27;entry-detail&#x27;;render();return;}
       if(b.dataset.action===&#x27;delete-meal&#x27;){const meal=state.records[state.editingDate]?.[state.editingSlot];if(!meal)return;state.deletePending={kind:&#x27;meal&#x27;,date:state.editingDate,slot:state.editingSlot,summary:`${state.editingDate} · ${slots[state.editingSlot]}\n${meal.dishes||&#x27;无菜品内容&#x27;}`};render();return;}
-      if(b.dataset.action===&#x27;delete-entry&#x27;){const e=financialEntries().find(e=&gt;e.id===state.selectedEntryId);if(!e)return;const w=walletById(e.walletId);state.deletePending={kind:&#x27;entry&#x27;,id:e.id,summary:`${e.date} ${e.time}\n${w.name} · ${w.code}\n${e.category} · ${e.type} ¥${money(e.cents,w.code)}`};render();return;}
+      if(b.dataset.action===&#x27;delete-entry&#x27;){const e=financialEntries().find(e=&gt;e.id===state.selectedEntryId);if(!e)return;const w=walletById(e.walletId);state.deletePending={kind:&#x27;entry&#x27;,id:e.id,summary:`${e.date} ${e.time}\n${w.name} · ${w.code}\n${entryCategory(e)} · ${e.type} ¥${money(e.cents,w.code)}`};render();return;}
       if(b.dataset.deleteAction){if(b.dataset.deleteAction===&#x27;confirm&#x27;)confirmDelete();else cancelDelete();return;}
       if(b.dataset.action===&#x27;open-calculator&#x27;){state.calcExpression=state.amount;state.calcOpen=true;render();return;}
       if(b.dataset.calcAction){closeCalculator(b.dataset.calcAction===&#x27;apply&#x27;);return;}
-      if(b.dataset.monthStep){const key=b.dataset.monthKey;if(![&#x27;ledgerMonth&#x27;,&#x27;mealMonth&#x27;].includes(key))return;const [year,month]=state[key].split(&#x27;-&#x27;).map(Number),ordinal=year*12+month-1+Number(b.dataset.monthStep);if(ordinal&lt;12||ordinal&gt;=120000)return;state[key]=`${String(Math.floor(ordinal/12)).padStart(4,&#x27;0&#x27;)}-${String(ordinal%12+1).padStart(2,&#x27;0&#x27;)}`;render();persist();return;}
-      if(b.dataset.page){state.page=b.dataset.page;if(state.page===&#x27;settings&#x27;)state.colorDraft=appliedColor();render();persist();return;}
+      if(b.dataset.monthStep){const key=b.dataset.monthKey;if(![&#x27;ledgerMonth&#x27;,&#x27;mealMonth&#x27;].includes(key))return;const [year,month]=state[key].split(&#x27;-&#x27;).map(Number),ordinal=year*12+month-1+Number(b.dataset.monthStep);if(ordinal&lt;12||ordinal&gt;=120000)return;state[key]=`${String(Math.floor(ordinal/12)).padStart(4,&#x27;0&#x27;)}-${String(ordinal%12+1).padStart(2,&#x27;0&#x27;)}`;if(key===&#x27;ledgerMonth&#x27;)state.ledgerRangeOpen=false;render();persist();return;}
+      if(b.dataset.page){state.page=b.dataset.page;state.ledgerRangeOpen=false;if(state.page===&#x27;settings&#x27;)resetAppearance();render();persist();return;}
       if(b.dataset.date){state.date=b.dataset.date;render();return;}
       if(b.dataset.meal!==undefined){if(state.page===&#x27;home&#x27;)state.date=&#x27;2026-11-17&#x27;;else if(b.dataset.mealDate)state.date=b.dataset.mealDate;state.slot=Number(b.dataset.meal);state.mealReturn=state.page;const m=records()[state.slot];state.editing=!!m;state.editingDate=state.date;state.editingSlot=state.slot;state.atHome=m?.atHome??null;state.method=m?.method??null;state.categories=[...(m?.categories||[])];state.dishes=m?.dishes||&#x27;&#x27;;state.note=m?.note||&#x27;&#x27;;state.page=&#x27;meal-form&#x27;;render();return;}
       if(b.dataset.homeChoice!==undefined){state.atHome=b.dataset.homeChoice===&#x27;true&#x27;;render();return;}
       if(b.dataset.method){const m=b.dataset.method;state.method=state.method===m?null:m;if(state.method!==&#x27;下厨&#x27;)state.categories=[];render();return;}
       if(b.dataset.category){const c=b.dataset.category;state.categories=state.categories.includes(c)?state.categories.filter(x=&gt;x!==c):[...state.categories,c];render();return;}
       if(b.dataset.mealTab){state.mealTab=b.dataset.mealTab;render();return;}
-      if(b.dataset.ledgerTab){state.ledgerTab=b.dataset.ledgerTab;render();return;}
+      if(b.dataset.ledgerTab){state.ledgerTab=b.dataset.ledgerTab;state.ledgerRangeOpen=false;render();return;}
       if(b.dataset.entryType){state.entryType=b.dataset.entryType;state.entryDraft.category=state.entryType===&#x27;支出&#x27;?&#x27;餐饮&#x27;:&#x27;工资&#x27;;render();return;}
       if(b.dataset.key!==undefined){const input=phone.querySelector(&#x27;[data-calc-expression]&#x27;),k=b.dataset.key;state.calcExpression=input.value;phone.querySelector(&#x27;.ks-calc-error&#x27;).textContent=&#x27;&#x27;;if(k===&#x27;C&#x27;)state.calcExpression=&#x27;&#x27;;else if(k===&#x27;⌫&#x27;)state.calcExpression=state.calcExpression.slice(0,-1);else if(k===&#x27;=&#x27;){try{state.calcExpression=inputAmount(calcCents(state.calcExpression));}catch(e){phone.querySelector(&#x27;.ks-calc-error&#x27;).textContent=e.message;return;}}else if(state.calcExpression.length&lt;80)state.calcExpression+=k;input.value=state.calcExpression;return;}
-      if(b.dataset.action===&#x27;add-entry&#x27;){state.page=&#x27;entry&#x27;;state.amount=&#x27;&#x27;;state.entryDraft={dateTime:`${state.date}T09:41`,note:&#x27;&#x27;,category:state.entryType===&#x27;支出&#x27;?&#x27;餐饮&#x27;:&#x27;工资&#x27;,walletId:state.walletFilterIds?.length===1?state.walletFilterIds[0]:state.lastWalletId};render();return;}
+      if(b.dataset.action===&#x27;add-entry&#x27;){state.page=&#x27;entry&#x27;;state.amount=&#x27;&#x27;;state.ledgerRangeOpen=false;state.entryType=&#x27;支出&#x27;;state.entryDraft={dateTime:`${demoToday}T09:41`,note:&#x27;&#x27;,category:&#x27;餐饮&#x27;,walletId:state.lastWalletId};render();return;}
       if(b.dataset.action===&#x27;back&#x27;){state.page=state.page===&#x27;meal-filter&#x27;?&#x27;meals&#x27;:state.page===&#x27;meal-form&#x27;?state.mealReturn:&#x27;ledger&#x27;;render();return;}
       if(b.dataset.action===&#x27;new-category&#x27;){phone.querySelector(&#x27;[data-new-category]&#x27;).hidden=false;phone.querySelector(&#x27;[data-category-name]&#x27;).focus();return;}
       if(b.dataset.action===&#x27;confirm-category&#x27;){const c=phone.querySelector(&#x27;[data-category-name]&#x27;).value.trim();if(c&amp;&amp;!state.categories.includes(c))state.categories.push(c);render();}
@@ -2372,16 +2518,22 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(e.matches(&#x27;[data-wallet-all]&#x27;)){state.walletDraftIds=e.checked?wallets.map(w=&gt;w.id):[];render();return;}
       if(e.matches(&#x27;[data-wallet-option]&#x27;)){const id=e.dataset.walletOption;state.walletDraftIds=e.checked?[...new Set([...state.walletDraftIds,id])]:state.walletDraftIds.filter(x=&gt;x!==id);render();phone.querySelector(`[data-wallet-option=${id}]`).focus({preventScroll:true});return;}
       if(e.matches(&#x27;[data-entry-form] [name=wallet]&#x27;)){capture();render();return;}
-      if(e.matches(&#x27;[data-month-input]&#x27;)){const key=e.dataset.monthInput;if([&#x27;ledgerMonth&#x27;,&#x27;mealMonth&#x27;].includes(key)&amp;&amp;/^\d{4}-(0[1-9]|1[0-2])$/.test(e.value)&amp;&amp;e.value.slice(0,4)!==&#x27;0000&#x27;)state[key]=e.value;render();persist();return;}
-      if(e.matches(&#x27;[data-theme]&#x27;)){style.mode=e.value;applyStyle();persist();}
-      if(e.matches(&#x27;[data-color-source]&#x27;)){state.colorDraft.colorSource=e.value;render();return;}
-      if(e.matches(&#x27;[data-palette]&#x27;)){state.colorDraft.presetColor=e.value;updateAppearancePreview();return;}
+      if(e.matches(&#x27;[data-month-input]&#x27;)){const key=e.dataset.monthInput;if([&#x27;ledgerMonth&#x27;,&#x27;mealMonth&#x27;].includes(key)&amp;&amp;/^\d{4}-(0[1-9]|1[0-2])$/.test(e.value)&amp;&amp;e.value.slice(0,4)!==&#x27;0000&#x27;){state[key]=e.value;if(key===&#x27;ledgerMonth&#x27;)state.ledgerRangeOpen=false;}render();persist();return;}
+      if(e.matches(&#x27;[data-theme]&#x27;)){state.appearanceDraft.mode=e.value;updateAppearancePreview();return;}
+      if(e.matches(&#x27;[data-color-source]&#x27;)){state.appearanceDraft.colorSource=e.value;render();return;}
+      if(e.matches(&#x27;[data-palette]&#x27;)){state.appearanceDraft.presetColor=e.value;updateAppearancePreview();return;}
       if(e.matches(&#x27;[data-date-input]&#x27;)){state.date=e.value||&#x27;2026-11-17&#x27;;render();}
       if(e.matches(&#x27;[data-meal-form] [name=slot]&#x27;)){capture();render();}
     });
-    phone.addEventListener(&#x27;input&#x27;,event=&gt;{const e=event.target;if(e.matches(&#x27;[data-custom-picker],[data-custom-hex]&#x27;)){state.colorDraft.customColor=e.value;const normalized=normalizeHex(e.value),picker=phone.querySelector(&#x27;[data-custom-picker]&#x27;),hex=phone.querySelector(&#x27;[data-custom-hex]&#x27;);if(e.matches(&#x27;[data-custom-picker]&#x27;))hex.value=e.value.toUpperCase();if(normalized){picker.value=normalized;phone.querySelector(&#x27;[data-appearance-error]&#x27;).textContent=&#x27;&#x27;;updateAppearancePreview();}}});
+    phone.addEventListener(&#x27;input&#x27;,event=&gt;{const e=event.target;if(e.matches(&#x27;[data-custom-picker],[data-custom-hex]&#x27;)){state.appearanceDraft.customColor=e.value;const normalized=normalizeHex(e.value),picker=phone.querySelector(&#x27;[data-custom-picker]&#x27;),hex=phone.querySelector(&#x27;[data-custom-hex]&#x27;);if(e.matches(&#x27;[data-custom-picker]&#x27;))hex.value=e.value.toUpperCase();if(normalized){picker.value=normalized;phone.querySelector(&#x27;[data-appearance-error]&#x27;).textContent=&#x27;&#x27;;updateAppearancePreview();}}});
     phone.addEventListener(&#x27;submit&#x27;,event=&gt;{
       event.preventDefault();const f=event.target;capture();
+      if(f.matches(&#x27;[data-ledger-range-form]&#x27;)){
+        const from=f.elements.from.value,to=f.elements.to.value;
+        if(!isDate(from)||!isDate(to)||from&gt;to){error(&#x27;请输入有效日期，开始日期不能晚于结束日期。&#x27;);return;}
+        state.ledgerRange={from,to};state.ledgerRangeOpen=false;render();
+        phone.querySelector(&#x27;[data-action=edit-ledger-range]&#x27;).focus();persist();return;
+      }
       if(f.matches(&#x27;[data-meal-filter-form]&#x27;)){const from=f.elements.from.value,to=f.elements.to.value;if(from&amp;&amp;to&amp;&amp;from&gt;to){error(&#x27;开始日期不能晚于结束日期。&#x27;);return;}state.mealFilters={from,to,slot:f.elements.slot.value,atHome:f.elements.atHome.value,method:f.elements.method.value,preparations:[...f.querySelectorAll(&#x27;[name=preparation]:checked&#x27;)].map(e=&gt;e.value),keyword:f.elements.keyword.value.trim()};state.mealListMode=true;state.mealTab=&#x27;记录&#x27;;state.page=&#x27;meals&#x27;;render();persist();return;}
       if(f.matches(&#x27;[data-meal-form]&#x27;)){
         if(state.atHome===null){error(&#x27;请先选择是否计划在家吃。&#x27;);return;}
@@ -2391,10 +2543,17 @@ html&gt;body{padding:0}&lt;/style&gt;
         state.records[state.date]||=[null,null,null];state.records[state.date][state.slot]={atHome:state.atHome,method:state.method,categories:[...state.categories],dishes:state.dishes,note:state.note};state.page=state.mealReturn;state.notice=&#x27;已保存到当前演示。&#x27;;render();return;
       }
       if(f.matches(&#x27;[data-entry-form]&#x27;)){
-        try{const cents=calcCents(f.elements.amount.value),walletId=f.elements.wallet.value;state.entries.push({id:`draft-${state.nextEntryId++}`,type:state.entryType,cents,walletId,category:f.elements.category.value,note:f.elements.note.value,date:f.elements.dateTime.value.slice(0,10),time:f.elements.dateTime.value.slice(11,16)});state.lastWalletId=walletId;if(state.walletFilterIds&amp;&amp;!state.walletFilterIds.includes(walletId))state.walletFilterIds=[walletId];state.ledgerMonth=f.elements.dateTime.value.slice(0,7);state.page=&#x27;ledger&#x27;;state.ledgerTab=&#x27;流水&#x27;;state.notice=&#x27;已保存到当前演示。&#x27;;render();}catch(e){error(e.message);}
+        try{
+          const cents=calcCents(f.elements.amount.value),walletId=f.elements.wallet.value;
+          const entry={id:`draft-${state.nextEntryId++}`,type:state.entryType,cents,walletId,category:f.elements.category.value,note:f.elements.note.value,date:f.elements.dateTime.value.slice(0,10),time:f.elements.dateTime.value.slice(11,16)};
+          state.entries.push(entry);state.lastWalletId=walletId;state.page=&#x27;ledger&#x27;;state.ledgerTab=&#x27;流水&#x27;;
+          state.notice=matchesLedgerScope(entry)?&#x27;已保存到当前演示。&#x27;:&#x27;已保存到当前演示，该账目不在当前筛选范围内。&#x27;;
+          render();
+        }catch(e){error(e.message);}
       }
     });
     applyStyle();render();
+    systemDark.addEventListener(&#x27;change&#x27;,updateAppearancePreview);
     const refreshHomeMeal=()=&gt;{if(state.page===&#x27;home&#x27;&amp;&amp;phone.querySelector(&#x27;[data-home-meal]&#x27;)?.dataset.meal!==String(recommendedSlot()))render();};
     const mealTimer=setInterval(refreshHomeMeal,60000);
     window.addEventListener(&#x27;focus&#x27;,refreshHomeMeal);
