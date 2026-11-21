@@ -136,8 +136,19 @@ fun CategorySettings(records: Records, model: AppViewModel, specific: Boolean, w
         Header(if (specific) "钱包专属分类" else "通用收支分类", back = back)
         Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (specific) Select("钱包", wallet, records.wallets.map { it.id },
-                { id -> records.wallets.first { it.id == id }.let { it.name + " · " + it.currencyCode } }, { wallet = it })
+                { id -> records.wallets.find { it.id == id }?.let { it.name + " · " + it.currencyCode } ?: "已移除" }, { wallet = it })
             Tabs(listOf("支出", "收入"), if (scope == Scope.EXPENSE) 0 else 1) { scope = if (it == 0) Scope.EXPENSE else Scope.INCOME }
+            if (current != null) {
+                val busy by model.busy.collectAsState()
+                val error by model.error.collectAsState()
+                Select("分类来源", current.categoryMode(scope), CategoryMode.entries,
+                    { if (it == CategoryMode.DEFAULT) "使用通用分类" else "使用专属分类" },
+                    { mode -> model.save { setCategoryMode(current.id, scope, mode) } }, enabled = !busy)
+                if (current.categoryMode(scope) == CategoryMode.CUSTOM) {
+                    Secondary("该方向只使用钱包专属分类与全局未分类。")
+                } else Secondary("专属词表仍可维护，切换来源后生效。")
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            }
             if (!specific || current != null) {
                 Primary("管理${scope.label}分类", { open("categories/${scope.name}/${current?.id ?: "-"}") }, Modifier.fillMaxWidth())
             } else Secondary("请选择钱包")

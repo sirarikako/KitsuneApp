@@ -32,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kitsuneapp.data.*
 import com.kitsuneapp.feature.meals.*
+import com.kitsuneapp.feature.ledger.*
 import com.kitsuneapp.feature.settings.*
 import com.kitsuneapp.ui.*
 import java.time.LocalDateTime
@@ -97,7 +98,11 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
     fun open(path: String) {
         if (busy || stack.last() == path) return
         model.clearError()
-        stack = if (path in roots) arrayListOf(path) else ArrayList(stack + path)
+        stack = when {
+            path in roots -> arrayListOf(path)
+            path in stack -> ArrayList(stack.take(stack.indexOf(path) + 1))
+            else -> ArrayList(stack + path)
+        }
     }
     fun back() {
         if (stack.size > 1) {
@@ -155,7 +160,11 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
                         "categorySettings" -> CategorySettings(records, model, false, null, ::open, goBack)
                         "walletCategories" -> CategorySettings(records, model, true, parts.getOrNull(1), ::open, goBack)
                         "appearance" -> AppearancePage(records.theme, model, goBack)
-                        "ledger" -> Column { Header("记账"); Secondary("记账功能正在开发", Modifier.padding(16.dp)) }
+                        "ledger" -> LedgerPage(records, ::open)
+                        "wallet" -> WalletForm(records, parts[1].takeUnless { it == "-" }, model, goBack)
+                        "entry" -> EntryDetails(records, parts[1], model, ::open, goBack)
+                        "entryForm" -> EntryForm(records, parts[1].takeUnless { it == "-" }, null, model, goBack, ::back)
+                        "refund" -> EntryForm(records, null, parts[1], model, goBack, ::back)
                     }
                 }
             }
@@ -201,8 +210,26 @@ private fun Home(records: Records, now: LocalDateTime, open: (String) -> Unit, m
             }
             Section("本月收支") { TextButton({ open("ledger") }) { Text("查看账本 ↗") } }
             Paper {
-                Secondary("尚无收支记录")
-                Primary("记一笔", { open("ledger") }, Modifier.fillMaxWidth())
+                val ledger = remember(records) { Ledger(records) }
+                val month = java.time.YearMonth.from(now).toString()
+                val totals = remember(ledger, month) { ledger.statistics(LedgerPeriod(month), WalletRange()) }
+                if (totals.isEmpty()) Secondary("暂无常规钱包的收支")
+                totals.forEach { total ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Tag(total.currency)
+                        Column(Modifier.weight(1f)) {
+                            Secondary("净支出")
+                            Text(money(total.expenses, total.scale))
+                        }
+                        Column(Modifier.weight(1f)) {
+                            Secondary("收入")
+                            Text(money(total.income, total.scale))
+                        }
+                    }
+                }
+                Primary("记一笔", {
+                    open(if (ledger.availableWallets().isEmpty()) "wallet/-" else "entryForm/-")
+                }, Modifier.fillMaxWidth())
             }
         }
     }

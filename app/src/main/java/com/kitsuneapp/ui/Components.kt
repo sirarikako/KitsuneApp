@@ -137,10 +137,11 @@ fun SquareIcon(icon: ImageVector, label: String, onClick: () -> Unit) {
 @Composable
 fun Field(label: String, value: String, set: (String) -> Unit, modifier: Modifier = Modifier, multiline: Boolean = false,
           keyboard: KeyboardOptions = KeyboardOptions.Default, transformation: androidx.compose.ui.text.input.VisualTransformation =
-              androidx.compose.ui.text.input.VisualTransformation.None) {
+              androidx.compose.ui.text.input.VisualTransformation.None,
+          textStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyLarge) {
     OutlinedTextField(value, set, modifier.fillMaxWidth(), label = { Text(label) }, singleLine = !multiline,
         shape = ControlShape, minLines = if (multiline) 2 else 1, maxLines = if (multiline) 6 else 1,
-        keyboardOptions = keyboard, visualTransformation = transformation,
+        keyboardOptions = keyboard, visualTransformation = transformation, textStyle = textStyle,
         colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant))
 }
 
