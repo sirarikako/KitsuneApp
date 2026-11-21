@@ -1,6 +1,6 @@
 # KitsuneApp v1 数据格式与兼容契约
 
-更新日期：2026-11-18。状态：**首版设计契约，尚未发布、尚无数据库或导入导出实现**。
+更新日期：2026-11-21。状态：**首版设计契约，尚未发布、尚无数据库或导入导出实现**。
 
 本文把 [PLAN.md](PLAN.md) 的数据需求具体化，供后续模型建立实体、序列化器、校验器、导入器和测试。示例为虚构数据，不能被标注为真实应用导出。格式在首次发布前可以协调修订并同步计划；一旦发布，须遵守本文的版本兼容规则。
 
@@ -77,13 +77,18 @@
 
 ### 3.2 钱包与收支分类
 
-Wallet 字段：`name,normalizedName,currencyCode,currencyScale,openingBalanceMinor,sortOrder,archived`。
+Wallet 字段：`name,normalizedName,currencyCode,currencyScale,openingBalanceMinor,sortOrder,archived,separateAccounting,incomeCategoryMode,expenseCategoryMode`。
 
 - 为使 CSV 的“钱包名称＋币种”能唯一映射，同一数据集内 `(normalizedName,currencyCode)` 唯一，包含已归档钱包；相同名称的不同币种钱包允许存在。
 - normalizedName 只用于匹配，不作为外键；同名映射不明确时必须在预览阶段解决，不能随意选第一个钱包。
+- `separateAccounting` 为布尔值，创建默认 `false`；缺失于早期 v1 备份时按 `false` 迁移。它只影响查询的默认钱包范围，余额及历史记录按原有钱包 ID 不变。独立核算钱包仍进入完整 JSON 备份和恢复，不能在 CSV 导出或导入时因默认筛选被漏掉。修改此值允许在钱包已有流水后进行。
 - 余额为派生值，不导出 currentBalance 或余额缓存，也不以缓存覆盖流水。
-- 收支 Category 的 scope 分别为 INCOME、EXPENSE，每域恰好一个 isDefault=true 的未归档兜底项。初始显示名为“未分类”，引用和兜底判断都依据 ID／标志。
-- isDefault=true 的分类不能删除或停用；其他已引用分类只能停用。名称在各自 scope 内唯一。
+- `incomeCategoryMode`／`expenseCategoryMode` 的枚举值为 DEFAULT／CUSTOM，分别决定该钱包收入／支出的可用类别集合，创建默认 DEFAULT。旧版尚未发布的 v1 快照中缺失这两个字段时迁移为 DEFAULT；`separateAccounting` 与类别模式相互独立。
+- Category 新增 `walletId`：PREPARATION 及通用 INCOME／EXPENSE 分类的值为 null，专属收入／支出分类为存在的钱包 UUID。收入和支出各仅有一个 `walletId=null,isDefault=true` 的全局“未分类”兜底项；`walletId!=null` 的分类必须 `isDefault=false`，且不能使用保留显示名“未分类”。
+- 分类名称唯一键为 `(scope, walletId 或 GLOBAL, normalizedName)`，包含归档项，同名在不同钱包合法；不可用 NULL 的普通数据库 UNIQUE 比较代替 GLOBAL 规范化归属比较。此规则不影响 PREPARATION 的既有全局唯一性。
+- DEFAULT 的活动选项为该 scope 的未归档通用类别（含全局兜底）；CUSTOM 的活动选项为该钱包同 scope 的未归档专属类别及全局兜底。CUSTOM 即使当前没有专属类别也只提供全局兜底，绝不因空表自动切回 DEFAULT。切回 DEFAULT 时专属类别和历史关联不删除。
+- 分类以稳定 UUID 引用，流水历史即使所属钱包已切换模式、分类已停用／归档，仍合法保留并展示。新增分类自动归属当时选择的设置作用域；直接录入创建分类也按当前钱包与收支方向归属。退款分类来自原支出，不取到账钱包的候选类别。
+- isDefault=true 的全局分类不能删除或停用；其他已引用分类只能停用。现行候选类别切换或重命名不自动改写已有流水的 categoryId。
 
 ### 3.3 财务流水
 
@@ -93,8 +98,8 @@ FinancialEntry 字段：
 
 | type | walletId | categoryId | toWalletId／toAmountMinor | originalExpenseId |
 | --- | --- | --- | --- | --- |
-| INCOME | 入账钱包 | 必填，INCOME 分类 | 均 null | null |
-| EXPENSE | 支出钱包 | 必填，EXPENSE 分类 | 均 null | null |
+| INCOME | 入账钱包 | 必填，INCOME 分类（按当前钱包收入模式，或历史保留） | 均 null | null |
+| EXPENSE | 支出钱包 | 必填，EXPENSE 分类（按当前钱包支出模式，或历史保留） | 均 null | null |
 | TRANSFER | 转出钱包 | null | 均必填，目标钱包须不同 | null |
 | REFUND | 退款到账钱包 | null，分类由原支出取得 | 均 null | 必填，指向 EXPENSE |
 
@@ -102,7 +107,7 @@ FinancialEntry 字段：
 - 同币种转账两侧精度相同、金额相等；跨币种分别以两侧钱包的最小单位记录。
 - 退款到账钱包币种与原支出钱包相同，累计退款不能超过原支出；不允许引用收入、转账或另一笔退款。
 - 原支出不存在、删除原支出后留下退款、修改原支出后累计退款超额，均为错误。
-- 退款不保存独立分类，以原支出的当前 categoryId 计算；导入、编辑和统计保持这一规则。
+- 退款不保存独立分类，以原支出的当前 categoryId 计算；导入、编辑和统计保持这一规则。校验新建／显式修改收支分类时，所选类别必须属于该钱包当前有效候选集（或全局兜底）；只修改金额、日期、备注等非类别字段时，保留原 categoryId，允许其为历史已停用／此前模式类别。
 - 收入、支出、转账和退款都必须填写 date、time；转账两侧共用一组发生日期时间。新建时取表单打开时的本地当前日期和分钟，用户可修改；编辑或保存不重新取当前时钟覆盖。
 - 不对业务日期时间强加“必须晚于 createdAt”等规则，用户可以补录历史记录。列表按 date、time 降序，再按 createdAt 降序、id 升序；业务日／月统计仍按 date。
 
@@ -116,7 +121,7 @@ FinancialEntry 字段：
 | TRANSFER.walletId = w | -amountMinor |
 | TRANSFER.toWalletId = w | +toAmountMinor |
 
-余额 = openingBalanceMinor ＋上述全部贡献。期间统计先按流水自身的 date 和所选钱包过滤，再按币种计算收入及净支出。收入只加 INCOME，净支出为 EXPENSE 减 REFUND，转账与初始余额不计收支。退款归属其 walletId 指向的到账钱包，分类从 originalExpenseId 关联的原支出读取，即使原支出不在所选日期或钱包范围内也适用。例：同币种 A 支出 100，B 退款到账 30，两笔都落入所选日期范围时，A、B、合选的净支出分别为 100、−30、70。归档钱包仍保留其统计贡献。
+余额 = openingBalanceMinor ＋上述全部贡献。期间统计先按流水自身的 date 和所选钱包过滤，再按币种计算收入及净支出。收入只加 INCOME，净支出为 EXPENSE 减 REFUND，转账与初始余额不计收支。退款归属其 walletId 指向的到账钱包，分类从 originalExpenseId 关联的原支出读取，即使原支出不在所选日期或钱包范围内也适用。例：同币种 A 支出 100，B 退款到账 30，两笔都落入所选日期范围时，A、B、合选的净支出分别为 100、−30、70。分类统计须以 categoryId 分组，不把不同钱包同名专属类别或同名通用类别误合并；显示同名时补充所属钱包标签。归档钱包在当前钱包范围包含它时仍保留其统计贡献。默认钱包范围只选择 `separateAccounting=false` 的钱包（含归档的历史钱包）；用户显式选中独立核算钱包后才参与账本流水和统计，首页本月收支固定使用默认范围。显式选中的钱包 ID 集合与默认范围区分存储；没有常规钱包时默认范围为空，不自动扩大到独立钱包。
 
 ### 3.4 主题设置
 
@@ -192,11 +197,11 @@ GitHub 另行持久化以下本机状态，调度和交互见 [PLAN 的 GitHub �
 | importReceipts | 全部成功导入凭据数组 |
 
 - 共用时间字段适用于方式、分类、用餐、钱包、流水；importReceipts 使用 importedAt，主题单例不含时间字段。
-- 导出不含 normalizedName，导入重建；Category 包含 isDefault，Wallet 包含 currencyScale。
+- 导出不含 normalizedName，导入重建；Category 包含 isDefault 和 walletId；Wallet 包含 currencyScale、separateAccounting、incomeCategoryMode 和 expenseCategoryMode。完整 JSON 总是导出所有通用／专属分类、钱包和流水，与当前页的默认筛选或类别模式无关；CSV 全量导出同样不得套用页面默认钱包范围。
 - backupKind=AUTO 用于更新各目标的最新完整备份，包括设置页的“立即备份”。MANUAL 用于手动导出，PRE_RESTORE 用于恢复前的独立保护文件，两者由用户自行保管。
 - 全部实体数组按 id 升序输出；关联 ID 数组去重并按 ID 升序输出；凭据按 kind、sha256 排序。字段按本节示例的固定顺序序列化，便于比较历史。
 - 输出 UTF-8、无 BOM、LF 换行和两空格缩进；读取允许 UTF-8 BOM 与 CRLF。拒绝重复 JSON 对象键、非法数字和非标准 JSON。
-- v1 使用明确字段集合：缺失必需字段、多余未知字段、未知枚举或模块均报错，不静默丢弃。增加字段或模块时提升 formatVersion 并编写迁移。
+- v1 使用明确字段集合：缺失必需字段、多余未知字段、未知枚举或模块均报错，不静默丢弃。例外为本版首发前已保存的 v1 旧快照：Wallet 缺少 separateAccounting 时迁移为 false；缺少两个 CategoryMode 时各迁移为 DEFAULT；Category 缺少 walletId 时迁移为 null。只有这组已知旧字段享受缺省值，不容忍其他缺失或未知字段。首版正式发布后新增字段须提升 formatVersion 并编写迁移。
 
 ### 4.2 完整且可校验的虚构示例
 
@@ -213,9 +218,9 @@ GitHub 另行持久化以下本机状态，调度和交互见 [PLAN 的 GitHub �
   "backupKind": "MANUAL",
   "data": {
     "categories": [
-      {"id":"20000000-0000-4000-8000-000000000001","scope":"PREPARATION","name":"炒菜","sortOrder":0,"archived":false,"isDefault":false,"createdAt":"2026-11-16T10:00:00.000Z","updatedAt":"2026-11-16T10:00:00.000Z"},
-      {"id":"20000000-0000-4000-8000-000000000002","scope":"INCOME","name":"未分类","sortOrder":0,"archived":false,"isDefault":true,"createdAt":"2026-11-16T10:00:00.000Z","updatedAt":"2026-11-16T10:00:00.000Z"},
-      {"id":"20000000-0000-4000-8000-000000000003","scope":"EXPENSE","name":"未分类","sortOrder":0,"archived":false,"isDefault":true,"createdAt":"2026-11-16T10:00:00.000Z","updatedAt":"2026-11-16T10:00:00.000Z"}
+      {"id":"20000000-0000-4000-8000-000000000001","scope":"PREPARATION","walletId":null,"name":"炒菜","sortOrder":0,"archived":false,"isDefault":false,"createdAt":"2026-11-16T10:00:00.000Z","updatedAt":"2026-11-16T10:00:00.000Z"},
+      {"id":"20000000-0000-4000-8000-000000000002","scope":"INCOME","walletId":null,"name":"未分类","sortOrder":0,"archived":false,"isDefault":true,"createdAt":"2026-11-16T10:00:00.000Z","updatedAt":"2026-11-16T10:00:00.000Z"},
+      {"id":"20000000-0000-4000-8000-000000000003","scope":"EXPENSE","walletId":null,"name":"未分类","sortOrder":0,"archived":false,"isDefault":true,"createdAt":"2026-11-16T10:00:00.000Z","updatedAt":"2026-11-16T10:00:00.000Z"}
     ],
     "meals": {
       "methods": [
@@ -228,8 +233,8 @@ GitHub 另行持久化以下本机状态，调度和交互见 [PLAN 的 GitHub �
     },
     "ledger": {
       "wallets": [
-        {"id":"40000000-0000-4000-8000-000000000001","name":"日常钱包","currencyCode":"CNY","currencyScale":2,"openingBalanceMinor":"10000","sortOrder":0,"archived":false,"createdAt":"2026-11-16T10:00:00.000Z","updatedAt":"2026-11-16T10:00:00.000Z"},
-        {"id":"40000000-0000-4000-8000-000000000002","name":"旅行钱包","currencyCode":"JPY","currencyScale":0,"openingBalanceMinor":"0","sortOrder":1,"archived":false,"createdAt":"2026-11-16T10:00:00.000Z","updatedAt":"2026-11-16T10:00:00.000Z"}
+        {"id":"40000000-0000-4000-8000-000000000001","name":"日常钱包","currencyCode":"CNY","currencyScale":2,"openingBalanceMinor":"10000","sortOrder":0,"archived":false,"separateAccounting":false,"incomeCategoryMode":"DEFAULT","expenseCategoryMode":"DEFAULT","createdAt":"2026-11-16T10:00:00.000Z","updatedAt":"2026-11-16T10:00:00.000Z"},
+        {"id":"40000000-0000-4000-8000-000000000002","name":"旅行钱包","currencyCode":"JPY","currencyScale":0,"openingBalanceMinor":"0","sortOrder":1,"archived":false,"separateAccounting":true,"incomeCategoryMode":"DEFAULT","expenseCategoryMode":"DEFAULT","createdAt":"2026-11-16T10:00:00.000Z","updatedAt":"2026-11-16T10:00:00.000Z"}
       ],
       "entries": [
         {"id":"50000000-0000-4000-8000-000000000001","date":"2026-11-16","time":"18:30","type":"EXPENSE","walletId":"40000000-0000-4000-8000-000000000001","amountMinor":"1280","categoryId":"20000000-0000-4000-8000-000000000003","toWalletId":null,"toAmountMinor":null,"originalExpenseId":null,"note":"食材","createdAt":"2026-11-16T10:30:00.000Z","updatedAt":"2026-11-16T10:30:00.000Z"},
@@ -250,7 +255,7 @@ GitHub 另行持久化以下本机状态，调度和交互见 [PLAN 的 GitHub �
 }
 ```
 
-校验后的预期结果：CNY 钱包余额 80.00（100.00−12.80−10.00＋2.80），JPY 钱包余额 200；当月 CNY 收入 0、净支出 10.00。示例转账金额仅说明双金额字段，不代表真实汇率。
+校验后的预期结果：CNY 钱包余额 80.00（100.00−12.80−10.00＋2.80），JPY 钱包余额 200；当月常规钱包范围仅统计 CNY 收入 0、净支出 10.00。JPY 旅行钱包标记独立核算，余额仍显示，手动选择后才进入流水和统计。示例转账金额仅说明双金额字段，不代表真实汇率。
 
 ### 4.3 导出、恢复与幂等性
 
@@ -259,7 +264,7 @@ GitHub 另行持久化以下本机状态，调度和交互见 [PLAN 的 GitHub �
 - 本地自动备份的文件名由 UTC 日期时间和同秒递增序号组成，例如 `kitsune-auto-20261118T093015Z-0001.json`。snapshotId 在 JSON 中标识备份。每个数据集在同一配置目录保留最新成功发布的一份 AUTO。清理前验证归属与发布状态，并以明确确认的新发布备份作为保留对象。发布失败时保留上一份有效备份。
 - 云端恢复从 GitHub 的 `backups/latest.json` 读取当前完整备份。按 [PLAN 的 GitHub 私有库规则](PLAN.md#94-github-私有库)锁定同一提交读取元数据和原始字节，经字节数和 Git blob SHA 校验后生成恢复摘要。Git blob SHA 用于远端版本校验，上传尝试另用原始 JSON 字节的内容 SHA-256。每个目标独立确认实际完成的任务代次及修订，期间产生的新修订仍待处理。
 - 完整恢复会整体替换业务数据。先全量校验并展示摘要；有用户数据或已修改设置时，在恢复事务前生成并校验 PRE_RESTORE 文件，可写入已授权目录或通过系统文件选择器单次导出。新装空库及只有未修改初始默认数据的库可直接恢复。
-- 恢复保留输入的业务 ID、归档标志、审计时间和导入凭据；不重新生成默认分类或改写历史金额精度。
+- 恢复保留输入的业务 ID、归档标志、钱包独立核算标志、审计时间和导入凭据；不重新生成默认分类或改写历史金额精度。
 - 本机修订继续递增，导入快照的 revision 仅作来源信息。恢复后保留导入的 datasetId，后续完整备份生成新的 snapshotId。
 - 恢复事务为已绑定的 GitHub 目标持久化暂停上传状态。成功恢复云端快照时记录该快照的文件 SHA；用户另行确认更新远端并发布成功后才恢复自动上传。覆盖或重建仅适用于用户确认的远端 SHA 或文件缺失状态。
 - 写入结果不明时先按第 3.6 节的尝试信息核对。目标、数据集、snapshotId 及内容 SHA-256 一致才确认该次实际发布的修订，并用远端文件 blob SHA 更新该代次的基准。远端仍符合原写入条件时，可退避后从最新修订重新生成完整快照并重试。其他远端状态变化按冲突处理。旧代次的结果仅用于核对远端，不更新当前代次的备份状态。
@@ -338,7 +343,7 @@ id,date,meal_slot,planned_at_home,meal_method,preparation_categories,dishes,note
 | original_expense_id | 仅 REFUND 必填，指向已有或同批支出 |
 | note | 可选多行文本 |
 
-- 收支名称在各自 scope 内匹配，未发现时在整批事务中创建新分类。
+- 解析收入／支出的 CSV `category` 时必须先映射本行钱包（钱包名＋币种），再根据该钱包对应收支方向的 DEFAULT／CUSTOM 模式选择全局或钱包专属分类命名空间；同名存在于另一钱包或另一命名空间不得误命中。若非“未分类”的名称在当前命名空间不存在，预览后可创建到当前作用域；“未分类”始终映射对应收支类型的全局兜底。CSV 本身不包含类别 UUID、归属模式或 Wallet 配置，不能据此重建专属类别开关，相关全量迁移请使用 JSON。
 - 转账的 category 与 original_expense_id 必须空；非转账的三项 to_* 都必须空。
 - 退款导出 category 为原支出分类名称，方便表格查看；导入可空，非空时必须匹配已解析的原支出分类，不单独创建或覆盖该分类。
 - 同批被退款引用的支出必须提供 UUID；无 ID 的支出不能被其他行通过行号或备注隐式引用。
@@ -357,7 +362,7 @@ id,date,time,type,wallet,currency,amount,category,to_wallet,to_currency,to_amoun
 1. 读取完整文件，计算字节摘要并解析所有行；CSV 内换行不应破坏逻辑行号，错误同时标注记录序号及可定位的源行。
 2. 钱包按规范化名称＋币种匹配已有钱包；允许用户在预览中显式映射不同名称，币种不能不同。不自动创建带有猜测余额的钱包。
 3. 方式按规范化名称匹配；未知方式先映射，或在设置中创建后重试，不能猜测分类开关。
-4. 解析制作分类与收支分类，新名称准备为待创建项；预览阶段不写数据库。
+4. 解析制作分类及已映射钱包对应的收支分类；新名称准备在正确的通用／专属命名空间创建，预览阶段不写数据库。已有 ID 的历史账目如果所需的旧类别不再是当前候选，优先用原类别 ID 匹配、无需重分类；不能仅凭 CSV 同名覆盖不同类别 ID。无法无歧义复原时要求用户显式匹配或拒绝，不得自动猜测。
 5. 同一文件中重复 ID 直接报告错误。与现有数据 ID 相同且业务字段一致则跳过；内容不同则冲突，不以更新时间推断覆盖。
 6. 业务字段比较包括日期、财务流水的 time、方式、分类集合、金额、钱包和文本；不比较 CSV 未包含的 createdAt／updatedAt。
 7. 不同 ID 占用同一日期餐次是冲突。不同 ID 的同金额同备注账目仍可是真实独立账目，不以近似内容去重。
@@ -401,6 +406,8 @@ id,date,time,type,wallet,currency,amount,category,to_wallet,to_currency,to_amoun
 - [ ] 分类名称中的引号、逗号、中文与多行备注正确经过 JSON 数组和 CSV 双层转义。
 - [ ] plannedAtHome 缺失／null、是但方式为空、方式为空但有分类等错误被拦截；否且方式为空合法。
 - [ ] 方式关闭分类开关、方式或分类归档后，历史引用仍能完整恢复。
+- [ ] 钱包 `separateAccounting` 为 true／false 的 JSON 往返及旧数据缺字段默认 false；完整 JSON／CSV 不因页面筛选而漏数据；余额不因切换开关变化，常规与独立钱包默认范围、手选范围及转账／退款归属正确。
+- [ ] Category.walletId 归属、钱包收入／支出模式 DEFAULT／CUSTOM 与旧 v1 缺字段迁移正确；两类分别配置、只配置一个方向、CUSTOM 空列表与回到 DEFAULT 的场景正确。专属类别不误进入别的钱包；同名分类稳定按 ID 汇总，退款跟随原支出分类，历史停用与模式切换不导致引用丢失，CSV 钱包先解析而非跨钱包同名猜测。
 - [ ] 转账两侧不完整、币种不符、退款悬空或超额整批失败，原数据库不变。
 - [ ] 重复 ID、日期餐次冲突、同一无 ID 文件重复导入与同批退款引用行为符合规定。
 - [ ] 连续提交可合并待备份状态，输出的完整 JSON 与标注的修订一致，恢复后包含期间的新增、修改和删除。
