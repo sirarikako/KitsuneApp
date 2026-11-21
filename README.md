@@ -10,7 +10,7 @@
 
 | 项目 | 状态 |
 | --- | --- |
-| 产品计划与验收标准 | 已整理到 PLAN.md |
+| 产品计划与验收标准 | 已按功能模块拆分，见 docs/README.md；PLAN 保留整体规划与阶段入口 |
 | 开发协作约定 | 已整理到 AGENTS.md |
 | UI 设计与交互预览 | 已保存到 docs/ui，含统一视觉方案、最新离线预览及源稿。用餐与账本共用界面组件；全局动效规则见 [PLAN 第 3.2 节](docs/PLAN.md#32-全局动效与页面过渡)，网页预览已加入对应动效，尚未完成浏览器视觉回归；Android 动效待实现。 |
 | v1 数据格式 | 已设计并提供 JSON／CSV 示例，尚无运行时实现 |
@@ -36,8 +36,9 @@
 | 文档 | 用途 |
 | --- | --- |
 | [AGENTS.md](AGENTS.md) | 开发前必读：文档入口、协作规则、验证要求 |
-| [docs/PLAN.md](docs/PLAN.md) | 完整产品需求、页面、技术方向、实施阶段与验收标准 |
-| [docs/DATA_FORMAT.md](docs/DATA_FORMAT.md) | v1 实体、JSON 备份、CSV、数据校验与迁移契约 |
+| [docs/README.md](docs/README.md) | 按功能与数据契约的设计入口、维护职责 |
+| [docs/PLAN.md](docs/PLAN.md) | 产品范围、实施阶段和历史章节导航 |
+| [docs/DATA_FORMAT.md](docs/DATA_FORMAT.md) | v1 数据契约总索引，详细规范位于 docs/data |
 | [docs/ui/README.md](docs/ui/README.md) | UI 设计交接、现行文件索引与已验证／未实现边界 |
 
 ## UI 设计预览
@@ -50,11 +51,11 @@
 python docs/ui/build_preview.py
 ```
 
-已使用 Python 3.12.6 验证该命令，仅依赖标准库；图标库已随项目保存。该命令生成网页预览及校验清单，不生成 Android 应用或 APK。
+此命令仅依赖 Python 标准库；原版曾使用 Python 3.12.6 验证，拆分后的脚本尚待运行验证。它会从 docs/ui/src 拼接生成兼容源稿、网页预览与校验清单，不生成 Android 应用或 APK。
 
 建议交接指令：
 
-> 请先阅读 AGENTS.md、README.md、docs/PLAN.md、docs/DATA_FORMAT.md 和 docs/ui/README.md，对照已保存 UI 预览按计划阶段开始实现。采用最新规则，持续维护文档，记录真实构建和测试结果。
+> 请阅读 AGENTS.md、README.md、docs/README.md，并按任务读取相应功能模块、数据契约及 UI 说明；对照现有预览实施，记录真实构建和测试结果。
 
 ## 第一版计划提供什么
 

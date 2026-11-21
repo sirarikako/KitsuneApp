@@ -59,7 +59,7 @@ def main() -> None:
     source_path = ROOT / "kitsune-ui.fragment.html"
     source = "".join((ROOT / name).read_text(encoding="utf-8") for name in SOURCE_PARTS)
     # Keep the historical monolithic path as a generated compatibility artifact.
-    source_path.write_text(source, encoding="utf-8", newline="\\n")
+    source_path.write_text(source, encoding="utf-8", newline="\n")
     source = source.strip()
     # Use native hover titles in the exported page so tooltips need no CDN scripts.
     # The original conversation fragment remains unchanged.
