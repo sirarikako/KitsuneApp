@@ -224,6 +224,12 @@
   #kitsune-preview .ks-appearance-preview .ks-record:hover{background:var(--ks-card-surface)}
   #kitsune-preview .ks-appearance-preview .ks-primary{margin-top:var(--ks-space-2)}
   #kitsune-preview .ks-theme-swatches span:last-child{border:var(--ks-card-border)}
+  #kitsune-preview .ks-phone{overflow:clip}
+  #kitsune-preview .ks-page-motion{display:flex;flex:1;flex-direction:column;min-width:0;background:var(--ks-bg)}
+  #kitsune-preview .ks-motion-copy{position:absolute;inset:0;z-index:8;pointer-events:none;overflow:hidden;border-radius:30px}
+  #kitsune-preview .ks-motion-copy *{pointer-events:none!important}
+  #kitsune-preview .ks-motion-modal-copy{z-index:21}
+  #kitsune-preview .ks-motion-appearance-copy{pointer-events:none;overflow:hidden}
 </style>
 <script>
 (() => {
@@ -239,6 +245,13 @@
   const maximumEntryMinor=9223372036854775807n;
   const themeModes=[['system','跟随系统'],['light','浅色'],['dark','深色']];
   const systemDark=window.matchMedia('(prefers-color-scheme: dark)');
+  const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
+  const motion={primary:200,push:240,pop:220,card:280,sheet:250,dialog:180,local:150,appearance:200,theme:250,easing:'cubic-bezier(0.2, 0, 0, 1)'};
+  const themeRoles=['--ks-bg','--ks-paper','--ks-soft','--ks-line','--ks-accent-bg','--ks-accent','--ks-ink','--ks-dim','--ks-good','--ks-danger','--ks-action-bg','--ks-action-text','--ks-on-danger','--ks-card-surface'];
+  // Registered color roles interpolate on the existing phone rather than rebuilding its theme on each animation frame.
+  const typedTheme=typeof CSS!=='undefined'&&typeof CSS.registerProperty==='function';
+  if(typedTheme)for(const name of themeRoles){try{CSS.registerProperty({name,syntax:'<color>',inherits:true,initialValue:'#000000'});}catch{}}
+
   root.querySelectorAll('.ks-phone').forEach((phone,index) => {
     const style = {radius:index ? 13:17, accent:index ? '#5f7f64':'#c47a4a',mode:'system',mealHour:'auto',colorSource:'PRESET',presetColor:index?'#5f7f64':'#c47a4a',customColor:'#C47A4A'};
     const state = {page:'settings', date:'2026-11-17', ledgerMonth:'2026-11',mealMonth:'2026-11',ledgerTab:'统计', mealTab:'记录', slot:2, atHome:null, method:null, categories:[], amount:'',calcOpen:false,calcExpression:'',entryType:'支出',entryDraft:{dateTime:'2026-11-17T09:41',note:'',category:'餐饮',walletId:'daily'},notice:'', mealReturn:'home', entries:[], records:{}};
@@ -334,7 +347,7 @@
       const roles={'--ks-bg':'bg','--ks-paper':'paper','--ks-soft':'soft','--ks-line':'line','--ks-accent-bg':'selected','--ks-accent':'accent','--ks-ink':'ink','--ks-dim':'dim','--ks-good':'good','--ks-danger':'danger','--ks-action-bg':'accent','--ks-action-text':'onAction','--ks-on-danger':'onDanger','--ks-card-surface':'paper'};
       target.style.setProperty('--ks-seed',seed);
       for(const [key,role] of Object.entries(roles))target.style.setProperty(key,value(role));
-      target.style.setProperty('--ks-card-border',`1px solid ${value('line')}`);
+      target.style.setProperty('--ks-card-border','1px solid var(--ks-line)');
     };
     const applyStyle = () => {
       style.accent=colorSeed(style);
@@ -541,25 +554,198 @@
         ${formFooter(`<div class="ks-form-actions"><button type="button" class="ks-choice cursor-interaction" data-action="reset-meal-filter">重置条件</button>${saveButton('应用筛选')}</div>`)}
       </form>`;
     }
+    // Motion is deliberately separate from the example business state. Leaving copies are inert,
+    // contain no business selectors, and are removed on completion or the next render.
+    let rendered=null,rendering=false,recordOrigin=null,entrance=null,themeAnimation=null;
+    const running=new Set();
+    const play=(node,frames,duration,done=()=>{})=>{
+      if(!node||reducedMotion.matches||!node.animate){done();return null;}
+      const animation=node.animate(frames,{duration,easing:motion.easing,fill:'none'});
+      running.add(animation);
+      animation.onfinish=animation.oncancel=()=>{running.delete(animation);done();};
+      return animation;
+    };
+    const stopMotion=()=>{
+      for(const animation of [...running])animation.cancel();
+      running.clear();
+      phone.querySelectorAll('.ks-motion-copy,.ks-motion-appearance-copy').forEach(node=>node.remove());
+    };
+    reducedMotion.addEventListener('change',()=>{if(reducedMotion.matches){stopMotion();themeAnimation?.cancel();}});
+    const rect=node=>{
+      if(!node)return null;
+      const r=node.getBoundingClientRect(),p=phone.getBoundingClientRect();
+      return r.width&&r.height?{x:r.left-p.left,y:r.top-p.top,w:r.width,h:r.height}:null;
+    };
+    const visible=node=>{
+      if(!node)return false;
+      const r=node.getBoundingClientRect(),p=phone.getBoundingClientRect();
+      return r.width>0&&r.height>0&&r.left>=p.left-1&&r.right<=p.right+1&&r.top>=Math.max(0,p.top)&&r.bottom<=Math.min(window.innerHeight,p.bottom);
+    };
+    const cloneVisual=node=>{
+      const copy=node.cloneNode(true);
+      for(const el of [copy,...copy.querySelectorAll('*')]){
+        el.removeAttribute('id');
+        for(const a of [...el.attributes])if(a.name.startsWith('data-'))el.removeAttribute(a.name);
+        el.removeAttribute('autofocus');
+      }
+      copy.inert=true;copy.setAttribute('aria-hidden','true');
+      return copy;
+    };
+    const ghost=(nodes,modal=false)=>{
+      const group=document.createElement('div');
+      group.className='ks-motion-copy'+(modal?' ks-motion-modal-copy':'');
+      group.inert=true;group.setAttribute('aria-hidden','true');
+      for(const node of nodes){
+        const r=rect(node);if(!r)continue;
+        const copy=cloneVisual(node);
+        Object.assign(copy.style,{position:'absolute',inset:'auto',left:r.x+'px',top:r.y+'px',width:r.w+'px',height:r.h+'px',margin:'0',boxSizing:'border-box'});
+        group.append(copy);
+      }
+      return group.childElementCount?group:null;
+    };
+    const attachGhost=group=>{if(group)phone.append(group);return group;};
+    const discard=group=>()=>group?.remove();
+    const pageNode=()=>phone.querySelector(':scope > .ks-page-motion');
+    const modalNode=()=>phone.querySelector(':scope > .ks-modal-overlay');
+    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.walletPickerOpen?'wallet':null;
+    const primary=page=>navs.some(n=>n[0]===page);
+    const localKey=()=>state.page==='meals'?JSON.stringify([state.mealTab,state.date,state.mealMonth,state.mealListMode,state.mealFilters]):state.page==='ledger'?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds]):'';
+    const localNodes=()=>{
+      const main=phone.querySelector('.ks-main');if(!main)return [];
+      const explicit=main.querySelector('[data-monthly-meals],[data-monthly-ledger],[data-ledger-statistics],[data-meal-results]');
+      if(explicit)return [explicit];
+      return [...main.children].filter(n=>n.matches('.ks-record-list,.ks-currency-group'));
+    };
+    const inFade=[{opacity:0,offset:0},{opacity:0,offset:.3},{opacity:1,offset:1}];
+    const outFade=[{opacity:1,offset:0},{opacity:0,offset:.45},{opacity:0,offset:1}];
+    const clip=(card,box,r)=>'inset('+Math.max(0,card.y-box.y)+'px '+Math.max(0,box.x+box.w-card.x-card.w)+'px '+Math.max(0,box.y+box.h-card.y-card.h)+'px '+Math.max(0,card.x-box.x)+'px round '+r+'px)';
+    const fullClip='inset(0px 0px 0px 0px round 0px)';
+    const originNode=()=>{
+      if(!recordOrigin||recordOrigin.page!==state.page)return null;
+      if(recordOrigin.id)return [...phone.querySelectorAll('[data-entry-id]')].find(n=>n.dataset.entryId===recordOrigin.id);
+      if(state.date!==recordOrigin.date&&!state.mealListMode)return null;
+      return [...phone.querySelectorAll('.ks-record[data-meal]')].find(n=>n.dataset.meal===recordOrigin.slot&&(n.dataset.mealDate||state.date)===recordOrigin.date&&!n.classList.contains('ks-empty'));
+    };
+    function animatePage(previous,oldPage,sourceRect){
+      const node=pageNode(),next=state.page;
+      if(!node||!previous||previous.page===next){oldPage?.remove();return;}
+      const oldIsPrimary=primary(previous.page),newIsPrimary=primary(next);
+      if(oldIsPrimary&&newIsPrimary){
+        attachGhost(oldPage);play(oldPage,outFade,motion.primary,discard(oldPage));
+        play(node,[{opacity:0,transform:'scale(.96)'},{opacity:0,offset:.25,transform:'scale(.96)'},{opacity:1,transform:'scale(1)'}],motion.primary);return;
+      }
+      const entering=oldIsPrimary&&!newIsPrimary;
+      const box=rect(node),target=!entering?originNode():null;
+      // Use the real card only when visible and inside the destination page; never guess its position.
+      const card=entering?sourceRect:visible(target)?rect(target):null;
+      if(card&&box&&recordOrigin&&oldPage&&(!entering||(card.x>=box.x&&card.y>=box.y&&card.x+card.w<=box.x+box.w&&card.y+card.h<=box.y+box.h))){
+        const radius=style.radius,copy=oldPage.firstElementChild;
+        if(entering){
+          attachGhost(oldPage);oldPage.style.zIndex='0';node.style.position='relative';node.style.zIndex='1';
+          play(oldPage,[{opacity:1},{opacity:0}],motion.card,discard(oldPage));
+          play(node,[{clipPath:clip(card,box,radius)},{clipPath:fullClip}],motion.card,()=>{node.style.zIndex='';node.style.position='';});
+        }else{
+          const oldBox={x:parseFloat(copy.style.left),y:parseFloat(copy.style.top),w:parseFloat(copy.style.width),h:parseFloat(copy.style.height)};
+          // If the original row moved outside the old page's bounds, fall back to the standard pop.
+          if(card.y>=oldBox.y&&card.y+card.h<=oldBox.y+oldBox.h){
+            attachGhost(oldPage);play(copy,[{clipPath:fullClip},{clipPath:clip(card,oldBox,radius)}],motion.card,discard(oldPage));
+          }else{attachGhost(oldPage);play(oldPage,[{transform:'translateX(0)'},{transform:'translateX(100%)'}],motion.pop,discard(oldPage));play(node,[{transform:'translateX(-12%)'},{transform:'translateX(0)'}],motion.pop);}
+        }
+        return;
+      }
+      attachGhost(oldPage);
+      if(entering){
+        if(oldPage){oldPage.style.zIndex='0';node.style.position='relative';node.style.zIndex='1';play(oldPage,[{transform:'translateX(0)'},{transform:'translateX(-12%)'}],motion.push,discard(oldPage));}
+        play(node,[{transform:'translateX(100%)'},{transform:'translateX(0)'}],motion.push,()=>{node.style.zIndex='';node.style.position='';});
+      }else{
+        play(oldPage,[{transform:'translateX(0)'},{transform:'translateX(100%)'}],motion.pop,discard(oldPage));play(node,[{transform:'translateX(-12%)'},{transform:'translateX(0)'}],motion.pop);
+      }
+    }
+    function animateModal(previous,oldModal){
+      const kind=modalKind(),node=modalNode();
+      if(previous===kind)return;
+      const opening=!!kind,group=opening?node:attachGhost(oldModal);
+      const overlay=opening?node:group?.firstElementChild;
+      if(!overlay)return;
+      const panel=overlay.firstElementChild,dialog=(opening?kind:previous)==='dialog',duration=dialog?motion.dialog:motion.sheet;
+      play(overlay,opening?[{opacity:0},{opacity:1}]:[{opacity:1},{opacity:0}],duration,opening?()=>{}:discard(group));
+      play(panel,dialog?(opening?[{transform:'scale(.96)'},{transform:'scale(1)'}]:[{transform:'scale(1)'},{transform:'scale(.96)'}]):(opening?[{transform:'translateY(100%)'},{transform:'translateY(0)'}]:[{transform:'translateY(0)'},{transform:'translateY(100%)'}]),duration);
+    }
+    function expandAppearance(editor){
+      if(!editor||editor.hidden||reducedMotion.matches)return;
+      const height=editor.getBoundingClientRect().height;
+      if(height)play(editor,[{height:'0px',opacity:0,overflow:'hidden'},{height:height+'px',opacity:1,overflow:'hidden'}],motion.appearance);
+    }
+    function collapseAppearance(editor,copy,height){
+      if(!copy||!height||reducedMotion.matches)return;
+      copy.classList.add('ks-motion-appearance-copy');copy.hidden=false;
+      editor.after(copy);
+      play(copy,[{height:height+'px',opacity:1},{height:'0px',opacity:0}],motion.appearance,discard(copy));
+    }
+    const themeValues=()=>Object.fromEntries(themeRoles.map(name=>[name,getComputedStyle(phone).getPropertyValue(name).trim()]));
+    const resolvedMode=()=>style.mode==='system'?(systemDark.matches?'dark':'light'):style.mode;
+    function applyAnimatedAppearance(next){
+      const from=typedTheme?themeValues():null,mode=resolvedMode();
+      themeAnimation?.cancel();Object.assign(style,next);resetAppearance();applyStyle();
+      // A light/dark crossing switches semantic foreground/background pairs together; interpolating
+      // opposed text and surfaces would create a low-contrast midpoint.
+      if(from&&mode===resolvedMode()&&!reducedMotion.matches&&phone.animate){
+        themeAnimation=phone.animate([from,themeValues()],{duration:motion.theme,easing:motion.easing});
+      }
+    }
     function render(){
+      const previous=rendered,kind=modalKind(),key=localKey(),changingPage=previous&&previous.page!==state.page;
+      // Measure before removing old nodes, but first clear any stale visual copies.
+      stopMotion();
+      const oldEditor=phone.querySelector('[data-appearance-editor]');
+      const editorWasVisible=!!oldEditor&&!oldEditor.hidden;
+      const editorHeight=editorWasVisible?oldEditor.getBoundingClientRect().height:0;
+      const editorCopy=editorWasVisible&&state.page==='settings'&&!appearanceChanged(pendingAppearance())?cloneVisual(oldEditor):null;
+      const oldPage=changingPage&&!reducedMotion.matches?ghost([pageNode()].filter(Boolean)):null;
+      const oldModal=previous?.modal&&!kind&&!reducedMotion.matches?ghost([modalNode()].filter(Boolean),true):null;
+      const localChanged=previous&&!changingPage&&key!==previous.local;
+      const oldLocal=localChanged&&!reducedMotion.matches?ghost(localNodes()):null;
+      const sourceRect=entrance;entrance=null;if(changingPage&&primary(previous.page)&&!primary(state.page)&&!sourceRect)recordOrigin=null;
+      rendering=true;
       const form=['meal-form','meal-filter','entry','entry-detail'].includes(state.page);
       const titles={home:'日常记录',meals:'用餐记录',ledger:'我的账本',settings:'设置', 'meal-form':`${state.editing?'编辑':'记录'}${slots[state.slot]}`,'meal-filter':'筛选用餐',entry:'记一笔','entry-detail':'账目详情'};
       const heading=`<h2 class="ks-title">${titles[state.page]}</h2>`;
       const header=state.page==='home'?`<div class="ks-home-brand"><span class="ks-app-mark" role="img" aria-label="狐狸应用图标示意">🦊</span><div>${heading}<p class="ks-sub">11 月 17 日 · 星期二</p></div></div>`:form?`<button type="button" class="ks-icon-btn cursor-interaction" data-action="back" aria-label="返回">${icon('arrow-left')}</button>${heading}`:`<div><div class="ks-brand">KITSUNE / 日常记录</div>${heading}</div>`;
-      phone.innerHTML=`<div class="ks-status"><span>9:41</span><span class="ks-signal">${icon('signal')}${icon('wifi')}${icon('battery-full')}</span></div><header class="ks-top ${form?'ks-subpage':''}">${header}</header><main class="ks-main">${({home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,'meal-form':pageMealForm,'meal-filter':pageMealFilter,entry:pageEntry,'entry-detail':pageEntryDetail})[state.page]()}${state.notice?`<p class="ks-success" role="status">${escapeText(state.notice)}</p>`:''}</main>${state.page==='ledger'?`<div class="ks-ledger-action"><button type="button" class="ks-primary ks-full cursor-interaction" data-action="add-entry">${icon('plus')}记一笔</button></div>`:''}${form?'':`<nav class="ks-nav" aria-label="主导航">${navs.map(([id,name,ic])=>`<button type="button" data-page="${id}" class="cursor-interaction" ${state.page===id?'aria-current="page"':''}><span>${icon(ic)}</span>${name}</button>`).join('')}</nav>`}<div class="ks-home-indicator" aria-hidden="true"></div>`;
+      phone.innerHTML=`<div class="ks-status"><span>9:41</span><span class="ks-signal">${icon('signal')}${icon('wifi')}${icon('battery-full')}</span></div><div class="ks-page-motion"><header class="ks-top ${form?'ks-subpage':''}">${header}</header><main class="ks-main">${({home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,'meal-form':pageMealForm,'meal-filter':pageMealFilter,entry:pageEntry,'entry-detail':pageEntryDetail})[state.page]()}${state.notice?`<p class="ks-success" role="status">${escapeText(state.notice)}</p>`:''}</main></div>${state.page==='ledger'?`<div class="ks-ledger-action"><button type="button" class="ks-primary ks-full cursor-interaction" data-action="add-entry">${icon('plus')}记一笔</button></div>`:''}${form?'':`<nav class="ks-nav" aria-label="主导航">${navs.map(([id,name,ic])=>`<button type="button" data-page="${id}" class="cursor-interaction" ${state.page===id?'aria-current="page"':''}><span>${icon(ic)}</span>${name}</button>`).join('')}</nav>`}<div class="ks-home-indicator" aria-hidden="true"></div>`;
       if(state.calcOpen){phone.insertAdjacentHTML('beforeend',calculatorSheet());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-calc-expression]').focus({preventScroll:true});}
       if(state.deletePending){phone.insertAdjacentHTML('beforeend',deleteConfirmation());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-delete-action=cancel]').focus({preventScroll:true});}
       if(state.walletPickerOpen){phone.insertAdjacentHTML('beforeend',walletPickerSheet());for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;const all=phone.querySelector('[data-wallet-all]');all.indeterminate=state.walletDraftIds.length>0&&state.walletDraftIds.length<wallets.length;all.focus({preventScroll:true});}
       if(state.page==='settings')updateAppearancePreview();
       globalThis.lucide?.createIcons({root:phone,attrs:{width:18,height:18}});
+      rendering=false;
+      rendered={page:state.page,modal:kind,local:key};
+      if(!reducedMotion.matches){
+        if(changingPage)animatePage(previous,oldPage,sourceRect);
+        if(localChanged){attachGhost(oldLocal);play(oldLocal,outFade,motion.local,discard(oldLocal));for(const node of localNodes())play(node,inFade,motion.local);}
+        animateModal(previous?.modal||null,oldModal);
+        if(previous?.page==='settings'&&state.page==='settings'){
+          const editor=phone.querySelector('[data-appearance-editor]');
+          if(editorWasVisible&&editor.hidden)collapseAppearance(editor,editorCopy,editorHeight);
+          else if(!editorWasVisible&&!editor.hidden)expandAppearance(editor);
+        }
+      }
+      if(changingPage&&primary(state.page))recordOrigin=null;
+      if(changingPage&&!kind){const header=phone.querySelector('.ks-top');header.setAttribute('tabindex','-1');header.focus({preventScroll:true});}
     }
     function capture(){const form=phone.querySelector('[data-meal-form]');if(form){state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);}const entry=phone.querySelector('[data-entry-form]');if(entry){state.amount=entry.elements.amount.value;state.entryDraft={dateTime:entry.elements.dateTime.value,note:entry.elements.note.value,category:entry.elements.category.value,walletId:entry.elements.wallet.value};}}
     function error(message){phone.querySelector('.ks-error').textContent=message;}
     function updateAppearancePreview(){
       const editor=phone.querySelector('[data-appearance-editor]');
       if(!editor)return;
-      editor.hidden=!appearanceChanged(pendingAppearance());
+      const wasVisible=!editor.hidden,show=appearanceChanged(pendingAppearance());
+      if(!rendering&&wasVisible!==show){
+        phone.querySelectorAll('.ks-motion-appearance-copy').forEach(node=>node.remove());
+        editor.getAnimations().forEach(a=>a.cancel());
+        if(!show){const height=editor.getBoundingClientRect().height,copy=cloneVisual(editor);editor.hidden=true;collapseAppearance(editor,copy,height);}
+      }
+      editor.hidden=!show;
       if(editor.hidden){state.previewMode=null;return;}
+      if(!rendering&&!wasVisible)expandAppearance(editor);
       const preview=editor.querySelector('[data-appearance-preview]');
       const draft=state.appearanceDraft;
       const preferredMode=draft.mode==='system'?(systemDark.matches?'dark':'light'):draft.mode;
@@ -596,7 +782,7 @@
         const next=pendingAppearance();
         if(!appearanceChanged(next))return;
         if(next.customColor===null){phone.querySelector('[data-appearance-error]').textContent='请输入六位 HEX 颜色，例如 #C47A4A。';return;}
-        Object.assign(style,next);resetAppearance();applyStyle();state.notice='已应用外观。';render();persist();return;
+        applyAnimatedAppearance(next);state.notice='已应用外观。';render();persist();return;
       }
       if(b.dataset.action==='edit-ledger-range'){
         state.ledgerRangeOpen=!state.ledgerRangeOpen;render();
@@ -611,16 +797,16 @@
       if(b.dataset.action==='clear-meal-filters'){state.mealFilters=blankMealFilters();render();persist();return;}
       if(b.dataset.action==='choose-wallets'){state.walletDraftIds=selectedWallets().map(w=>w.id);state.walletPickerOpen=true;render();return;}
       if(b.dataset.walletAction){closeWalletPicker(b.dataset.walletAction==='apply');return;}
-      if(b.dataset.entryId){if(!financialEntries().some(e=>e.id===b.dataset.entryId))return;state.selectedEntryId=b.dataset.entryId;state.page='entry-detail';render();return;}
+      if(b.dataset.entryId){if(!financialEntries().some(e=>e.id===b.dataset.entryId))return;recordOrigin={page:state.page,id:b.dataset.entryId};entrance=visible(b)?rect(b):null;state.selectedEntryId=b.dataset.entryId;state.page='entry-detail';render();return;}
       if(b.dataset.action==='delete-meal'){const meal=state.records[state.editingDate]?.[state.editingSlot];if(!meal)return;state.deletePending={kind:'meal',date:state.editingDate,slot:state.editingSlot,summary:`${state.editingDate} · ${slots[state.editingSlot]}\n${meal.dishes||'无菜品内容'}`};render();return;}
       if(b.dataset.action==='delete-entry'){const e=financialEntries().find(e=>e.id===state.selectedEntryId);if(!e)return;const w=walletById(e.walletId);state.deletePending={kind:'entry',id:e.id,summary:`${e.date} ${e.time}\n${w.name} · ${w.code}\n${entryCategory(e)} · ${e.type} ¥${money(e.cents,w.code)}`};render();return;}
       if(b.dataset.deleteAction){if(b.dataset.deleteAction==='confirm')confirmDelete();else cancelDelete();return;}
       if(b.dataset.action==='open-calculator'){state.calcExpression=state.amount;state.calcOpen=true;render();return;}
       if(b.dataset.calcAction){closeCalculator(b.dataset.calcAction==='apply');return;}
       if(b.dataset.monthStep){const key=b.dataset.monthKey;if(!['ledgerMonth','mealMonth'].includes(key))return;const [year,month]=state[key].split('-').map(Number),ordinal=year*12+month-1+Number(b.dataset.monthStep);if(ordinal<12||ordinal>=120000)return;state[key]=`${String(Math.floor(ordinal/12)).padStart(4,'0')}-${String(ordinal%12+1).padStart(2,'0')}`;if(key==='ledgerMonth')state.ledgerRangeOpen=false;render();persist();return;}
-      if(b.dataset.page){state.page=b.dataset.page;state.ledgerRangeOpen=false;if(state.page==='settings')resetAppearance();render();persist();return;}
+      if(b.dataset.page){if(state.page===b.dataset.page)return;state.page=b.dataset.page;state.ledgerRangeOpen=false;if(state.page==='settings')resetAppearance();render();persist();return;}
       if(b.dataset.date){state.date=b.dataset.date;render();return;}
-      if(b.dataset.meal!==undefined){if(state.page==='home')state.date='2026-11-17';else if(b.dataset.mealDate)state.date=b.dataset.mealDate;state.slot=Number(b.dataset.meal);state.mealReturn=state.page;const m=records()[state.slot];state.editing=!!m;state.editingDate=state.date;state.editingSlot=state.slot;state.atHome=m?.atHome??null;state.method=m?.method??null;state.categories=[...(m?.categories||[])];state.dishes=m?.dishes||'';state.note=m?.note||'';state.page='meal-form';render();return;}
+      if(b.dataset.meal!==undefined){if(state.page==='home')state.date='2026-11-17';else if(b.dataset.mealDate)state.date=b.dataset.mealDate;state.slot=Number(b.dataset.meal);state.mealReturn=state.page;const m=records()[state.slot];state.editing=!!m;if(m&&b.classList.contains('ks-record')){recordOrigin={page:state.page,date:state.date,slot:b.dataset.meal};entrance=visible(b)?rect(b):null;}else recordOrigin=null;state.editingDate=state.date;state.editingSlot=state.slot;state.atHome=m?.atHome??null;state.method=m?.method??null;state.categories=[...(m?.categories||[])];state.dishes=m?.dishes||'';state.note=m?.note||'';state.page='meal-form';render();return;}
       if(b.dataset.homeChoice!==undefined){state.atHome=b.dataset.homeChoice==='true';render();return;}
       if(b.dataset.method){const m=b.dataset.method;state.method=state.method===m?null:m;if(state.method!=='下厨')state.categories=[];render();return;}
       if(b.dataset.category){const c=b.dataset.category;state.categories=state.categories.includes(c)?state.categories.filter(x=>x!==c):[...state.categories,c];render();return;}

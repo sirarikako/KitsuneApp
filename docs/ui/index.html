@@ -2115,6 +2115,12 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-appearance-preview .ks-record:hover{background:var(--ks-card-surface)}
   #kitsune-preview .ks-appearance-preview .ks-primary{margin-top:var(--ks-space-2)}
   #kitsune-preview .ks-theme-swatches span:last-child{border:var(--ks-card-border)}
+  #kitsune-preview .ks-phone{overflow:clip}
+  #kitsune-preview .ks-page-motion{display:flex;flex:1;flex-direction:column;min-width:0;background:var(--ks-bg)}
+  #kitsune-preview .ks-motion-copy{position:absolute;inset:0;z-index:8;pointer-events:none;overflow:hidden;border-radius:30px}
+  #kitsune-preview .ks-motion-copy *{pointer-events:none!important}
+  #kitsune-preview .ks-motion-modal-copy{z-index:21}
+  #kitsune-preview .ks-motion-appearance-copy{pointer-events:none;overflow:hidden}
 &lt;/style&gt;
 &lt;script&gt;
 (() =&gt; {
@@ -2130,6 +2136,13 @@ html&gt;body{padding:0}&lt;/style&gt;
   const maximumEntryMinor=9223372036854775807n;
   const themeModes=[[&#x27;system&#x27;,&#x27;跟随系统&#x27;],[&#x27;light&#x27;,&#x27;浅色&#x27;],[&#x27;dark&#x27;,&#x27;深色&#x27;]];
   const systemDark=window.matchMedia(&#x27;(prefers-color-scheme: dark)&#x27;);
+  const reducedMotion=window.matchMedia(&#x27;(prefers-reduced-motion: reduce)&#x27;);
+  const motion={primary:200,push:240,pop:220,card:280,sheet:250,dialog:180,local:150,appearance:200,theme:250,easing:&#x27;cubic-bezier(0.2, 0, 0, 1)&#x27;};
+  const themeRoles=[&#x27;--ks-bg&#x27;,&#x27;--ks-paper&#x27;,&#x27;--ks-soft&#x27;,&#x27;--ks-line&#x27;,&#x27;--ks-accent-bg&#x27;,&#x27;--ks-accent&#x27;,&#x27;--ks-ink&#x27;,&#x27;--ks-dim&#x27;,&#x27;--ks-good&#x27;,&#x27;--ks-danger&#x27;,&#x27;--ks-action-bg&#x27;,&#x27;--ks-action-text&#x27;,&#x27;--ks-on-danger&#x27;,&#x27;--ks-card-surface&#x27;];
+  // Registered color roles interpolate on the existing phone rather than rebuilding its theme on each animation frame.
+  const typedTheme=typeof CSS!==&#x27;undefined&#x27;&amp;&amp;typeof CSS.registerProperty===&#x27;function&#x27;;
+  if(typedTheme)for(const name of themeRoles){try{CSS.registerProperty({name,syntax:&#x27;&lt;color&gt;&#x27;,inherits:true,initialValue:&#x27;#000000&#x27;});}catch{}}
+
   root.querySelectorAll(&#x27;.ks-phone&#x27;).forEach((phone,index) =&gt; {
     const style = {radius:index ? 13:17, accent:index ? &#x27;#5f7f64&#x27;:&#x27;#c47a4a&#x27;,mode:&#x27;system&#x27;,mealHour:&#x27;auto&#x27;,colorSource:&#x27;PRESET&#x27;,presetColor:index?&#x27;#5f7f64&#x27;:&#x27;#c47a4a&#x27;,customColor:&#x27;#C47A4A&#x27;};
     const state = {page:&#x27;settings&#x27;, date:&#x27;2026-11-17&#x27;, ledgerMonth:&#x27;2026-11&#x27;,mealMonth:&#x27;2026-11&#x27;,ledgerTab:&#x27;统计&#x27;, mealTab:&#x27;记录&#x27;, slot:2, atHome:null, method:null, categories:[], amount:&#x27;&#x27;,calcOpen:false,calcExpression:&#x27;&#x27;,entryType:&#x27;支出&#x27;,entryDraft:{dateTime:&#x27;2026-11-17T09:41&#x27;,note:&#x27;&#x27;,category:&#x27;餐饮&#x27;,walletId:&#x27;daily&#x27;},notice:&#x27;&#x27;, mealReturn:&#x27;home&#x27;, entries:[], records:{}};
@@ -2225,7 +2238,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       const roles={&#x27;--ks-bg&#x27;:&#x27;bg&#x27;,&#x27;--ks-paper&#x27;:&#x27;paper&#x27;,&#x27;--ks-soft&#x27;:&#x27;soft&#x27;,&#x27;--ks-line&#x27;:&#x27;line&#x27;,&#x27;--ks-accent-bg&#x27;:&#x27;selected&#x27;,&#x27;--ks-accent&#x27;:&#x27;accent&#x27;,&#x27;--ks-ink&#x27;:&#x27;ink&#x27;,&#x27;--ks-dim&#x27;:&#x27;dim&#x27;,&#x27;--ks-good&#x27;:&#x27;good&#x27;,&#x27;--ks-danger&#x27;:&#x27;danger&#x27;,&#x27;--ks-action-bg&#x27;:&#x27;accent&#x27;,&#x27;--ks-action-text&#x27;:&#x27;onAction&#x27;,&#x27;--ks-on-danger&#x27;:&#x27;onDanger&#x27;,&#x27;--ks-card-surface&#x27;:&#x27;paper&#x27;};
       target.style.setProperty(&#x27;--ks-seed&#x27;,seed);
       for(const [key,role] of Object.entries(roles))target.style.setProperty(key,value(role));
-      target.style.setProperty(&#x27;--ks-card-border&#x27;,`1px solid ${value(&#x27;line&#x27;)}`);
+      target.style.setProperty(&#x27;--ks-card-border&#x27;,&#x27;1px solid var(--ks-line)&#x27;);
     };
     const applyStyle = () =&gt; {
       style.accent=colorSeed(style);
@@ -2432,25 +2445,198 @@ html&gt;body{padding:0}&lt;/style&gt;
         ${formFooter(`&lt;div class=&quot;ks-form-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-action=&quot;reset-meal-filter&quot;&gt;重置条件&lt;/button&gt;${saveButton(&#x27;应用筛选&#x27;)}&lt;/div&gt;`)}
       &lt;/form&gt;`;
     }
+    // Motion is deliberately separate from the example business state. Leaving copies are inert,
+    // contain no business selectors, and are removed on completion or the next render.
+    let rendered=null,rendering=false,recordOrigin=null,entrance=null,themeAnimation=null;
+    const running=new Set();
+    const play=(node,frames,duration,done=()=&gt;{})=&gt;{
+      if(!node||reducedMotion.matches||!node.animate){done();return null;}
+      const animation=node.animate(frames,{duration,easing:motion.easing,fill:&#x27;none&#x27;});
+      running.add(animation);
+      animation.onfinish=animation.oncancel=()=&gt;{running.delete(animation);done();};
+      return animation;
+    };
+    const stopMotion=()=&gt;{
+      for(const animation of [...running])animation.cancel();
+      running.clear();
+      phone.querySelectorAll(&#x27;.ks-motion-copy,.ks-motion-appearance-copy&#x27;).forEach(node=&gt;node.remove());
+    };
+    reducedMotion.addEventListener(&#x27;change&#x27;,()=&gt;{if(reducedMotion.matches){stopMotion();themeAnimation?.cancel();}});
+    const rect=node=&gt;{
+      if(!node)return null;
+      const r=node.getBoundingClientRect(),p=phone.getBoundingClientRect();
+      return r.width&amp;&amp;r.height?{x:r.left-p.left,y:r.top-p.top,w:r.width,h:r.height}:null;
+    };
+    const visible=node=&gt;{
+      if(!node)return false;
+      const r=node.getBoundingClientRect(),p=phone.getBoundingClientRect();
+      return r.width&gt;0&amp;&amp;r.height&gt;0&amp;&amp;r.left&gt;=p.left-1&amp;&amp;r.right&lt;=p.right+1&amp;&amp;r.top&gt;=Math.max(0,p.top)&amp;&amp;r.bottom&lt;=Math.min(window.innerHeight,p.bottom);
+    };
+    const cloneVisual=node=&gt;{
+      const copy=node.cloneNode(true);
+      for(const el of [copy,...copy.querySelectorAll(&#x27;*&#x27;)]){
+        el.removeAttribute(&#x27;id&#x27;);
+        for(const a of [...el.attributes])if(a.name.startsWith(&#x27;data-&#x27;))el.removeAttribute(a.name);
+        el.removeAttribute(&#x27;autofocus&#x27;);
+      }
+      copy.inert=true;copy.setAttribute(&#x27;aria-hidden&#x27;,&#x27;true&#x27;);
+      return copy;
+    };
+    const ghost=(nodes,modal=false)=&gt;{
+      const group=document.createElement(&#x27;div&#x27;);
+      group.className=&#x27;ks-motion-copy&#x27;+(modal?&#x27; ks-motion-modal-copy&#x27;:&#x27;&#x27;);
+      group.inert=true;group.setAttribute(&#x27;aria-hidden&#x27;,&#x27;true&#x27;);
+      for(const node of nodes){
+        const r=rect(node);if(!r)continue;
+        const copy=cloneVisual(node);
+        Object.assign(copy.style,{position:&#x27;absolute&#x27;,inset:&#x27;auto&#x27;,left:r.x+&#x27;px&#x27;,top:r.y+&#x27;px&#x27;,width:r.w+&#x27;px&#x27;,height:r.h+&#x27;px&#x27;,margin:&#x27;0&#x27;,boxSizing:&#x27;border-box&#x27;});
+        group.append(copy);
+      }
+      return group.childElementCount?group:null;
+    };
+    const attachGhost=group=&gt;{if(group)phone.append(group);return group;};
+    const discard=group=&gt;()=&gt;group?.remove();
+    const pageNode=()=&gt;phone.querySelector(&#x27;:scope &gt; .ks-page-motion&#x27;);
+    const modalNode=()=&gt;phone.querySelector(&#x27;:scope &gt; .ks-modal-overlay&#x27;);
+    const modalKind=()=&gt;state.deletePending?&#x27;dialog&#x27;:state.calcOpen?&#x27;calculator&#x27;:state.walletPickerOpen?&#x27;wallet&#x27;:null;
+    const primary=page=&gt;navs.some(n=&gt;n[0]===page);
+    const localKey=()=&gt;state.page===&#x27;meals&#x27;?JSON.stringify([state.mealTab,state.date,state.mealMonth,state.mealListMode,state.mealFilters]):state.page===&#x27;ledger&#x27;?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds]):&#x27;&#x27;;
+    const localNodes=()=&gt;{
+      const main=phone.querySelector(&#x27;.ks-main&#x27;);if(!main)return [];
+      const explicit=main.querySelector(&#x27;[data-monthly-meals],[data-monthly-ledger],[data-ledger-statistics],[data-meal-results]&#x27;);
+      if(explicit)return [explicit];
+      return [...main.children].filter(n=&gt;n.matches(&#x27;.ks-record-list,.ks-currency-group&#x27;));
+    };
+    const inFade=[{opacity:0,offset:0},{opacity:0,offset:.3},{opacity:1,offset:1}];
+    const outFade=[{opacity:1,offset:0},{opacity:0,offset:.45},{opacity:0,offset:1}];
+    const clip=(card,box,r)=&gt;&#x27;inset(&#x27;+Math.max(0,card.y-box.y)+&#x27;px &#x27;+Math.max(0,box.x+box.w-card.x-card.w)+&#x27;px &#x27;+Math.max(0,box.y+box.h-card.y-card.h)+&#x27;px &#x27;+Math.max(0,card.x-box.x)+&#x27;px round &#x27;+r+&#x27;px)&#x27;;
+    const fullClip=&#x27;inset(0px 0px 0px 0px round 0px)&#x27;;
+    const originNode=()=&gt;{
+      if(!recordOrigin||recordOrigin.page!==state.page)return null;
+      if(recordOrigin.id)return [...phone.querySelectorAll(&#x27;[data-entry-id]&#x27;)].find(n=&gt;n.dataset.entryId===recordOrigin.id);
+      if(state.date!==recordOrigin.date&amp;&amp;!state.mealListMode)return null;
+      return [...phone.querySelectorAll(&#x27;.ks-record[data-meal]&#x27;)].find(n=&gt;n.dataset.meal===recordOrigin.slot&amp;&amp;(n.dataset.mealDate||state.date)===recordOrigin.date&amp;&amp;!n.classList.contains(&#x27;ks-empty&#x27;));
+    };
+    function animatePage(previous,oldPage,sourceRect){
+      const node=pageNode(),next=state.page;
+      if(!node||!previous||previous.page===next){oldPage?.remove();return;}
+      const oldIsPrimary=primary(previous.page),newIsPrimary=primary(next);
+      if(oldIsPrimary&amp;&amp;newIsPrimary){
+        attachGhost(oldPage);play(oldPage,outFade,motion.primary,discard(oldPage));
+        play(node,[{opacity:0,transform:&#x27;scale(.96)&#x27;},{opacity:0,offset:.25,transform:&#x27;scale(.96)&#x27;},{opacity:1,transform:&#x27;scale(1)&#x27;}],motion.primary);return;
+      }
+      const entering=oldIsPrimary&amp;&amp;!newIsPrimary;
+      const box=rect(node),target=!entering?originNode():null;
+      // Use the real card only when visible and inside the destination page; never guess its position.
+      const card=entering?sourceRect:visible(target)?rect(target):null;
+      if(card&amp;&amp;box&amp;&amp;recordOrigin&amp;&amp;oldPage&amp;&amp;(!entering||(card.x&gt;=box.x&amp;&amp;card.y&gt;=box.y&amp;&amp;card.x+card.w&lt;=box.x+box.w&amp;&amp;card.y+card.h&lt;=box.y+box.h))){
+        const radius=style.radius,copy=oldPage.firstElementChild;
+        if(entering){
+          attachGhost(oldPage);oldPage.style.zIndex=&#x27;0&#x27;;node.style.position=&#x27;relative&#x27;;node.style.zIndex=&#x27;1&#x27;;
+          play(oldPage,[{opacity:1},{opacity:0}],motion.card,discard(oldPage));
+          play(node,[{clipPath:clip(card,box,radius)},{clipPath:fullClip}],motion.card,()=&gt;{node.style.zIndex=&#x27;&#x27;;node.style.position=&#x27;&#x27;;});
+        }else{
+          const oldBox={x:parseFloat(copy.style.left),y:parseFloat(copy.style.top),w:parseFloat(copy.style.width),h:parseFloat(copy.style.height)};
+          // If the original row moved outside the old page&#x27;s bounds, fall back to the standard pop.
+          if(card.y&gt;=oldBox.y&amp;&amp;card.y+card.h&lt;=oldBox.y+oldBox.h){
+            attachGhost(oldPage);play(copy,[{clipPath:fullClip},{clipPath:clip(card,oldBox,radius)}],motion.card,discard(oldPage));
+          }else{attachGhost(oldPage);play(oldPage,[{transform:&#x27;translateX(0)&#x27;},{transform:&#x27;translateX(100%)&#x27;}],motion.pop,discard(oldPage));play(node,[{transform:&#x27;translateX(-12%)&#x27;},{transform:&#x27;translateX(0)&#x27;}],motion.pop);}
+        }
+        return;
+      }
+      attachGhost(oldPage);
+      if(entering){
+        if(oldPage){oldPage.style.zIndex=&#x27;0&#x27;;node.style.position=&#x27;relative&#x27;;node.style.zIndex=&#x27;1&#x27;;play(oldPage,[{transform:&#x27;translateX(0)&#x27;},{transform:&#x27;translateX(-12%)&#x27;}],motion.push,discard(oldPage));}
+        play(node,[{transform:&#x27;translateX(100%)&#x27;},{transform:&#x27;translateX(0)&#x27;}],motion.push,()=&gt;{node.style.zIndex=&#x27;&#x27;;node.style.position=&#x27;&#x27;;});
+      }else{
+        play(oldPage,[{transform:&#x27;translateX(0)&#x27;},{transform:&#x27;translateX(100%)&#x27;}],motion.pop,discard(oldPage));play(node,[{transform:&#x27;translateX(-12%)&#x27;},{transform:&#x27;translateX(0)&#x27;}],motion.pop);
+      }
+    }
+    function animateModal(previous,oldModal){
+      const kind=modalKind(),node=modalNode();
+      if(previous===kind)return;
+      const opening=!!kind,group=opening?node:attachGhost(oldModal);
+      const overlay=opening?node:group?.firstElementChild;
+      if(!overlay)return;
+      const panel=overlay.firstElementChild,dialog=(opening?kind:previous)===&#x27;dialog&#x27;,duration=dialog?motion.dialog:motion.sheet;
+      play(overlay,opening?[{opacity:0},{opacity:1}]:[{opacity:1},{opacity:0}],duration,opening?()=&gt;{}:discard(group));
+      play(panel,dialog?(opening?[{transform:&#x27;scale(.96)&#x27;},{transform:&#x27;scale(1)&#x27;}]:[{transform:&#x27;scale(1)&#x27;},{transform:&#x27;scale(.96)&#x27;}]):(opening?[{transform:&#x27;translateY(100%)&#x27;},{transform:&#x27;translateY(0)&#x27;}]:[{transform:&#x27;translateY(0)&#x27;},{transform:&#x27;translateY(100%)&#x27;}]),duration);
+    }
+    function expandAppearance(editor){
+      if(!editor||editor.hidden||reducedMotion.matches)return;
+      const height=editor.getBoundingClientRect().height;
+      if(height)play(editor,[{height:&#x27;0px&#x27;,opacity:0,overflow:&#x27;hidden&#x27;},{height:height+&#x27;px&#x27;,opacity:1,overflow:&#x27;hidden&#x27;}],motion.appearance);
+    }
+    function collapseAppearance(editor,copy,height){
+      if(!copy||!height||reducedMotion.matches)return;
+      copy.classList.add(&#x27;ks-motion-appearance-copy&#x27;);copy.hidden=false;
+      editor.after(copy);
+      play(copy,[{height:height+&#x27;px&#x27;,opacity:1},{height:&#x27;0px&#x27;,opacity:0}],motion.appearance,discard(copy));
+    }
+    const themeValues=()=&gt;Object.fromEntries(themeRoles.map(name=&gt;[name,getComputedStyle(phone).getPropertyValue(name).trim()]));
+    const resolvedMode=()=&gt;style.mode===&#x27;system&#x27;?(systemDark.matches?&#x27;dark&#x27;:&#x27;light&#x27;):style.mode;
+    function applyAnimatedAppearance(next){
+      const from=typedTheme?themeValues():null,mode=resolvedMode();
+      themeAnimation?.cancel();Object.assign(style,next);resetAppearance();applyStyle();
+      // A light/dark crossing switches semantic foreground/background pairs together; interpolating
+      // opposed text and surfaces would create a low-contrast midpoint.
+      if(from&amp;&amp;mode===resolvedMode()&amp;&amp;!reducedMotion.matches&amp;&amp;phone.animate){
+        themeAnimation=phone.animate([from,themeValues()],{duration:motion.theme,easing:motion.easing});
+      }
+    }
     function render(){
+      const previous=rendered,kind=modalKind(),key=localKey(),changingPage=previous&amp;&amp;previous.page!==state.page;
+      // Measure before removing old nodes, but first clear any stale visual copies.
+      stopMotion();
+      const oldEditor=phone.querySelector(&#x27;[data-appearance-editor]&#x27;);
+      const editorWasVisible=!!oldEditor&amp;&amp;!oldEditor.hidden;
+      const editorHeight=editorWasVisible?oldEditor.getBoundingClientRect().height:0;
+      const editorCopy=editorWasVisible&amp;&amp;state.page===&#x27;settings&#x27;&amp;&amp;!appearanceChanged(pendingAppearance())?cloneVisual(oldEditor):null;
+      const oldPage=changingPage&amp;&amp;!reducedMotion.matches?ghost([pageNode()].filter(Boolean)):null;
+      const oldModal=previous?.modal&amp;&amp;!kind&amp;&amp;!reducedMotion.matches?ghost([modalNode()].filter(Boolean),true):null;
+      const localChanged=previous&amp;&amp;!changingPage&amp;&amp;key!==previous.local;
+      const oldLocal=localChanged&amp;&amp;!reducedMotion.matches?ghost(localNodes()):null;
+      const sourceRect=entrance;entrance=null;if(changingPage&amp;&amp;primary(previous.page)&amp;&amp;!primary(state.page)&amp;&amp;!sourceRect)recordOrigin=null;
+      rendering=true;
       const form=[&#x27;meal-form&#x27;,&#x27;meal-filter&#x27;,&#x27;entry&#x27;,&#x27;entry-detail&#x27;].includes(state.page);
       const titles={home:&#x27;日常记录&#x27;,meals:&#x27;用餐记录&#x27;,ledger:&#x27;我的账本&#x27;,settings:&#x27;设置&#x27;, &#x27;meal-form&#x27;:`${state.editing?&#x27;编辑&#x27;:&#x27;记录&#x27;}${slots[state.slot]}`,&#x27;meal-filter&#x27;:&#x27;筛选用餐&#x27;,entry:&#x27;记一笔&#x27;,&#x27;entry-detail&#x27;:&#x27;账目详情&#x27;};
       const heading=`&lt;h2 class=&quot;ks-title&quot;&gt;${titles[state.page]}&lt;/h2&gt;`;
       const header=state.page===&#x27;home&#x27;?`&lt;div class=&quot;ks-home-brand&quot;&gt;&lt;span class=&quot;ks-app-mark&quot; role=&quot;img&quot; aria-label=&quot;狐狸应用图标示意&quot;&gt;🦊&lt;/span&gt;&lt;div&gt;${heading}&lt;p class=&quot;ks-sub&quot;&gt;11 月 17 日 · 星期二&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;`:form?`&lt;button type=&quot;button&quot; class=&quot;ks-icon-btn cursor-interaction&quot; data-action=&quot;back&quot; aria-label=&quot;返回&quot;&gt;${icon(&#x27;arrow-left&#x27;)}&lt;/button&gt;${heading}`:`&lt;div&gt;&lt;div class=&quot;ks-brand&quot;&gt;KITSUNE / 日常记录&lt;/div&gt;${heading}&lt;/div&gt;`;
-      phone.innerHTML=`&lt;div class=&quot;ks-status&quot;&gt;&lt;span&gt;9:41&lt;/span&gt;&lt;span class=&quot;ks-signal&quot;&gt;${icon(&#x27;signal&#x27;)}${icon(&#x27;wifi&#x27;)}${icon(&#x27;battery-full&#x27;)}&lt;/span&gt;&lt;/div&gt;&lt;header class=&quot;ks-top ${form?&#x27;ks-subpage&#x27;:&#x27;&#x27;}&quot;&gt;${header}&lt;/header&gt;&lt;main class=&quot;ks-main&quot;&gt;${({home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,&#x27;meal-form&#x27;:pageMealForm,&#x27;meal-filter&#x27;:pageMealFilter,entry:pageEntry,&#x27;entry-detail&#x27;:pageEntryDetail})[state.page]()}${state.notice?`&lt;p class=&quot;ks-success&quot; role=&quot;status&quot;&gt;${escapeText(state.notice)}&lt;/p&gt;`:&#x27;&#x27;}&lt;/main&gt;${state.page===&#x27;ledger&#x27;?`&lt;div class=&quot;ks-ledger-action&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary ks-full cursor-interaction&quot; data-action=&quot;add-entry&quot;&gt;${icon(&#x27;plus&#x27;)}记一笔&lt;/button&gt;&lt;/div&gt;`:&#x27;&#x27;}${form?&#x27;&#x27;:`&lt;nav class=&quot;ks-nav&quot; aria-label=&quot;主导航&quot;&gt;${navs.map(([id,name,ic])=&gt;`&lt;button type=&quot;button&quot; data-page=&quot;${id}&quot; class=&quot;cursor-interaction&quot; ${state.page===id?&#x27;aria-current=&quot;page&quot;&#x27;:&#x27;&#x27;}&gt;&lt;span&gt;${icon(ic)}&lt;/span&gt;${name}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/nav&gt;`}&lt;div class=&quot;ks-home-indicator&quot; aria-hidden=&quot;true&quot;&gt;&lt;/div&gt;`;
+      phone.innerHTML=`&lt;div class=&quot;ks-status&quot;&gt;&lt;span&gt;9:41&lt;/span&gt;&lt;span class=&quot;ks-signal&quot;&gt;${icon(&#x27;signal&#x27;)}${icon(&#x27;wifi&#x27;)}${icon(&#x27;battery-full&#x27;)}&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-page-motion&quot;&gt;&lt;header class=&quot;ks-top ${form?&#x27;ks-subpage&#x27;:&#x27;&#x27;}&quot;&gt;${header}&lt;/header&gt;&lt;main class=&quot;ks-main&quot;&gt;${({home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,&#x27;meal-form&#x27;:pageMealForm,&#x27;meal-filter&#x27;:pageMealFilter,entry:pageEntry,&#x27;entry-detail&#x27;:pageEntryDetail})[state.page]()}${state.notice?`&lt;p class=&quot;ks-success&quot; role=&quot;status&quot;&gt;${escapeText(state.notice)}&lt;/p&gt;`:&#x27;&#x27;}&lt;/main&gt;&lt;/div&gt;${state.page===&#x27;ledger&#x27;?`&lt;div class=&quot;ks-ledger-action&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary ks-full cursor-interaction&quot; data-action=&quot;add-entry&quot;&gt;${icon(&#x27;plus&#x27;)}记一笔&lt;/button&gt;&lt;/div&gt;`:&#x27;&#x27;}${form?&#x27;&#x27;:`&lt;nav class=&quot;ks-nav&quot; aria-label=&quot;主导航&quot;&gt;${navs.map(([id,name,ic])=&gt;`&lt;button type=&quot;button&quot; data-page=&quot;${id}&quot; class=&quot;cursor-interaction&quot; ${state.page===id?&#x27;aria-current=&quot;page&quot;&#x27;:&#x27;&#x27;}&gt;&lt;span&gt;${icon(ic)}&lt;/span&gt;${name}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/nav&gt;`}&lt;div class=&quot;ks-home-indicator&quot; aria-hidden=&quot;true&quot;&gt;&lt;/div&gt;`;
       if(state.calcOpen){phone.insertAdjacentHTML(&#x27;beforeend&#x27;,calculatorSheet());phone.querySelector(&#x27;.ks-top&#x27;).inert=true;phone.querySelector(&#x27;.ks-main&#x27;).inert=true;phone.querySelector(&#x27;[data-calc-expression]&#x27;).focus({preventScroll:true});}
       if(state.deletePending){phone.insertAdjacentHTML(&#x27;beforeend&#x27;,deleteConfirmation());phone.querySelector(&#x27;.ks-top&#x27;).inert=true;phone.querySelector(&#x27;.ks-main&#x27;).inert=true;phone.querySelector(&#x27;[data-delete-action=cancel]&#x27;).focus({preventScroll:true});}
       if(state.walletPickerOpen){phone.insertAdjacentHTML(&#x27;beforeend&#x27;,walletPickerSheet());for(const child of phone.children)if(!child.classList.contains(&#x27;ks-modal-overlay&#x27;))child.inert=true;const all=phone.querySelector(&#x27;[data-wallet-all]&#x27;);all.indeterminate=state.walletDraftIds.length&gt;0&amp;&amp;state.walletDraftIds.length&lt;wallets.length;all.focus({preventScroll:true});}
       if(state.page===&#x27;settings&#x27;)updateAppearancePreview();
       globalThis.lucide?.createIcons({root:phone,attrs:{width:18,height:18}});
+      rendering=false;
+      rendered={page:state.page,modal:kind,local:key};
+      if(!reducedMotion.matches){
+        if(changingPage)animatePage(previous,oldPage,sourceRect);
+        if(localChanged){attachGhost(oldLocal);play(oldLocal,outFade,motion.local,discard(oldLocal));for(const node of localNodes())play(node,inFade,motion.local);}
+        animateModal(previous?.modal||null,oldModal);
+        if(previous?.page===&#x27;settings&#x27;&amp;&amp;state.page===&#x27;settings&#x27;){
+          const editor=phone.querySelector(&#x27;[data-appearance-editor]&#x27;);
+          if(editorWasVisible&amp;&amp;editor.hidden)collapseAppearance(editor,editorCopy,editorHeight);
+          else if(!editorWasVisible&amp;&amp;!editor.hidden)expandAppearance(editor);
+        }
+      }
+      if(changingPage&amp;&amp;primary(state.page))recordOrigin=null;
+      if(changingPage&amp;&amp;!kind){const header=phone.querySelector(&#x27;.ks-top&#x27;);header.setAttribute(&#x27;tabindex&#x27;,&#x27;-1&#x27;);header.focus({preventScroll:true});}
     }
     function capture(){const form=phone.querySelector(&#x27;[data-meal-form]&#x27;);if(form){state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);}const entry=phone.querySelector(&#x27;[data-entry-form]&#x27;);if(entry){state.amount=entry.elements.amount.value;state.entryDraft={dateTime:entry.elements.dateTime.value,note:entry.elements.note.value,category:entry.elements.category.value,walletId:entry.elements.wallet.value};}}
     function error(message){phone.querySelector(&#x27;.ks-error&#x27;).textContent=message;}
     function updateAppearancePreview(){
       const editor=phone.querySelector(&#x27;[data-appearance-editor]&#x27;);
       if(!editor)return;
-      editor.hidden=!appearanceChanged(pendingAppearance());
+      const wasVisible=!editor.hidden,show=appearanceChanged(pendingAppearance());
+      if(!rendering&amp;&amp;wasVisible!==show){
+        phone.querySelectorAll(&#x27;.ks-motion-appearance-copy&#x27;).forEach(node=&gt;node.remove());
+        editor.getAnimations().forEach(a=&gt;a.cancel());
+        if(!show){const height=editor.getBoundingClientRect().height,copy=cloneVisual(editor);editor.hidden=true;collapseAppearance(editor,copy,height);}
+      }
+      editor.hidden=!show;
       if(editor.hidden){state.previewMode=null;return;}
+      if(!rendering&amp;&amp;!wasVisible)expandAppearance(editor);
       const preview=editor.querySelector(&#x27;[data-appearance-preview]&#x27;);
       const draft=state.appearanceDraft;
       const preferredMode=draft.mode===&#x27;system&#x27;?(systemDark.matches?&#x27;dark&#x27;:&#x27;light&#x27;):draft.mode;
@@ -2487,7 +2673,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         const next=pendingAppearance();
         if(!appearanceChanged(next))return;
         if(next.customColor===null){phone.querySelector(&#x27;[data-appearance-error]&#x27;).textContent=&#x27;请输入六位 HEX 颜色，例如 #C47A4A。&#x27;;return;}
-        Object.assign(style,next);resetAppearance();applyStyle();state.notice=&#x27;已应用外观。&#x27;;render();persist();return;
+        applyAnimatedAppearance(next);state.notice=&#x27;已应用外观。&#x27;;render();persist();return;
       }
       if(b.dataset.action===&#x27;edit-ledger-range&#x27;){
         state.ledgerRangeOpen=!state.ledgerRangeOpen;render();
@@ -2502,16 +2688,16 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(b.dataset.action===&#x27;clear-meal-filters&#x27;){state.mealFilters=blankMealFilters();render();persist();return;}
       if(b.dataset.action===&#x27;choose-wallets&#x27;){state.walletDraftIds=selectedWallets().map(w=&gt;w.id);state.walletPickerOpen=true;render();return;}
       if(b.dataset.walletAction){closeWalletPicker(b.dataset.walletAction===&#x27;apply&#x27;);return;}
-      if(b.dataset.entryId){if(!financialEntries().some(e=&gt;e.id===b.dataset.entryId))return;state.selectedEntryId=b.dataset.entryId;state.page=&#x27;entry-detail&#x27;;render();return;}
+      if(b.dataset.entryId){if(!financialEntries().some(e=&gt;e.id===b.dataset.entryId))return;recordOrigin={page:state.page,id:b.dataset.entryId};entrance=visible(b)?rect(b):null;state.selectedEntryId=b.dataset.entryId;state.page=&#x27;entry-detail&#x27;;render();return;}
       if(b.dataset.action===&#x27;delete-meal&#x27;){const meal=state.records[state.editingDate]?.[state.editingSlot];if(!meal)return;state.deletePending={kind:&#x27;meal&#x27;,date:state.editingDate,slot:state.editingSlot,summary:`${state.editingDate} · ${slots[state.editingSlot]}\n${meal.dishes||&#x27;无菜品内容&#x27;}`};render();return;}
       if(b.dataset.action===&#x27;delete-entry&#x27;){const e=financialEntries().find(e=&gt;e.id===state.selectedEntryId);if(!e)return;const w=walletById(e.walletId);state.deletePending={kind:&#x27;entry&#x27;,id:e.id,summary:`${e.date} ${e.time}\n${w.name} · ${w.code}\n${entryCategory(e)} · ${e.type} ¥${money(e.cents,w.code)}`};render();return;}
       if(b.dataset.deleteAction){if(b.dataset.deleteAction===&#x27;confirm&#x27;)confirmDelete();else cancelDelete();return;}
       if(b.dataset.action===&#x27;open-calculator&#x27;){state.calcExpression=state.amount;state.calcOpen=true;render();return;}
       if(b.dataset.calcAction){closeCalculator(b.dataset.calcAction===&#x27;apply&#x27;);return;}
       if(b.dataset.monthStep){const key=b.dataset.monthKey;if(![&#x27;ledgerMonth&#x27;,&#x27;mealMonth&#x27;].includes(key))return;const [year,month]=state[key].split(&#x27;-&#x27;).map(Number),ordinal=year*12+month-1+Number(b.dataset.monthStep);if(ordinal&lt;12||ordinal&gt;=120000)return;state[key]=`${String(Math.floor(ordinal/12)).padStart(4,&#x27;0&#x27;)}-${String(ordinal%12+1).padStart(2,&#x27;0&#x27;)}`;if(key===&#x27;ledgerMonth&#x27;)state.ledgerRangeOpen=false;render();persist();return;}
-      if(b.dataset.page){state.page=b.dataset.page;state.ledgerRangeOpen=false;if(state.page===&#x27;settings&#x27;)resetAppearance();render();persist();return;}
+      if(b.dataset.page){if(state.page===b.dataset.page)return;state.page=b.dataset.page;state.ledgerRangeOpen=false;if(state.page===&#x27;settings&#x27;)resetAppearance();render();persist();return;}
       if(b.dataset.date){state.date=b.dataset.date;render();return;}
-      if(b.dataset.meal!==undefined){if(state.page===&#x27;home&#x27;)state.date=&#x27;2026-11-17&#x27;;else if(b.dataset.mealDate)state.date=b.dataset.mealDate;state.slot=Number(b.dataset.meal);state.mealReturn=state.page;const m=records()[state.slot];state.editing=!!m;state.editingDate=state.date;state.editingSlot=state.slot;state.atHome=m?.atHome??null;state.method=m?.method??null;state.categories=[...(m?.categories||[])];state.dishes=m?.dishes||&#x27;&#x27;;state.note=m?.note||&#x27;&#x27;;state.page=&#x27;meal-form&#x27;;render();return;}
+      if(b.dataset.meal!==undefined){if(state.page===&#x27;home&#x27;)state.date=&#x27;2026-11-17&#x27;;else if(b.dataset.mealDate)state.date=b.dataset.mealDate;state.slot=Number(b.dataset.meal);state.mealReturn=state.page;const m=records()[state.slot];state.editing=!!m;if(m&amp;&amp;b.classList.contains(&#x27;ks-record&#x27;)){recordOrigin={page:state.page,date:state.date,slot:b.dataset.meal};entrance=visible(b)?rect(b):null;}else recordOrigin=null;state.editingDate=state.date;state.editingSlot=state.slot;state.atHome=m?.atHome??null;state.method=m?.method??null;state.categories=[...(m?.categories||[])];state.dishes=m?.dishes||&#x27;&#x27;;state.note=m?.note||&#x27;&#x27;;state.page=&#x27;meal-form&#x27;;render();return;}
       if(b.dataset.homeChoice!==undefined){state.atHome=b.dataset.homeChoice===&#x27;true&#x27;;render();return;}
       if(b.dataset.method){const m=b.dataset.method;state.method=state.method===m?null:m;if(state.method!==&#x27;下厨&#x27;)state.categories=[];render();return;}
       if(b.dataset.category){const c=b.dataset.category;state.categories=state.categories.includes(c)?state.categories.filter(x=&gt;x!==c):[...state.categories,c];render();return;}
