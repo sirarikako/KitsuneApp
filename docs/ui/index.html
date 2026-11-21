@@ -1889,18 +1889,12 @@ html&gt;body{padding:0}&lt;/style&gt;
   syncTheme();
 })();
 &lt;/script&gt;
-&lt;div id=&quot;kitsune-preview&quot; class=&quot;viz-carousel viz-dotted-background&quot; aria-label=&quot;KitsuneApp 界面设计方案&quot; data-previous-label=&quot;上一方案&quot; data-next-label=&quot;下一方案&quot;&gt;
-  &lt;section data-variant=&quot;杏橙手账&quot; aria-label=&quot;杏橙手账方案&quot;&gt;
-    &lt;div class=&quot;ks-stage&quot;&gt;&lt;article class=&quot;ks-phone ks-journal&quot; aria-label=&quot;KitsuneApp 杏橙手账交互预览&quot;&gt;&lt;/article&gt;&lt;/div&gt;
-  &lt;/section&gt;
-  &lt;section data-variant=&quot;清爽日常&quot; aria-label=&quot;清爽日常方案&quot; hidden&gt;
-    &lt;div class=&quot;ks-stage&quot;&gt;&lt;article class=&quot;ks-phone ks-simple&quot; aria-label=&quot;KitsuneApp 清爽日常交互预览&quot;&gt;&lt;/article&gt;&lt;/div&gt;
-  &lt;/section&gt;
+&lt;div id=&quot;kitsune-preview&quot; class=&quot;viz-dotted-background&quot; aria-label=&quot;KitsuneApp UI 设计预览&quot;&gt;
+  &lt;div class=&quot;ks-stage&quot;&gt;&lt;article class=&quot;ks-phone&quot; aria-label=&quot;KitsuneApp 交互预览&quot;&gt;&lt;/article&gt;&lt;/div&gt;
 &lt;/div&gt;
 &lt;style&gt;
   #kitsune-preview .ks-stage{min-height:830px;display:flex;justify-content:center;align-items:flex-start;padding:24px 10px 18px;box-sizing:border-box}
   #kitsune-preview .ks-phone{--ks-seed:#c47a4a;--ks-bg:light-dark(#f6f3ed,#201e1b);--ks-paper:light-dark(#fffcf7,#2a2723);--ks-ink:light-dark(#302b26,#f3eae1);--ks-dim:light-dark(#76695e,#baaea2);--ks-line:light-dark(#e5ded4,#443c34);--ks-soft:light-dark(#eee7dc,#383129);--ks-accent:light-dark(#92532e,#efb68c);--ks-accent-bg:light-dark(#f2e1d2,#463226);--ks-good:light-dark(#46624a,#b7d0ae);--ks-good-bg:light-dark(#e7eddf,#303e2e);--ks-danger:light-dark(#a63832,#ffb4ab);--ks-card-surface:var(--ks-paper);--ks-card-border:1px solid var(--ks-line);--ks-radius:17px;--ks-space-1:4px;--ks-space-2:8px;--ks-space-3:12px;--ks-space-4:16px;--ks-space-6:24px;--ks-control-radius:12px;--ks-dialog-radius:24px;--ks-control-height:46px;--ks-icon-size:18px;--ks-font-body:14px;--ks-font-note:12px;--ks-font-tag:11px;--ks-font-title:26px;--ks-font-section:15px;--ks-dialog-shadow:0 8px 30px #00000024;--ks-action-bg:var(--ks-accent);--ks-action-text:var(--ks-paper);width:min(100%,390px);min-height:776px;box-sizing:border-box;background:var(--ks-bg);color:var(--ks-ink);border:1px solid var(--ks-line);border-radius:30px;box-shadow:0 15px 45px #00000010;font-family:&quot;Segoe UI&quot;,&quot;Microsoft YaHei&quot;,sans-serif;font-size:14px;line-height:1.55;display:flex;flex-direction:column;position:relative;overflow-wrap:anywhere;color-scheme:inherit}
-  #kitsune-preview .ks-simple{--ks-bg:light-dark(#fbfaf7,#1d201e);--ks-paper:light-dark(#ffffff,#262b27);--ks-soft:light-dark(#f0f0e9,#303731);--ks-accent:light-dark(#526647,#bdd0ac);--ks-accent-bg:light-dark(#e9eddf,#35422f);--ks-radius:13px}
   #kitsune-preview .ks-phone *{box-sizing:border-box}
   #kitsune-preview .ks-phone :where(button,input,select,textarea){font:inherit;color:inherit}
   #kitsune-preview .ks-phone button{cursor:var(--cursor-interaction,pointer)}
@@ -2143,8 +2137,11 @@ html&gt;body{padding:0}&lt;/style&gt;
   const typedTheme=typeof CSS!==&#x27;undefined&#x27;&amp;&amp;typeof CSS.registerProperty===&#x27;function&#x27;;
   if(typedTheme)for(const name of themeRoles){try{CSS.registerProperty({name,syntax:&#x27;&lt;color&gt;&#x27;,inherits:true,initialValue:&#x27;#000000&#x27;});}catch{}}
 
-  root.querySelectorAll(&#x27;.ks-phone&#x27;).forEach((phone,index) =&gt; {
-    const style = {radius:index ? 13:17, accent:index ? &#x27;#5f7f64&#x27;:&#x27;#c47a4a&#x27;,mode:&#x27;system&#x27;,mealHour:&#x27;auto&#x27;,colorSource:&#x27;PRESET&#x27;,presetColor:index?&#x27;#5f7f64&#x27;:&#x27;#c47a4a&#x27;,customColor:&#x27;#C47A4A&#x27;};
+  const phone=root.querySelector(&#x27;.ks-phone&#x27;);
+  if(!phone)return;
+  {
+    const cardRadius=17;
+    const style = {accent:&#x27;#c47a4a&#x27;,mode:&#x27;system&#x27;,mealHour:&#x27;auto&#x27;,colorSource:&#x27;PRESET&#x27;,presetColor:&#x27;#c47a4a&#x27;,customColor:&#x27;#C47A4A&#x27;};
     const state = {page:&#x27;settings&#x27;, date:&#x27;2026-11-17&#x27;, ledgerMonth:&#x27;2026-11&#x27;,mealMonth:&#x27;2026-11&#x27;,ledgerTab:&#x27;统计&#x27;, mealTab:&#x27;记录&#x27;, slot:2, atHome:null, method:null, categories:[], amount:&#x27;&#x27;,calcOpen:false,calcExpression:&#x27;&#x27;,entryType:&#x27;支出&#x27;,entryDraft:{dateTime:&#x27;2026-11-17T09:41&#x27;,note:&#x27;&#x27;,category:&#x27;餐饮&#x27;,walletId:&#x27;daily&#x27;},notice:&#x27;&#x27;, mealReturn:&#x27;home&#x27;, entries:[], records:{}};
     state.ledgerRange=null;state.ledgerRangeOpen=false;state.previewMode=null;
     const blankMealFilters=()=&gt;({from:&#x27;&#x27;,to:&#x27;&#x27;,slot:&#x27;any&#x27;,atHome:&#x27;any&#x27;,method:&#x27;any&#x27;,preparations:[],keyword:&#x27;&#x27;});
@@ -2153,13 +2150,15 @@ html&gt;body{padding:0}&lt;/style&gt;
     const walletById=id=&gt;wallets.find(w=&gt;w.id===id)||wallets[0];
     const entryWallet=()=&gt;walletById(state.entryDraft.walletId);
     state.walletFilterIds=null;state.walletPickerOpen=false;state.walletDraftIds=[];state.lastWalletId=&#x27;daily&#x27;;
-    const saved = window.openai?.widgetState?.privateContent?.kitsune;
+    const savedState=window.openai?.widgetState?.privateContent?.kitsune;
+    // Accept only the original primary preview preferences from old saved arrays.
+    const saved=Array.isArray(savedState)?savedState[0]:savedState;
     state.deletedEntryIds=new Set();state.nextEntryId=1;state.deletePending=null;
-    if(saved?.[index]){const s=saved[index];if([&#x27;light&#x27;,&#x27;dark&#x27;,&#x27;system&#x27;].includes(s.mode))style.mode=s.mode;for(const key of [&#x27;ledgerMonth&#x27;,&#x27;mealMonth&#x27;])if(/^\d{4}-(0[1-9]|1[0-2])$/.test(s[key]||&#x27;&#x27;)&amp;&amp;s[key].slice(0,4)!==&#x27;0000&#x27;)state[key]=s[key];if(Array.isArray(s.walletFilterIds)){const ids=wallets.filter(w=&gt;s.walletFilterIds.includes(w.id)).map(w=&gt;w.id);if(ids.length&amp;&amp;ids.length&lt;wallets.length)state.walletFilterIds=ids;}const f=s.mealFilters;if(f&amp;&amp;typeof f===&#x27;object&#x27;){for(const key of [&#x27;from&#x27;,&#x27;to&#x27;])if(typeof f[key]===&#x27;string&#x27;&amp;&amp;/^\d{4}-\d{2}-\d{2}$/.test(f[key]))state.mealFilters[key]=f[key];if([&#x27;any&#x27;,&#x27;0&#x27;,&#x27;1&#x27;,&#x27;2&#x27;].includes(f.slot))state.mealFilters.slot=f.slot;if([&#x27;any&#x27;,&#x27;yes&#x27;,&#x27;no&#x27;].includes(f.atHome))state.mealFilters.atHome=f.atHome;if(typeof f.method===&#x27;string&#x27;)state.mealFilters.method=f.method.slice(0,80);if(typeof f.keyword===&#x27;string&#x27;)state.mealFilters.keyword=f.keyword.slice(0,100);if(Array.isArray(f.preparations))state.mealFilters.preparations=f.preparations.filter(x=&gt;typeof x===&#x27;string&#x27;).slice(0,30).map(x=&gt;x.slice(0,80));state.mealListMode=s.mealListMode===true;}}
+    if(saved){const s=saved;if([&#x27;light&#x27;,&#x27;dark&#x27;,&#x27;system&#x27;].includes(s.mode))style.mode=s.mode;for(const key of [&#x27;ledgerMonth&#x27;,&#x27;mealMonth&#x27;])if(/^\d{4}-(0[1-9]|1[0-2])$/.test(s[key]||&#x27;&#x27;)&amp;&amp;s[key].slice(0,4)!==&#x27;0000&#x27;)state[key]=s[key];if(Array.isArray(s.walletFilterIds)){const ids=wallets.filter(w=&gt;s.walletFilterIds.includes(w.id)).map(w=&gt;w.id);if(ids.length&amp;&amp;ids.length&lt;wallets.length)state.walletFilterIds=ids;}const f=s.mealFilters;if(f&amp;&amp;typeof f===&#x27;object&#x27;){for(const key of [&#x27;from&#x27;,&#x27;to&#x27;])if(typeof f[key]===&#x27;string&#x27;&amp;&amp;/^\d{4}-\d{2}-\d{2}$/.test(f[key]))state.mealFilters[key]=f[key];if([&#x27;any&#x27;,&#x27;0&#x27;,&#x27;1&#x27;,&#x27;2&#x27;].includes(f.slot))state.mealFilters.slot=f.slot;if([&#x27;any&#x27;,&#x27;yes&#x27;,&#x27;no&#x27;].includes(f.atHome))state.mealFilters.atHome=f.atHome;if(typeof f.method===&#x27;string&#x27;)state.mealFilters.method=f.method.slice(0,80);if(typeof f.keyword===&#x27;string&#x27;)state.mealFilters.keyword=f.keyword.slice(0,100);if(Array.isArray(f.preparations))state.mealFilters.preparations=f.preparations.filter(x=&gt;typeof x===&#x27;string&#x27;).slice(0,30).map(x=&gt;x.slice(0,80));state.mealListMode=s.mealListMode===true;}}
     state.records[&#x27;2026-11-17&#x27;] = [{atHome:true,method:&#x27;下厨&#x27;,categories:[],dishes:&#x27;燕麦粥、煎蛋&#x27;,note:&#x27;&#x27;},{atHome:false,method:&#x27;外卖&#x27;,categories:[],dishes:&#x27;照烧鸡腿饭&#x27;,note:&#x27;&#x27;},null];
-    if(saved?.[index]){const s=saved[index];if([&#x27;PRESET&#x27;,&#x27;CUSTOM&#x27;,&#x27;SYSTEM&#x27;].includes(s.colorSource))style.colorSource=s.colorSource;if(normalizeHex(s.presetColor))style.presetColor=s.presetColor.toLowerCase();if(normalizeHex(s.customColor))style.customColor=normalizeHex(s.customColor);}
+    if(saved){const s=saved;if([&#x27;PRESET&#x27;,&#x27;CUSTOM&#x27;,&#x27;SYSTEM&#x27;].includes(s.colorSource))style.colorSource=s.colorSource;if(normalizeHex(s.presetColor))style.presetColor=s.presetColor.toLowerCase();if(normalizeHex(s.customColor))style.customColor=normalizeHex(s.customColor);}
     const isDate=value=&gt;/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(value)&amp;&amp;value.slice(0,4)!==&#x27;0000&#x27;&amp;&amp;new Date(value).toJSON()?.slice(0,10)===value;
-    const savedRange=saved?.[index]?.ledgerRange;
+    const savedRange=saved?.ledgerRange;
     if(savedRange&amp;&amp;isDate(savedRange.from)&amp;&amp;isDate(savedRange.to)&amp;&amp;savedRange.from&lt;=savedRange.to)state.ledgerRange={from:savedRange.from,to:savedRange.to};
     const appliedAppearance=()=&gt;({mode:style.mode,colorSource:style.colorSource,presetColor:style.presetColor,customColor:style.customColor});
     const pendingAppearance=()=&gt;{
@@ -2210,21 +2209,21 @@ html&gt;body{padding:0}&lt;/style&gt;
     const filteredMeals=()=&gt;{const f=state.mealFilters,keyword=f.keyword.toLocaleLowerCase();return allMeals().filter(m=&gt;(!f.from||m.date&gt;=f.from)&amp;&amp;(!f.to||m.date&lt;=f.to)&amp;&amp;(f.slot===&#x27;any&#x27;||m.slot===Number(f.slot))&amp;&amp;(f.atHome===&#x27;any&#x27;||m.atHome===(f.atHome===&#x27;yes&#x27;))&amp;&amp;(f.method===&#x27;any&#x27;||(f.method===&#x27;none&#x27;?!m.method:m.method===f.method))&amp;&amp;(!f.preparations.length||f.preparations.some(c=&gt;m.categories.includes(c)))&amp;&amp;(!keyword||`${m.dishes}\n${m.note}`.toLocaleLowerCase().includes(keyword))).sort((a,b)=&gt;b.date.localeCompare(a.date)||a.slot-b.slot);};
     const records = () =&gt; state.records[state.date] || [null,null,null];
     const persist = () =&gt; {
-      const all = [...root.querySelectorAll(&#x27;.ks-phone&#x27;)].map(p =&gt; p.ksSnapshot?.() || {});
-      window.openai?.setWidgetState?.({modelContent:{方案:[&#x27;杏橙手账&#x27;,&#x27;清爽日常&#x27;],当前页面:all.map(s=&gt;s.page),用餐筛选:all.map(s=&gt;s.mealListMode?s.mealFilters:null)},privateContent:{kitsune:all}})?.catch(()=&gt;{});
+      const snapshot=phone.ksSnapshot();
+      window.openai?.setWidgetState?.({modelContent:{当前页面:snapshot.page,用餐筛选:snapshot.mealListMode?snapshot.mealFilters:null},privateContent:{kitsune:snapshot}})?.catch(()=&gt;{});
     };
     phone.ksSnapshot=()=&gt;({page:navs.some(n=&gt;n[0]===state.page)?state.page:&#x27;home&#x27;,...appliedAppearance(),ledgerMonth:state.ledgerMonth,ledgerRange:state.ledgerRange,mealMonth:state.mealMonth,walletFilterIds:state.walletFilterIds,mealListMode:state.mealListMode,mealFilters:state.mealFilters});
-    function makePalette(seed,system,simple){
+    function makePalette(seed,system){
       const rgb=h=&gt;h.replace(&quot;#&quot;,&quot;&quot;).match(/../g).map(x=&gt;parseInt(x,16));
       const mix=(a,b,t)=&gt;&quot;#&quot;+rgb(a).map((v,i)=&gt;Math.round(v*t+rgb(b)[i]*(1-t)).toString(16).padStart(2,&quot;0&quot;)).join(&quot;&quot;);
       const luminance=h=&gt;rgb(h).map(v=&gt;{v/=255;return v&lt;=.04045?v/12.92:((v+.055)/1.055)**2.4}).reduce((s,v,i)=&gt;s+v*[.2126,.7152,.0722][i],0);
       const contrast=(a,b)=&gt;(Math.max(luminance(a),luminance(b))+.05)/(Math.min(luminance(a),luminance(b))+.05);
       const safe=(color,backgrounds,light)=&gt;{const end=light?&quot;#000000&quot;:&quot;#ffffff&quot;;for(let i=0;i&lt;=100;i++){const candidate=mix(color,end,1-i/100);if(backgrounds.every(bg=&gt;contrast(candidate,bg)&gt;=4.6))return candidate;}throw Error(&quot;unreachable contrast&quot;);};
       const modes=[true,false].map(light=&gt;{
-        const bg=system?mix(seed,light?&quot;#fbfcf7&quot;:&quot;#191c17&quot;,light?.06:.12):light?(simple?&quot;#fbfaf7&quot;:&quot;#f6f3ed&quot;):(simple?&quot;#1d201e&quot;:&quot;#201e1b&quot;);
-        const paper=system?mix(seed,light?&quot;#ffffff&quot;:&quot;#262921&quot;,light?.03:.16):light?(simple?&quot;#ffffff&quot;:&quot;#fffcf7&quot;):(simple?&quot;#262b27&quot;:&quot;#2a2723&quot;);
-        const soft=system?mix(seed,light?&quot;#f5f6ed&quot;:&quot;#292d24&quot;,light?.15:.22):light?(simple?&quot;#f0f0e9&quot;:&quot;#eee7dc&quot;):(simple?&quot;#303731&quot;:&quot;#383129&quot;);
-        const line=system?mix(seed,light?&quot;#e3e5d9&quot;:&quot;#41463a&quot;,light?.21:.24):light?(simple?&quot;#dce0d7&quot;:&quot;#e5ded4&quot;):(simple?&quot;#414942&quot;:&quot;#443c34&quot;);
+        const bg=system?mix(seed,light?&quot;#fbfcf7&quot;:&quot;#191c17&quot;,light?.06:.12):light?&quot;#f6f3ed&quot;:&quot;#201e1b&quot;;
+        const paper=system?mix(seed,light?&quot;#ffffff&quot;:&quot;#262921&quot;,light?.03:.16):light?&quot;#fffcf7&quot;:&quot;#2a2723&quot;;
+        const soft=system?mix(seed,light?&quot;#f5f6ed&quot;:&quot;#292d24&quot;,light?.15:.22):light?&quot;#eee7dc&quot;:&quot;#383129&quot;;
+        const line=system?mix(seed,light?&quot;#e3e5d9&quot;:&quot;#41463a&quot;,light?.21:.24):light?&quot;#e5ded4&quot;:&quot;#443c34&quot;;
         const selected=mix(seed,light?&quot;#fffcf7&quot;:&quot;#211e1a&quot;,light?.18:.23);
         const surfaces=[bg,paper,soft,selected];
         const accent=safe(mix(seed,light?&quot;#342c23&quot;:&quot;#fff4e6&quot;,light?.72:.45),surfaces,light);
@@ -2233,7 +2232,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       return modes;
     }
     const paintColors=(target,seed,system=false)=&gt;{
-      const [light,dark]=makePalette(seed,system,index===1);
+      const [light,dark]=makePalette(seed,system);
       const value=key=&gt;`light-dark(${light[key]},${dark[key]})`;
       const roles={&#x27;--ks-bg&#x27;:&#x27;bg&#x27;,&#x27;--ks-paper&#x27;:&#x27;paper&#x27;,&#x27;--ks-soft&#x27;:&#x27;soft&#x27;,&#x27;--ks-line&#x27;:&#x27;line&#x27;,&#x27;--ks-accent-bg&#x27;:&#x27;selected&#x27;,&#x27;--ks-accent&#x27;:&#x27;accent&#x27;,&#x27;--ks-ink&#x27;:&#x27;ink&#x27;,&#x27;--ks-dim&#x27;:&#x27;dim&#x27;,&#x27;--ks-good&#x27;:&#x27;good&#x27;,&#x27;--ks-danger&#x27;:&#x27;danger&#x27;,&#x27;--ks-action-bg&#x27;:&#x27;accent&#x27;,&#x27;--ks-action-text&#x27;:&#x27;onAction&#x27;,&#x27;--ks-on-danger&#x27;:&#x27;onDanger&#x27;,&#x27;--ks-card-surface&#x27;:&#x27;paper&#x27;};
       target.style.setProperty(&#x27;--ks-seed&#x27;,seed);
@@ -2242,7 +2241,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     };
     const applyStyle = () =&gt; {
       style.accent=colorSeed(style);
-      phone.style.setProperty(&#x27;--ks-radius&#x27;,`${style.radius}px`);
+      phone.style.setProperty(&#x27;--ks-radius&#x27;,`${cardRadius}px`);
       paintColors(phone,style.accent,style.colorSource===&#x27;SYSTEM&#x27;);
       phone.style.colorScheme=style.mode===&#x27;system&#x27;?&#x27;inherit&#x27;:style.mode;
     };
@@ -2427,7 +2426,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;日期时间&lt;/span&gt;&lt;input type=&quot;datetime-local&quot; name=&quot;dateTime&quot; value=&quot;${escapeText(state.entryDraft.dateTime)}&quot; class=&quot;ks-control&quot; required&gt;&lt;/label&gt;
       &lt;div class=&quot;ks-field-row&quot;&gt;&lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;钱包&lt;/span&gt;&lt;select name=&quot;wallet&quot; class=&quot;ks-control&quot;&gt;${wallets.map(w=&gt;`&lt;option value=&quot;${w.id}&quot; ${entryWallet().id===w.id?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${w.name} · ${w.code}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;&lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;分类&lt;/span&gt;&lt;select name=&quot;category&quot; class=&quot;ks-control&quot;&gt;${(state.entryType===&#x27;支出&#x27;?[&#x27;餐饮&#x27;,&#x27;交通&#x27;,&#x27;日用&#x27;,&#x27;未分类&#x27;]:[&#x27;工资&#x27;,&#x27;未分类&#x27;]).map(c=&gt;`&lt;option ${state.entryDraft.category===c?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${c}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;&lt;/div&gt;
       &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;备注&lt;/span&gt;&lt;input name=&quot;note&quot; class=&quot;ks-control&quot; placeholder=&quot;这笔钱用在了哪里？&quot; value=&quot;${escapeText(state.entryDraft.note)}&quot;&gt;&lt;/label&gt;
-      &lt;div&gt;&lt;label class=&quot;ks-label&quot; for=&quot;ks-amount-${index}&quot;&gt;金额 · ${entryWallet().code}&lt;/label&gt;&lt;div class=&quot;ks-amount-row&quot;&gt;&lt;input id=&quot;ks-amount-${index}&quot; class=&quot;ks-amount-input&quot; name=&quot;amount&quot; inputmode=&quot;decimal&quot; placeholder=&quot;${entryWallet().scale?&#x27;0.00&#x27;:&#x27;0&#x27;}&quot; autocomplete=&quot;off&quot; value=&quot;${escapeText(state.amount)}&quot; aria-label=&quot;金额&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-calc-trigger cursor-interaction&quot; data-action=&quot;open-calculator&quot;&gt;${icon(&#x27;calculator&#x27;)}计算器&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;div&gt;&lt;label class=&quot;ks-label&quot; for=&quot;ks-amount&quot;&gt;金额 · ${entryWallet().code}&lt;/label&gt;&lt;div class=&quot;ks-amount-row&quot;&gt;&lt;input id=&quot;ks-amount&quot; class=&quot;ks-amount-input&quot; name=&quot;amount&quot; inputmode=&quot;decimal&quot; placeholder=&quot;${entryWallet().scale?&#x27;0.00&#x27;:&#x27;0&#x27;}&quot; autocomplete=&quot;off&quot; value=&quot;${escapeText(state.amount)}&quot; aria-label=&quot;金额&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-calc-trigger cursor-interaction&quot; data-action=&quot;open-calculator&quot;&gt;${icon(&#x27;calculator&#x27;)}计算器&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;
       ${formFooter(saveButton(`保存${state.entryType}`),&#x27;交互预览 · 仅保存到当前演示&#x27;)}
     &lt;/form&gt;`;}
     function calculatorSheet(){return `&lt;div class=&quot;ks-modal-overlay&quot;&gt;&lt;section class=&quot;ks-calc-sheet&quot; role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;金额计算器&quot;&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;h3&gt;金额计算器&lt;/h3&gt;&lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-calc-action=&quot;cancel&quot;&gt;关闭&lt;/button&gt;&lt;/div&gt;&lt;label&gt;&lt;span class=&quot;ks-note&quot;&gt;${entryWallet().code} · 支持加减乘除&lt;/span&gt;&lt;input class=&quot;ks-amount-input&quot; data-calc-expression inputmode=&quot;text&quot; aria-label=&quot;计算表达式&quot; maxlength=&quot;80&quot; placeholder=&quot;${entryWallet().scale?&#x27;0.00&#x27;:&#x27;0&#x27;}&quot; value=&quot;${escapeText(state.calcExpression)}&quot;&gt;&lt;/label&gt;&lt;div class=&quot;ks-calculator&quot; role=&quot;group&quot; aria-label=&quot;计算键盘&quot;&gt;${[&#x27;C&#x27;,&#x27;⌫&#x27;,&#x27;÷&#x27;,&#x27;×&#x27;,&#x27;7&#x27;,&#x27;8&#x27;,&#x27;9&#x27;,&#x27;−&#x27;,&#x27;4&#x27;,&#x27;5&#x27;,&#x27;6&#x27;,&#x27;+&#x27;,&#x27;1&#x27;,&#x27;2&#x27;,&#x27;3&#x27;,&#x27;=&#x27;,&#x27;0&#x27;,&#x27;.&#x27;].map(k=&gt;`&lt;button type=&quot;button&quot; class=&quot;ks-key ${[&#x27;÷&#x27;,&#x27;×&#x27;,&#x27;−&#x27;,&#x27;+&#x27;,&#x27;=&#x27;].includes(k)?&#x27;ks-operator&#x27;:&#x27;&#x27;} ${k===&#x27;0&#x27;?&#x27;ks-zero&#x27;:&#x27;&#x27;} ${k===&#x27;=&#x27;?&#x27;ks-equal&#x27;:&#x27;&#x27;} cursor-interaction&quot; data-key=&quot;${k}&quot; aria-label=&quot;${k===&#x27;⌫&#x27;?&#x27;退格&#x27;:k===&#x27;C&#x27;?&#x27;清空&#x27;:k}&quot;&gt;${k}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;&lt;p class=&quot;ks-calc-error&quot; role=&quot;alert&quot;&gt;&lt;/p&gt;&lt;div class=&quot;ks-calc-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-calc-action=&quot;cancel&quot;&gt;取消&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary cursor-interaction&quot; data-calc-action=&quot;apply&quot;&gt;使用此金额&lt;/button&gt;&lt;/div&gt;&lt;/section&gt;&lt;/div&gt;`;}
@@ -2530,7 +2529,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       // Use the real card only when visible and inside the destination page; never guess its position.
       const card=entering?sourceRect:visible(target)?rect(target):null;
       if(card&amp;&amp;box&amp;&amp;recordOrigin&amp;&amp;oldPage&amp;&amp;(!entering||(card.x&gt;=box.x&amp;&amp;card.y&gt;=box.y&amp;&amp;card.x+card.w&lt;=box.x+box.w&amp;&amp;card.y+card.h&lt;=box.y+box.h))){
-        const radius=style.radius,copy=oldPage.firstElementChild;
+        const radius=cardRadius,copy=oldPage.firstElementChild;
         if(entering){
           attachGhost(oldPage);oldPage.style.zIndex=&#x27;0&#x27;;node.style.position=&#x27;relative&#x27;;node.style.zIndex=&#x27;1&#x27;;
           play(oldPage,[{opacity:1},{opacity:0}],motion.card,discard(oldPage));
@@ -2764,8 +2763,8 @@ html&gt;body{padding:0}&lt;/style&gt;
     const mealTimer=setInterval(refreshHomeMeal,60000);
     window.addEventListener(&#x27;focus&#x27;,refreshHomeMeal);
     window.addEventListener(&#x27;pagehide&#x27;,()=&gt;clearInterval(mealTimer),{once:true});
-    if(globalThis.Tweak){const tweak=new Tweak({container:phone,onChange:()=&gt;{applyStyle();if(state.page===&#x27;home&#x27;)render();}});tweak.addSlider(style,&#x27;radius&#x27;,{label:&#x27;卡片圆角&#x27;,min:8,max:28,unit:&#x27;px&#x27;});tweak.addColorPicker(style,&#x27;customColor&#x27;,{label:&#x27;自选主色（自选模式）&#x27;,reference:&#x27;--ks-seed&#x27;});tweak.addSelect(style,&#x27;mode&#x27;,{label:&#x27;明暗模式&#x27;,options:[{label:&#x27;跟随系统&#x27;,value:&#x27;system&#x27;},{label:&#x27;浅色&#x27;,value:&#x27;light&#x27;},{label:&#x27;深色&#x27;,value:&#x27;dark&#x27;}]});tweak.addSelect(style,&#x27;mealHour&#x27;,{label:&#x27;首页餐次预览&#x27;,options:[{label:&#x27;跟随当前时间&#x27;,value:&#x27;auto&#x27;},{label:&#x27;早餐时段&#x27;,value:&#x27;8&#x27;},{label:&#x27;午餐时段&#x27;,value:&#x27;12&#x27;},{label:&#x27;晚餐时段&#x27;,value:&#x27;19&#x27;}]});}
-  });
+    if(globalThis.Tweak){const tweak=new Tweak({container:phone,onChange:()=&gt;{applyStyle();if(state.page===&#x27;home&#x27;)render();}});tweak.addColorPicker(style,&#x27;customColor&#x27;,{label:&#x27;自选主色（自选模式）&#x27;,reference:&#x27;--ks-seed&#x27;});tweak.addSelect(style,&#x27;mode&#x27;,{label:&#x27;明暗模式&#x27;,options:[{label:&#x27;跟随系统&#x27;,value:&#x27;system&#x27;},{label:&#x27;浅色&#x27;,value:&#x27;light&#x27;},{label:&#x27;深色&#x27;,value:&#x27;dark&#x27;}]});tweak.addSelect(style,&#x27;mealHour&#x27;,{label:&#x27;首页餐次预览&#x27;,options:[{label:&#x27;跟随当前时间&#x27;,value:&#x27;auto&#x27;},{label:&#x27;早餐时段&#x27;,value:&#x27;8&#x27;},{label:&#x27;午餐时段&#x27;,value:&#x27;12&#x27;},{label:&#x27;晚餐时段&#x27;,value:&#x27;19&#x27;}]});}
+  }
 })();
 &lt;/script&gt;
 
