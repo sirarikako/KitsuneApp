@@ -1,6 +1,6 @@
 # KitsuneApp UI 设计稿
 
-更新日期：2026-11-18（Asia/Hong_Kong）。此处保存网页设计稿，供后续 Android 开发对照。
+更新日期：2026-11-21（Asia/Shanghai）。此处保存网页设计稿，供后续 Android 开发对照。
 
 保留两套视觉：默认展示“杏橙手账”，“清爽日常”作为备选。两套方案使用相同的业务交互。业务、设计规则继续集中维护在 [PLAN.md](../PLAN.md)，数据契约以 [DATA_FORMAT.md](../DATA_FORMAT.md) 为准；本目录提供可查看、可编辑的视觉依据。
 
@@ -16,7 +16,7 @@
 | [build_preview.py](build_preview.py) | 使用 Python 标准库将片段和本地图标重新打包为独立预览 |
 | [manifest.json](manifest.json) | 源稿、生成预览和图标库的 SHA-256，便于核对版本 |
 | [vendor/lucide-1.8.0.min.js](vendor/lucide-1.8.0.min.js) | 离线图标库；原始许可证见 [LUCIDE-LICENSE](vendor/LUCIDE-LICENSE) |
-| [screenshots](screenshots/) | 17 张关键页面截图，含新增的系统壁纸配色示意 |
+| [screenshots](screenshots/) | 18 张关键页面截图，含用餐与账本的共用界面及系统壁纸配色示意 |
 
 修改源片段后重新生成预览；命令和已验证的工具版本统一记录在[项目 README](../../README.md#ui-设计预览)。不要只修改生成的 index.html，否则下次打包会覆盖修改。截图是设计快照，重新调整界面后也应更新对应截图。
 
@@ -24,7 +24,7 @@
 
 ## 视觉与页面索引
 
-当前源稿的手机画布最大宽度为 390 CSS px。“杏橙手账”的卡片圆角为 17 px，“清爽日常”为 13 px；紧凑筛选结果默认每行约 70 px。它们是视觉参考比例，Android 实现需要转换为合适的 dp／sp，并适配字体缩放和不同屏幕，不应直接把网页像素当作设备像素。
+当前源稿的手机画布最大宽度为 390 CSS px。“杏橙手账”的卡片圆角为 17 px，“清爽日常”为 13 px。用餐的按日记录、筛选结果和账本流水共用同一记录行，基准高度为 70 CSS px，随内容增高。筛选控件、录入表单和统计面板也共用样式，见 [PLAN 第 3.1 节](../PLAN.md#31-用餐与账本的共用界面)。Android 实现需转为合适的 dp／sp，并适配字体缩放和屏幕宽度。
 
 颜色和组件的实现以 PLAN 的 Material 3 主题规则为准。网页使用了近似的颜色混合，尚未采用 Android Material Color Utilities 的完整 Tonal Spot 色阶。
 
@@ -33,6 +33,7 @@
 | 首页多币种收支，浅色／深色／备选方案 | [杏橙首页](screenshots/home.png)、[杏橙深色](screenshots/home-dark.png)、[清爽首页](screenshots/home-simple.png) |
 | 用餐按日记录 | [三餐记录](screenshots/meals-daily.png) |
 | 用餐组合筛选与紧凑结果 | [筛选表单](screenshots/meal-filter.png)、[紧凑列表](screenshots/meal-results.png) |
+| 用餐录入与编辑 | [编辑用餐记录](screenshots/meal-form.png) |
 | 用餐月度与全部记录统计 | [统计条形](screenshots/meal-statistics.png) |
 | 记一笔与独立计算器弹层 | [紧凑表单](screenshots/entry.png)、[计算器](screenshots/calculator.png) |
 | 账目详情与删除确认 | [详情](screenshots/entry-detail.png)、[删除确认](screenshots/delete-confirm.png) |
@@ -62,6 +63,8 @@
 日期、分类、钱包、ID 与金额的演示结构不是正式 JSON／CSV 数据格式。正式开发需按 DATA_FORMAT 建模，按 PLAN 完成转账原子性、退款保护、金额范围和精度、备份、分类生命周期等全部规则，不能把网页的演示限额、固定选项或简单数组当作完整实现。
 
 ## 实际验证
+
+2026-11-21 在离线 Chromium 中验证了两套方案的浅色和深色界面，覆盖 320 CSS px 窄屏视口与约 390 CSS px 标准手机画布。核对两模块的记录行、图标和保存按钮样式，并走查用餐录入、必填检查、筛选、统计与删除取消，以及账本的日期范围、钱包选择器、计算器回填、保存和删除。受影响的截图已刷新，并补充用餐编辑快照。
 
 2026-11-18 使用无头 Chromium 以离线模式加载仓库的独立预览文件，在 320／390 CSS px 手机画布上检查了以下场景。
 
