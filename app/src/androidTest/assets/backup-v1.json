@@ -1,0 +1,45 @@
+{
+  "format": "kitsune-backup",
+  "formatVersion": 1,
+  "datasetId": "00000000-0000-4000-8000-000000000001",
+  "snapshotId": "00000000-0000-4000-8000-000000000002",
+  "revision": "7",
+  "exportedAt": "2026-11-16T12:00:00.000Z",
+  "backupKind": "MANUAL",
+  "data": {
+    "categories": [
+      {"id":"20000000-0000-4000-8000-000000000001","scope":"PREPARATION","walletId":null,"name":"炒菜","sortOrder":0,"archived":false,"isDefault":false,"createdAt":"2026-11-16T10:00:00.000Z","updatedAt":"2026-11-16T10:00:00.000Z"},
+      {"id":"20000000-0000-4000-8000-000000000002","scope":"INCOME","walletId":null,"name":"未分类","sortOrder":0,"archived":false,"isDefault":true,"createdAt":"2026-11-16T10:00:00.000Z","updatedAt":"2026-11-16T10:00:00.000Z"},
+      {"id":"20000000-0000-4000-8000-000000000003","scope":"EXPENSE","walletId":null,"name":"未分类","sortOrder":0,"archived":false,"isDefault":true,"createdAt":"2026-11-16T10:00:00.000Z","updatedAt":"2026-11-16T10:00:00.000Z"}
+    ],
+    "meals": {
+      "methods": [
+        {"id":"10000000-0000-4000-8000-000000000001","name":"下厨","sortOrder":0,"archived":false,"showPreparationCategories":true,"createdAt":"2026-11-16T10:00:00.000Z","updatedAt":"2026-11-16T10:00:00.000Z"},
+        {"id":"10000000-0000-4000-8000-000000000002","name":"外卖","sortOrder":1,"archived":false,"showPreparationCategories":false,"createdAt":"2026-11-16T10:00:00.000Z","updatedAt":"2026-11-16T10:00:00.000Z"}
+      ],
+      "records": [
+        {"id":"30000000-0000-4000-8000-000000000001","date":"2026-11-16","mealSlot":"DINNER","plannedAtHome":true,"mealMethodId":"10000000-0000-4000-8000-000000000001","preparationCategoryIds":["20000000-0000-4000-8000-000000000001"],"dishes":"番茄炒蛋、米饭","note":"少放盐\n饭后散步","createdAt":"2026-11-16T11:00:00.000Z","updatedAt":"2026-11-16T11:00:00.000Z"}
+      ]
+    },
+    "ledger": {
+      "wallets": [
+        {"id":"40000000-0000-4000-8000-000000000001","name":"日常钱包","currencyCode":"CNY","currencyScale":2,"openingBalanceMinor":"10000","sortOrder":0,"archived":false,"separateAccounting":false,"incomeCategoryMode":"DEFAULT","expenseCategoryMode":"DEFAULT","createdAt":"2026-11-16T10:00:00.000Z","updatedAt":"2026-11-16T10:00:00.000Z"},
+        {"id":"40000000-0000-4000-8000-000000000002","name":"旅行钱包","currencyCode":"JPY","currencyScale":0,"openingBalanceMinor":"0","sortOrder":1,"archived":false,"separateAccounting":true,"incomeCategoryMode":"DEFAULT","expenseCategoryMode":"DEFAULT","createdAt":"2026-11-16T10:00:00.000Z","updatedAt":"2026-11-16T10:00:00.000Z"}
+      ],
+      "entries": [
+        {"id":"50000000-0000-4000-8000-000000000001","date":"2026-11-16","time":"18:30","type":"EXPENSE","walletId":"40000000-0000-4000-8000-000000000001","amountMinor":"1280","categoryId":"20000000-0000-4000-8000-000000000003","toWalletId":null,"toAmountMinor":null,"originalExpenseId":null,"note":"食材","createdAt":"2026-11-16T10:30:00.000Z","updatedAt":"2026-11-16T10:30:00.000Z"},
+        {"id":"50000000-0000-4000-8000-000000000002","date":"2026-11-16","time":"18:40","type":"TRANSFER","walletId":"40000000-0000-4000-8000-000000000001","amountMinor":"1000","categoryId":null,"toWalletId":"40000000-0000-4000-8000-000000000002","toAmountMinor":"200","originalExpenseId":null,"note":"跨币种转账示例","createdAt":"2026-11-16T10:40:00.000Z","updatedAt":"2026-11-16T10:40:00.000Z"},
+        {"id":"50000000-0000-4000-8000-000000000003","date":"2026-11-16","time":"18:50","type":"REFUND","walletId":"40000000-0000-4000-8000-000000000001","amountMinor":"280","categoryId":null,"toWalletId":null,"toAmountMinor":null,"originalExpenseId":"50000000-0000-4000-8000-000000000001","note":"部分退款","createdAt":"2026-11-16T10:50:00.000Z","updatedAt":"2026-11-16T10:50:00.000Z"}
+      ]
+    },
+    "settings": {
+      "theme": {
+        "themeMode": "SYSTEM",
+        "colorSource": "PRESET",
+        "presetId": "apricot",
+        "customSeedColor": "#C47A4A"
+      }
+    },
+    "importReceipts": []
+  }
+}

@@ -75,6 +75,8 @@ class Repository internal constructor(
         if (it.installationId != installationId) throw OwnershipException()
     }
 
+    internal fun notifyChanged() = onChanged()
+
     fun observe(): Flow<Records> = database.invalidationTracker
         .createFlow("DataState").map { read() }.distinctUntilChanged()
 
@@ -92,7 +94,7 @@ class Repository internal constructor(
             dao.put(state.copy(revision = Math.addExact(state.revision, 1L), arrayElements = count))
             true
         }
-        if (changed) onChanged()
+        if (changed) notifyChanged()
         changed
     }
 

@@ -82,4 +82,63 @@ interface RecordsDao {
 
     @Query("SELECT (SELECT COUNT(*) FROM MealMethod) + (SELECT COUNT(*) FROM Category) + (SELECT COUNT(*) FROM MealRecord) + (SELECT COUNT(*) FROM MealPreparationCategory) + (SELECT COUNT(*) FROM Wallet) + (SELECT COUNT(*) FROM FinancialEntry) + (SELECT COUNT(*) FROM ImportReceipt)")
     suspend fun countElements(): Int
+
+    @Query("SELECT * FROM MealMethod WHERE id > :after ORDER BY id LIMIT 32")
+    suspend fun methodPage(after: String): List<MealMethod>
+    @Insert suspend fun insertMethod(value: MealMethod)
+    @Query("SELECT * FROM Category WHERE id > :after ORDER BY id LIMIT 32")
+    suspend fun categoryPage(after: String): List<Category>
+    @Insert suspend fun insertCategory(value: Category)
+    @Query("SELECT * FROM MealRecord WHERE id > :after ORDER BY id LIMIT 32")
+    suspend fun mealPage(after: String): List<MealRecord>
+    @Insert suspend fun insertMeal(value: MealRecord)
+    @Query("SELECT * FROM Wallet WHERE id > :after ORDER BY id LIMIT 32")
+    suspend fun walletPage(after: String): List<Wallet>
+    @Insert suspend fun insertWallet(value: Wallet)
+    @Query("SELECT * FROM FinancialEntry WHERE id > :after ORDER BY id LIMIT 32")
+    suspend fun entryPage(after: String): List<FinancialEntry>
+    @Insert suspend fun insertEntry(value: FinancialEntry)
+    @Query("DELETE FROM FinancialEntry") suspend fun clearEntries()
+    @Query("DELETE FROM MealPreparationCategory") suspend fun clearPreparation()
+    @Query("DELETE FROM MealRecord") suspend fun clearMeals()
+    @Query("DELETE FROM MealMethod") suspend fun clearMethods()
+    @Query("DELETE FROM Category") suspend fun clearCategories()
+    @Query("DELETE FROM Wallet") suspend fun clearWallets()
+    @Query("DELETE FROM ImportReceipt") suspend fun clearReceipts()
+    @Query("SELECT COUNT(*) FROM MealRecord") suspend fun mealCount(): Int
+    @Query("SELECT COUNT(*) FROM Wallet") suspend fun walletCount(): Int
+    @Query("SELECT COUNT(*) FROM FinancialEntry") suspend fun entryCount(): Int
+    @Query("SELECT * FROM ImportReceipt WHERE kind = :kind AND sha256 > :after ORDER BY sha256 LIMIT 64")
+    suspend fun receiptPage(kind: CsvKind, after: String): List<ImportReceipt>
+    @Query("SELECT COUNT(*) FROM Category WHERE scope = :scope AND isDefault = 1")
+    suspend fun defaultCount(scope: Scope): Int
+    @Query("SELECT COUNT(*) FROM (SELECT currencyCode FROM Wallet GROUP BY currencyCode HAVING MIN(currencyScale) != MAX(currencyScale))")
+    suspend fun inconsistentCurrency(): Int
+    @Query("SELECT COUNT(*) FROM MealPreparationCategory p JOIN Category c ON p.categoryId = c.id WHERE c.scope != 'PREPARATION'")
+    suspend fun invalidPreparation(): Int
+    @Query("""
+        SELECT COUNT(*) FROM FinancialEntry e JOIN Category c ON c.id = e.categoryId
+        WHERE c.scope <> e.type OR (c.walletId IS NOT NULL AND c.walletId <> e.walletId)
+    """)
+    suspend fun invalidEntryCategory(): Int
+    @Query("""
+        SELECT COUNT(*) FROM FinancialEntry e JOIN Wallet s ON s.id = e.walletId JOIN Wallet t ON t.id = e.toWalletId
+        WHERE e.type = 'TRANSFER' AND s.currencyCode = t.currencyCode AND e.amountMinor <> e.toAmountMinor
+    """)
+    suspend fun invalidTransfer(): Int
+    @Query("""
+        SELECT COUNT(*) FROM FinancialEntry r JOIN FinancialEntry e ON e.id = r.originalExpenseId
+        JOIN Wallet source ON source.id = e.walletId JOIN Wallet target ON target.id = r.walletId
+        WHERE r.type = 'REFUND' AND (e.type <> 'EXPENSE' OR source.currencyCode <> target.currencyCode)
+    """)
+    suspend fun invalidRefund(): Int
+    @Query("""
+        SELECT e.id AS expenseId, e.amountMinor AS originalAmount, r.id AS refundId, r.amountMinor AS refundAmount
+        FROM FinancialEntry r JOIN FinancialEntry e ON e.id = r.originalExpenseId
+        WHERE r.originalExpenseId > :expense OR (r.originalExpenseId = :expense AND r.id > :lastRefund)
+        ORDER BY r.originalExpenseId, r.id LIMIT 128
+    """)
+    suspend fun refundPage(expense: String, lastRefund: String): List<RefundAmounts>
 }
+
+data class RefundAmounts(val expenseId: String, val originalAmount: Long, val refundId: String, val refundAmount: Long)

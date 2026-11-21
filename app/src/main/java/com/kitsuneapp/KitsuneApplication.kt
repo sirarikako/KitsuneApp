@@ -3,6 +3,7 @@ package com.kitsuneapp
 import android.app.Application
 import android.util.AtomicFile
 import androidx.room.Room
+import com.kitsuneapp.backup.BackupCoordinator
 import com.kitsuneapp.data.KitsuneDatabase
 import com.kitsuneapp.data.Repository
 import com.kitsuneapp.data.newId
@@ -16,6 +17,12 @@ import kotlinx.coroutines.withContext
 class KitsuneApplication : Application() {
     private val lock = Mutex()
     private var active: Repository? = null
+    private lateinit var backupCoordinator: BackupCoordinator
+
+    suspend fun backups(): BackupCoordinator {
+        repository()
+        return backupCoordinator
+    }
 
     suspend fun repository(startNew: Boolean = false): Repository = withContext(Dispatchers.IO) {
         lock.withLock {
@@ -34,17 +41,27 @@ class KitsuneApplication : Application() {
             }
             val newDatabase = !getDatabasePath(databaseName).exists()
             val database = Room.databaseBuilder(this@KitsuneApplication, KitsuneDatabase::class.java, databaseName).build()
-            val repository = Repository(database, installationId)
+            val repository = Repository(database, installationId) { backupCoordinator.changed() }
             try {
                 repository.initialize(newDatabase)
                 if (startNew) writeMarker(pointer, databaseName.removePrefix("kitsune-").removeSuffix(".db"))
+                cleanupTemporaryBackups()
+                backupCoordinator = BackupCoordinator(this@KitsuneApplication, repository)
                 active = repository
+                backupCoordinator.changed()
                 repository
             } catch (error: Throwable) {
                 database.close()
                 throw error
             }
         }
+    }
+
+    private fun cleanupTemporaryBackups() {
+        val prefixes = listOf("stage-", "backup-check-", "folder-write-", "manual-write-", "restore-protection-", "github-")
+        cacheDir.listFiles().orEmpty().filter { file ->
+            file.isFile && prefixes.any { file.name.startsWith(it) }
+        }.forEach { it.delete() }
     }
 
     private fun writeMarker(file: AtomicFile, text: String) {

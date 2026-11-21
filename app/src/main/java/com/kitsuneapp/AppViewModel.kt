@@ -1,6 +1,7 @@
 package com.kitsuneapp
 
 import androidx.lifecycle.AndroidViewModel
+import com.kitsuneapp.backup.BackupCoordinator
 import androidx.lifecycle.viewModelScope
 import com.kitsuneapp.data.OwnershipException
 import com.kitsuneapp.data.Records
@@ -23,6 +24,8 @@ class AppViewModel(application: android.app.Application) : AndroidViewModel(appl
     val error = message.asStateFlow()
     private var observe: Job? = null
     private lateinit var repository: Repository
+    lateinit var backupServices: BackupCoordinator
+        private set
 
     init { open(false) }
 
@@ -32,6 +35,7 @@ class AppViewModel(application: android.app.Application) : AndroidViewModel(appl
         observe = viewModelScope.launch {
             try {
                 repository = app.repository(startNew)
+                backupServices = app.backups()
                 repository.observe().collect { mutable.value = AppState(records = it) }
             } catch (error: CancellationException) {
                 throw error
@@ -41,6 +45,9 @@ class AppViewModel(application: android.app.Application) : AndroidViewModel(appl
             }
         }
     }
+
+    fun backup(onSuccess: () -> Unit = {}, work: suspend BackupCoordinator.() -> Unit) =
+        save(onSuccess) { backupServices.work() }
 
     fun clearError() { message.value = null }
 

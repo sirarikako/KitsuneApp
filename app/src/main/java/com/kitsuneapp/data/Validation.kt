@@ -88,3 +88,8 @@ fun allowedCategory(category: Category, wallet: Wallet, scope: Scope): Boolean {
     if (category.isDefault) return category.walletId == null
     return category.walletId == wallet.id.takeIf { wallet.categoryMode(scope) == CategoryMode.CUSTOM }
 }
+
+private val sha256Pattern = Regex("[0-9a-f]{64}")
+fun validateReceipt(receipt: ImportReceipt) {
+    require(sha256Pattern.matches(receipt.sha256)) { "无效的导入凭据" }
+}

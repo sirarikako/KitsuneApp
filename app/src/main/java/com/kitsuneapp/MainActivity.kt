@@ -160,6 +160,8 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
                         "categorySettings" -> CategorySettings(records, model, false, null, ::open, goBack)
                         "walletCategories" -> CategorySettings(records, model, true, parts.getOrNull(1), ::open, goBack)
                         "appearance" -> AppearancePage(records.theme, model, goBack)
+                        "data" -> DataManagementPage(records, model, goBack)
+                        "folder" -> FolderPage(records, model, ::open, goBack)
                         "ledger" -> LedgerPage(records, ::open)
                         "wallet" -> WalletForm(records, parts[1].takeUnless { it == "-" }, model, goBack)
                         "entry" -> EntryDetails(records, parts[1], model, ::open, goBack)

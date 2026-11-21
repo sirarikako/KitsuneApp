@@ -6,7 +6,7 @@
 
 ## 当前状态
 
-Android 工程、Room v1、首页、用餐、钱包、记账、分类管理和外观设置已接入。备份开发与验证证据见 [开发进度](docs/IMPLEMENTATION_PROGRESS.md)。
+Android 工程、Room v1、首页、用餐、钱包、记账、分类管理和外观设置已接入。JSON、CSV 和文件夹备份已接入。云端备份开发与验证证据见 [开发进度](docs/IMPLEMENTATION_PROGRESS.md)。
 
 ## 保留的狐狸图标
 
@@ -97,7 +97,7 @@ python docs/ui/build_preview.py
 
 调试 APK 生成在 `app/build/outputs/apk/debug/app-debug.apk`。测试和 lint 报告位于 `app/build/reports/`。CI 将构建产物和报告上传为 Actions artifacts。
 
-## 数据使用方式（待实现）
+## 数据使用方式
 
 - **本地记录**：没有网络、没有配置 GitHub，也能记录和查询。
 - **文件夹备份**可在设置中通过系统选择器授权目录。目录暂时不可用时可继续录入，恢复访问后备份最新数据。备份按 UTC 日期时间加序号命名，校验并发布后才替换上一份。
@@ -114,7 +114,7 @@ python docs/ui/build_preview.py
 - [x] 当前 UI 设计落盘：可编辑源稿、统一视觉方案、离线预览。废弃截图已移除。
 - [x] 阶段 1：Android 工程、统一主题、狐狸图标、用餐与分类管理。
 - [x] 阶段 2：钱包、计算器、收支、转账、退款与统计。
-- [ ] 阶段 3：JSON／CSV、最新完整数据的本地自动备份与恢复。
+- [x] 阶段 3：JSON／CSV、最新完整数据的本地自动备份与恢复。
 - [ ] 阶段 4：GitHub 私有库、异常处理、真机验证、签名 APK。
 
 完整验收条件见 [跨模块验收计划](docs/testing/ACCEPTANCE.md)。完成阶段后更新此清单，并补充实际验证证据。

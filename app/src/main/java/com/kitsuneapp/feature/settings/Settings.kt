@@ -47,6 +47,12 @@ fun SettingsPage(navigate: (String) -> Unit) {
             }
             Section("个性化")
             Paper { Setting("外观与调色板") { navigate("appearance") } }
+            Section("数据管理")
+            Paper {
+                Setting("导入与导出") { navigate("data") }
+                HorizontalDivider()
+                Setting("本地文件夹备份") { navigate("folder") }
+            }
         }
     }
 }
