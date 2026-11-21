@@ -1,6 +1,6 @@
 # KitsuneApp v1 数据格式与兼容契约
 
-更新日期：2026-11-18。状态：**首版设计契约，尚未发布、尚无数据库或导入导出实现**。
+更新日期：2026-11-21。状态：**首版设计契约，尚未发布、尚无数据库或导入导出实现**。
 
 本文把 [PLAN.md](PLAN.md) 的数据需求具体化，供后续模型建立实体、序列化器、校验器、导入器和测试。示例为虚构数据，不能被标注为真实应用导出。格式在首次发布前可以协调修订并同步计划；一旦发布，须遵守本文的版本兼容规则。
 
@@ -77,10 +77,11 @@
 
 ### 3.2 钱包与收支分类
 
-Wallet 字段：`name,normalizedName,currencyCode,currencyScale,openingBalanceMinor,sortOrder,archived`。
+Wallet 字段：`name,normalizedName,currencyCode,currencyScale,openingBalanceMinor,sortOrder,archived,separateAccounting`。
 
 - 为使 CSV 的“钱包名称＋币种”能唯一映射，同一数据集内 `(normalizedName,currencyCode)` 唯一，包含已归档钱包；相同名称的不同币种钱包允许存在。
 - normalizedName 只用于匹配，不作为外键；同名映射不明确时必须在预览阶段解决，不能随意选第一个钱包。
+- `separateAccounting` 为布尔值，创建默认 `false`；缺失于早期 v1 备份时按 `false` 迁移。它只影响查询的默认钱包范围，余额及历史记录按原有钱包 ID 不变。独立核算钱包仍进入完整 JSON 备份和恢复，不能在 CSV 导出或导入时因默认筛选被漏掉。修改此值允许在钱包已有流水后进行。
 - 余额为派生值，不导出 currentBalance 或余额缓存，也不以缓存覆盖流水。
 - 收支 Category 的 scope 分别为 INCOME、EXPENSE，每域恰好一个 isDefault=true 的未归档兜底项。初始显示名为“未分类”，引用和兜底判断都依据 ID／标志。
 - isDefault=true 的分类不能删除或停用；其他已引用分类只能停用。名称在各自 scope 内唯一。
@@ -116,7 +117,7 @@ FinancialEntry 字段：
 | TRANSFER.walletId = w | -amountMinor |
 | TRANSFER.toWalletId = w | +toAmountMinor |
 
-余额 = openingBalanceMinor ＋上述全部贡献。期间统计先按流水自身的 date 和所选钱包过滤，再按币种计算收入及净支出。收入只加 INCOME，净支出为 EXPENSE 减 REFUND，转账与初始余额不计收支。退款归属其 walletId 指向的到账钱包，分类从 originalExpenseId 关联的原支出读取，即使原支出不在所选日期或钱包范围内也适用。例：同币种 A 支出 100，B 退款到账 30，两笔都落入所选日期范围时，A、B、合选的净支出分别为 100、−30、70。归档钱包仍保留其统计贡献。
+余额 = openingBalanceMinor ＋上述全部贡献。期间统计先按流水自身的 date 和所选钱包过滤，再按币种计算收入及净支出。收入只加 INCOME，净支出为 EXPENSE 减 REFUND，转账与初始余额不计收支。退款归属其 walletId 指向的到账钱包，分类从 originalExpenseId 关联的原支出读取，即使原支出不在所选日期或钱包范围内也适用。例：同币种 A 支出 100，B 退款到账 30，两笔都落入所选日期范围时，A、B、合选的净支出分别为 100、−30、70。归档钱包在当前钱包范围包含它时仍保留其统计贡献。默认钱包范围只选择 `separateAccounting=false` 的钱包（含归档的历史钱包）；用户显式选中独立核算钱包后才参与账本流水和统计，首页本月收支固定使用默认范围。显式选中的钱包 ID 集合与默认范围区分存储；没有常规钱包时默认范围为空，不自动扩大到独立钱包。
 
 ### 3.4 主题设置
 
@@ -192,7 +193,7 @@ GitHub 另行持久化以下本机状态，调度和交互见 [PLAN 的 GitHub �
 | importReceipts | 全部成功导入凭据数组 |
 
 - 共用时间字段适用于方式、分类、用餐、钱包、流水；importReceipts 使用 importedAt，主题单例不含时间字段。
-- 导出不含 normalizedName，导入重建；Category 包含 isDefault，Wallet 包含 currencyScale。
+- 导出不含 normalizedName，导入重建；Category 包含 isDefault，Wallet 包含 currencyScale、separateAccounting。完整 JSON 总是导出全部钱包和流水，与当前页的筛选无关；CSV 全量导出同样不得套用页面默认钱包范围。
 - backupKind=AUTO 用于更新各目标的最新完整备份，包括设置页的“立即备份”。MANUAL 用于手动导出，PRE_RESTORE 用于恢复前的独立保护文件，两者由用户自行保管。
 - 全部实体数组按 id 升序输出；关联 ID 数组去重并按 ID 升序输出；凭据按 kind、sha256 排序。字段按本节示例的固定顺序序列化，便于比较历史。
 - 输出 UTF-8、无 BOM、LF 换行和两空格缩进；读取允许 UTF-8 BOM 与 CRLF。拒绝重复 JSON 对象键、非法数字和非标准 JSON。
@@ -228,8 +229,8 @@ GitHub 另行持久化以下本机状态，调度和交互见 [PLAN 的 GitHub �
     },
     "ledger": {
       "wallets": [
-        {"id":"40000000-0000-4000-8000-000000000001","name":"日常钱包","currencyCode":"CNY","currencyScale":2,"openingBalanceMinor":"10000","sortOrder":0,"archived":false,"createdAt":"2026-11-16T10:00:00.000Z","updatedAt":"2026-11-16T10:00:00.000Z"},
-        {"id":"40000000-0000-4000-8000-000000000002","name":"旅行钱包","currencyCode":"JPY","currencyScale":0,"openingBalanceMinor":"0","sortOrder":1,"archived":false,"createdAt":"2026-11-16T10:00:00.000Z","updatedAt":"2026-11-16T10:00:00.000Z"}
+        {"id":"40000000-0000-4000-8000-000000000001","name":"日常钱包","currencyCode":"CNY","currencyScale":2,"openingBalanceMinor":"10000","sortOrder":0,"archived":false,"separateAccounting":false,"createdAt":"2026-11-16T10:00:00.000Z","updatedAt":"2026-11-16T10:00:00.000Z"},
+        {"id":"40000000-0000-4000-8000-000000000002","name":"旅行钱包","currencyCode":"JPY","currencyScale":0,"openingBalanceMinor":"0","sortOrder":1,"archived":false,"separateAccounting":true,"createdAt":"2026-11-16T10:00:00.000Z","updatedAt":"2026-11-16T10:00:00.000Z"}
       ],
       "entries": [
         {"id":"50000000-0000-4000-8000-000000000001","date":"2026-11-16","time":"18:30","type":"EXPENSE","walletId":"40000000-0000-4000-8000-000000000001","amountMinor":"1280","categoryId":"20000000-0000-4000-8000-000000000003","toWalletId":null,"toAmountMinor":null,"originalExpenseId":null,"note":"食材","createdAt":"2026-11-16T10:30:00.000Z","updatedAt":"2026-11-16T10:30:00.000Z"},
@@ -250,7 +251,7 @@ GitHub 另行持久化以下本机状态，调度和交互见 [PLAN 的 GitHub �
 }
 ```
 
-校验后的预期结果：CNY 钱包余额 80.00（100.00−12.80−10.00＋2.80），JPY 钱包余额 200；当月 CNY 收入 0、净支出 10.00。示例转账金额仅说明双金额字段，不代表真实汇率。
+校验后的预期结果：CNY 钱包余额 80.00（100.00−12.80−10.00＋2.80），JPY 钱包余额 200；当月常规钱包范围仅统计 CNY 收入 0、净支出 10.00。JPY 旅行钱包标记独立核算，余额仍显示，手动选择后才进入流水和统计。示例转账金额仅说明双金额字段，不代表真实汇率。
 
 ### 4.3 导出、恢复与幂等性
 
@@ -259,7 +260,7 @@ GitHub 另行持久化以下本机状态，调度和交互见 [PLAN 的 GitHub �
 - 本地自动备份的文件名由 UTC 日期时间和同秒递增序号组成，例如 `kitsune-auto-20261118T093015Z-0001.json`。snapshotId 在 JSON 中标识备份。每个数据集在同一配置目录保留最新成功发布的一份 AUTO。清理前验证归属与发布状态，并以明确确认的新发布备份作为保留对象。发布失败时保留上一份有效备份。
 - 云端恢复从 GitHub 的 `backups/latest.json` 读取当前完整备份。按 [PLAN 的 GitHub 私有库规则](PLAN.md#94-github-私有库)锁定同一提交读取元数据和原始字节，经字节数和 Git blob SHA 校验后生成恢复摘要。Git blob SHA 用于远端版本校验，上传尝试另用原始 JSON 字节的内容 SHA-256。每个目标独立确认实际完成的任务代次及修订，期间产生的新修订仍待处理。
 - 完整恢复会整体替换业务数据。先全量校验并展示摘要；有用户数据或已修改设置时，在恢复事务前生成并校验 PRE_RESTORE 文件，可写入已授权目录或通过系统文件选择器单次导出。新装空库及只有未修改初始默认数据的库可直接恢复。
-- 恢复保留输入的业务 ID、归档标志、审计时间和导入凭据；不重新生成默认分类或改写历史金额精度。
+- 恢复保留输入的业务 ID、归档标志、钱包独立核算标志、审计时间和导入凭据；不重新生成默认分类或改写历史金额精度。
 - 本机修订继续递增，导入快照的 revision 仅作来源信息。恢复后保留导入的 datasetId，后续完整备份生成新的 snapshotId。
 - 恢复事务为已绑定的 GitHub 目标持久化暂停上传状态。成功恢复云端快照时记录该快照的文件 SHA；用户另行确认更新远端并发布成功后才恢复自动上传。覆盖或重建仅适用于用户确认的远端 SHA 或文件缺失状态。
 - 写入结果不明时先按第 3.6 节的尝试信息核对。目标、数据集、snapshotId 及内容 SHA-256 一致才确认该次实际发布的修订，并用远端文件 blob SHA 更新该代次的基准。远端仍符合原写入条件时，可退避后从最新修订重新生成完整快照并重试。其他远端状态变化按冲突处理。旧代次的结果仅用于核对远端，不更新当前代次的备份状态。
@@ -401,6 +402,7 @@ id,date,time,type,wallet,currency,amount,category,to_wallet,to_currency,to_amoun
 - [ ] 分类名称中的引号、逗号、中文与多行备注正确经过 JSON 数组和 CSV 双层转义。
 - [ ] plannedAtHome 缺失／null、是但方式为空、方式为空但有分类等错误被拦截；否且方式为空合法。
 - [ ] 方式关闭分类开关、方式或分类归档后，历史引用仍能完整恢复。
+- [ ] 钱包 `separateAccounting` 为 true／false 的 JSON 往返及旧数据缺字段默认 false；完整 JSON／CSV 不因页面筛选而漏数据；余额不因切换开关变化，常规与独立钱包默认范围、手选范围及转账／退款归属正确。
 - [ ] 转账两侧不完整、币种不符、退款悬空或超额整批失败，原数据库不变。
 - [ ] 重复 ID、日期餐次冲突、同一无 ID 文件重复导入与同批退款引用行为符合规定。
 - [ ] 连续提交可合并待备份状态，输出的完整 JSON 与标注的修订一致，恢复后包含期间的新增、修改和删除。
