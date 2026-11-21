@@ -12,7 +12,7 @@
 | --- | --- |
 | 产品计划与验收标准 | 已整理到 PLAN.md |
 | 开发协作约定 | 已整理到 AGENTS.md |
-| UI 设计与交互预览 | 已保存到 docs/ui，含两套方案、离线预览、源稿及 18 张截图。用餐与账本共用界面组件。 |
+| UI 设计与交互预览 | 已保存到 docs/ui，含两套方案、最新离线预览及源稿。用餐与账本共用界面组件。 |
 | v1 数据格式 | 已设计并提供 JSON／CSV 示例，尚无运行时实现 |
 | Gradle／Android 工程、界面与业务 | 未开始 |
 | 狐狸图标资产 | 已保留到 artwork；新版接入及启动器设备验收待完成 |
@@ -38,11 +38,11 @@
 | [AGENTS.md](AGENTS.md) | 开发前必读：文档入口、协作规则、验证要求 |
 | [docs/PLAN.md](docs/PLAN.md) | 完整产品需求、页面、技术方向、实施阶段与验收标准 |
 | [docs/DATA_FORMAT.md](docs/DATA_FORMAT.md) | v1 实体、JSON 备份、CSV、数据校验与迁移契约 |
-| [docs/ui/README.md](docs/ui/README.md) | UI 设计交接、文件索引、截图与已验证／未实现边界 |
+| [docs/ui/README.md](docs/ui/README.md) | UI 设计交接、现行文件索引与已验证／未实现边界 |
 
 ## UI 设计预览
 
-直接用 Edge／Chrome 打开 [docs/ui/index.html](docs/ui/index.html)，无需联网即可查看“杏橙手账”和“清爽日常”两套方案。可编辑源稿和截图见 [UI 设计说明](docs/ui/README.md)。
+直接用 Edge／Chrome 打开 [docs/ui/index.html](docs/ui/index.html)，无需联网即可查看“杏橙手账”和“清爽日常”两套方案。可编辑源稿及演示边界见 [UI 设计说明](docs/ui/README.md)。
 
 更新源稿后，在项目根目录重新生成独立预览：
 
@@ -152,7 +152,7 @@ JDK、Gradle、Android Gradle Plugin、Kotlin 和具体库版本尚未选择或�
 ## 实施顺序
 
 - [x] 完整计划、协作约定、README 与数据格式设计。
-- [x] 当前 UI 设计落盘：可编辑源稿、两套方案、离线预览与关键页面截图。
+- [x] 当前 UI 设计落盘：可编辑源稿、两套方案、离线预览。废弃截图已移除。
 - [ ] 阶段 1：Android 工程、统一主题、狐狸图标、用餐与分类管理。
 - [ ] 阶段 2：钱包、计算器、收支、转账、退款与统计。
 - [ ] 阶段 3：JSON／CSV、最新完整数据的本地自动备份与恢复。
@@ -164,6 +164,6 @@ JDK、Gradle、Android Gradle Plugin、Kotlin 和具体库版本尚未选择或�
 
 文档验证覆盖文件编码与链接、需求一致性、JSON／CSV 示例的可解析性及样例数据关系。数据格式文档中的示例是虚构数据，不是从真实应用导出的结果。
 
-UI 预览已在离线浏览器中检查两套方案的浅色、深色和窄屏布局，以及用餐、账本的核心交互。验证场景、关键页面截图和 Android 实现边界见 [UI 设计说明](docs/ui/README.md)。
+早期 UI 预览已在离线浏览器中检查两套方案的浅色、深色和窄屏布局及核心交互。最新全局组件标准化版本已经进行颜色公式和 JavaScript 语法检查、重新打包；尚未进行该版本的浏览器视觉回归。过期截图已删除，不作为开发依据。现行视觉源稿及验证边界见 [UI 设计说明](docs/ui/README.md)。
 
 尚未执行 Android 编译、lint、单元测试、设备测试、GitHub 连接或恢复实测；这些工作随实现阶段完成。
