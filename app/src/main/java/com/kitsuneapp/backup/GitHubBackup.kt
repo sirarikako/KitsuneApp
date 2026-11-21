@@ -118,14 +118,7 @@ internal class GitHubBackup(
         schedule()
     }
 
-    suspend fun estimateBytes(): Long {
-        var size = 0L
-        snapshots.export(BackupKind.AUTO, object : OutputStream() {
-            override fun write(value: Int) { size++ }
-            override fun write(value: ByteArray, offset: Int, length: Int) { size += length }
-        })
-        return size
-    }
+    suspend fun estimateBytes(): Long = snapshots.measure()
 
     suspend fun dismissCapacity(repositoryId: Long, checkedSize: Long) = withContext(Dispatchers.IO) {
         publication.withLock {
@@ -159,9 +152,11 @@ internal class GitHubBackup(
             val config = ownerConfig(local)
             validateRetry(config)
             val client = client(config)
-            val remote = client.verifiedVersion(config)
-            val stage = remote.backup?.let { download(client, it) { file -> file.inputStream().use { snapshots.stage(it) } } }
-            GitHubPreview(config.target, config.repositoryId, config.binding, remote.condition, stage)
+            withUserRateLimit(config) {
+                val remote = client.verifiedVersion(config)
+                val stage = remote.backup?.let { download(client, it) { file -> file.inputStream().use { snapshots.stage(it) } } }
+                GitHubPreview(config.target, config.repositoryId, config.binding, remote.condition, stage)
+            }
         }
     }
 
@@ -184,7 +179,7 @@ internal class GitHubBackup(
         val config = ownerConfig(repository.ownedState())
         verifyPreview(config, preview)
         validateRetry(config)
-        val remote = client(config).verifiedVersion(config)
+        val remote = withUserRateLimit(config) { client(config).verifiedVersion(config) }
         require(remote.condition == preview.condition && preview.stage != null) { "远端备份已更改，请重新核对" }
         return config
     }
@@ -193,6 +188,15 @@ internal class GitHubBackup(
         val local = repository.ownedState()
         persist(config.copy(generation = local.generation, accepted = preview.condition, consent = null, bypassFrequency = false,
             lastRevision = -1, pending = null, paused = "完整恢复后等待确认更新远端", permanent = false, status = null))
+    }
+
+    private suspend fun <T> withUserRateLimit(config: GitHubState, operation: suspend () -> T): T {
+        return try {
+            operation()
+        } catch (failure: GitHubFailure) {
+            if (failure.waitMs != null) persist(config.copy(retry = clock.after(failure.waitMs)))
+            throw failure
+        }
     }
 
     private fun verifyPreview(config: GitHubState, preview: GitHubPreview) {
@@ -246,7 +250,8 @@ internal class GitHubBackup(
                 val normalized = normalizeGates(config, manual)
                 if (normalized != config) persist(normalized)
                 config = normalized
-                if (neededDelay(config, manual) > 0) return@withLock false
+                if ((config.retry?.remaining(clock.now) ?: 0) > 0) return@withLock false
+                if (config.attempts.isEmpty() && neededDelay(config, manual) > 0) return@withLock false
                 val api = client(config)
                 val remote = api.verifiedVersion(config)
                 config = reconcile(config, remote, api, local)
@@ -260,6 +265,7 @@ internal class GitHubBackup(
                     persist(config.copy(status = "已是最新", pending = null))
                     return@withLock true
                 }
+                if (neededDelay(config, manual) > 0) return@withLock false
                 val file = File.createTempFile("github-upload-", ".json", context.cacheDir)
                 try {
                     val info = file.outputStream().use { output ->

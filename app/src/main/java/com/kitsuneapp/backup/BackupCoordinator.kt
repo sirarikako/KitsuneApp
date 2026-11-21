@@ -41,7 +41,7 @@ internal data class FolderOption(val marker: Publication, val document: Document
 
 class BackupCoordinator internal constructor(private val context: Context, private val repository: Repository) {
     val snapshots = SnapshotStore(context, repository)
-    val csv = CsvTransfers(repository)
+    val csv = CsvTransfers(repository, snapshots)
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val preferences = context.getSharedPreferences("backup-targets", Context.MODE_PRIVATE)
     private val gson = Gson()
@@ -84,7 +84,8 @@ class BackupCoordinator internal constructor(private val context: Context, priva
             try {
                 FolderBackup(context, uri).list()
                 val old = directory.value
-                if (old?.uri != uri.toString() || old.installation != state.installationId) {
+                if (old?.uri != uri.toString() || old.installation != state.installationId ||
+                    old.generation == state.generation && old.revision > state.revision) {
                     persistFolder(FolderState(state.installationId, uri.toString()))
                     if (old != null && old.uri != uri.toString()) runCatching {
                         context.contentResolver.releasePersistableUriPermission(Uri.parse(old.uri), flags)

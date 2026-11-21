@@ -184,32 +184,32 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
                         }
                     CompositionLocalProvider(LocalRecordMotion provides RecordMotion(shared, this@AnimatedContent)) {
                         Box(recordBounds(outgoing, key).fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-                        when (parts[0]) {
-                            "home" -> Home(records, now, ::open, ::openMeal)
-                            "meals" -> MealsPage(records, filter, { filter = null }, { filter = MealFilter() },
-                                { open("mealFilter") }, ::openMeal) { meal ->
-                                openRecord("meal/${meal.date}/${meal.mealSlot.name}/${meal.id}", meal.id)
+                            when (parts[0]) {
+                                "home" -> Home(records, now, ::open, ::openMeal)
+                                "meals" -> MealsPage(records, filter, { filter = null }, { filter = MealFilter() },
+                                    { open("mealFilter") }, ::openMeal) { meal ->
+                                    openRecord("meal/${meal.date}/${meal.mealSlot.name}/${meal.id}", meal.id)
+                                }
+                                "meal" -> MealForm(records, parts[3].takeUnless { it == "-" }, parts[1], MealSlot.valueOf(parts[2]), model, goBack)
+                                "mealFilter" -> MealFilterPage(records, filter ?: MealFilter(), goBack) { filter = it; back() }
+                                "settings" -> SettingsPage(::open)
+                                "methods" -> VocabularyPage(records, null, null, ::open, goBack)
+                                "method" -> VocabularyForm(records, parts[1].takeUnless { it == "-" }, null, null, model, goBack)
+                                "categories" -> VocabularyPage(records, Scope.valueOf(parts[1]), parts.getOrNull(2)?.takeUnless { it == "-" }, ::open, goBack)
+                                "category" -> VocabularyForm(records, parts[3].takeUnless { it == "-" },
+                                    Scope.valueOf(parts[1]), parts[2].takeUnless { it == "-" }, model, goBack)
+                                "categorySettings" -> CategorySettings(records, model, false, null, ::open, goBack)
+                                "walletCategories" -> CategorySettings(records, model, true, parts.getOrNull(1), ::open, goBack)
+                                "appearance" -> AppearancePage(records.theme, model, goBack)
+                                "data" -> DataManagementPage(records, model, goBack)
+                                "folder" -> FolderPage(records, model, ::open, goBack)
+                                "github" -> GitHubPage(records, model, goBack)
+                                "ledger" -> LedgerPage(records, ::open) { id -> openRecord("entry/$id", id) }
+                                "wallet" -> WalletForm(records, parts[1].takeUnless { it == "-" }, model, goBack)
+                                "entry" -> EntryDetails(records, parts[1], model, ::open, goBack)
+                                "entryForm" -> EntryForm(records, parts[1].takeUnless { it == "-" }, null, model, goBack, ::back)
+                                "refund" -> EntryForm(records, null, parts[1], model, goBack, ::back)
                             }
-                            "meal" -> MealForm(records, parts[3].takeUnless { it == "-" }, parts[1], MealSlot.valueOf(parts[2]), model, goBack)
-                            "mealFilter" -> MealFilterPage(records, filter ?: MealFilter(), goBack) { filter = it; back() }
-                            "settings" -> SettingsPage(::open)
-                            "methods" -> VocabularyPage(records, null, null, ::open, goBack)
-                            "method" -> VocabularyForm(records, parts[1].takeUnless { it == "-" }, null, null, model, goBack)
-                            "categories" -> VocabularyPage(records, Scope.valueOf(parts[1]), parts.getOrNull(2)?.takeUnless { it == "-" }, ::open, goBack)
-                            "category" -> VocabularyForm(records, parts[3].takeUnless { it == "-" },
-                                Scope.valueOf(parts[1]), parts[2].takeUnless { it == "-" }, model, goBack)
-                            "categorySettings" -> CategorySettings(records, model, false, null, ::open, goBack)
-                            "walletCategories" -> CategorySettings(records, model, true, parts.getOrNull(1), ::open, goBack)
-                            "appearance" -> AppearancePage(records.theme, model, goBack)
-                            "data" -> DataManagementPage(records, model, goBack)
-                            "folder" -> FolderPage(records, model, ::open, goBack)
-                            "github" -> GitHubPage(records, model, goBack)
-                            "ledger" -> LedgerPage(records, ::open) { id -> openRecord("entry/$id", id) }
-                            "wallet" -> WalletForm(records, parts[1].takeUnless { it == "-" }, model, goBack)
-                            "entry" -> EntryDetails(records, parts[1], model, ::open, goBack)
-                            "entryForm" -> EntryForm(records, parts[1].takeUnless { it == "-" }, null, model, goBack, ::back)
-                            "refund" -> EntryForm(records, null, parts[1], model, goBack, ::back)
-                        }
                     }
                     }
                 }

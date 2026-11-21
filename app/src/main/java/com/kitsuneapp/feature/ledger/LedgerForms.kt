@@ -138,6 +138,7 @@ fun EntryForm(records: Records, id: String?, expenseId: String?, model: AppViewM
     val expense = ledger.entry(expenseId ?: original?.originalExpenseId)
     val now = remember { LocalDateTime.now() }
     val context = LocalContext.current
+    val pickerTheme = platformPickerTheme()
     var type by rememberSaveable { mutableStateOf(original?.type ?: if (expenseId != null) EntryType.REFUND else EntryType.EXPENSE) }
     var date by rememberSaveable { mutableStateOf(original?.date ?: now.toLocalDate().toString()) }
     var time by rememberSaveable { mutableStateOf(original?.time ?: now.format(DateTimeFormatter.ofPattern("HH:mm", Locale.ROOT))) }
@@ -187,7 +188,7 @@ fun EntryForm(records: Records, id: String?, expenseId: String?, model: AppViewM
                 DateControl("日期", date, { date = it }, Modifier.weight(1f))
                 Choice("时间 · $time", {
                     val value = LocalTime.parse(time)
-                    TimePickerDialog(context, { _, hour, minute -> time = String.format(Locale.ROOT, "%02d:%02d", hour, minute) },
+                    TimePickerDialog(context, pickerTheme, { _, hour, minute -> time = String.format(Locale.ROOT, "%02d:%02d", hour, minute) },
                         value.hour, value.minute, true).show()
                 }, Modifier.weight(1f))
             }

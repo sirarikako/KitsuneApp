@@ -87,6 +87,15 @@ class SnapshotStore(private val context: Context, private val repository: Reposi
         }
     }
 
+    suspend fun measure(): Long {
+        var size = 0L
+        export(BackupKind.AUTO, object : OutputStream() {
+            override fun write(value: Int) { size++ }
+            override fun write(value: ByteArray, offset: Int, length: Int) { size += length }
+        })
+        return size
+    }
+
     suspend fun stage(input: InputStream): StagedSnapshot = withContext(Dispatchers.IO) {
         val name = File(context.cacheDir, "stage-" + newId() + ".db").path
         val stage = Room.databaseBuilder(context, KitsuneDatabase::class.java, name)

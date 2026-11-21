@@ -14,7 +14,13 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
-data class CsvPreview(val additions: Int, val duplicates: Int, val errors: List<String>, val elements: Int)
+data class CsvPreview(
+    val additions: Int,
+    val duplicates: Int,
+    val errors: List<String>,
+    val elements: Int,
+    val snapshotBytes: Long? = null,
+)
 data class CsvMappings(val methods: Map<String, String> = emptyMap(), val wallets: Map<Pair<String, String>, String> = emptyMap())
 
 class CsvDocument internal constructor(val kind: CsvKind, val sha256: String, internal val rows: List<CsvRow>) {
@@ -38,9 +44,14 @@ internal fun ByteArray.hex() = joinToString("") { byte -> "%02x".format(byte.toI
 private val CsvKind.columns get() = if (this == CsvKind.MEALS) mealColumns else ledgerColumns
 private class PreviewComplete(val preview: CsvPreview) : RuntimeException()
 
-class CsvTransfers(private val repository: Repository) {
-    suspend fun preview(file: CsvDocument, mappings: CsvMappings): CsvPreview = try {
-        repository.change { throw PreviewComplete(apply(file, mappings)) }
+class CsvTransfers(private val repository: Repository, private val snapshots: SnapshotStore? = null) {
+    suspend fun preview(file: CsvDocument, mappings: CsvMappings, estimateCloud: Boolean = false): CsvPreview = try {
+        repository.change {
+            val result = apply(file, mappings)
+            val measured = if (estimateCloud && result.errors.isEmpty() && result.elements <= MAX_ARRAY_ELEMENTS)
+                snapshots?.measure() else null
+            throw PreviewComplete(result.copy(snapshotBytes = measured))
+        }
         error("Preview did not roll back")
     } catch (result: PreviewComplete) {
         result.preview

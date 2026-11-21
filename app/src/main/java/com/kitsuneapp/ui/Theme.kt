@@ -36,6 +36,10 @@ val CardShape = RoundedCornerShape(17.dp)
 val ControlShape = RoundedCornerShape(12.dp)
 val DialogShape = RoundedCornerShape(24.dp)
 
+internal fun tonalColors(seed: Color, dark: Boolean): ColorScheme = dynamicColorScheme(
+    seedColor = seed, isDark = dark, isAmoled = false, contrastLevel = 0.25,
+)
+
 private val type = Typography(
     headlineSmall = TextStyle(fontSize = 26.sp, fontWeight = FontWeight.SemiBold, lineHeight = 33.sp),
     titleMedium = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, lineHeight = 22.sp),
@@ -62,12 +66,7 @@ fun KitsuneTheme(preferences: ThemePreferences, forceDark: Boolean? = null, refr
                 ColorSource.CUSTOM -> preferences.customSeedColor
                 else -> presets[preferences.presetId]?.second ?: "#C47A4A"
             }
-            dynamicColorScheme(
-                seedColor = Color(android.graphics.Color.parseColor(seed)),
-                isDark = dark,
-                isAmoled = false,
-                contrastLevel = 0.25,
-            )
+            tonalColors(Color(android.graphics.Color.parseColor(seed)), dark)
         }
     }
     val applied = if (forceDark != null) colors else key(dark) { animateColorScheme(colors, tween(250, easing = motion)) }

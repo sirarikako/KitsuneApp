@@ -18,10 +18,11 @@ class CsvTransfersTest {
 
     @Before
     fun setUp() = runBlocking {
-        database = Room.inMemoryDatabaseBuilder(InstrumentationRegistry.getInstrumentation().targetContext, KitsuneDatabase::class.java).build()
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        database = Room.inMemoryDatabaseBuilder(context, KitsuneDatabase::class.java).build()
         repository = Repository(database, newId())
         repository.initialize(true)
-        csv = CsvTransfers(repository)
+        csv = CsvTransfers(repository, SnapshotStore(context, repository))
     }
 
     @After
@@ -32,7 +33,9 @@ class CsvTransfersTest {
         val source = mealColumns.joinToString(",") + "\n,2026-11-21,LUNCH,true,下厨,\"[\"\"凉菜\"\"]\",面,\n"
         val document = CsvDocument.load(CsvKind.MEALS, source.byteInputStream())
         val before = repository.read()
-        assertEquals(1, csv.preview(document, CsvMappings()).additions)
+        val preview = csv.preview(document, CsvMappings(), estimateCloud = true)
+        assertEquals(1, preview.additions)
+        assertTrue(checkNotNull(preview.snapshotBytes) > 0L)
         assertEquals(before, repository.read())
         csv.commit(document, CsvMappings())
         val applied = repository.read()

@@ -12,6 +12,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kitsuneapp.AppViewModel
+import com.kitsuneapp.backup.CLOUD_LIMIT
 import com.kitsuneapp.backup.FolderOption
 import com.kitsuneapp.backup.input
 import com.kitsuneapp.backup.output
@@ -125,6 +126,8 @@ internal fun RestoreDialog(staged: StagedSnapshot, needsProtection: Boolean, fol
 @Composable
 private fun CsvPanel(records: Records, model: AppViewModel, message: (String) -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val cloud by model.backupServices.github.state.collectAsState()
+    val estimateCloud = cloud?.installation == records.state.installationId
     var kind by rememberSaveable { mutableStateOf(CsvKind.MEALS) }
     var exportKind by rememberSaveable { mutableStateOf(CsvKind.MEALS) }
     var template by rememberSaveable { mutableStateOf(false) }
@@ -144,7 +147,7 @@ private fun CsvPanel(records: Records, model: AppViewModel, message: (String) ->
             val source = context.contentResolver.input(uri).use { CsvDocument.load(kind, it) }
             mappings = CsvMappings()
             document = source
-            preview = csv.preview(source, mappings)
+            preview = csv.preview(source, mappings, estimateCloud)
         }
     }
     Paper {
@@ -166,7 +169,7 @@ private fun CsvPanel(records: Records, model: AppViewModel, message: (String) ->
         fun recheck(next: CsvMappings) {
             mappings = next
             preview = null
-            model.backup { preview = csv.preview(source, next) }
+            model.backup { preview = csv.preview(source, next, estimateCloud) }
         }
         AlertDialog(onDismissRequest = { if (!busy) { document = null; preview = null } },
             title = { Text(source.kind.label + " CSV 导入预览") }, shape = DialogShape,
@@ -176,7 +179,12 @@ private fun CsvPanel(records: Records, model: AppViewModel, message: (String) ->
                     preview?.let {
                         Text("新增 ${it.additions} · 重复 ${it.duplicates} · 错误 ${it.errors.size}")
                         Secondary("预计完整备份记录及关联 ${it.elements} / $MAX_ARRAY_ELEMENTS")
-                        if (it.elements >= MAX_ARRAY_ELEMENTS * 8 / 10) Secondary("接近完整备份容量")
+                        if (it.elements >= MAX_ARRAY_ELEMENTS * 8 / 10) Secondary("接近完整备份记录与关联上限")
+                        val bytes = it.snapshotBytes
+                        if (bytes != null && bytes >= CLOUD_LIMIT * 8 / 10) {
+                            Secondary(if (bytes > CLOUD_LIMIT) "预计超过 GitHub 备份的 32 MiB 上限，仍可使用本地备份。"
+                                else "预计接近 GitHub 备份的 32 MiB 上限。")
+                        }
                         it.errors.take(20).forEach { row -> Text(row, color = MaterialTheme.colorScheme.error) }
                         if (it.errors.size > 20) Secondary("另有 ${it.errors.size - 20} 条错误")
                     }

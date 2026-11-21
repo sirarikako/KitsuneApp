@@ -56,11 +56,8 @@ jobs:
           script: |
             ./gradlew :app:connectedDebugAndroidTest
             mkdir -p captures
-            for page in home settings; do
-              if ! adb exec-out run-as com.kitsuneapp cat "cache/kitsune-$page.png" > "captures/$page.png"; then
-                rm -f "captures/$page.png"
-              fi
-            done
+            adb exec-out run-as com.kitsuneapp cat cache/kitsune-home.png > captures/home.png || rm -f captures/home.png
+            adb exec-out run-as com.kitsuneapp cat cache/kitsune-settings.png > captures/settings.png || rm -f captures/settings.png
       - uses: actions/upload-artifact@v4
         if: always()
         with:

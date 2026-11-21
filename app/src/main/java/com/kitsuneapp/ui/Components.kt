@@ -179,12 +179,17 @@ fun Tabs(options: List<String>, selected: Int, set: (Int) -> Unit) {
 }
 
 @Composable
+internal fun platformPickerTheme() = if (LocalDarkMode.current) android.R.style.Theme_Material_Dialog_Alert
+else android.R.style.Theme_Material_Light_Dialog_Alert
+
+@Composable
 fun DateControl(label: String, value: String, set: (String) -> Unit, modifier: Modifier = Modifier, allowEmpty: Boolean = false) {
     val context = LocalContext.current
+    val pickerTheme = platformPickerTheme()
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Choice("$label · " + value.ifEmpty { "不限" }, {
             val date = runCatching { LocalDate.parse(value) }.getOrElse { LocalDate.now() }
-            android.app.DatePickerDialog(context,
+            android.app.DatePickerDialog(context, pickerTheme,
                 { _, y, m, d -> set(LocalDate.of(y, m + 1, d).toString()) },
                 date.year, date.monthValue - 1, date.dayOfMonth).show()
         }, Modifier.weight(1f))
