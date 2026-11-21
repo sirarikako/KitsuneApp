@@ -254,7 +254,7 @@
   {
     const cardRadius=17;
     const style = {accent:'#c47a4a',mode:'system',mealHour:'auto',colorSource:'PRESET',presetColor:'#c47a4a',customColor:'#C47A4A'};
-    const state = {page:'settings', date:'2026-11-17', ledgerMonth:'2026-11',mealMonth:'2026-11',ledgerTab:'统计', mealTab:'记录', slot:2, atHome:null, method:null, categories:[], amount:'',calcOpen:false,calcExpression:'',entryType:'支出',entryDraft:{dateTime:'2026-11-17T09:41',note:'',category:'餐饮',walletId:'daily'},notice:'', mealReturn:'home', entries:[], records:{}};
+    const state = {page:'settings', date:'2026-11-17', ledgerMonth:'2026-11',mealMonth:'2026-11',ledgerTab:'统计', mealTab:'记录', slot:2, atHome:null, method:null, categories:[], amount:'',calcOpen:false,calcExpression:'',entryType:'支出',entryDraft:{dateTime:'2026-11-17T09:41',note:'',category:'ge-food',walletId:'daily'},notice:'', mealReturn:'home', entries:[], records:{}};
     state.ledgerRange=null;state.ledgerRangeOpen=false;state.previewMode=null;
     const blankMealFilters=()=>({from:'',to:'',slot:'any',atHome:'any',method:'any',preparations:[],keyword:''});
     state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
@@ -263,6 +263,36 @@
     const entryWallet=()=>wallets.find(w=>w.id===state.entryDraft.walletId)||null;
     const defaultEntryWallet=()=>wallets.find(w=>w.id===state.lastWalletId&&!w.separateAccounting)||wallets.find(w=>!w.separateAccounting)||null;
     state.walletFilterIds=null;state.walletPickerOpen=false;state.walletDraftIds=[];state.lastWalletId='daily';
+    // Financial categories are scoped by type and optional wallet; meal preparation categories are separate.
+    const sharedFinancialCategories={
+      EXPENSE:[{id:'ge-food',name:'餐饮',archived:false},{id:'ge-transport',name:'交通',archived:false},{id:'ge-daily',name:'日用',archived:false}],
+      INCOME:[{id:'gi-salary',name:'工资',archived:false}]
+    };
+    const fallbackFinancialCategories={
+      EXPENSE:{id:'ge-none',name:'未分类',archived:false,isDefault:true},
+      INCOME:{id:'gi-none',name:'未分类',archived:false,isDefault:true}
+    };
+    const walletFinancialCategories=Object.fromEntries(wallets.map(w=>[w.id,{EXPENSE:[],INCOME:[]}]));
+    wallets.forEach(w=>{w.incomeCategoryMode='DEFAULT';w.expenseCategoryMode='DEFAULT';});
+    state.categoryWalletId='GLOBAL';state.financialScope='EXPENSE';state.editingFinancialCategoryId=null;state.categoryReturn='settings';state.nextFinancialCategoryId=1;
+    const financialScopeOf=type=>type==='收入'?'INCOME':'EXPENSE';
+    const scopeMode=(wallet,scope)=>wallet?.[scope==='INCOME'?'incomeCategoryMode':'expenseCategoryMode']||'DEFAULT';
+    const allFinancialCategories=()=>[...sharedFinancialCategories.EXPENSE,...sharedFinancialCategories.INCOME,...Object.values(walletFinancialCategories).flatMap(v=>[...v.EXPENSE,...v.INCOME]),...Object.values(fallbackFinancialCategories)];
+    const categoryById=id=>allFinancialCategories().find(c=>c.id===id)||null;
+    const effectiveFinancialCategories=(walletId,type)=>{
+      const wallet=wallets.find(w=>w.id===walletId);if(!wallet)return [];
+      const scope=financialScopeOf(type);
+      const collection=scopeMode(wallet,scope)==='CUSTOM'?walletFinancialCategories[wallet.id][scope]:sharedFinancialCategories[scope];
+      return [...collection.filter(c=>!c.archived),fallbackFinancialCategories[scope]];
+    };
+    const categoryForEntry=entry=>entry.type==='退款'?financialEntries().find(e=>e.id===entry.originalExpenseId)?.category:entry.category;
+    const categoryNameForId=id=>categoryById(id)?.name||'历史分类';
+    const categoryDescriptionForId=id=>{
+      const owner=wallets.find(w=>walletFinancialCategories[w.id].EXPENSE.some(c=>c.id===id)||walletFinancialCategories[w.id].INCOME.some(c=>c.id===id));
+      return owner?categoryNameForId(id)+' · '+owner.name:categoryNameForId(id);
+    };
+    const chooseFinancialCategory=(walletId,type,old)=>effectiveFinancialCategories(walletId,type).some(c=>c.id===old)?old:'';
+
     const savedState=window.openai?.widgetState?.privateContent?.kitsune;
     // Accept only the original primary preview preferences from old saved arrays.
     const saved=Array.isArray(savedState)?savedState[0]:savedState;
@@ -296,7 +326,11 @@
       {date:'2026-11-15',time:'09:00',type:'收入',category:'未分类',cents:5000,note:'旅行备用金',walletId:'travel'},
       {date:'2026-11-17',time:'20:15',type:'退款',originalExpenseId:'example-1',cents:3000,note:'退回日常钱包'}
     ];
-    const sampleEntries=exampleEntries.map((entry,i)=>({walletId:i===1||i===5?'pocket':'daily',...entry,id:`example-${i}`,cents:BigInt(entry.cents)}));
+    const sampleCategoryIds={餐饮:'ge-food',交通:'ge-transport',日用:'ge-daily',工资:'gi-salary',未分类:'gi-none'};
+    const sampleEntries=exampleEntries.map((entry,i)=>({
+      walletId:i===1||i===5?'pocket':'daily',...entry,id:`example-${i}`,cents:BigInt(entry.cents),
+      category:entry.type==='退款'?null:(entry.category==='未分类'&&entry.type==='支出'?'ge-none':sampleCategoryIds[entry.category])
+    }));
     const financialEntries=()=>[...sampleEntries,...state.entries].filter(entry=>!state.deletedEntryIds.has(entry.id));
     const monthEntries = month => financialEntries().filter(e=>e.date.startsWith(month));
     function formatMinor(minor,scale,grouping){
@@ -309,7 +343,7 @@
     const inputAmount=minor=>formatMinor(minor,entryWallet()?.scale??2,false);
     const total=(entries,type)=>entries.filter(e=>e.type===type).reduce((sum,e)=>sum+e.cents,0n);
     const netExpense=entries=>total(entries,'支出')-total(entries,'退款');
-    const entryCategory=entry=>entry.type==='退款'?financialEntries().find(e=>e.id===entry.originalExpenseId).category:entry.category;
+    const entryCategory=entry=>categoryNameForId(categoryForEntry(entry));
     const regularWallets=()=>wallets.filter(w=>!w.separateAccounting);
     const selectedWallets=()=>state.walletFilterIds===null?regularWallets():state.walletFilterIds==='ALL'?[...wallets]:wallets.filter(w=>state.walletFilterIds.includes(w.id));
     const matchesLedgerScope=entry=>{
@@ -466,7 +500,7 @@
           return `<div class="ks-currency-group"><div class="ks-money-card" data-wallet-balance="${wallet.id}">
             <span class="ks-money-caption">${wallet.name} · ${wallet.code} ${wallet.separateAccounting?'<span class="ks-pill">独立核算</span>':''}</span>
             <div class="ks-amount">${money(balance,wallet.code)}</div>
-            <div class="ks-note">初始余额 ${money(wallet.opening,wallet.code)} · 全部流水</div><label class="ks-wallet-setting"><span>独立核算<small>默认不参与收支统计与流水</small></span><input type="checkbox" data-wallet-independent="${wallet.id}" aria-label="${wallet.name}独立核算" ${wallet.separateAccounting?'checked':''}></label>
+            <div class="ks-note">初始余额 ${money(wallet.opening,wallet.code)} · 全部流水</div><label class="ks-wallet-setting"><span>独立核算<small>默认不参与收支统计与流水</small></span><input type="checkbox" data-wallet-independent="${wallet.id}" aria-label="${wallet.name}独立核算" ${wallet.separateAccounting?'checked':''}></label><button type="button" class="ks-choice ks-category-shortcut cursor-interaction" data-action="manage-categories" data-category-wallet="${wallet.id}">${icon('tags')}管理本钱包分类</button>
           </div></div>`;
         }).join('')}<p class="ks-footnote">交互预览 · 示例数据</p>`;
       const entries=allEntries.filter(matchesLedgerScope).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
@@ -477,8 +511,8 @@
       if(state.ledgerTab==='统计')return `${tabs}${picker}<div data-ledger-statistics aria-live="polite">
         ${groups.map(({code,entries:group})=>{
           const expenses=group.filter(entry=>entry.type==='支出'||entry.type==='退款');
-          const categories=[...new Set(expenses.map(entryCategory))]
-            .map(name=>({name,amount:netExpense(expenses.filter(entry=>entryCategory(entry)===name))}))
+          const categories=[...new Set(expenses.map(categoryForEntry))]
+            .map(id=>({id,name:categoryDescriptionForId(id),amount:netExpense(expenses.filter(entry=>categoryForEntry(entry)===id))}))
             .sort((a,b)=>a.amount===b.amount?a.name.localeCompare(b.name,'zh-CN'):a.amount>b.amount?-1:1);
           return `<section class="ks-currency-group" data-currency="${code}">
             ${section(`${period}收支 · ${code}`)}
@@ -538,7 +572,8 @@
     function pageEntry(){return `<form data-entry-form class="ks-form">
       <fieldset><legend class="ks-label">收支类型</legend><div class="ks-choices">${['支出','收入'].map(t=>choice(t,t,state.entryType,'entry-type')).join('')}</div></fieldset>
       <label><span class="ks-label">日期时间</span><input type="datetime-local" name="dateTime" value="${escapeText(state.entryDraft.dateTime)}" class="ks-control" required></label>
-      <div class="ks-field-row"><label><span class="ks-label">钱包</span><select name="wallet" class="ks-control" required><option value="" ${!entryWallet()?'selected':''} disabled>请选择钱包</option>${wallets.map(w=>`<option value="${w.id}" ${entryWallet()?.id===w.id?'selected':''}>${w.name} · ${w.code}${w.separateAccounting?'（独立核算）':''}</option>`).join('')}</select></label><label><span class="ks-label">分类</span><select name="category" class="ks-control">${(state.entryType==='支出'?['餐饮','交通','日用','未分类']:['工资','未分类']).map(c=>`<option ${state.entryDraft.category===c?'selected':''}>${c}</option>`).join('')}</select></label></div>
+      <div class="ks-field-row"><label><span class="ks-label">钱包</span><select name="wallet" class="ks-control" required><option value="" ${!entryWallet()?'selected':''} disabled>请选择钱包</option>${wallets.map(w=>`<option value="${w.id}" ${entryWallet()?.id===w.id?'selected':''}>${w.name} · ${w.code}${w.separateAccounting?'（独立核算）':''}</option>`).join('')}</select></label><label><span class="ks-label">分类</span><select name="category" class="ks-control" required><option value="" ${!state.entryDraft.category?'selected':''} disabled>请选择分类</option>${effectiveFinancialCategories(state.entryDraft.walletId,state.entryType).map(c=>`<option value="${c.id}" ${state.entryDraft.category===c.id?'selected':''}>${escapeText(c.name)}</option>`).join('')}</select></label></div>
+      <p class="ks-note">分类来源：${entryWallet()?scopeMode(entryWallet(),financialScopeOf(state.entryType))==='CUSTOM'?'本钱包专属分类':'通用分类':'请先选择钱包'}。切换钱包后如无对应分类，请重新选择。</p>
       <label><span class="ks-label">备注</span><input name="note" class="ks-control" placeholder="这笔钱用在了哪里？" value="${escapeText(state.entryDraft.note)}"></label>
       <div><label class="ks-label" for="ks-amount">金额 · ${entryWallet()?.code||'请选择钱包'}</label><div class="ks-amount-row"><input id="ks-amount" class="ks-amount-input" name="amount" inputmode="decimal" placeholder="${(entryWallet()?.scale??2)?'0.00':'0'}" autocomplete="off" value="${escapeText(state.amount)}" aria-label="金额"><button type="button" class="ks-calc-trigger cursor-interaction" data-action="open-calculator">${icon('calculator')}计算器</button></div></div>
       ${formFooter(saveButton(`保存${state.entryType}`),'交互预览 · 仅保存到当前演示')}
@@ -816,9 +851,9 @@
       if(b.dataset.category){const c=b.dataset.category;state.categories=state.categories.includes(c)?state.categories.filter(x=>x!==c):[...state.categories,c];render();return;}
       if(b.dataset.mealTab){state.mealTab=b.dataset.mealTab;render();return;}
       if(b.dataset.ledgerTab){state.ledgerTab=b.dataset.ledgerTab;state.ledgerRangeOpen=false;render();return;}
-      if(b.dataset.entryType){state.entryType=b.dataset.entryType;state.entryDraft.category=state.entryType==='支出'?'餐饮':'工资';render();return;}
+      if(b.dataset.entryType){state.entryType=b.dataset.entryType;state.entryDraft.category=chooseFinancialCategory(state.entryDraft.walletId,state.entryType,financialScopeOf(state.entryType)==='INCOME'?'gi-salary':'ge-food');render();return;}
       if(b.dataset.key!==undefined){const input=phone.querySelector('[data-calc-expression]'),k=b.dataset.key;state.calcExpression=input.value;phone.querySelector('.ks-calc-error').textContent='';if(k==='C')state.calcExpression='';else if(k==='⌫')state.calcExpression=state.calcExpression.slice(0,-1);else if(k==='='){try{state.calcExpression=inputAmount(calcCents(state.calcExpression));}catch(e){phone.querySelector('.ks-calc-error').textContent=e.message;return;}}else if(state.calcExpression.length<80)state.calcExpression+=k;input.value=state.calcExpression;return;}
-      if(b.dataset.action==='add-entry'){state.page='entry';state.amount='';state.ledgerRangeOpen=false;state.entryType='支出';state.entryDraft={dateTime:`${demoToday}T09:41`,note:'',category:'餐饮',walletId:defaultEntryWallet()?.id||''};render();return;}
+      if(b.dataset.action==='add-entry'){state.page='entry';state.amount='';state.ledgerRangeOpen=false;state.entryType='支出';state.entryDraft={dateTime:`${demoToday}T09:41`,note:'',category:defaultEntryWallet()?'ge-food':'',walletId:defaultEntryWallet()?.id||''};render();return;}
       if(b.dataset.action==='back'){state.page=state.page==='meal-filter'?'meals':state.page==='meal-form'?state.mealReturn:'ledger';render();return;}
       if(b.dataset.action==='new-category'){phone.querySelector('[data-new-category]').hidden=false;phone.querySelector('[data-category-name]').focus();return;}
       if(b.dataset.action==='confirm-category'){const c=phone.querySelector('[data-category-name]').value.trim();if(c&&!state.categories.includes(c))state.categories.push(c);render();}
@@ -829,7 +864,7 @@
       if(e.matches('[data-wallet-independent]')){const w=wallets.find(w=>w.id===e.dataset.walletIndependent);if(w){w.separateAccounting=e.checked;render();persist();}return;}
       if(e.matches('[data-wallet-all]')){state.walletDraftIds=e.checked?wallets.map(w=>w.id):[];render();return;}
       if(e.matches('[data-wallet-option]')){const id=e.dataset.walletOption;state.walletDraftIds=e.checked?[...new Set([...state.walletDraftIds,id])]:state.walletDraftIds.filter(x=>x!==id);render();phone.querySelector(`[data-wallet-option=${id}]`).focus({preventScroll:true});return;}
-      if(e.matches('[data-entry-form] [name=wallet]')){capture();render();return;}
+      if(e.matches('[data-entry-form] [name=wallet]')){capture();state.entryDraft.category=chooseFinancialCategory(state.entryDraft.walletId,state.entryType,state.entryDraft.category);render();return;}
       if(e.matches('[data-month-input]')){const key=e.dataset.monthInput;if(['ledgerMonth','mealMonth'].includes(key)&&/^\d{4}-(0[1-9]|1[0-2])$/.test(e.value)&&e.value.slice(0,4)!=='0000'){state[key]=e.value;if(key==='ledgerMonth')state.ledgerRangeOpen=false;}render();persist();return;}
       if(e.matches('[data-theme]')){state.appearanceDraft.mode=e.value;updateAppearancePreview();return;}
       if(e.matches('[data-color-source]')){state.appearanceDraft.colorSource=e.value;render();return;}
@@ -865,6 +900,7 @@
       if(f.matches('[data-entry-form]')){
         try{
           if(!f.elements.wallet.value){error('请先选择钱包。');return;}const cents=calcCents(f.elements.amount.value),walletId=f.elements.wallet.value;
+          if(!effectiveFinancialCategories(walletId,state.entryType).some(c=>c.id===f.elements.category.value)){error('请选择当前钱包可用的分类。');return;}
           const entry={id:`draft-${state.nextEntryId++}`,type:state.entryType,cents,walletId,category:f.elements.category.value,note:f.elements.note.value,date:f.elements.dateTime.value.slice(0,10),time:f.elements.dateTime.value.slice(11,16)};
           state.entries.push(entry);if(!walletById(walletId).separateAccounting)state.lastWalletId=walletId;state.page='ledger';state.ledgerTab='流水';
           state.notice=matchesLedgerScope(entry)?'已保存到当前演示。':'已保存到当前演示，该账目不在当前筛选范围内。';
