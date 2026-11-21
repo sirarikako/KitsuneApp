@@ -1,6 +1,7 @@
 package com.kitsuneapp.ui
 
 import android.os.Build
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
@@ -11,6 +12,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
@@ -24,6 +26,7 @@ import com.kitsuneapp.data.ThemeMode
 import com.kitsuneapp.data.ThemePreferences
 import com.kitsuneapp.data.presets
 import com.materialkolor.dynamicColorScheme
+import com.materialkolor.ktx.animateColorScheme
 
 val LocalDarkMode = staticCompositionLocalOf { false }
 val incomeColor: Color
@@ -67,8 +70,9 @@ fun KitsuneTheme(preferences: ThemePreferences, forceDark: Boolean? = null, refr
             )
         }
     }
+    val applied = if (forceDark != null) colors else key(dark) { animateColorScheme(colors, tween(250, easing = motion)) }
     CompositionLocalProvider(LocalDarkMode provides dark) {
-        MaterialTheme(colors, shapes = Shapes(small = ControlShape, medium = CardShape, large = DialogShape),
+        MaterialTheme(applied, shapes = Shapes(small = ControlShape, medium = CardShape, large = DialogShape),
             typography = type, content = content)
     }
 }

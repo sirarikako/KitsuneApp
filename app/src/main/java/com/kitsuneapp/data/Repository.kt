@@ -33,6 +33,7 @@ data class MealDraft(
     val newPreparations: List<String>,
     val dishes: String,
     val note: String,
+    val clearHistoricalPreparation: Boolean = false,
 )
 
 class OwnershipException : IllegalStateException("此数据库需要重新确认设备归属")
@@ -119,7 +120,7 @@ class Repository internal constructor(
                 }
                 existing + draft.newPreparations.map { resolveCategory(Scope.PREPARATION, null, it).id }
             }
-            original?.mealMethodId == method.id -> previous
+            original?.mealMethodId == method.id && !draft.clearHistoricalPreparation -> previous
             else -> emptySet()
         }
         val now = utcNow()

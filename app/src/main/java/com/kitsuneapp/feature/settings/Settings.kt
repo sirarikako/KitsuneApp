@@ -52,6 +52,8 @@ fun SettingsPage(navigate: (String) -> Unit) {
                 Setting("导入与导出") { navigate("data") }
                 HorizontalDivider()
                 Setting("本地文件夹备份") { navigate("folder") }
+                HorizontalDivider()
+                Setting("GitHub 备份") { navigate("github") }
             }
         }
     }

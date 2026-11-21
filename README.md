@@ -6,7 +6,7 @@
 
 ## 当前状态
 
-Android 工程、Room v1、首页、用餐、钱包、记账、分类管理和外观设置已接入。JSON、CSV 和文件夹备份已接入。云端备份开发与验证证据见 [开发进度](docs/IMPLEMENTATION_PROGRESS.md)。
+Android 工程、Room v1、首页、用餐、钱包、记账、分类管理和外观设置已接入。JSON、CSV、文件夹及 GitHub 私有库备份已接入。开发与验证证据见 [开发进度](docs/IMPLEMENTATION_PROGRESS.md)。
 
 ## 保留的狐狸图标
 
@@ -95,7 +95,7 @@ python docs/ui/build_preview.py
 ./gradlew :app:installDebug
 ```
 
-调试 APK 生成在 `app/build/outputs/apk/debug/app-debug.apk`。测试和 lint 报告位于 `app/build/reports/`。CI 将构建产物和报告上传为 Actions artifacts。
+调试 APK 生成在 `app/build/outputs/apk/debug/app-debug.apk`。安装到设备可使用 `adb install -r app/build/outputs/apk/debug/app-debug.apk`。发布签名需由持有发布密钥的维护者另行配置。测试和 lint 报告位于 `app/build/reports/`。CI 将构建产物和报告上传为 Actions artifacts。
 
 ## 数据使用方式
 
@@ -115,7 +115,7 @@ python docs/ui/build_preview.py
 - [x] 阶段 1：Android 工程、统一主题、狐狸图标、用餐与分类管理。
 - [x] 阶段 2：钱包、计算器、收支、转账、退款与统计。
 - [x] 阶段 3：JSON／CSV、最新完整数据的本地自动备份与恢复。
-- [ ] 阶段 4：GitHub 私有库、异常处理、真机验证、签名 APK。
+- [x] 阶段 4：GitHub 私有库、异常处理和调试签名 APK。真机与发布签名验收待补齐。
 
 完整验收条件见 [跨模块验收计划](docs/testing/ACCEPTANCE.md)。完成阶段后更新此清单，并补充实际验证证据。
 

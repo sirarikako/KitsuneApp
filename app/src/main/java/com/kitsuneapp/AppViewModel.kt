@@ -2,6 +2,8 @@ package com.kitsuneapp
 
 import androidx.lifecycle.AndroidViewModel
 import com.kitsuneapp.backup.BackupCoordinator
+import com.kitsuneapp.backup.GitHubFailure
+import com.kitsuneapp.backup.WifiUnavailable
 import androidx.lifecycle.viewModelScope
 import com.kitsuneapp.data.OwnershipException
 import com.kitsuneapp.data.Records
@@ -20,6 +22,7 @@ class AppViewModel(application: android.app.Application) : AndroidViewModel(appl
     val state = mutable.asStateFlow()
     private val working = MutableStateFlow(false)
     val busy = working.asStateFlow()
+    val isBusy get() = working.value
     private val message = MutableStateFlow<String?>(null)
     val error = message.asStateFlow()
     private var observe: Job? = null
@@ -72,7 +75,7 @@ class AppViewModel(application: android.app.Application) : AndroidViewModel(appl
 }
 
 fun Exception.userMessage(fallback: String): String = when (this) {
-    is IllegalArgumentException, is IllegalStateException -> message
+    is IllegalArgumentException, is IllegalStateException, is GitHubFailure, is WifiUnavailable -> message
         ?.takeIf { it.any { char -> char in '一'..'龥' } }
         ?: fallback
     else -> fallback

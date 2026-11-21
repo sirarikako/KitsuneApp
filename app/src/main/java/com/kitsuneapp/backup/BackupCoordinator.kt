@@ -47,6 +47,7 @@ class BackupCoordinator internal constructor(private val context: Context, priva
     private val gson = Gson()
     // Recovery and target replacement serialize with publication, not with ordinary entry writes.
     internal val publication = Mutex()
+    internal val github = GitHubBackup(context, repository, snapshots, publication)
     private val scheduleLock = Mutex()
     private val mutableFolder = MutableStateFlow(loadFolder())
     internal val directory = mutableFolder.asStateFlow()
@@ -66,6 +67,7 @@ class BackupCoordinator internal constructor(private val context: Context, priva
         scope.launch {
             try {
                 scheduleFolder()
+                github.schedule()
             } catch (error: CancellationException) {
                 throw error
             } catch (_: Exception) {
@@ -106,18 +108,23 @@ class BackupCoordinator internal constructor(private val context: Context, priva
                 folder.generation == app.generation && folder.revision > app.revision) return@withLock
             if (!force && !folder.cleanupPending && folder.generation == app.generation && folder.revision == app.revision) return@withLock
             val manager = WorkManager.getInstance(context)
-            val name = "kitsune-folder-" + app.installationId
+            val binding = folder.uri.shaKey()
+            val name = "kitsune-folder-" + app.installationId + "-" + app.generation + "-" + binding
             val scheduled = manager.getWorkInfosForUniqueWork(name).get()
             if (scheduled.any { it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.BLOCKED }) return@withLock
             manager.enqueueUniqueWork(name, ExistingWorkPolicy.APPEND_OR_REPLACE,
-                OneTimeWorkRequestBuilder<FolderWorker>().build()).result.get()
+                OneTimeWorkRequestBuilder<FolderWorker>().setInputData(
+                    androidx.work.workDataOf("installation" to app.installationId, "generation" to app.generation, "binding" to binding)
+                ).build()).result.get()
         }
     }
 
-    internal suspend fun runFolder(): Boolean = withContext(Dispatchers.IO) {
+    internal suspend fun runFolder(installation: String?, generation: Long, binding: String?): Boolean = withContext(Dispatchers.IO) {
         publication.withLock {
             val state = repository.ownedState()
             val target = directory.value ?: return@withLock true
+            if (installation != state.installationId || generation != state.generation || binding != target.uri.shaKey())
+                return@withLock true
             if (target.installation != state.installationId ||
                 target.generation == state.generation && target.revision > state.revision) return@withLock true
             val folder = FolderBackup(context, Uri.parse(target.uri))
@@ -183,7 +190,15 @@ class BackupCoordinator internal constructor(private val context: Context, priva
     }
 
     suspend fun openFile(uri: Uri): StagedSnapshot = withContext(Dispatchers.IO) {
-        context.contentResolver.input(uri).use { snapshots.stage(it) }
+        val copy = File.createTempFile("restore-download-", ".json", context.cacheDir)
+        try {
+            context.contentResolver.input(uri).use { from ->
+                copy.outputStream().use { to -> copyChecked(from, to) }
+            }
+            copy.inputStream().use { snapshots.stage(it) }
+        } finally {
+            copy.delete()
+        }
     }
 
     suspend fun exportJson(uri: Uri) = withContext(Dispatchers.IO) {
@@ -197,22 +212,33 @@ class BackupCoordinator internal constructor(private val context: Context, priva
     }
 
     suspend fun restore(staged: StagedSnapshot, safetyUri: Uri? = null) = withContext(Dispatchers.IO) {
+        publication.withLock { restoreProtected(staged, safetyUri) }
+    }
+
+    internal suspend fun restoreCloud(preview: GitHubPreview, safetyUri: Uri?) = withContext(Dispatchers.IO) {
         publication.withLock {
-            snapshots.restore(staged) { state ->
-                val file = File.createTempFile("restore-protection-", ".json", context.cacheDir)
-                try {
-                    val protected = file.outputStream().use { snapshots.export(BackupKind.PRE_RESTORE, it) }
-                    check(protected.datasetId == state.datasetId && protected.revision == state.revision) {
-                        "本机数据已变化，请重新确认恢复"
-                    }
-                    if (safetyUri != null) context.contentResolver.verifiedCopy(file, safetyUri)
-                    else {
-                        val target = usableFolder()
-                        FolderBackup(context, Uri.parse(target.uri)).protect(file, protected.snapshotId)
-                    }
-                } finally {
-                    file.delete()
+            val config = github.checkRestore(preview)
+            restoreProtected(checkNotNull(preview.stage), safetyUri) { github.checkRestore(preview) }
+            github.restoredCloud(config, preview)
+        }
+    }
+
+    private suspend fun restoreProtected(staged: StagedSnapshot, safetyUri: Uri?,
+                                         beforeCommit: suspend () -> Unit = {}) {
+        snapshots.restore(staged, beforeCommit) { state ->
+            val file = File.createTempFile("restore-protection-", ".json", context.cacheDir)
+            try {
+                val protected = file.outputStream().use { snapshots.export(BackupKind.PRE_RESTORE, it) }
+                check(protected.datasetId == state.datasetId && protected.revision == state.revision) {
+                    "本机数据已变化，请重新确认恢复"
                 }
+                if (safetyUri != null) context.contentResolver.verifiedCopy(file, safetyUri)
+                else {
+                    val target = usableFolder()
+                    FolderBackup(context, Uri.parse(target.uri)).protect(file, protected.snapshotId)
+                }
+            } finally {
+                file.delete()
             }
         }
     }
@@ -225,10 +251,13 @@ class FolderWorker(context: Context, parameters: WorkerParameters) : CoroutineWo
         } catch (error: OwnershipException) {
             return Result.success()
         }
-        val done = withTimeoutOrNull(8 * 60 * 1000L) { backup.runFolder() } == true
+        val done = withTimeoutOrNull(8 * 60 * 1000L) { backup.runFolder(inputData.getString("installation"),
+            inputData.getLong("generation", -1L), inputData.getString("binding")) } == true
         return if (done) {
             backup.changed()
             Result.success()
         } else if (runAttemptCount < 5) Result.retry() else Result.failure()
     }
 }
+
+private fun String.shaKey(): String = java.security.MessageDigest.getInstance("SHA-256").digest(encodeToByteArray()).hex()

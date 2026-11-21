@@ -22,6 +22,10 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -58,7 +62,10 @@ class MainActivity : ComponentActivity() {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     val records = state.records
                     when {
-                        records != null -> KitsuneApp(records, model, refresh)
+                        records != null -> {
+                            KitsuneApp(records, model, refresh)
+                            CapacityAlert(records, model)
+                        }
                         state.openingError != null -> OpenError(state, model)
                         else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                     }
@@ -87,16 +94,19 @@ private fun OpenError(state: AppState, model: AppViewModel) {
 private val roots = listOf("home", "meals", "ledger", "settings")
 private val titles = listOf("首页", "用餐", "记账", "设置")
 
+private data class RecordNavigation(val id: String, val source: String, val detail: String)
+
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
-    var stack by rememberSaveable { mutableStateOf(arrayListOf("home")) }
+    var stack by rememberSaveable { mutableStateOf<List<String>>(listOf("home")) }
     var filter by rememberSaveable { mutableStateOf<MealFilter?>(null) }
     val holder = rememberSaveableStateHolder()
-    val busy by model.busy.collectAsStateWithLifecycle()
+    var recordNavigation by remember { mutableStateOf<RecordNavigation?>(null) }
     val top = stack.last()
     val root = stack.first()
     fun open(path: String) {
-        if (busy || stack.last() == path) return
+        if (model.isBusy || stack.last() == path) return
         model.clearError()
         stack = when {
             path in roots -> arrayListOf(path)
@@ -104,16 +114,28 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
             else -> ArrayList(stack + path)
         }
     }
+    fun openRecord(path: String, id: String) {
+        if (model.isBusy) return
+        recordNavigation = RecordNavigation(id, stack.last(), path)
+        open(path)
+    }
     fun back() {
         if (stack.size > 1) {
             model.clearError()
             val old = stack.last()
+            recordNavigation?.takeIf { it.detail == old }?.let { navigation ->
+                val stillVisible = if (old.startsWith("meal/")) {
+                    val record = records.meals.find { it.id == navigation.id }
+                    record != null && (filter?.matches(record, records) ?: (old.split("/")[1] == record.date))
+                } else records.entries.any { it.id == navigation.id }
+                if (!stillVisible) recordNavigation = null
+            }
             stack = ArrayList(stack.dropLast(1))
             holder.removeState(old)
         }
     }
     fun openMeal(date: String, slot: MealSlot, id: String?) = open("meal/$date/${slot.name}/${id ?: "-"}")
-    BackHandler(stack.size > 1) { if (!busy) back() }
+    BackHandler(stack.size > 1) { if (!model.isBusy) back() }
     var now by remember { mutableStateOf(LocalDateTime.now()) }
     LaunchedEffect(refresh) {
         while (true) {
@@ -123,50 +145,72 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
     }
 
     Column(Modifier.fillMaxSize().statusBarsPadding().imePadding()) {
-        AnimatedContent(
-            targetState = top,
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            transitionSpec = {
-                when {
-                    initialState in roots && targetState in roots -> {
-                        (fadeIn(tween(112, delayMillis = 88, easing = motion)) +
-                            scaleIn(tween(112, delayMillis = 88, easing = motion), initialScale = 0.96f)) togetherWith
-                            fadeOut(tween(88, easing = motion))
+        SharedTransitionLayout(Modifier.weight(1f).fillMaxWidth()) {
+            val shared = this
+            AnimatedContent(
+                targetState = top,
+                modifier = Modifier.fillMaxSize(),
+                transitionSpec = {
+                    val record = recordNavigation
+                    val transform = record != null && ((record.source == initialState && record.detail == targetState) ||
+                        (record.detail == initialState && record.source == targetState))
+                    when {
+                        transform -> fadeIn(tween(280, easing = motion)) togetherWith fadeOut(tween(280, easing = motion))
+                        initialState in roots && targetState in roots -> {
+                            (fadeIn(tween(112, delayMillis = 88, easing = motion)) +
+                                scaleIn(tween(112, delayMillis = 88, easing = motion), initialScale = 0.96f)) togetherWith
+                                fadeOut(tween(88, easing = motion))
+                        }
+                        stack.size > 1 && targetState in stack && stack.indexOf(targetState) > stack.indexOf(initialState) ->
+                            slideInHorizontally(tween(240, easing = motion)) { it } togetherWith
+                                slideOutHorizontally(tween(240, easing = motion)) { -it / 5 }
+                        else -> slideInHorizontally(tween(220, easing = motion)) { -it / 5 } togetherWith
+                            slideOutHorizontally(tween(220, easing = motion)) { it }
                     }
-                    stack.size > 1 && targetState in stack && stack.indexOf(targetState) > stack.indexOf(initialState) ->
-                        slideInHorizontally(tween(240, easing = motion)) { it } togetherWith
-                            slideOutHorizontally(tween(240, easing = motion)) { -it / 5 }
-                    else -> slideInHorizontally(tween(220, easing = motion)) { -it / 5 } togetherWith
-                        slideOutHorizontally(tween(220, easing = motion)) { it }
-                }
-            },
-            label = "页面过渡",
-        ) { path ->
-            holder.SaveableStateProvider(path) {
-                val parts = path.split("/")
-                val goBack = { if (!busy) back() }
-                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-                    when (parts[0]) {
-                        "home" -> Home(records, now, ::open, ::openMeal)
-                        "meals" -> MealsPage(records, filter, { filter = null }, { open("mealFilter") }, ::openMeal)
-                        "meal" -> MealForm(records, parts[3].takeUnless { it == "-" }, parts[1], MealSlot.valueOf(parts[2]), model, goBack)
-                        "mealFilter" -> MealFilterPage(records, filter ?: MealFilter(), goBack) { filter = it; back() }
-                        "settings" -> SettingsPage(::open)
-                        "methods" -> VocabularyPage(records, null, null, ::open, goBack)
-                        "method" -> VocabularyForm(records, parts[1].takeUnless { it == "-" }, null, null, model, goBack)
-                        "categories" -> VocabularyPage(records, Scope.valueOf(parts[1]), parts.getOrNull(2)?.takeUnless { it == "-" }, ::open, goBack)
-                        "category" -> VocabularyForm(records, parts[3].takeUnless { it == "-" },
-                            Scope.valueOf(parts[1]), parts[2].takeUnless { it == "-" }, model, goBack)
-                        "categorySettings" -> CategorySettings(records, model, false, null, ::open, goBack)
-                        "walletCategories" -> CategorySettings(records, model, true, parts.getOrNull(1), ::open, goBack)
-                        "appearance" -> AppearancePage(records.theme, model, goBack)
-                        "data" -> DataManagementPage(records, model, goBack)
-                        "folder" -> FolderPage(records, model, ::open, goBack)
-                        "ledger" -> LedgerPage(records, ::open)
-                        "wallet" -> WalletForm(records, parts[1].takeUnless { it == "-" }, model, goBack)
-                        "entry" -> EntryDetails(records, parts[1], model, ::open, goBack)
-                        "entryForm" -> EntryForm(records, parts[1].takeUnless { it == "-" }, null, model, goBack, ::back)
-                        "refund" -> EntryForm(records, null, parts[1], model, goBack, ::back)
+                },
+                label = "页面过渡",
+            ) { path ->
+                holder.SaveableStateProvider(path) {
+                    val parts = path.split("/")
+                    val goBack = { if (!model.isBusy && path == stack.last()) back() }
+                    val active = path == top
+                    val navigation = recordNavigation
+                    val key = navigation?.id?.takeIf { path == navigation.detail }
+                    val outgoing = if (active) Modifier else Modifier.clearAndSetSemantics { hideFromAccessibility() }
+                        .pointerInput(path) {
+                            awaitPointerEventScope { while (true) {
+                                awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() }
+                            } }
+                        }
+                    CompositionLocalProvider(LocalRecordMotion provides RecordMotion(shared, this@AnimatedContent)) {
+                        Box(recordBounds(outgoing, key).fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                        when (parts[0]) {
+                            "home" -> Home(records, now, ::open, ::openMeal)
+                            "meals" -> MealsPage(records, filter, { filter = null }, { filter = MealFilter() },
+                                { open("mealFilter") }, ::openMeal) { meal ->
+                                openRecord("meal/${meal.date}/${meal.mealSlot.name}/${meal.id}", meal.id)
+                            }
+                            "meal" -> MealForm(records, parts[3].takeUnless { it == "-" }, parts[1], MealSlot.valueOf(parts[2]), model, goBack)
+                            "mealFilter" -> MealFilterPage(records, filter ?: MealFilter(), goBack) { filter = it; back() }
+                            "settings" -> SettingsPage(::open)
+                            "methods" -> VocabularyPage(records, null, null, ::open, goBack)
+                            "method" -> VocabularyForm(records, parts[1].takeUnless { it == "-" }, null, null, model, goBack)
+                            "categories" -> VocabularyPage(records, Scope.valueOf(parts[1]), parts.getOrNull(2)?.takeUnless { it == "-" }, ::open, goBack)
+                            "category" -> VocabularyForm(records, parts[3].takeUnless { it == "-" },
+                                Scope.valueOf(parts[1]), parts[2].takeUnless { it == "-" }, model, goBack)
+                            "categorySettings" -> CategorySettings(records, model, false, null, ::open, goBack)
+                            "walletCategories" -> CategorySettings(records, model, true, parts.getOrNull(1), ::open, goBack)
+                            "appearance" -> AppearancePage(records.theme, model, goBack)
+                            "data" -> DataManagementPage(records, model, goBack)
+                            "folder" -> FolderPage(records, model, ::open, goBack)
+                            "github" -> GitHubPage(records, model, goBack)
+                            "ledger" -> LedgerPage(records, ::open) { id -> openRecord("entry/$id", id) }
+                            "wallet" -> WalletForm(records, parts[1].takeUnless { it == "-" }, model, goBack)
+                            "entry" -> EntryDetails(records, parts[1], model, ::open, goBack)
+                            "entryForm" -> EntryForm(records, parts[1].takeUnless { it == "-" }, null, model, goBack, ::back)
+                            "refund" -> EntryForm(records, null, parts[1], model, goBack, ::back)
+                        }
+                    }
                     }
                 }
             }

@@ -73,9 +73,10 @@ fun RecordRow(
     amountColor: Color = Color.Unspecified,
     empty: Boolean = false,
     badge: String? = null,
+    sharedId: String? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
-    Surface(onClick = onClick, modifier = Modifier.fillMaxWidth().heightIn(min = 70.dp), shape = CardShape,
+    Surface(onClick = onClick, modifier = recordBounds(Modifier, sharedId).fillMaxWidth().heightIn(min = 70.dp), shape = CardShape,
         color = if (empty) scheme.background else scheme.surface, border = BorderStroke(1.dp, scheme.outlineVariant)) {
         Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically) {

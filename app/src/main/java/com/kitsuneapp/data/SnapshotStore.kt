@@ -107,10 +107,12 @@ class SnapshotStore(private val context: Context, private val repository: Reposi
         }
     }
 
-    suspend fun restore(staged: StagedSnapshot, protect: suspend (DataState) -> Unit) = withContext(Dispatchers.IO) {
+    suspend fun restore(staged: StagedSnapshot, beforeCommit: suspend () -> Unit = {},
+                        protect: suspend (DataState) -> Unit) = withContext(Dispatchers.IO) {
         repository.writes.withLock {
             val state = repository.ownedState()
             if (state.revision != 0L) protect(state)
+            beforeCommit()
             val source = staged.db.records()
             val target = repository.dao
             repository.database.withTransaction {

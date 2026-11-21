@@ -44,7 +44,10 @@ class KitsuneApplication : Application() {
             val repository = Repository(database, installationId) { backupCoordinator.changed() }
             try {
                 repository.initialize(newDatabase)
-                if (startNew) writeMarker(pointer, databaseName.removePrefix("kitsune-").removeSuffix(".db"))
+                if (startNew) {
+                    resetBackupTargets()
+                    writeMarker(pointer, databaseName.removePrefix("kitsune-").removeSuffix(".db"))
+                }
                 cleanupTemporaryBackups()
                 backupCoordinator = BackupCoordinator(this@KitsuneApplication, repository)
                 active = repository
@@ -57,8 +60,19 @@ class KitsuneApplication : Application() {
         }
     }
 
+    private fun resetBackupTargets() {
+        for (name in listOf("backup-targets", "github-target")) {
+            check(getSharedPreferences(name, MODE_PRIVATE).edit().clear().commit()) { "无法重置旧备份连接" }
+        }
+        contentResolver.persistedUriPermissions.forEach { grant ->
+            val flags = (if (grant.isReadPermission) android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION else 0) or
+                (if (grant.isWritePermission) android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION else 0)
+            runCatching { contentResolver.releasePersistableUriPermission(grant.uri, flags) }
+        }
+    }
+
     private fun cleanupTemporaryBackups() {
-        val prefixes = listOf("stage-", "backup-check-", "folder-write-", "manual-write-", "restore-protection-", "github-")
+        val prefixes = listOf("stage-", "backup-check-", "folder-write-", "manual-write-", "restore-protection-", "restore-download-", "github-")
         cacheDir.listFiles().orEmpty().filter { file ->
             file.isFile && prefixes.any { file.name.startsWith(it) }
         }.forEach { it.delete() }

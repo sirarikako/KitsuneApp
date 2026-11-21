@@ -21,7 +21,7 @@ import java.time.YearMonth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LedgerPage(records: Records, open: (String) -> Unit) {
+fun LedgerPage(records: Records, open: (String) -> Unit, openDetails: (String) -> Unit) {
     val ledger = remember(records) { Ledger(records) }
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var period by rememberSaveable { mutableStateOf(LedgerPeriod(YearMonth.now().toString())) }
@@ -64,7 +64,7 @@ fun LedgerPage(records: Records, open: (String) -> Unit) {
                                 it.note.contains(note.trim(), true)
                         }
                         if (entries.isEmpty()) item { Paper { Text(if (ledger.wallets.isEmpty()) "先创建一个钱包" else "这段时间没有符合条件的账目") } }
-                        items(entries, key = { it.id }) { entry -> EntryRow(ledger, entry) { open("entry/" + entry.id) } }
+                        items(entries, key = { it.id }) { entry -> EntryRow(ledger, entry) { openDetails(entry.id) } }
                     }
                     1 -> {
                         item { Primary("新建钱包", { open("wallet/-") }, Modifier.fillMaxWidth()) }
@@ -208,5 +208,5 @@ private fun EntryRow(ledger: Ledger, entry: FinancialEntry, onClick: () -> Unit)
             EntryType.INCOME, EntryType.REFUND -> incomeColor
             EntryType.EXPENSE -> MaterialTheme.colorScheme.error
             EntryType.TRANSFER -> MaterialTheme.colorScheme.onSurface
-        }, badge = entry.type.label)
+        }, badge = entry.type.label, sharedId = entry.id)
 }

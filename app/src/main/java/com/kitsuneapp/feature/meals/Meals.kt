@@ -50,8 +50,8 @@ data class MealFilter(
 }
 
 @Composable
-fun MealsPage(records: Records, filter: MealFilter?, clearFilter: () -> Unit, openFilter: () -> Unit,
-              openMeal: (String, MealSlot, String?) -> Unit) {
+fun MealsPage(records: Records, filter: MealFilter?, daily: () -> Unit, clearConditions: () -> Unit, openFilter: () -> Unit,
+              openMeal: (String, MealSlot, String?) -> Unit, openExisting: (MealRecord) -> Unit) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var date by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
     var month by rememberSaveable { mutableStateOf(YearMonth.now().toString()) }
@@ -62,7 +62,7 @@ fun MealsPage(records: Records, filter: MealFilter?, clearFilter: () -> Unit, op
             if (tab == 0) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (filter == null) DateControl("日期", date, { date = it }, Modifier.weight(1f))
-                    else Choice("按日浏览", clearFilter, Modifier.weight(1f))
+                    else Choice("按日浏览", daily, Modifier.weight(1f))
                     Choice("筛选", openFilter)
                 }
                 if (filter == null) {
@@ -92,7 +92,7 @@ fun MealsPage(records: Records, filter: MealFilter?, clearFilter: () -> Unit, op
                         val meal = today[slot]
                         if (meal == null) RecordRow(slot.label, "待记录", icon = Icons.Outlined.Add,
                             empty = true, onClick = { openMeal(date, slot, null) })
-                        else MealRow(records, meal) { openMeal(date, slot, meal.id) }
+                        else MealRow(records, meal) { openExisting(meal) }
                     }
                 }
             } else {
@@ -105,12 +105,12 @@ fun MealsPage(records: Records, filter: MealFilter?, clearFilter: () -> Unit, op
                         filter.labels(records).takeIf(List<String>::isNotEmpty)?.let { Secondary(it.joinToString(" · ")) }
                         Section("筛选结果") {
                             Secondary("${matches.size} 条")
-                            if (filter != MealFilter()) TextButton(clearFilter) { Text("清空条件") }
+                            if (filter != MealFilter()) TextButton(clearConditions) { Text("清空条件") }
                         }
                     }
                     if (matches.isEmpty()) item { Paper { Text("没有符合条件的记录") } }
                     items(matches, key = { it.id }) { meal ->
-                        MealRow(records, meal) { openMeal(meal.date, meal.mealSlot, meal.id) }
+                        MealRow(records, meal) { openExisting(meal) }
                     }
                 }
             }
@@ -125,7 +125,7 @@ private fun MealRow(records: Records, meal: MealRecord, onClick: () -> Unit) {
         .filter(String::isNotBlank).joinToString(" · ")
     RecordRow(meal.dishes.ifBlank { meal.mealSlot.label },
         "${meal.date} · ${meal.mealSlot.label} · ${records.methodName(meal.mealMethodId)}",
-        detail, Icons.Outlined.DateRange, onClick)
+        detail, Icons.Outlined.DateRange, onClick, sharedId = meal.id)
 }
 
 @Composable
@@ -240,9 +240,10 @@ fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot,
     var selectedSlot by rememberSaveable { mutableStateOf(original?.mealSlot ?: slot) }
     var atHome by rememberSaveable { mutableStateOf(original?.plannedAtHome) }
     var methodId by rememberSaveable { mutableStateOf(original?.mealMethodId) }
-    var selected by rememberSaveable { mutableStateOf(ArrayList(records.preparation[id].orEmpty())) }
-    var added by rememberSaveable { mutableStateOf(arrayListOf<String>()) }
+    var selected by rememberSaveable { mutableStateOf<List<String>>(ArrayList(records.preparation[id].orEmpty())) }
+    var added by rememberSaveable { mutableStateOf<List<String>>(emptyList()) }
     var newName by rememberSaveable { mutableStateOf("") }
+    var clearHistorical by rememberSaveable { mutableStateOf(false) }
     var dishes by rememberSaveable { mutableStateOf(original?.dishes.orEmpty()) }
     var note by rememberSaveable { mutableStateOf(original?.note.orEmpty()) }
     var delete by rememberSaveable { mutableStateOf(false) }
@@ -268,8 +269,11 @@ fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot,
             Select("用餐方式", methodId ?: "", listOf("") + records.methods.filter { !it.archived || it.id == methodId }.map { it.id },
                 { if (it.isEmpty()) "未选择" else records.methodName(it) },
                 { value ->
-                    methodId = value.ifEmpty { null }
-                    if (records.methods.find { it.id == methodId }?.showPreparationCategories != true) {
+                    val next = value.ifEmpty { null }
+                    val changed = next != methodId
+                    methodId = next
+                    if (changed && records.methods.find { it.id == next }?.showPreparationCategories != true) {
+                        clearHistorical = true
                         selected = arrayListOf()
                         added = arrayListOf()
                         newName = ""
@@ -287,7 +291,7 @@ fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot,
                     }, enabled = newName.isNotBlank())
                 }
                 added.forEach { name -> Choice("$name · 移除", { added = ArrayList(added - name) }) }
-            } else if (method != null && method.id == original?.mealMethodId && records.preparationNames(original.id).isNotEmpty()) {
+            } else if (!clearHistorical && method != null && method.id == original?.mealMethodId && records.preparationNames(original.id).isNotEmpty()) {
                 Secondary("历史制作分类 · " + records.preparationNames(original.id).joinToString("、"))
             }
             if (earlier != null) TextButton({
@@ -304,7 +308,7 @@ fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot,
             Field("备注", note, { note = it }, multiline = true)
             SaveActions(busy, error, {
                 val draft = MealDraft(id, date, selectedSlot, atHome, methodId, selected,
-                    if (newName.isBlank()) added else added + newName, dishes, note)
+                    if (newName.isBlank()) added else added + newName, dishes, note, clearHistorical)
                 model.save(back) { saveMeal(draft) }
             }, original?.let { "删除这条用餐记录" }, { delete = true })
         }
