@@ -14,6 +14,24 @@ ROOT = Path(__file__).resolve().parent
 SOURCE_MARKER = "<!-- KITSUNE_UI_SOURCE -->"
 ICON_MARKER = "/* KITSUNE_UI_ICONS */"
 
+# Ordered source fragments. Each fragment is an exact contiguous slice of the original
+# unified design. The .inc files are not standalone scripts or CSS documents.
+SOURCE_PARTS = (
+    "src/00-shell.html",
+    "src/styles/01-foundation.css.inc",
+    "src/styles/02-components.css.inc",
+    "src/styles/03-pages.css.inc",
+    "src/app/01-state.js.inc",
+    "src/pages/02-home.js.inc",
+    "src/pages/03-meals.js.inc",
+    "src/pages/04-ledger.js.inc",
+    "src/pages/05-settings.js.inc",
+    "src/pages/06-forms.js.inc",
+    "src/app/07-motion.js.inc",
+    "src/app/08-render.js.inc",
+    "src/app/09-events.js.inc",
+)
+
 
 class PreviewFrame(HTMLParser):
     def __init__(self) -> None:
@@ -39,7 +57,10 @@ def main() -> None:
         raise ValueError("The preview template must contain one source and one icon marker")
 
     source_path = ROOT / "kitsune-ui.fragment.html"
-    source = source_path.read_text(encoding="utf-8").strip()
+    source = "".join((ROOT / name).read_text(encoding="utf-8") for name in SOURCE_PARTS)
+    # Keep the historical monolithic path as a generated compatibility artifact.
+    source_path.write_text(source, encoding="utf-8", newline="\\n")
+    source = source.strip()
     # Use native hover titles in the exported page so tooltips need no CDN scripts.
     # The original conversation fragment remains unchanged.
     standalone_source = source.replace("data-tooltip=", "title=")
