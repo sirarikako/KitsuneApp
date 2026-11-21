@@ -51,7 +51,7 @@
 python docs/ui/build_preview.py
 ```
 
-此命令仅依赖 Python 标准库，从 `docs/ui/src/` 拼接生成兼容源稿、离线网页预览与校验清单。脚本已完成运行验证，生成文件的 SHA-256 一致性检查通过；不生成 Android 应用或 APK。
+此命令仅依赖 Python 标准库，从 `docs/ui/src/` 拼接生成兼容源稿、离线网页预览与校验清单。已使用 Python 3.12.6 验证（2026-11-21），生成文件的 SHA-256 一致性检查通过；不生成 Android 应用或 APK。
 
 建议交接指令：
 
