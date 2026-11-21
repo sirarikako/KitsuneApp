@@ -2,25 +2,11 @@
 
 一个本地优先的 Android 个人生活记录工具，计划从用餐记录、多钱包记账和数据备份开始，逐步扩展功能。
 
-旧版 0.1.0 实现及 PR #1 已因 UI 重新设计而放弃；PR #2 保留的狐狸图标资产继续用于新版。当前交付为本轮新版设计与交接资料，不恢复旧版应用代码。
+旧版 0.1.0 实现及 PR #1 已因 UI 重新设计而放弃；PR #2 保留的狐狸图标资产继续用于新版。当前 Android 工程依据新版模块化规范开发。
 
 ## 当前状态
 
-截至 2026-11-21，本仓库已保存需求与开发交接文档、模块化设计和网页 UI 预览，尚未初始化 Android 工程。
-
-| 项目 | 状态 |
-| --- | --- |
-| 产品计划与验收标准 | 已按功能模块拆分，见 docs/README.md；PLAN 保留整体规划与阶段入口 |
-| 开发协作约定 | 已整理到 AGENTS.md |
-| UI 设计与交互预览 | 已保存到 docs/ui，含统一视觉方案、最新离线预览及源稿。用餐与账本共用界面组件；全局动效规则见 [公共动效规范](docs/features/01-common.md#32-全局动效与页面过渡)，网页预览已加入对应动效，尚未完成浏览器视觉回归；Android 动效待实现。 |
-| v1 数据格式 | 已设计并提供 JSON／CSV 示例，尚无运行时实现 |
-| Gradle／Android 工程、界面与业务 | 尚未初始化或实现 |
-| 狐狸图标资产 | 已保留到 artwork；新版接入及启动器设备验收待完成 |
-| 导入导出、备份 | 未实现 |
-| Android 构建、自动化测试、真机验收 | 未执行，尚无可运行的 Android 工程 |
-| APK | 尚未生成 |
-
-当前交付包含文档与网页 UI 设计稿。下一位开发者或模型收到开始开发的指示后，可直接对照计划与已保存设计实施，无需重新收集已确认需求。
+Android 工程、Room v1、首页用餐进度、用餐记录／筛选／统计、用餐分类管理和外观设置已接入。记账和备份的实际交付与验证证据见 [开发进度](docs/IMPLEMENTATION_PROGRESS.md)。
 
 ## 保留的狐狸图标
 
@@ -29,7 +15,7 @@
 - [artwork/README.md](artwork/README.md)：资产来源、原始提示词、接入步骤及验证边界。
 - [artwork/SHA256SUMS](artwork/SHA256SUMS)：图标文件摘要。
 
-图标保留验证仅覆盖文件一致性、PNG 透明度、XML 语法及资源引用；新版接入与实际启动器显示尚待验收。网页预览仍使用狐狸 emoji 示意，后续接入时复用上述资产。
+图标保留验证仅覆盖文件一致性、PNG 透明度、XML 语法及资源引用；新版已接入，实际启动器显示尚待验收。网页预览仍使用狐狸 emoji 示意，Android 复用上述资产。
 
 ## 文档入口
 
@@ -93,51 +79,23 @@ python docs/ui/build_preview.py
 | 工程组织 | 按用餐、记账、设置分包，统一主题、数据库和备份服务 |
 | 交付 | 可重复构建的工程、签名 APK、运行与升级说明 |
 
-JDK、Gradle、Android Gradle Plugin、Kotlin 和具体库版本尚未选择或锁定。工程初始化时使用相互兼容的稳定版本，并将实际值与验证结果补充到本文。
-
 ## 环境、构建与安装
 
-本仓库目前包含文档和网页 UI 设计稿，尚无可构建的 Android 工程。以下 Gradle 命令为后续初始化后的参考模板，不代表已经执行或验证。
+- JDK 21，Gradle 8.11.1，AGP 8.9.2，Kotlin 2.1.21，Room 2.7.2；依赖定义集中在 `gradle/libs.versions.toml`。
+- compileSdk／targetSdk 35，minSdk 26，Build Tools 35.0.0。
+- 应用标识 `com.kitsuneapp`，版本 `1.0.0`（versionCode 1）。调试 APK 由 Android 调试密钥签名。
 
-### 初始化时需要完成
+安装 JDK 和 Android SDK 后，在仓库根目录运行。Windows PowerShell 将 `./gradlew` 换为 `.\gradlew.bat`。
 
-1. 安装或确认 Android Studio、所选 AGP 支持的 JDK、Android SDK 与可用模拟器／真机。
-2. 在此仓库初始化 Kotlin／Compose 工程、app 模块与 Gradle Wrapper，最低 SDK 为 26。
-3. 集中锁定兼容的依赖版本，配置单元测试、设备测试及 lint。
-4. 配置忽略规则，排除本机 SDK 配置、构建目录、签名私钥、Token 和个人数据。
-5. 验证以下命令后，用实际版本、模块名、APK 路径和测试结果更新本文。
-
-### 预期 Windows PowerShell 命令
-
-在工程根目录运行；这些命令要等工程建立后才能使用：
-
-```powershell
-# 编译调试 APK
-.\gradlew.bat :app:assembleDebug
-
-# 运行本地单元测试与 lint
-.\gradlew.bat :app:testDebugUnitTest
-.\gradlew.bat :app:lintDebug
-
-# 以下命令需要已连接的兼容模拟器或真机
-.\gradlew.bat :app:connectedDebugAndroidTest
-.\gradlew.bat :app:installDebug
+```bash
+./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
+./gradlew :app:assembleDebugAndroidTest
+# 需要已启动的模拟器或已连接的真机
+./gradlew :app:connectedDebugAndroidTest
+./gradlew :app:installDebug
 ```
 
-默认单 app 模块的调试 APK 预期位于 `app/build/outputs/apk/debug/app-debug.apk`；该文件当前不存在，生成后须确认实际位置。
-
-正式签名、release 打包命令和升级安装说明在发布阶段补充。不能把 debug 安装包标为正式签名版本，也不能把私钥写进仓库。
-
-### 实际环境记录
-
-| 项目 | 当前记录 |
-| --- | --- |
-| JDK／AGP／Gradle／Kotlin 版本 | 待初始化与验证 |
-| compileSdk／targetSdk | 待选定稳定工具链后锁定 |
-| minSdk | 已确定为 26，尚未写入工程 |
-| 应用标识及版本号 | 待初始化工程确定并记录 |
-| 构建／测试命令结果 | 尚无 Android 工程，未运行 |
-| 设备与 GitHub 实测 | 未进行 |
+调试 APK 生成在 `app/build/outputs/apk/debug/app-debug.apk`。测试和 lint 报告位于 `app/build/reports/`。CI 将构建产物和报告上传为 Actions artifacts。
 
 ## 数据使用方式（待实现）
 
@@ -154,7 +112,7 @@ JDK、Gradle、Android Gradle Plugin、Kotlin 和具体库版本尚未选择或�
 
 - [x] 完整计划、协作约定、README 与数据格式设计。
 - [x] 当前 UI 设计落盘：可编辑源稿、统一视觉方案、离线预览。废弃截图已移除。
-- [ ] 阶段 1：Android 工程、统一主题、狐狸图标、用餐与分类管理。
+- [x] 阶段 1：Android 工程、统一主题、狐狸图标、用餐与分类管理。
 - [ ] 阶段 2：钱包、计算器、收支、转账、退款与统计。
 - [ ] 阶段 3：JSON／CSV、最新完整数据的本地自动备份与恢复。
 - [ ] 阶段 4：GitHub 私有库、异常处理、真机验证、签名 APK。
@@ -167,4 +125,4 @@ JDK、Gradle、Android Gradle Plugin、Kotlin 和具体库版本尚未选择或�
 
 早期 UI 原型已在离线浏览器中检查浅色、深色和窄屏布局及核心交互；历史备选视觉已废弃，不作为当前设计依据。最新全局组件标准化版本已经进行颜色公式和 JavaScript 语法检查、重新打包；尚未进行该版本的浏览器视觉回归。过期截图已删除，不作为开发依据。现行视觉源稿及验证边界见 [UI 设计说明](docs/ui/README.md)。
 
-尚未执行 Android 编译、lint、单元测试、设备测试、GitHub 连接或恢复实测；相关验证须在功能实现后记录。
+本次 Android 构建、测试及设备验证范围见 [开发进度](docs/IMPLEMENTATION_PROGRESS.md)。
