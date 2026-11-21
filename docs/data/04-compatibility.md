@@ -17,7 +17,7 @@
 - Room schemaVersion 与 JSON formatVersion 独立递增，更新应用版本不自动要求更新两者。
 - 2026-11-17 在尚未发布的 v1 设计中加入财务 time 和 ledger-v1 的 time 列；早期文档示例不是已发布格式。缺失时间应报错，不能自动填 00:00 或由 createdAt 推导。
 - 首版目标是数据库 v1、JSON v1。当前没有历史已发布格式，不能声称兼容一个未存在的 v0 或旧 isCooked 数据。
-- 对首发前已经保存的早期 v1 JSON 快照，按严格白名单兼容：Wallet 缺 `separateAccounting` → `false`、缺 `incomeCategoryMode`／`expenseCategoryMode` → `DEFAULT`；Category 缺 `walletId` → `null`。只对这几项已知字段做缺省迁移，必须先校验其余字段与引用，不容许把任意缺失值自动填 0／false。新导出始终写全现行字段；正式发布后的新增字段须提高 `formatVersion` 并提供显式迁移。
+- 首发前 v1 快照的可缺省字段、迁移默认值及其严格校验边界，统一以 [JSON v1 字段规则](02-json.md#41-顶层结构) 为准。
 - 已发布格式增加字段、模块或改变语义时提升 formatVersion，提供旧版本到当前版本的明确迁移和回归样例。
 - 迁移在暂存数据上完成，全量校验成功后才写入业务库；不对源文件原地改写。
 - 高于支持范围的版本、未知模块或无法迁移的数据应说明原因并拒绝，不能导入一半数据。

@@ -11,4 +11,4 @@
 
 编辑 `src/` 后运行 `python docs/ui/build_preview.py`；它将按 `SOURCE_PARTS` 顺序生成兼容的 `kitsune-ui.fragment.html`、独立 `index.html` 与 `manifest.json`。不要手工编辑生成文件。
 
-本阶段自检：按连续原始行切片并组合，所得 `kitsune-ui.fragment.html` 内容与迁移前完全相同；因此现有预览文件字节与 manifest 原有 source 哈希仍适用。独立 RV 报告验证过构建输出 SHA-256 一致；尚未进行当前版本浏览器视觉与交互回归。本次修订尚未独立重跑浏览器。
+13 个 UI 片段按原始顺序组合，生成的 `kitsune-ui.fragment.html` 与拆分前内容一致。执行 `python docs/ui/build_preview.py` 后，兼容源稿、离线预览及 `manifest.json` 的 SHA-256 校验通过。浏览器视觉与交互回归仍未执行。
