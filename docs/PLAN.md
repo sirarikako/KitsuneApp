@@ -3,15 +3,15 @@
 > 旧版 0.1.0 实现及 PR #1 已因重新设计而放弃，狐狸图标资产由 PR #2 保留在 artwork。本文件已按本轮新版 UI 更新；后续开发以当前计划和 docs/ui 设计资料为准，不恢复旧版界面或实现。
 
 更新日期：2026-11-21（Asia/Shanghai）<br>
-状态：需求、交接文档与现行 UI 源稿及离线预览已保存，尚未初始化 Android 工程。
+状态：远端分支已保存模块化设计与 UI 预览；尚无已并入远端的 Android 工程（本地未推送提交不在此核验范围）。
 
 ## 1. 如何使用本文件
 
 本文件保留产品范围、阶段安排、历史章节入口及变更记录。详细业务规则已迁至 [模块设计导航](README.md)，开发时按任务阅读对应模块，不采用被替换的历史设计。
 
-基础交接文档已完成；现行 [docs/ui](ui/README.md) 包含经过全局组件统一的可编辑源稿、独立离线预览及唯一的统一视觉方案。过期截图已移出当前工作树；历史 UI 不作为实现依据。当前为设计交接阶段，Android 工程尚未初始化，正式开发按本计划实施。
+基础交接文档已完成；现行 [docs/ui](ui/README.md) 包含经过全局组件统一的可编辑源稿、独立离线预览及唯一的统一视觉方案。过期截图已移出当前工作树；历史 UI 不作为实现依据。当前可访问的远端分支仅包含设计交接资料；Android 实现状态须以实际并入的代码为准，开发按模块设计实施。
 
-开始准备交接资料前项目为空仓库，仅有 `.git`；目前已准备基础文档、UI 设计文件，并保留远端 artwork 中的狐狸图标资产。旧版应用已放弃，当前分支没有可运行的 Android 工程、数据库或业务测试；网页 UI 已具备部分演示交互，但正式业务、数据结构、图标接入和 Android 构建仍为待实现／验证项。
+开始准备交接资料前项目为空仓库，仅有 `.git`；目前已准备基础文档、UI 设计文件，并保留远端 artwork 中的狐狸图标资产。旧版应用已放弃；当前远端分支没有可运行的 Android 工程、数据库或业务测试（不代表本地未推送分支状态）；网页 UI 已具备部分演示交互，但正式业务、数据结构、图标接入和 Android 构建仍为待实现／验证项。
 
 阅读顺序为 AGENTS.md → README.md → 本计划 → [功能文档](features/01-common.md) → DATA_FORMAT.md → [UI 设计说明](ui/README.md)。本计划负责产品范围与开发阶段；功能规则详见 [模块设计](README.md)，DATA_FORMAT.md 是 v1 数据契约索引；现行 UI 源稿及由其生成的离线预览提供视觉和交互参考，演示结构不替代正式数据契约；废弃截图及历史 UI 不作为实现依据。
 
@@ -45,65 +45,189 @@
 - 钱包：用户自行创建，币种必须明确选择，初始余额默认 0，独立核算默认关闭；不预设所有钱包使用人民币或其他同一币种。
 - 分类：收入、支出各提供一个全局“未分类”兜底项和可管理的通用分类；各钱包的收入／支出分类可分别切换为专属配置，未配置时自动沿用通用分类。制作分类初始提供“炒菜、预制菜”。
 - 本地自动备份：用户授权后启用，每个数据集在该目录保留一份最新成功的完整自动备份。
-- 云端备份：用户配置并连接成功后启用，默认允许任意联网方式，可改为仅 Wi-Fi。GitHub 自动上传合并连续变更，后台最小上传间隔为 30 分钟，详见第 9.4 节。
+- 云端备份：用户配置并连接成功后启用，默认允许任意联网方式，可改为仅 Wi-Fi。GitHub 自动上传合并连续变更，后台最小上传间隔为 30 分钟，详见 [GitHub 私有库规则](features/09-backup.md#94-github-私有库)。
 - 完整备份采用可阅读、未加密的 JSON；凭证不进入备份。
 - 第一次录入用餐不预选在家吃或用餐方式；记账默认支出、今天、最近使用的未归档常规钱包。独立核算钱包只能手动选择。
 
 ## 3. 信息架构与主要页面
-对应规则已迁移至 [features/01-common.md](features/01-common.md)。
+
+四个底栏入口、共用组件和全局动效见 [公共规范](features/01-common.md)；首页专属规则见 [首页](features/02-home.md)。
+
+### 3.1 用餐与账本的共用界面
+
+规则详见 [用餐与账本的共用界面](features/01-common.md#31-用餐与账本的共用界面)。
+
+### 3.2 全局动效与页面过渡
+
+规则详见 [全局动效与页面过渡](features/01-common.md#32-全局动效与页面过渡)。
 
 ## 4. 用餐功能详细规则
-对应规则已迁移至 [features/03-meals.md](features/03-meals.md)。
+
+用餐全部规则（含计划在家吃、用餐方式和制作分类）见 [用餐](features/03-meals.md)。
+
+### 4.1 记录字段
+
+规则详见 [记录字段](features/03-meals.md#41-记录字段)。
+
+### 4.2 用餐方式设置
+
+规则详见 [用餐方式设置](features/03-meals.md#42-用餐方式设置)。
+
+### 4.3 制作分类与状态切换
+
+规则详见 [制作分类与状态切换](features/03-meals.md#43-制作分类与状态切换)。
+
+### 4.4 查询、复用与统计
+
+规则详见 [查询、复用与统计](features/03-meals.md#44-查询复用与统计)。
 
 ## 5. 记账功能详细规则
-对应规则已迁移至 [features/05-ledger.md](features/05-ledger.md)。
+
+钱包归 [钱包模块](features/04-wallets.md)，收入／支出分类归 [分类模块](features/06-categories.md)，流水、转账、退款与统计归 [记账模块](features/05-ledger.md)。
+
+### 5.1 钱包
+
+规则详见 [钱包](features/04-wallets.md#51-钱包)。
+
+### 5.2 收支与分类
+
+规则详见 [收支与分类](features/06-categories.md#52-收支与分类)。
+
+### 5.3 金额计算器
+
+规则详见 [金额计算器](features/05-ledger.md#53-金额计算器)。
+
+### 5.4 转账
+
+规则详见 [转账](features/05-ledger.md#54-转账)。
+
+### 5.5 退款
+
+规则详见 [退款](features/05-ledger.md#55-退款)。
+
+### 5.6 查询与统计
+
+规则详见 [查询与统计](features/05-ledger.md#56-查询与统计)。
 
 ## 6. 外观、调色板与系统主题
-对应规则已迁移至 [features/07-appearance.md](features/07-appearance.md)。
+
+正式主题规则见 [外观模块](features/07-appearance.md)。
+
+### 6.1 独立的两个设置维度
+
+规则详见 [独立的两个设置维度](features/07-appearance.md#61-独立的两个设置维度)。
+
+### 6.2 预设与自选颜色
+
+规则详见 [预设与自选颜色](features/07-appearance.md#62-预设与自选颜色)。
+
+### 6.3 系统跟随与兼容
+
+规则详见 [系统跟随与兼容](features/07-appearance.md#63-系统跟随与兼容)。
+
+### 6.4 预览、保存和备份
+
+规则详见 [预览、保存和备份](features/07-appearance.md#64-预览保存和备份)。
 
 ## 7. APP 图标
-对应规则已迁移至 [features/07-appearance.md](features/07-appearance.md)。
+
+图标资源与接入规则见 [外观模块](features/07-appearance.md)。
+
+### 7.1 视觉规格
+
+规则详见 [视觉规格](features/07-appearance.md#71-视觉规格)。
+
+### 7.2 资产与接入
+
+规则详见 [资产与接入](features/07-appearance.md#72-资产与接入)。
 
 ## 8. 技术架构与核心数据接口
-对应规则已迁移至 [architecture/ANDROID.md](architecture/ANDROID.md)。
+
+架构及事务约束见 [Android 架构模块](architecture/ANDROID.md)。
+
+### 8.1 结构
+
+规则详见 [结构](architecture/ANDROID.md#81-结构)。
+
+### 8.2 实体与约束
+
+规则详见 [实体与约束](architecture/ANDROID.md#82-实体与约束)。
+
+### 8.3 事务与统一变更入口
+
+规则详见 [事务与统一变更入口](architecture/ANDROID.md#83-事务与统一变更入口)。
 
 ## 9. 完整 JSON 备份、本地自动备份与 GitHub
-对应规则已迁移至 [features/08-data-management.md](features/08-data-management.md)。
 
+JSON、恢复与设备迁移见 [数据管理](features/08-data-management.md)；本地目录、GitHub 上传、冲突、Worker 和容量提醒见 [备份模块](features/09-backup.md)。
 
+### 9.1 备份格式与边界
 
-### 旧版细分章节兼容入口
+规则详见 [备份格式与边界](features/08-data-management.md#91-备份格式与边界)。
+
+### 9.2 最新完整数据的可靠性
+
+规则详见 [最新完整数据的可靠性](features/08-data-management.md#92-最新完整数据的可靠性)。
+
+### 9.3 本地目录
+
+规则详见 [本地目录](features/09-backup.md#93-本地目录)。
+
+### 9.4 GitHub 私有库
+
+规则详见 [GitHub 私有库](features/09-backup.md#94-github-私有库)。
 
 #### 备份文件读取与大小限制
 
-正式规则见 [GitHub / 本地备份设计](features/09-backup.md)。
+请查看 [备份模块：备份文件读取与大小限制](features/09-backup.md#备份文件读取与大小限制)。
 
 #### 自动上传频率
 
-正式规则见 [GitHub / 本地备份设计](features/09-backup.md)。
+请查看 [备份模块：自动上传频率](features/09-backup.md#自动上传频率)。
 
 #### 仓库容量提醒
 
-正式规则见 [GitHub / 本地备份设计](features/09-backup.md)。
+请查看 [备份模块：仓库容量提醒](features/09-backup.md#仓库容量提醒)。
 
 #### 任务接续、计时与联网
 
-正式规则见 [GitHub / 本地备份设计](features/09-backup.md)。
+请查看 [备份模块：任务接续、计时与联网](features/09-backup.md#任务接续计时与联网)。
 
 #### Worker 超时与停止
 
-正式规则见 [GitHub / 本地备份设计](features/09-backup.md)。
+请查看 [备份模块：Worker 超时与停止](features/09-backup.md#worker-超时与停止)。
 
 #### API 错误与重试
 
-正式规则见 [GitHub / 本地备份设计](features/09-backup.md)。
+请查看 [备份模块：API 错误与重试](features/09-backup.md#api-错误与重试)。
 
 #### 远端变化与冲突
 
-正式规则见 [GitHub / 本地备份设计](features/09-backup.md)。
+请查看 [备份模块：远端变化与冲突](features/09-backup.md#远端变化与冲突)。
+
+### 9.5 状态展示
+
+规则详见 [状态展示](features/09-backup.md#95-状态展示)。
+
+### 9.6 完整恢复流程
+
+规则详见 [完整恢复流程](features/08-data-management.md#96-完整恢复流程)。
+
+### 9.7 Android 系统备份与设备迁移
+
+规则详见 [Android 系统备份与设备迁移](features/08-data-management.md#97-android-系统备份与设备迁移)。
 
 ## 10. CSV 导入导出
-对应规则已迁移至 [features/08-data-management.md](features/08-data-management.md)。
+
+CSV 导入、导出与预览规则见 [数据管理](features/08-data-management.md)，格式及列约束见 [CSV 契约](data/03-csv.md)。
+
+### 10.1 标准模板
+
+规则详见 [标准模板](features/08-data-management.md#101-标准模板)。
+
+### 10.2 预览与提交
+
+规则详见 [预览与提交](features/08-data-management.md#102-预览与提交)。
 
 ## 11. 开发文档与仓库交付
 
@@ -111,7 +235,7 @@
 
 | 文件 | 内容 |
 | --- | --- |
-| `AGENTS.md` | 文档阅读入口、协作约定与验证要求；业务设计引用本计划，数据契约引用 DATA_FORMAT，构建命令引用 README，不重复维护 |
+| `AGENTS.md` | 文档阅读入口、协作约定与验证要求；业务规则引用 docs/features，数据契约引用 docs/data，构建命令引用 README，不重复维护 |
 | `README.md` | 项目介绍、环境搭建、运行、打包、安装、常见问题及实际验证状态 |
 | `docs/PLAN.md` | 本文件，范围、默认值、开发阶段、旧入口及变更记录 |
 | `docs/README.md`、`docs/features/` | 当前详细业务设计的导航与唯一来源 |
@@ -129,7 +253,7 @@
 ### 阶段 1：项目骨架、文档、主题与用餐
 
 - 初始化 Android 工程，锁定稳定工具链与依赖，维护已有 AGENTS.md、README.md 和数据格式文档，补充实际版本、命令与验证结果。
-- 从首个安装包起配置第 9.7 节的系统备份排除规则与安装归属检查，业务录入复用第 8.3 节的完整 JSON 保存校验。
+- 从首个安装包起配置 [系统备份排除与设备迁移](features/08-data-management.md#97-android-系统备份与设备迁移)，业务录入复用 [统一事务与数据保存校验](architecture/ANDROID.md#83-事务与统一变更入口)。
 - 建立导航、主题系统、共用组件、数据库与基础迁移框架。
 - 完成调色板、预览应用、系统跟随；复用 artwork 中的狐狸图标并完成新版接入。
 - 完成用餐记录、方式管理、制作分类、搜索、复制和统计。
@@ -156,7 +280,28 @@
 每阶段保持项目可构建、核心流程可运行。测试、文档和数据兼容工作随阶段完成，不留到最后统一补做。
 
 ## 13. 验收与测试计划
-对应规则已迁移至 [testing/ACCEPTANCE.md](testing/ACCEPTANCE.md)。
+
+完整验收项见 [跨模块验收计划](testing/ACCEPTANCE.md)。
+
+### 13.1 用餐
+
+规则详见 [用餐](testing/ACCEPTANCE.md#131-用餐)。
+
+### 13.2 记账
+
+规则详见 [记账](testing/ACCEPTANCE.md#132-记账)。
+
+### 13.3 外观与图标
+
+规则详见 [外观与图标](testing/ACCEPTANCE.md#133-外观与图标)。
+
+### 13.4 备份、导入与恢复
+
+规则详见 [备份、导入与恢复](testing/ACCEPTANCE.md#134-备份导入与恢复)。
+
+### 13.5 测试实施与交付证据
+
+规则详见 [测试实施与交付证据](testing/ACCEPTANCE.md#135-测试实施与交付证据)。
 
 ## 14. 官方技术参考
 

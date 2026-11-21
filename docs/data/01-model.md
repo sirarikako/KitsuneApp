@@ -79,6 +79,7 @@ Wallet 字段：`name,normalizedName,currencyCode,currencyScale,openingBalanceMi
 - normalizedName 只用于匹配，不作为外键；同名映射不明确时必须在预览阶段解决，不能随意选第一个钱包。
 - `separateAccounting` 为布尔值，创建默认 `false`；缺失于早期 v1 备份时按 `false` 迁移。它只影响查询的默认钱包范围，余额及历史记录按原有钱包 ID 不变。独立核算钱包仍进入完整 JSON 备份和恢复，不能在 CSV 导出或导入时因默认筛选被漏掉。修改此值允许在钱包已有流水后进行。
 - 余额为派生值，不导出 currentBalance 或余额缓存，也不以缓存覆盖流水。
+- 只针对首版发布前已保存、结构可识别的早期 v1 JSON 快照，允许钱包缺少 `separateAccounting` 并迁移为 `false`，缺少 `incomeCategoryMode`／`expenseCategoryMode` 并分别迁移为 `DEFAULT`，以及分类缺少 `walletId` 并迁移为 `null`（通用分类）。其余必需字段缺失和未知字段一律拒绝；这不是已发布旧版本的通用宽松解析策略。详见 [JSON 字段例外](02-json.md#41-顶层结构)和 [版本政策](04-compatibility.md#62-版本政策)。
 - `incomeCategoryMode`／`expenseCategoryMode` 的枚举值为 DEFAULT／CUSTOM，分别决定该钱包收入／支出的可用类别集合，创建默认 DEFAULT。旧版尚未发布的 v1 快照中缺失这两个字段时迁移为 DEFAULT；`separateAccounting` 与类别模式相互独立。
 - Category 新增 `walletId`：PREPARATION 及通用 INCOME／EXPENSE 分类的值为 null，专属收入／支出分类为存在的钱包 UUID。收入和支出各仅有一个 `walletId=null,isDefault=true` 的全局“未分类”兜底项；`walletId!=null` 的分类必须 `isDefault=false`，且不能使用保留显示名“未分类”。
 - 分类名称唯一键为 `(scope, walletId 或 GLOBAL, normalizedName)`，包含归档项，同名在不同钱包合法；不可用 NULL 的普通数据库 UNIQUE 比较代替 GLOBAL 规范化归属比较。此规则不影响 PREPARATION 的既有全局唯一性。

@@ -8,7 +8,7 @@
 - [docs/README.md](docs/README.md)：模块化设计入口，按开发任务选择对应文档。
 - [docs/PLAN.md](docs/PLAN.md)：项目范围、整体阶段及历史章节导航。
 - [docs/DATA_FORMAT.md](docs/DATA_FORMAT.md)：数据契约索引；修改数据相关代码前阅读 docs/data 中对应文档。
-- [docs/ui/README.md](docs/ui/README.md)：已保存的 UI 设计、离线预览、源稿及演示边界；实现或修改界面前阅读，业务与设计规则仍以 PLAN 为准。
+- [docs/ui/README.md](docs/ui/README.md)：已保存的 UI 设计、离线预览、源稿及演示边界；实现或修改界面前阅读，具体规则以 docs/features 与 docs/data 对应模块为准。
 
 业务规则以 docs/features 对应模块为准，数据字段以 docs/data 对应模块为准，公共组件和动效以 docs/features/01-common.md 为准。顶层 PLAN 和 DATA_FORMAT 是导航与产品规划，不能作为重复维护的规范副本。修改 UI 时以 `docs/ui/src/` 为可编辑源稿，以生成的 `docs/ui/kitsune-ui.fragment.html` 作为兼容片段，以同版本 `docs/ui/index.html` 为交互参考。废弃 PR、历史提交中的 UI、过期截图、被替换的样式不得作为现行实现依据。仅使用与当前源稿版本对应且已验证的截图作为辅助参考。不要因更换模型而重新询问已确认的选择；遇到文档冲突，结合用户最新指示修正来源文档。
 
@@ -22,6 +22,6 @@
 
 ## 验证与交付
 
-- 按变更范围运行适当检查，并落实 PLAN 的相关验收条件。
+- 按变更范围运行适当检查，并落实 docs/testing/ACCEPTANCE.md 与所改模块的相关验收条件。
 - 文档变更检查编码、链接、示例与一致性；无需为此安装应用工具链。
 - 清楚区分设计、已实现和已验证，记录实际执行结果及未验证项，不将模板命令或模拟结果当作实测。
