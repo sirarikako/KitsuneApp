@@ -8,7 +8,7 @@
 </div>
 <style>
   #kitsune-preview .ks-stage{min-height:830px;display:flex;justify-content:center;align-items:flex-start;padding:24px 10px 18px;box-sizing:border-box}
-  #kitsune-preview .ks-phone{--ks-seed:#c47a4a;--ks-bg:light-dark(#f6f3ed,#201e1b);--ks-paper:light-dark(#fffcf7,#2a2723);--ks-ink:light-dark(#302b26,#f3eae1);--ks-dim:light-dark(#76695e,#baaea2);--ks-line:light-dark(#e5ded4,#443c34);--ks-soft:light-dark(#eee7dc,#383129);--ks-accent:light-dark(#92532e,#efb68c);--ks-accent-bg:light-dark(#f2e1d2,#463226);--ks-good:light-dark(#46624a,#b7d0ae);--ks-good-bg:light-dark(#e7eddf,#303e2e);--ks-danger:light-dark(#a63832,#ffb4ab);--ks-radius:22px;width:min(100%,390px);min-height:776px;box-sizing:border-box;background:var(--ks-bg);color:var(--ks-ink);border:1px solid var(--ks-line);border-radius:30px;box-shadow:0 15px 45px #00000010;font-family:"Segoe UI","Microsoft YaHei",sans-serif;font-size:14px;line-height:1.55;display:flex;flex-direction:column;position:relative;overflow-wrap:anywhere;color-scheme:inherit}
+  #kitsune-preview .ks-phone{--ks-seed:#c47a4a;--ks-bg:light-dark(#f6f3ed,#201e1b);--ks-paper:light-dark(#fffcf7,#2a2723);--ks-ink:light-dark(#302b26,#f3eae1);--ks-dim:light-dark(#76695e,#baaea2);--ks-line:light-dark(#e5ded4,#443c34);--ks-soft:light-dark(#eee7dc,#383129);--ks-accent:light-dark(#92532e,#efb68c);--ks-accent-bg:light-dark(#f2e1d2,#463226);--ks-good:light-dark(#46624a,#b7d0ae);--ks-good-bg:light-dark(#e7eddf,#303e2e);--ks-danger:light-dark(#a63832,#ffb4ab);--ks-card-surface:var(--ks-paper);--ks-card-border:1px solid var(--ks-line);--ks-radius:22px;width:min(100%,390px);min-height:776px;box-sizing:border-box;background:var(--ks-bg);color:var(--ks-ink);border:1px solid var(--ks-line);border-radius:30px;box-shadow:0 15px 45px #00000010;font-family:"Segoe UI","Microsoft YaHei",sans-serif;font-size:14px;line-height:1.55;display:flex;flex-direction:column;position:relative;overflow-wrap:anywhere;color-scheme:inherit}
   #kitsune-preview .ks-simple{--ks-bg:light-dark(#fbfaf7,#1d201e);--ks-paper:light-dark(#ffffff,#262b27);--ks-soft:light-dark(#f0f0e9,#303731);--ks-accent:light-dark(#526647,#bdd0ac);--ks-accent-bg:light-dark(#e9eddf,#35422f);--ks-radius:13px}
   #kitsune-preview .ks-phone *{box-sizing:border-box}
   #kitsune-preview .ks-phone :where(button,input,select,textarea){font:inherit;color:inherit}
@@ -31,32 +31,32 @@
   #kitsune-preview .ks-note{font-size:12px;color:var(--ks-dim)}
   #kitsune-preview .ks-text-btn{border:0;background:transparent;color:var(--ks-accent);padding:8px 0;display:inline-flex;align-items:center;gap:4px;min-height:36px;font-size:12px}
   #kitsune-preview .ks-text-btn svg{width:14px;height:14px}
-  #kitsune-preview .ks-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:10px 0 19px}
+  #kitsune-preview .ks-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;margin:10px 0 19px;padding:4px;border:var(--ks-card-border);border-radius:var(--ks-radius);background:var(--ks-card-surface)}
   #kitsune-preview .ks-day{display:flex;flex-direction:column;align-items:center;gap:5px;border:0;padding:9px 0;border-radius:18px;background:transparent;min-width:0;font-size:15px}
   #kitsune-preview .ks-day small{font-size:11px;color:var(--ks-dim)}
   #kitsune-preview .ks-day[aria-pressed=true]{background:var(--ks-ink);color:var(--ks-bg)}
   #kitsune-preview .ks-day[aria-pressed=true] small{color:inherit;opacity:.8}
   #kitsune-preview .ks-record-list{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
-  #kitsune-preview .ks-record{display:flex;align-items:center;gap:10px;min-height:70px;min-width:0;width:100%;text-align:left;border:1px solid var(--ks-line);background:var(--ks-paper);padding:10px 12px;border-radius:var(--ks-radius)}
+  #kitsune-preview .ks-record{display:flex;align-items:center;gap:10px;min-height:70px;min-width:0;width:100%;text-align:left;border:var(--ks-card-border);background:var(--ks-card-surface);padding:10px 12px;border-radius:var(--ks-radius)}
   #kitsune-preview .ks-record:hover{background:color-mix(in srgb,var(--ks-paper) 78%,var(--ks-accent-bg))}
   #kitsune-preview .ks-record-icon{width:36px;height:36px;border-radius:11px;background:var(--ks-soft);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--ks-dim)}
   #kitsune-preview .ks-record-icon svg{width:18px;height:18px}
   #kitsune-preview .ks-record-copy{flex:1;min-width:0}
   #kitsune-preview .ks-record-title{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-weight:600;font-size:14px}
   #kitsune-preview .ks-record-meta{display:block;color:var(--ks-dim);font-size:12px;margin-top:3px}
-  #kitsune-preview .ks-pill{font-size:10px;padding:3px 7px;border-radius:6px;background:var(--ks-soft);color:var(--ks-dim);font-weight:400}
+  #kitsune-preview .ks-pill{font-size:10px;padding:3px 7px;border-radius:6px;border:var(--ks-card-border);background:var(--ks-card-surface);color:var(--ks-dim);font-weight:400}
   #kitsune-preview .ks-record .ks-pill{font-size:11px;padding:2px 6px}
   #kitsune-preview .ks-record>svg{width:14px;height:14px;color:var(--ks-dim);flex-shrink:0}
   #kitsune-preview .ks-record.ks-empty{border-style:dashed;background:transparent}
   #kitsune-preview .ks-record.ks-empty .ks-record-icon{color:var(--ks-accent);background:var(--ks-accent-bg)}
-  #kitsune-preview .ks-money-card{background:var(--ks-accent-bg);border-radius:var(--ks-radius);padding:18px}
+  #kitsune-preview .ks-money-card{background:var(--ks-card-surface);border:var(--ks-card-border);border-radius:var(--ks-radius);padding:18px}
   #kitsune-preview .ks-money-caption{font-size:12px;color:var(--ks-accent)}
   #kitsune-preview .ks-amount{font-size:30px;line-height:1.3;font-weight:500;letter-spacing:-1px;font-variant-numeric:tabular-nums;margin:7px 0}
   #kitsune-preview .ks-amount small{font-size:14px;letter-spacing:0;margin-right:5px}
   #kitsune-preview .ks-money-meta{display:flex;gap:15px;flex-wrap:wrap;font-size:11px;color:var(--ks-dim);margin-top:8px}
   #kitsune-preview .ks-primary{display:flex;align-items:center;justify-content:center;gap:7px;min-height:46px;padding:12px 17px;border:0;border-radius:15px;background:var(--ks-action-bg,var(--ks-ink));color:var(--ks-action-text,var(--ks-bg));font-weight:500}
   #kitsune-preview .ks-primary svg{width:17px;height:17px}
-  #kitsune-preview .ks-money-card .ks-primary{background:var(--ks-paper);color:var(--ks-accent);border-radius:12px;min-height:41px;font-size:12px;padding:10px 12px;flex-shrink:0}
+  #kitsune-preview .ks-money-card .ks-primary{border-radius:12px;min-height:41px;font-size:12px;padding:10px 12px;flex-shrink:0}
   #kitsune-preview .ks-backup{display:flex;align-items:center;justify-content:center;gap:6px;font-size:11px;color:var(--ks-dim);padding:17px 0 0}
   #kitsune-preview .ks-backup svg{width:13px;height:13px}
   #kitsune-preview .ks-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:10px 10px 15px;border-top:1px solid var(--ks-line);background:var(--ks-paper);border-radius:0 0 30px 30px;gap:5px}
@@ -67,14 +67,14 @@
   #kitsune-preview .ks-nav button[aria-current=page] span{background:var(--ks-accent-bg)}
   #kitsune-preview .ks-home-indicator{width:100px;height:4px;border-radius:5px;background:var(--ks-ink);opacity:.6;margin:0 auto 8px}
   #kitsune-preview .ks-simple .ks-title{font-size:30px;letter-spacing:-1px}
-  #kitsune-preview .ks-simple .ks-record-list{gap:0}
-  #kitsune-preview .ks-simple .ks-record{border:0;border-bottom:1px solid var(--ks-line);background:transparent;border-radius:0;padding:10px 0}
-  #kitsune-preview .ks-simple .ks-record:hover{background:var(--ks-paper)}
+  #kitsune-preview .ks-simple .ks-record-list{gap:8px}
+  
+  
   #kitsune-preview .ks-simple .ks-record-icon{border-radius:50%;background:var(--ks-accent-bg);color:var(--ks-accent)}
-  #kitsune-preview .ks-simple .ks-week{background:var(--ks-soft);border-radius:16px;padding:4px;gap:1px}
+  
   #kitsune-preview .ks-simple .ks-day{border-radius:12px}
-  #kitsune-preview .ks-simple .ks-money-card{border-radius:var(--ks-radius);background:var(--ks-paper);border:1px solid var(--ks-line)}
-  #kitsune-preview .ks-simple .ks-money-card .ks-primary{background:var(--ks-accent-bg)}
+  
+  
   #kitsune-preview .ks-form{display:grid;gap:15px;padding-top:10px}
   #kitsune-preview .ks-form :where(label,fieldset){min-width:0}
   #kitsune-preview .ks-form fieldset{border:0;padding:0;margin:0}
@@ -94,11 +94,11 @@
   #kitsune-preview .ks-segments{display:flex;border-bottom:1px solid var(--ks-line);gap:23px;margin-bottom:20px}
   #kitsune-preview .ks-segments button{border:0;border-bottom:2px solid transparent;background:transparent;padding:12px 0;color:var(--ks-dim);font-size:14px;min-height:44px}
   #kitsune-preview .ks-segments button[aria-pressed=true]{color:var(--ks-ink);border-bottom-color:var(--ks-ink);font-weight:600}
-  #kitsune-preview .ks-stats-panel{border:1px solid var(--ks-line);border-radius:var(--ks-radius);background:var(--ks-paper);padding:3px 13px}
+  #kitsune-preview .ks-stats-panel{border:var(--ks-card-border);border-radius:var(--ks-radius);background:var(--ks-paper);padding:3px 13px}
   #kitsune-preview .ks-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:0 0 10px}
-  #kitsune-preview .ks-summary>div{padding:12px;border:1px solid var(--ks-line);border-radius:var(--ks-radius);background:var(--ks-paper)}
+  #kitsune-preview .ks-summary>div{padding:12px;border:var(--ks-card-border);border-radius:var(--ks-radius);background:var(--ks-paper)}
   #kitsune-preview .ks-summary strong{display:block;margin-top:3px;font-size:20px;font-weight:500;font-variant-numeric:tabular-nums}
-  #kitsune-preview .ks-settings{background:var(--ks-paper);border:1px solid var(--ks-line);border-radius:var(--ks-radius);padding:0 15px;margin:12px 0 20px}
+  #kitsune-preview .ks-settings{background:var(--ks-paper);border:var(--ks-card-border);border-radius:var(--ks-radius);padding:0 15px;margin:12px 0 20px}
   #kitsune-preview .ks-setting{display:flex;align-items:center;gap:12px;padding:15px 0;min-height:55px;border-bottom:1px solid var(--ks-line)}
   #kitsune-preview .ks-setting:last-child{border-bottom:0}
   #kitsune-preview .ks-setting>svg{width:18px;height:18px;color:var(--ks-dim)}
@@ -107,13 +107,13 @@
   #kitsune-preview .ks-setting select{background:transparent;border:0;font-size:12px;max-width:130px;min-height:32px;color:var(--ks-accent)}
   #kitsune-preview .ks-setting option{background:var(--ks-paper)}
   #kitsune-preview .ks-calculator{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-  #kitsune-preview .ks-key{min-height:50px;border:0;border-radius:12px;background:var(--ks-paper);font-size:20px}
-  #kitsune-preview .ks-key.ks-operator{background:var(--ks-accent-bg);color:var(--ks-accent)}
+  #kitsune-preview .ks-key{min-height:50px;border:var(--ks-card-border);border-radius:12px;background:var(--ks-card-surface);font-size:20px}
+  #kitsune-preview .ks-key.ks-operator{background:var(--ks-card-surface);color:var(--ks-accent)}
   #kitsune-preview .ks-amount-input{background:transparent;border:0;border-bottom:1px solid var(--ks-line);width:100%;font-size:34px!important;line-height:1.5;text-align:right;padding:12px 0;font-variant-numeric:tabular-nums}
   #kitsune-preview .ks-month-strip{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:8px 0 18px}
   #kitsune-preview .ks-month-strip input{max-width:165px;background:var(--ks-paper);border:1px solid var(--ks-line);border-radius:10px;padding:8px;font-size:12px;min-height:42px}
   #kitsune-preview .ks-full{width:100%}
-  #kitsune-preview .ks-daily{margin-top:23px;padding:21px;background:var(--ks-paper);border:1px solid var(--ks-line);border-radius:var(--ks-radius)}
+  #kitsune-preview .ks-daily{margin-top:23px;padding:21px;background:var(--ks-paper);border:var(--ks-card-border);border-radius:var(--ks-radius)}
   #kitsune-preview .ks-daily-heading{margin:0;font-size:17px;font-weight:500}
   #kitsune-preview .ks-daily-heading strong{font-size:26px;font-weight:500;font-variant-numeric:tabular-nums}
   #kitsune-preview .ks-daily-states{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:20px 0}
@@ -122,7 +122,7 @@
   #kitsune-preview .ks-daily-state.ks-pending{color:var(--ks-dim)}
   #kitsune-preview .ks-daily-state.ks-pending svg{color:var(--ks-dim)}
   #kitsune-preview .ks-daily .ks-primary{margin-top:6px}
-  #kitsune-preview .ks-simple .ks-daily{border:0;background:transparent;border-radius:0;padding:14px 0 20px;border-bottom:1px solid var(--ks-line)}
+  
   #kitsune-preview .ks-ledger-action{padding:12px 20px 18px;background:var(--ks-bg)}
   #kitsune-preview .ks-month-picker{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:3px 0 19px}
   #kitsune-preview .ks-month-field{flex:1;min-width:0;text-align:center}
@@ -160,13 +160,13 @@
   #kitsune-preview .ks-top.ks-subpage{justify-content:flex-start;padding-top:12px;padding-bottom:12px}
   #kitsune-preview .ks-subpage .ks-title{margin:0;font-size:25px}
   #kitsune-preview .ks-modal-overlay{position:absolute;inset:0;z-index:20;background:#00000055;border-radius:30px;display:flex;align-items:flex-end;padding:9px}
-  #kitsune-preview .ks-calc-sheet{width:100%;border-radius:24px;background:var(--ks-bg);color:var(--ks-ink);padding:17px;box-shadow:0 -5px 30px #00000018}
+  #kitsune-preview .ks-calc-sheet{width:100%;border-radius:24px;background:var(--ks-card-surface);border:var(--ks-card-border);color:var(--ks-ink);padding:17px;box-shadow:0 -5px 30px #00000018}
   #kitsune-preview .ks-calc-sheet h3{font-size:17px;font-weight:500;margin:0}
   #kitsune-preview .ks-calc-sheet .ks-amount-input{font-size:27px!important;margin:3px 0 12px}
   #kitsune-preview .ks-calc-sheet .ks-calculator{gap:7px}
   #kitsune-preview .ks-calc-sheet .ks-key{min-height:46px}
   #kitsune-preview .ks-key.ks-zero{grid-column:span 2}
-  #kitsune-preview .ks-key.ks-equal{grid-row:span 2}
+  #kitsune-preview .ks-key.ks-equal{grid-row:span 2;background:var(--ks-ink);color:var(--ks-bg);border-color:var(--ks-ink)}
   #kitsune-preview .ks-calc-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
   #kitsune-preview .ks-calc-actions .ks-choice{background:var(--ks-paper)}
   #kitsune-preview .ks-calc-error{font-size:12px;min-height:20px;margin:8px 0 0;color:var(--ks-danger)}
@@ -174,12 +174,12 @@
   #kitsune-preview .ks-delete-btn svg{width:16px;height:16px}
   #kitsune-preview .ks-danger-confirm{background:var(--ks-danger);color:light-dark(#fff8f7,#451714)}
   #kitsune-preview .ks-delete-overlay{align-items:center;padding:18px}
-  #kitsune-preview .ks-delete-sheet{border-radius:22px;background:var(--ks-paper);padding:23px;width:100%;box-shadow:0 10px 30px #00000018}
+  #kitsune-preview .ks-delete-sheet{border-radius:22px;background:var(--ks-card-surface);border:var(--ks-card-border);padding:23px;width:100%;box-shadow:0 10px 30px #00000018}
   #kitsune-preview .ks-delete-sheet h3{font-size:18px;font-weight:500;margin:0 0 12px}
   #kitsune-preview .ks-delete-summary{font-size:14px;line-height:1.7;margin:0 0 12px;white-space:pre-line}
   #kitsune-preview .ks-delete-sheet .ks-note{margin:0 0 18px}
   #kitsune-preview .ks-entry-detail{padding-top:10px}
-  #kitsune-preview .ks-detail-amount{text-align:center;background:var(--ks-paper);border:1px solid var(--ks-line);border-radius:var(--ks-radius);padding:22px 15px;margin-bottom:20px}
+  #kitsune-preview .ks-detail-amount{text-align:center;background:var(--ks-paper);border:var(--ks-card-border);border-radius:var(--ks-radius);padding:22px 15px;margin-bottom:20px}
   #kitsune-preview .ks-detail-list{margin:0 0 24px}
   #kitsune-preview .ks-detail-list>div{display:flex;justify-content:space-between;gap:18px;padding:14px 0;border-bottom:1px solid var(--ks-line)}
   #kitsune-preview .ks-detail-list dt{color:var(--ks-dim);font-size:13px;flex-shrink:0}
@@ -198,7 +198,7 @@
   #kitsune-preview .ks-currency-amount small{font-size:11px;color:var(--ks-dim)}
   #kitsune-preview .ks-currency-group{margin-bottom:19px}
   #kitsune-preview .ks-currency-group .ks-money-card{margin-bottom:10px}
-  #kitsune-preview .ks-wallet-sheet{width:100%;background:var(--ks-bg);padding:20px;border-radius:23px}
+  #kitsune-preview .ks-wallet-sheet{width:100%;background:var(--ks-card-surface);border:var(--ks-card-border);padding:20px;border-radius:23px}
   #kitsune-preview .ks-wallet-sheet h3{font-size:18px;font-weight:500;margin:0 0 14px}
   #kitsune-preview .ks-wallet-check{display:flex;align-items:center;gap:11px;min-height:55px;padding:10px 0;border-bottom:1px solid var(--ks-line);font-size:14px}
   #kitsune-preview .ks-wallet-check input{width:18px;height:18px;accent-color:var(--ks-accent);flex-shrink:0}
@@ -206,14 +206,14 @@
   #kitsune-preview .ks-wallet-check small{font-size:12px;color:var(--ks-dim)}
   #kitsune-preview .ks-filter-context{font-size:12px;color:var(--ks-dim);margin:0 0 13px}
   #kitsune-preview .ks-filter-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 15px}
-  #kitsune-preview .ks-filter-chip{font-size:11px;padding:4px 8px;border-radius:7px;color:var(--ks-accent);background:var(--ks-accent-bg)}
+  #kitsune-preview .ks-filter-chip{font-size:11px;padding:4px 8px;border-radius:7px;color:var(--ks-accent);border:var(--ks-card-border);background:var(--ks-card-surface)}
   #kitsune-preview .ks-record-ellipsis{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #kitsune-preview .ks-preparation-choices{display:flex;gap:8px;flex-wrap:wrap}
   #kitsune-preview .ks-preparation-check{display:flex;align-items:center;gap:7px;min-height:43px;padding:9px 12px;background:var(--ks-paper);border:1px solid var(--ks-line);border-radius:12px;font-size:13px}
   #kitsune-preview .ks-preparation-check input{width:16px;height:16px;accent-color:var(--ks-accent)}
   #kitsune-preview .ks-form-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
   #kitsune-preview .ks-appearance-note{font-size:12px;color:var(--ks-dim);line-height:1.65;margin:0 0 14px}
-  #kitsune-preview .ks-appearance-preview{padding:14px;border-radius:16px;background:var(--ks-accent-bg);margin-bottom:12px;color:var(--ks-ink)}
+  #kitsune-preview .ks-appearance-preview{padding:14px;border:var(--ks-card-border);border-radius:var(--ks-radius);background:var(--ks-card-surface);margin-bottom:12px;color:var(--ks-ink)}
   #kitsune-preview .ks-appearance-preview .ks-row{font-size:13px}
   #kitsune-preview .ks-preview-modes{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
   #kitsune-preview .ks-preview-modes .ks-choice{min-height:36px;padding:5px 12px}
