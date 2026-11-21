@@ -2158,6 +2158,11 @@ html&gt;body{padding:0}&lt;/style&gt;
     const savedRange=saved?.[index]?.ledgerRange;
     if(savedRange&amp;&amp;isDate(savedRange.from)&amp;&amp;isDate(savedRange.to)&amp;&amp;savedRange.from&lt;=savedRange.to)state.ledgerRange={from:savedRange.from,to:savedRange.to};
     const appliedAppearance=()=&gt;({mode:style.mode,colorSource:style.colorSource,presetColor:style.presetColor,customColor:style.customColor});
+    const pendingAppearance=()=&gt;{
+      const draft=state.appearanceDraft,customColor=normalizeHex(draft.customColor);
+      return {...draft,customColor:draft.colorSource===&#x27;CUSTOM&#x27;?customColor:customColor||style.customColor};
+    };
+    const appearanceChanged=pending=&gt;Object.keys(pending).some(key=&gt;pending[key]!==style[key]);
     const resetAppearance=()=&gt;{state.appearanceDraft=appliedAppearance();state.previewMode=null;};
     resetAppearance();
     const colorSeed=theme=&gt;theme.colorSource===&#x27;SYSTEM&#x27;?demoSystemSeed:theme.colorSource===&#x27;CUSTOM&#x27;?(normalizeHex(theme.customColor)||style.customColor):theme.presetColor;
@@ -2377,10 +2382,12 @@ html&gt;body{padding:0}&lt;/style&gt;
         ${draft.colorSource===&#x27;CUSTOM&#x27;?`&lt;label class=&quot;ks-custom-color-row&quot;&gt;&lt;input type=&quot;color&quot; data-custom-picker aria-label=&quot;选择主色&quot; value=&quot;${normalizeHex(draft.customColor)||style.customColor}&quot;&gt;&lt;input type=&quot;text&quot; data-custom-hex aria-label=&quot;主色 HEX&quot; value=&quot;${escapeText(draft.customColor)}&quot; placeholder=&quot;#C47A4A&quot; maxlength=&quot;7&quot; spellcheck=&quot;false&quot;&gt;&lt;/label&gt;`:&#x27;&#x27;}
         ${draft.colorSource===&#x27;SYSTEM&#x27;?`&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;sparkles&#x27;)}&lt;span&gt;使用系统壁纸配色&lt;/span&gt;&lt;small&gt;Android 12+&lt;/small&gt;&lt;/div&gt;`:&#x27;&#x27;}
       &lt;/div&gt;
-      ${draft.colorSource===&#x27;SYSTEM&#x27;?&#x27;&lt;p class=&quot;ks-appearance-note&quot;&gt;此处使用示意色板，真实配色由手机系统提供。&lt;/p&gt;&#x27;:&#x27;&#x27;}
-      &lt;div class=&quot;ks-preview-modes&quot; role=&quot;group&quot; aria-label=&quot;预览明暗&quot;&gt;&lt;span class=&quot;ks-note&quot;&gt;预览明暗&lt;/span&gt;&lt;div class=&quot;ks-choices&quot;&gt;${themeModes.slice(1).map(([value,label])=&gt;choice(label,value,null,&#x27;preview-mode&#x27;)).join(&#x27;&#x27;)}&lt;/div&gt;&lt;/div&gt;
-      &lt;div class=&quot;ks-appearance-preview&quot; data-appearance-preview aria-label=&quot;配色预览&quot;&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;span&gt;早餐 · 燕麦粥、煎蛋&lt;/span&gt;&lt;span class=&quot;ks-pill&quot;&gt;下厨&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-theme-swatches&quot; aria-hidden=&quot;true&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;span&gt;支出 −¥28.00&lt;/span&gt;&lt;span style=&quot;background:var(--ks-accent);color:var(--ks-paper);padding:6px 15px;border-radius:10px&quot;&gt;保存&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
-      &lt;p class=&quot;ks-error&quot; data-appearance-error role=&quot;alert&quot;&gt;&lt;/p&gt;&lt;div class=&quot;ks-appearance-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-action=&quot;cancel-appearance&quot;&gt;取消&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary cursor-interaction&quot; data-action=&quot;apply-appearance&quot;&gt;应用外观&lt;/button&gt;&lt;/div&gt;
+      &lt;div data-appearance-editor hidden&gt;
+        ${draft.colorSource===&#x27;SYSTEM&#x27;?&#x27;&lt;p class=&quot;ks-appearance-note&quot;&gt;此处使用示意色板，真实配色由手机系统提供。&lt;/p&gt;&#x27;:&#x27;&#x27;}
+        &lt;div class=&quot;ks-preview-modes&quot; role=&quot;group&quot; aria-label=&quot;预览明暗&quot;&gt;&lt;span class=&quot;ks-note&quot;&gt;预览明暗&lt;/span&gt;&lt;div class=&quot;ks-choices&quot;&gt;${themeModes.slice(1).map(([value,label])=&gt;choice(label,value,null,&#x27;preview-mode&#x27;)).join(&#x27;&#x27;)}&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;ks-appearance-preview&quot; data-appearance-preview aria-label=&quot;配色预览&quot;&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;span&gt;早餐 · 燕麦粥、煎蛋&lt;/span&gt;&lt;span class=&quot;ks-pill&quot;&gt;下厨&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-theme-swatches&quot; aria-hidden=&quot;true&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;span&gt;支出 −¥28.00&lt;/span&gt;&lt;span style=&quot;background:var(--ks-accent);color:var(--ks-paper);padding:6px 15px;border-radius:10px&quot;&gt;保存&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;p class=&quot;ks-error&quot; data-appearance-error role=&quot;alert&quot;&gt;&lt;/p&gt;&lt;div class=&quot;ks-appearance-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-action=&quot;cancel-appearance&quot;&gt;取消&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary cursor-interaction&quot; data-action=&quot;apply-appearance&quot;&gt;应用外观&lt;/button&gt;&lt;/div&gt;
+      &lt;/div&gt;
       ${section(&#x27;分类管理&#x27;)}&lt;div class=&quot;ks-settings&quot;&gt;&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;utensils&#x27;)}&lt;span&gt;用餐方式&lt;/span&gt;&lt;small&gt;下厨、外卖&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;cooking-pot&#x27;)}&lt;span&gt;制作分类&lt;/span&gt;&lt;small&gt;炒菜、预制菜&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;tags&#x27;)}&lt;span&gt;收支分类&lt;/span&gt;&lt;small&gt;分开管理&lt;/small&gt;&lt;/div&gt;&lt;/div&gt;${section(&#x27;数据与备份&#x27;)}&lt;div class=&quot;ks-settings&quot;&gt;&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;hard-drive&#x27;)}&lt;span&gt;文件夹自动备份&lt;/span&gt;&lt;small&gt;未启用&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;cloud&#x27;)}&lt;span&gt;GitHub 私有仓库&lt;/span&gt;&lt;small&gt;未配置&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;file-json&#x27;)}&lt;span&gt;JSON 备份与恢复&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;sheet&#x27;)}&lt;span&gt;CSV 导入与导出&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;p class=&quot;ks-footnote&quot;&gt;KitsuneApp · 本地优先，安心记录&lt;/p&gt;`;
     }
     function pageMealForm(){return `&lt;form class=&quot;ks-form&quot; data-meal-form&gt;
@@ -2430,14 +2437,17 @@ html&gt;body{padding:0}&lt;/style&gt;
     function capture(){const form=phone.querySelector(&#x27;[data-meal-form]&#x27;);if(form){state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);}const entry=phone.querySelector(&#x27;[data-entry-form]&#x27;);if(entry){state.amount=entry.elements.amount.value;state.entryDraft={dateTime:entry.elements.dateTime.value,note:entry.elements.note.value,category:entry.elements.category.value,walletId:entry.elements.wallet.value};}}
     function error(message){phone.querySelector(&#x27;.ks-error&#x27;).textContent=message;}
     function updateAppearancePreview(){
-      const preview=phone.querySelector(&#x27;[data-appearance-preview]&#x27;);
-      if(!preview)return;
+      const editor=phone.querySelector(&#x27;[data-appearance-editor]&#x27;);
+      if(!editor)return;
+      editor.hidden=!appearanceChanged(pendingAppearance());
+      if(editor.hidden){state.previewMode=null;return;}
+      const preview=editor.querySelector(&#x27;[data-appearance-preview]&#x27;);
       const draft=state.appearanceDraft;
       const preferredMode=draft.mode===&#x27;system&#x27;?(systemDark.matches?&#x27;dark&#x27;:&#x27;light&#x27;):draft.mode;
       const mode=state.previewMode||preferredMode;
       preview.style.colorScheme=mode;
       paintColors(preview,colorSeed(draft),draft.colorSource===&#x27;SYSTEM&#x27;);
-      for(const button of phone.querySelectorAll(&#x27;[data-preview-mode]&#x27;))button.setAttribute(&#x27;aria-pressed&#x27;,String(button.dataset.previewMode===mode));
+      for(const button of editor.querySelectorAll(&#x27;[data-preview-mode]&#x27;))button.setAttribute(&#x27;aria-pressed&#x27;,String(button.dataset.previewMode===mode));
     }
     function pageEntryDetail(){const e=financialEntries().find(e=&gt;e.id===state.selectedEntryId);if(!e)return &#x27;&lt;p class=&quot;ks-empty-state&quot;&gt;这笔账目已不存在&lt;/p&gt;&#x27;;const w=walletById(e.walletId);return `&lt;section class=&quot;ks-entry-detail&quot;&gt;&lt;div class=&quot;ks-detail-amount&quot;&gt;&lt;span class=&quot;ks-note&quot;&gt;${e.type} · ${w.code}&lt;/span&gt;&lt;div class=&quot;ks-amount&quot;&gt;${e.type===&#x27;支出&#x27;?&#x27;-&#x27;:&#x27;+&#x27;}¥${money(e.cents,w.code)}&lt;/div&gt;&lt;/div&gt;&lt;dl class=&quot;ks-detail-list&quot;&gt;${[[&#x27;日期时间&#x27;,`${e.date} ${e.time}`],[&#x27;钱包&#x27;,`${w.name} · ${w.code}`],[&#x27;分类&#x27;,entryCategory(e)],[&#x27;备注&#x27;,e.note||&#x27;无&#x27;]].map(([label,value])=&gt;`&lt;div&gt;&lt;dt&gt;${label}&lt;/dt&gt;&lt;dd&gt;${escapeText(value)}&lt;/dd&gt;&lt;/div&gt;`).join(&#x27;&#x27;)}&lt;/dl&gt;${deleteButton(&#x27;entry&#x27;,&#x27;删除这笔账目&#x27;)}&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 示例数据&lt;/p&gt;&lt;/section&gt;`;}
     function deleteConfirmation(){const p=state.deletePending;return `&lt;div class=&quot;ks-modal-overlay ks-delete-overlay&quot;&gt;&lt;section class=&quot;ks-delete-sheet&quot; role=&quot;alertdialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;确认删除记录&quot;&gt;&lt;h3&gt;${p.kind===&#x27;meal&#x27;?&#x27;删除这条用餐记录？&#x27;:&#x27;删除这笔账目？&#x27;}&lt;/h3&gt;&lt;p class=&quot;ks-delete-summary&quot;&gt;${escapeText(p.summary)}&lt;/p&gt;&lt;p class=&quot;ks-note&quot;&gt;${p.kind===&#x27;meal&#x27;?&#x27;删除后，将更新今日进度、月度及全部记录统计。&#x27;:&#x27;删除后，将更新流水、收支统计和钱包余额。&#x27;}&lt;/p&gt;&lt;p class=&quot;ks-error&quot; role=&quot;alert&quot; data-delete-error&gt;&lt;/p&gt;&lt;div class=&quot;ks-calc-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-delete-action=&quot;cancel&quot;&gt;取消&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary ks-danger-confirm cursor-interaction&quot; data-delete-action=&quot;confirm&quot;&gt;确认删除&lt;/button&gt;&lt;/div&gt;&lt;/section&gt;&lt;/div&gt;`;}
@@ -2464,11 +2474,10 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(b.dataset.previewMode){state.previewMode=b.dataset.previewMode;updateAppearancePreview();return;}
       if(b.dataset.action===&#x27;cancel-appearance&#x27;){resetAppearance();render();return;}
       if(b.dataset.action===&#x27;apply-appearance&#x27;){
-        const draft=state.appearanceDraft,custom=normalizeHex(draft.customColor);
-        if(draft.colorSource===&#x27;CUSTOM&#x27;&amp;&amp;!custom){phone.querySelector(&#x27;[data-appearance-error]&#x27;).textContent=&#x27;请输入六位 HEX 颜色，例如 #C47A4A。&#x27;;return;}
-        const next={...draft,customColor:custom||style.customColor};
-        const changed=JSON.stringify(appliedAppearance())!==JSON.stringify(next);
-        Object.assign(style,next);resetAppearance();applyStyle();state.notice=&#x27;已应用外观。&#x27;;render();if(changed)persist();return;
+        const next=pendingAppearance();
+        if(!appearanceChanged(next))return;
+        if(next.customColor===null){phone.querySelector(&#x27;[data-appearance-error]&#x27;).textContent=&#x27;请输入六位 HEX 颜色，例如 #C47A4A。&#x27;;return;}
+        Object.assign(style,next);resetAppearance();applyStyle();state.notice=&#x27;已应用外观。&#x27;;render();persist();return;
       }
       if(b.dataset.action===&#x27;edit-ledger-range&#x27;){
         state.ledgerRangeOpen=!state.ledgerRangeOpen;render();
@@ -2518,7 +2527,15 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(e.matches(&#x27;[data-date-input]&#x27;)){state.date=e.value||&#x27;2026-11-17&#x27;;render();}
       if(e.matches(&#x27;[data-meal-form] [name=slot]&#x27;)){capture();render();}
     });
-    phone.addEventListener(&#x27;input&#x27;,event=&gt;{const e=event.target;if(e.matches(&#x27;[data-custom-picker],[data-custom-hex]&#x27;)){state.appearanceDraft.customColor=e.value;const normalized=normalizeHex(e.value),picker=phone.querySelector(&#x27;[data-custom-picker]&#x27;),hex=phone.querySelector(&#x27;[data-custom-hex]&#x27;);if(e.matches(&#x27;[data-custom-picker]&#x27;))hex.value=e.value.toUpperCase();if(normalized){picker.value=normalized;phone.querySelector(&#x27;[data-appearance-error]&#x27;).textContent=&#x27;&#x27;;updateAppearancePreview();}}});
+    phone.addEventListener(&#x27;input&#x27;,event=&gt;{
+      const e=event.target;
+      if(!e.matches(&#x27;[data-custom-picker],[data-custom-hex]&#x27;))return;
+      state.appearanceDraft.customColor=e.value;
+      const normalized=normalizeHex(e.value);
+      if(e.matches(&#x27;[data-custom-picker]&#x27;))phone.querySelector(&#x27;[data-custom-hex]&#x27;).value=normalized;
+      if(normalized){phone.querySelector(&#x27;[data-custom-picker]&#x27;).value=normalized;phone.querySelector(&#x27;[data-appearance-error]&#x27;).textContent=&#x27;&#x27;;}
+      updateAppearancePreview();
+    });
     phone.addEventListener(&#x27;submit&#x27;,event=&gt;{
       event.preventDefault();const f=event.target;capture();
       if(f.matches(&#x27;[data-ledger-range-form]&#x27;)){

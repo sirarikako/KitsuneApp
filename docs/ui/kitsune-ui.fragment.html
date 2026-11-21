@@ -267,6 +267,11 @@
     const savedRange=saved?.[index]?.ledgerRange;
     if(savedRange&&isDate(savedRange.from)&&isDate(savedRange.to)&&savedRange.from<=savedRange.to)state.ledgerRange={from:savedRange.from,to:savedRange.to};
     const appliedAppearance=()=>({mode:style.mode,colorSource:style.colorSource,presetColor:style.presetColor,customColor:style.customColor});
+    const pendingAppearance=()=>{
+      const draft=state.appearanceDraft,customColor=normalizeHex(draft.customColor);
+      return {...draft,customColor:draft.colorSource==='CUSTOM'?customColor:customColor||style.customColor};
+    };
+    const appearanceChanged=pending=>Object.keys(pending).some(key=>pending[key]!==style[key]);
     const resetAppearance=()=>{state.appearanceDraft=appliedAppearance();state.previewMode=null;};
     resetAppearance();
     const colorSeed=theme=>theme.colorSource==='SYSTEM'?demoSystemSeed:theme.colorSource==='CUSTOM'?(normalizeHex(theme.customColor)||style.customColor):theme.presetColor;
@@ -486,10 +491,12 @@
         ${draft.colorSource==='CUSTOM'?`<label class="ks-custom-color-row"><input type="color" data-custom-picker aria-label="选择主色" value="${normalizeHex(draft.customColor)||style.customColor}"><input type="text" data-custom-hex aria-label="主色 HEX" value="${escapeText(draft.customColor)}" placeholder="#C47A4A" maxlength="7" spellcheck="false"></label>`:''}
         ${draft.colorSource==='SYSTEM'?`<div class="ks-setting">${icon('sparkles')}<span>使用系统壁纸配色</span><small>Android 12+</small></div>`:''}
       </div>
-      ${draft.colorSource==='SYSTEM'?'<p class="ks-appearance-note">此处使用示意色板，真实配色由手机系统提供。</p>':''}
-      <div class="ks-preview-modes" role="group" aria-label="预览明暗"><span class="ks-note">预览明暗</span><div class="ks-choices">${themeModes.slice(1).map(([value,label])=>choice(label,value,null,'preview-mode')).join('')}</div></div>
-      <div class="ks-appearance-preview" data-appearance-preview aria-label="配色预览"><div class="ks-row"><span>早餐 · 燕麦粥、煎蛋</span><span class="ks-pill">下厨</span></div><div class="ks-theme-swatches" aria-hidden="true"><span></span><span></span><span></span><span></span></div><div class="ks-row"><span>支出 −¥28.00</span><span style="background:var(--ks-accent);color:var(--ks-paper);padding:6px 15px;border-radius:10px">保存</span></div></div>
-      <p class="ks-error" data-appearance-error role="alert"></p><div class="ks-appearance-actions"><button type="button" class="ks-choice cursor-interaction" data-action="cancel-appearance">取消</button><button type="button" class="ks-primary cursor-interaction" data-action="apply-appearance">应用外观</button></div>
+      <div data-appearance-editor hidden>
+        ${draft.colorSource==='SYSTEM'?'<p class="ks-appearance-note">此处使用示意色板，真实配色由手机系统提供。</p>':''}
+        <div class="ks-preview-modes" role="group" aria-label="预览明暗"><span class="ks-note">预览明暗</span><div class="ks-choices">${themeModes.slice(1).map(([value,label])=>choice(label,value,null,'preview-mode')).join('')}</div></div>
+        <div class="ks-appearance-preview" data-appearance-preview aria-label="配色预览"><div class="ks-row"><span>早餐 · 燕麦粥、煎蛋</span><span class="ks-pill">下厨</span></div><div class="ks-theme-swatches" aria-hidden="true"><span></span><span></span><span></span><span></span></div><div class="ks-row"><span>支出 −¥28.00</span><span style="background:var(--ks-accent);color:var(--ks-paper);padding:6px 15px;border-radius:10px">保存</span></div></div>
+        <p class="ks-error" data-appearance-error role="alert"></p><div class="ks-appearance-actions"><button type="button" class="ks-choice cursor-interaction" data-action="cancel-appearance">取消</button><button type="button" class="ks-primary cursor-interaction" data-action="apply-appearance">应用外观</button></div>
+      </div>
       ${section('分类管理')}<div class="ks-settings"><div class="ks-setting">${icon('utensils')}<span>用餐方式</span><small>下厨、外卖</small></div><div class="ks-setting">${icon('cooking-pot')}<span>制作分类</span><small>炒菜、预制菜</small></div><div class="ks-setting">${icon('tags')}<span>收支分类</span><small>分开管理</small></div></div>${section('数据与备份')}<div class="ks-settings"><div class="ks-setting">${icon('hard-drive')}<span>文件夹自动备份</span><small>未启用</small></div><div class="ks-setting">${icon('cloud')}<span>GitHub 私有仓库</span><small>未配置</small></div><div class="ks-setting">${icon('file-json')}<span>JSON 备份与恢复</span></div><div class="ks-setting">${icon('sheet')}<span>CSV 导入与导出</span></div></div><p class="ks-footnote">KitsuneApp · 本地优先，安心记录</p>`;
     }
     function pageMealForm(){return `<form class="ks-form" data-meal-form>
@@ -539,14 +546,17 @@
     function capture(){const form=phone.querySelector('[data-meal-form]');if(form){state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);}const entry=phone.querySelector('[data-entry-form]');if(entry){state.amount=entry.elements.amount.value;state.entryDraft={dateTime:entry.elements.dateTime.value,note:entry.elements.note.value,category:entry.elements.category.value,walletId:entry.elements.wallet.value};}}
     function error(message){phone.querySelector('.ks-error').textContent=message;}
     function updateAppearancePreview(){
-      const preview=phone.querySelector('[data-appearance-preview]');
-      if(!preview)return;
+      const editor=phone.querySelector('[data-appearance-editor]');
+      if(!editor)return;
+      editor.hidden=!appearanceChanged(pendingAppearance());
+      if(editor.hidden){state.previewMode=null;return;}
+      const preview=editor.querySelector('[data-appearance-preview]');
       const draft=state.appearanceDraft;
       const preferredMode=draft.mode==='system'?(systemDark.matches?'dark':'light'):draft.mode;
       const mode=state.previewMode||preferredMode;
       preview.style.colorScheme=mode;
       paintColors(preview,colorSeed(draft),draft.colorSource==='SYSTEM');
-      for(const button of phone.querySelectorAll('[data-preview-mode]'))button.setAttribute('aria-pressed',String(button.dataset.previewMode===mode));
+      for(const button of editor.querySelectorAll('[data-preview-mode]'))button.setAttribute('aria-pressed',String(button.dataset.previewMode===mode));
     }
     function pageEntryDetail(){const e=financialEntries().find(e=>e.id===state.selectedEntryId);if(!e)return '<p class="ks-empty-state">这笔账目已不存在</p>';const w=walletById(e.walletId);return `<section class="ks-entry-detail"><div class="ks-detail-amount"><span class="ks-note">${e.type} · ${w.code}</span><div class="ks-amount">${e.type==='支出'?'-':'+'}¥${money(e.cents,w.code)}</div></div><dl class="ks-detail-list">${[['日期时间',`${e.date} ${e.time}`],['钱包',`${w.name} · ${w.code}`],['分类',entryCategory(e)],['备注',e.note||'无']].map(([label,value])=>`<div><dt>${label}</dt><dd>${escapeText(value)}</dd></div>`).join('')}</dl>${deleteButton('entry','删除这笔账目')}<p class="ks-footnote">交互预览 · 示例数据</p></section>`;}
     function deleteConfirmation(){const p=state.deletePending;return `<div class="ks-modal-overlay ks-delete-overlay"><section class="ks-delete-sheet" role="alertdialog" aria-modal="true" aria-label="确认删除记录"><h3>${p.kind==='meal'?'删除这条用餐记录？':'删除这笔账目？'}</h3><p class="ks-delete-summary">${escapeText(p.summary)}</p><p class="ks-note">${p.kind==='meal'?'删除后，将更新今日进度、月度及全部记录统计。':'删除后，将更新流水、收支统计和钱包余额。'}</p><p class="ks-error" role="alert" data-delete-error></p><div class="ks-calc-actions"><button type="button" class="ks-choice cursor-interaction" data-delete-action="cancel">取消</button><button type="button" class="ks-primary ks-danger-confirm cursor-interaction" data-delete-action="confirm">确认删除</button></div></section></div>`;}
@@ -573,11 +583,10 @@
       if(b.dataset.previewMode){state.previewMode=b.dataset.previewMode;updateAppearancePreview();return;}
       if(b.dataset.action==='cancel-appearance'){resetAppearance();render();return;}
       if(b.dataset.action==='apply-appearance'){
-        const draft=state.appearanceDraft,custom=normalizeHex(draft.customColor);
-        if(draft.colorSource==='CUSTOM'&&!custom){phone.querySelector('[data-appearance-error]').textContent='请输入六位 HEX 颜色，例如 #C47A4A。';return;}
-        const next={...draft,customColor:custom||style.customColor};
-        const changed=JSON.stringify(appliedAppearance())!==JSON.stringify(next);
-        Object.assign(style,next);resetAppearance();applyStyle();state.notice='已应用外观。';render();if(changed)persist();return;
+        const next=pendingAppearance();
+        if(!appearanceChanged(next))return;
+        if(next.customColor===null){phone.querySelector('[data-appearance-error]').textContent='请输入六位 HEX 颜色，例如 #C47A4A。';return;}
+        Object.assign(style,next);resetAppearance();applyStyle();state.notice='已应用外观。';render();persist();return;
       }
       if(b.dataset.action==='edit-ledger-range'){
         state.ledgerRangeOpen=!state.ledgerRangeOpen;render();
@@ -627,7 +636,15 @@
       if(e.matches('[data-date-input]')){state.date=e.value||'2026-11-17';render();}
       if(e.matches('[data-meal-form] [name=slot]')){capture();render();}
     });
-    phone.addEventListener('input',event=>{const e=event.target;if(e.matches('[data-custom-picker],[data-custom-hex]')){state.appearanceDraft.customColor=e.value;const normalized=normalizeHex(e.value),picker=phone.querySelector('[data-custom-picker]'),hex=phone.querySelector('[data-custom-hex]');if(e.matches('[data-custom-picker]'))hex.value=e.value.toUpperCase();if(normalized){picker.value=normalized;phone.querySelector('[data-appearance-error]').textContent='';updateAppearancePreview();}}});
+    phone.addEventListener('input',event=>{
+      const e=event.target;
+      if(!e.matches('[data-custom-picker],[data-custom-hex]'))return;
+      state.appearanceDraft.customColor=e.value;
+      const normalized=normalizeHex(e.value);
+      if(e.matches('[data-custom-picker]'))phone.querySelector('[data-custom-hex]').value=normalized;
+      if(normalized){phone.querySelector('[data-custom-picker]').value=normalized;phone.querySelector('[data-appearance-error]').textContent='';}
+      updateAppearancePreview();
+    });
     phone.addEventListener('submit',event=>{
       event.preventDefault();const f=event.target;capture();
       if(f.matches('[data-ledger-range-form]')){
