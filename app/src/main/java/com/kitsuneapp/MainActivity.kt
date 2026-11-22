@@ -123,6 +123,8 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
         if (stack.size > 1) {
             model.clearError()
             val old = stack.last()
+            if (old == "data" || old == "github") model.discardRestorePreview()
+            if (old == "data") model.clearLocalRestoreResult()
             recordNavigation?.takeIf { it.detail == old }?.let { navigation ->
                 val stillVisible = if (old.startsWith("meal/")) {
                     val record = records.meals.find { it.id == navigation.id }

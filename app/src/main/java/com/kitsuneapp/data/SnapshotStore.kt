@@ -9,6 +9,7 @@ import java.io.Closeable
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -26,9 +27,16 @@ class StagedSnapshot internal constructor(
     private val context: Context,
     private val name: String,
 ) : Closeable {
+    private val closed = AtomicBoolean()
+
     override fun close() {
-        db.close()
-        context.deleteDatabase(name)
+        if (closed.compareAndSet(false, true)) {
+            try {
+                db.close()
+            } finally {
+                context.deleteDatabase(name)
+            }
+        }
     }
 }
 

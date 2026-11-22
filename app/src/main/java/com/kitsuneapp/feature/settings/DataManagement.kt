@@ -12,6 +12,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kitsuneapp.AppViewModel
+import com.kitsuneapp.RestorePreview
 import com.kitsuneapp.backup.CLOUD_LIMIT
 import com.kitsuneapp.backup.FolderOption
 import com.kitsuneapp.backup.input
@@ -25,30 +26,24 @@ fun DataManagementPage(records: Records, model: AppViewModel, back: () -> Unit) 
     val directory by backup.directory.collectAsState()
     val busy by model.busy.collectAsState()
     val error by model.error.collectAsState()
-    var staged by remember { mutableStateOf<StagedSnapshot?>(null) }
+    val preview by model.restorePreview.collectAsState()
+    val localRestore = preview as? RestorePreview.Local
+    val restored by model.localRestoreSucceeded.collectAsState()
     var folderOptions by remember { mutableStateOf<List<FolderOption>?>(null) }
     var status by rememberSaveable { mutableStateOf("") }
     val configured = directory?.let { it.installation == records.state.installationId &&
         (it.generation != records.state.generation || it.revision <= records.state.revision) } == true
-    DisposableEffect(staged) {
-        val stage = staged
-        onDispose { stage?.close() }
-    }
-    fun restore(uri: Uri? = null) {
-        val stage = staged ?: return
-        model.backup({
-            staged = null
-            status = "完整恢复成功"
-        }) { restore(stage, uri) }
-    }
     val protect = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-        if (uri != null) restore(uri)
+        if (uri != null && localRestore != null) model.restoreBackup(localRestore, uri)
     }
     val exportJson = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-        if (uri != null) model.backup({ status = "完整备份已导出并校验" }) { exportJson(uri) }
+        if (uri != null) model.backup({
+            model.clearLocalRestoreResult()
+            status = "完整备份已导出并校验"
+        }) { exportJson(uri) }
     }
     val importJson = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) model.backup { staged = openFile(uri) }
+        if (uri != null) model.previewLocalRestore(uri)
     }
 
     Column {
@@ -72,11 +67,15 @@ fun DataManagementPage(records: Records, model: AppViewModel, back: () -> Unit) 
                 Secondary("包含所有业务数据和外观。文件为可读 JSON，不含凭据。")
             }
             Section("CSV 批量交换")
-            CsvPanel(records, model) { status = it }
+            CsvPanel(records, model) {
+                model.clearLocalRestoreResult()
+                status = it
+            }
             if (records.state.arrayElements >= MAX_ARRAY_ELEMENTS * 8 / 10) {
                 Secondary("完整备份记录及关联已用 ${records.state.arrayElements} / $MAX_ARRAY_ELEMENTS，接近容量。")
             }
-            if (status.isNotBlank()) Text(status, color = incomeColor)
+            val result = if (restored) "完整恢复成功" else status
+            if (result.isNotBlank()) Text(result, color = incomeColor)
             if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         }
@@ -89,16 +88,17 @@ fun DataManagementPage(records: Records, model: AppViewModel, back: () -> Unit) 
                 Column(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
                     options.forEach { option ->
                         TextButton({
-                            model.backup({ folderOptions = null }) { staged = openFolder(option) }
+                            model.previewFolderRestore(option) { folderOptions = null }
                         }, enabled = !busy) { Text(option.document.name) }
                     }
                     error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 }
             }, confirmButton = { TextButton({ folderOptions = null }, enabled = !busy) { Text("取消") } })
     }
-    staged?.let { stage ->
-        RestoreDialog(stage, records.state.revision != 0L, configured, busy, error,
-            { staged = null }, { restore() }, { protect.launch("kitsune-pre-restore.json") })
+    localRestore?.let { source ->
+        RestoreDialog(source.snapshot, records.state.revision != 0L, configured, busy, error,
+            { model.discardRestorePreview(source) }, { model.restoreBackup(source, null) },
+            { protect.launch("kitsune-pre-restore.json") })
     }
 }
 

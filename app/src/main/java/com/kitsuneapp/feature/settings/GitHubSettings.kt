@@ -18,8 +18,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.kitsuneapp.AppViewModel
+import com.kitsuneapp.RestorePreview
 import com.kitsuneapp.backup.CLOUD_LIMIT
-import com.kitsuneapp.backup.GitHubPreview
 import com.kitsuneapp.backup.GitHubState
 import com.kitsuneapp.data.Records
 import com.kitsuneapp.ui.*
@@ -46,13 +46,10 @@ fun GitHubPage(records: Records, model: AppViewModel, back: () -> Unit) {
     var token by remember { mutableStateOf("") }
     var wifi by rememberSaveable { mutableStateOf(owned?.wifiOnly ?: false) }
     var threshold by rememberSaveable(owned?.capacity?.thresholdMb) { mutableStateOf((owned?.capacity?.thresholdMb ?: 800).toString()) }
-    var preview by remember { mutableStateOf<GitHubPreview?>(null) }
+    val preview by model.restorePreview.collectAsState()
+    val cloudRestore = preview as? RestorePreview.Cloud
     var restoring by rememberSaveable { mutableStateOf(false) }
     var estimated by remember { mutableStateOf<Long?>(null) }
-    DisposableEffect(preview) {
-        val file = preview
-        onDispose { file?.close() }
-    }
     LaunchedEffect(state.revision, owned?.repositoryId) {
         estimated = if (owned == null) null else try {
             service.estimateBytes()
@@ -63,12 +60,8 @@ fun GitHubPage(records: Records, model: AppViewModel, back: () -> Unit) {
         }
     }
 
-    fun restore(uri: Uri? = null) {
-        val source = preview ?: return
-        model.backup({ restoring = false; preview = null }) { restoreCloud(source, uri) }
-    }
     val protect = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-        if (uri != null) restore(uri)
+        if (uri != null && cloudRestore != null) model.restoreBackup(cloudRestore, uri)
     }
 
     Column {
@@ -95,7 +88,10 @@ fun GitHubPage(records: Records, model: AppViewModel, back: () -> Unit) {
                 }
             }
             if (owned != null) {
-                Primary("核对远端备份", { model.backup { preview = service.preview() } }, Modifier.fillMaxWidth(), !busy)
+                Primary("核对远端备份", {
+                    restoring = false
+                    model.previewCloudRestore()
+                }, Modifier.fillMaxWidth(), !busy)
                 if (owned.paused == null && owned.generation == state.generation) {
                     Choice("立即备份", { model.backup { service.schedule(manual = true) } }, Modifier.fillMaxWidth(), enabled = !busy && !running)
                 }
@@ -141,13 +137,13 @@ fun GitHubPage(records: Records, model: AppViewModel, back: () -> Unit) {
         }
     }
 
-    preview?.let { source ->
-        val staged = source.stage
+    cloudRestore?.let { preview ->
+        val staged = preview.source.stage
         if (restoring && staged != null) {
             RestoreDialog(staged, state.revision != 0L, hasFolder, busy, error,
-                { restoring = false }, { restore() }, { protect.launch("kitsune-pre-restore.json") })
+                { restoring = false }, { model.restoreBackup(preview, null) }, { protect.launch("kitsune-pre-restore.json") })
         } else {
-            AlertDialog(onDismissRequest = { if (!busy) preview = null }, shape = DialogShape,
+            AlertDialog(onDismissRequest = { model.discardRestorePreview(preview) }, shape = DialogShape,
                 title = { Text("核对远端备份") }, text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("本机 · 用餐 ${records.meals.size} 条 · 钱包 ${records.wallets.size} 个 · 账目 ${records.entries.size} 笔")
@@ -162,8 +158,8 @@ fun GitHubPage(records: Records, model: AppViewModel, back: () -> Unit) {
                     }
                 }, confirmButton = {
                     val action = if (staged != null) "保留本机并覆盖" else if (owned?.accepted?.isNotEmpty() == true) "确认重建" else "确认创建"
-                    Primary(action, { model.backup({ preview = null }) { service.confirm(source) } }, enabled = !busy)
-                }, dismissButton = { TextButton({ preview = null }, enabled = !busy) { Text("取消") } })
+                    Primary(action, { model.confirmCloudBackup(preview) }, enabled = !busy)
+                }, dismissButton = { TextButton({ model.discardRestorePreview(preview) }, enabled = !busy) { Text("取消") } })
         }
     }
 }
