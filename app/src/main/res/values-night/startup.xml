@@ -1,0 +1,4 @@
+<resources>
+    <color name="startup_background">#202020</color>
+    <bool name="startup_light_system_bars">false</bool>
+</resources>

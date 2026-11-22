@@ -8,8 +8,10 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.key
@@ -17,10 +19,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kitsuneapp.R
 import com.kitsuneapp.data.ColorSource
 import com.kitsuneapp.data.ThemeMode
 import com.kitsuneapp.data.ThemePreferences
@@ -53,7 +57,12 @@ private val type = Typography(
 )
 
 @Composable
-fun KitsuneTheme(preferences: ThemePreferences, forceDark: Boolean? = null, refresh: Int = 0, content: @Composable () -> Unit) {
+fun KitsuneTheme(preferences: ThemePreferences?, forceDark: Boolean? = null, refresh: Int = 0, content: @Composable () -> Unit) {
+    if (preferences == null) {
+        StartupTheme(content)
+        return
+    }
+
     val dark = forceDark ?: when (preferences.themeMode) {
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true
@@ -80,8 +89,28 @@ fun KitsuneTheme(preferences: ThemePreferences, forceDark: Boolean? = null, refr
         }
     }
     val applied = if (forceDark != null) colors else key(dark) { animateColorScheme(colors, tween(250, easing = motion)) }
+    KitsuneMaterialTheme(applied, dark, content)
+}
+
+@Composable
+private fun StartupTheme(content: @Composable () -> Unit) {
+    val dark = isSystemInDarkTheme()
+    val background = colorResource(R.color.startup_background)
+    val colors = remember(background, dark) {
+        val foreground = if (dark) Color(0xFFE0E0E0) else Color(0xFF414141)
+        (if (dark) darkColorScheme() else lightColorScheme()).copy(
+            background = background, onBackground = foreground,
+            surface = background, onSurface = foreground,
+            primary = foreground, onPrimary = background,
+        )
+    }
+    KitsuneMaterialTheme(colors, dark, content)
+}
+
+@Composable
+private fun KitsuneMaterialTheme(colors: ColorScheme, dark: Boolean, content: @Composable () -> Unit) {
     CompositionLocalProvider(LocalDarkMode provides dark) {
-        MaterialTheme(applied, shapes = Shapes(small = ControlShape, medium = CardShape, large = DialogShape),
+        MaterialTheme(colors, shapes = Shapes(small = ControlShape, medium = CardShape, large = DialogShape),
             typography = type, content = content)
     }
 }

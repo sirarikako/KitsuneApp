@@ -61,7 +61,7 @@ class MainActivity : ComponentActivity() {
             val state by model.state.collectAsStateWithLifecycle()
             var refresh by remember { mutableIntStateOf(0) }
             LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { refresh++ }
-            KitsuneTheme(state.records?.theme ?: ThemePreferences(), refresh = refresh) {
+            KitsuneTheme(state.records?.theme, refresh = refresh) {
                 val dark = LocalDarkMode.current
                 SideEffect {
                     WindowCompat.getInsetsController(window, window.decorView).apply {

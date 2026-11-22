@@ -95,3 +95,8 @@
 
 - 五套预设各自以种子色和中性灰生成页面、卡片、柔和底色和描边。浅色及深色都以略亮的卡片与页面区分层次。应用和草稿预览采用同样的颜色规则，Android 和离线 HTML 同步。
 - Chromium 验证五套预设在 320／430 CSS px、浅色／深色下的草稿、首页、用餐、账本和设置，共 20 组。实际页面色值与 Android 测试基准一致。Debug APK、仪器测试 APK、17 项 JVM 测试及 lint 通过（0 错误，13 条既有警告）。[PR #20](https://github.com/sirarikako/KitsuneApp/pull/20) 的 API 35 设备作业核对新版深色账本像素并重新生成截图。
+
+## 冷启动外观
+
+- 原生启动窗口和读取中的 Compose 界面共用随系统明暗变化的中性资源。主题从数据库首次可用时直接显示，之后在同一明暗模式内应用配色仍使用渐变。离线预览的空画布采用相同中性底色。
+- Chromium 实测 320 CSS px 浅色和 430 CSS px 深色的空画布、保存预设及首屏动画状态。Debug APK、仪器测试 APK、17 项 JVM 测试及 lint 通过。已从 APK 核对浅色／深色资源及 API 27 起使用的启动导航栏属性。[PR #20](https://github.com/sirarikako/KitsuneApp/pull/20) 的设备作业检查启动窗口和 Compose 首帧像素。
