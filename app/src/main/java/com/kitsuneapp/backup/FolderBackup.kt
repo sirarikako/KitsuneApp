@@ -29,6 +29,7 @@ internal data class Publication(
 )
 
 internal data class Document(val name: String, val uri: Uri)
+internal enum class FolderCleanup { COMPLETE, MISSING_PUBLICATION, RETRY }
 
 internal class FolderBackup(private val context: Context, tree: Uri) {
     private val resolver = context.contentResolver
@@ -85,9 +86,9 @@ internal class FolderBackup(private val context: Context, tree: Uri) {
         error("无法分配自动备份文件名")
     }
 
-    suspend fun cleanup(keep: Publication, store: SnapshotStore): Boolean = withContext(Dispatchers.IO) {
+    suspend fun cleanup(keep: Publication, store: SnapshotStore): FolderCleanup = withContext(Dispatchers.IO) {
         val current = published()
-        val keepCandidate = current.firstOrNull { it.first == keep } ?: return@withContext false
+        val keepCandidate = current.firstOrNull { it.first == keep } ?: return@withContext FolderCleanup.MISSING_PUBLICATION
         val verified = open(keepCandidate.first, keepCandidate.second, store)
         verified.close()
         var cleaned = true
@@ -103,7 +104,7 @@ internal class FolderBackup(private val context: Context, tree: Uri) {
             }
             if (valid && (!remove(data) || !remove(markerFile))) cleaned = false
         }
-        cleaned
+        if (cleaned) FolderCleanup.COMPLETE else FolderCleanup.RETRY
     }
 
     fun published(): List<Triple<Publication, Document, Document>> {

@@ -30,6 +30,16 @@ class BackupNamesTest {
     }
 
     @Test
+    fun reservesSequenceOfAnOrphanedCompletionMarker() {
+        val time = Instant.parse("2026-11-17T16:30:15Z")
+        val names = sequenceOf(
+            "kitsune-auto-20261118T003015+0800-0002.json",
+            "kitsune-auto-20261118T003015+0800-0005.json.ok",
+        )
+        assertEquals(6L, nextAutoBackupSequence(names, time))
+    }
+
+    @Test
     fun comparesByActualTimeAndRejectsNonBackupNames() {
         val older = checkNotNull(AutoBackupName.parse("kitsune-auto-20261118T003015+0800-0001.json"))
         val newer = checkNotNull(AutoBackupName.parse("kitsune-auto-20261117T170000Z-0001.json"))

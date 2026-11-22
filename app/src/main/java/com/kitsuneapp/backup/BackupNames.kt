@@ -45,6 +45,7 @@ internal data class AutoBackupName(val time: Instant, val sequence: Long) : Comp
 }
 
 internal fun nextAutoBackupSequence(names: Sequence<String>, time: Instant): Long = Math.addExact(
-    names.mapNotNull(AutoBackupName::parse).filter { it.time == time }.maxOfOrNull { it.sequence } ?: 0L,
+    names.mapNotNull { AutoBackupName.parse(it.removeSuffix(".ok")) }
+        .filter { it.time == time }.maxOfOrNull { it.sequence } ?: 0L,
     1L,
 )

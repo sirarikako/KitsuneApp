@@ -132,7 +132,11 @@ class BackupCoordinator internal constructor(private val context: Context, priva
             mutableRunning.value = true
             try {
                 if (target.generation == state.generation && target.revision == state.revision) {
-                    return@withLock finishCleanup(folder, target)
+                    when (finishCleanup(folder, target)) {
+                        FolderCleanup.COMPLETE -> return@withLock true
+                        FolderCleanup.RETRY -> return@withLock false
+                        FolderCleanup.MISSING_PUBLICATION -> Unit
+                    }
                 }
                 val file = File.createTempFile("folder-write-", ".json", context.cacheDir)
                 try {
@@ -143,7 +147,7 @@ class BackupCoordinator internal constructor(private val context: Context, priva
                     val confirmed = target.copy(revision = info.revision, generation = state.generation,
                         succeededAt = utcNow(), published = marker, error = null, failedRevision = -1, cleanupPending = true)
                     persistFolder(confirmed)
-                    return@withLock finishCleanup(folder, confirmed)
+                    return@withLock finishCleanup(folder, confirmed) == FolderCleanup.COMPLETE
                 } finally {
                     file.delete()
                 }
@@ -160,17 +164,13 @@ class BackupCoordinator internal constructor(private val context: Context, priva
         }
     }
 
-    private suspend fun finishCleanup(folder: FolderBackup, state: FolderState): Boolean {
-        val marker = state.published ?: return true
-        val cleaned = try {
-            folder.cleanup(marker, snapshots)
-        } catch (error: CancellationException) {
-            throw error
-        } catch (_: Exception) {
-            false
+    private suspend fun finishCleanup(folder: FolderBackup, state: FolderState): FolderCleanup {
+        val marker = state.published ?: return FolderCleanup.MISSING_PUBLICATION
+        val result = folder.cleanup(marker, snapshots)
+        if (result == FolderCleanup.COMPLETE && (state.cleanupPending || state.error != null)) {
+            persistFolder(state.copy(cleanupPending = false, error = null, failedRevision = -1))
         }
-        if (cleaned && state.cleanupPending) persistFolder(state.copy(cleanupPending = false))
-        return cleaned
+        return result
     }
 
     internal suspend fun folderOptions(): List<FolderOption> = withContext(Dispatchers.IO) {
