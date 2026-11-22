@@ -440,14 +440,22 @@ fun ConfirmDelete(description: String, dismiss: () -> Unit, confirm: () -> Unit,
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun DesignSheet(dismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+internal fun DesignSheet(
+    dismiss: () -> Unit,
+    footer: (@Composable ColumnScope.() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     val colors = MaterialTheme.colorScheme
     ModalBottomSheet(onDismissRequest = dismiss, containerColor = Color.Transparent, scrimColor = Color.Black.copy(alpha = .33f),
         dragHandle = null, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Surface(Modifier.fillMaxWidth().padding(9.dp), shape = DialogShape,
             color = colors.surface, border = BorderStroke(1.dp, colors.outlineVariant)) {
-            Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                val body = if (footer == null) Modifier else Modifier.weight(1f, fill = false)
+                Column(body.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
+                footer?.invoke(this)
+            }
         }
     }
 }

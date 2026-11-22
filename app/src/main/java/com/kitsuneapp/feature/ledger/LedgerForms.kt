@@ -11,6 +11,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -374,11 +375,17 @@ internal fun Calculator(scale: Int, currency: String, initial: String, dismiss: 
         when (key) {
             "C" -> update("")
             "⌫" -> update(text.dropLast(1))
-            "=" -> evaluate()?.let(::update)
             else -> update(text + key)
         }
     }
-    DesignSheet(dismiss) {
+    DesignSheet(dismiss, footer = {
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Choice("取消", dismiss, Modifier.weight(1f))
+            Primary("使用此金额", { evaluate()?.let(apply) }, Modifier.weight(1f))
+        }
+    }) {
+        val focus = LocalFocusManager.current
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("金额计算器", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
             TextAction("关闭", dismiss)
@@ -403,13 +410,13 @@ internal fun Calculator(scale: Int, currency: String, initial: String, dismiss: 
                         CalculatorKey(".", Modifier.width(keyWidth)) { press(".") }
                     }
                 }
-                Primary("=", { press("=") }, Modifier.width(keyWidth).fillMaxHeight())
+                Primary("=", {
+                    evaluate()?.let {
+                        update(it)
+                        focus.clearFocus()
+                    }
+                }, Modifier.width(keyWidth).fillMaxHeight())
             }
-        }
-        error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Choice("取消", dismiss, Modifier.weight(1f))
-            Primary("使用此金额", { evaluate()?.let(apply) }, Modifier.weight(1f))
         }
     }
 }

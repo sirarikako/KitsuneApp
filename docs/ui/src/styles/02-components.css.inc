@@ -49,7 +49,9 @@
   #kitsune-preview .ks-top.ks-subpage{justify-content:flex-start;padding-top:12px;padding-bottom:12px}
   #kitsune-preview .ks-subpage .ks-title{margin:0;font-size:var(--ks-font-title)}
   #kitsune-preview .ks-modal-overlay{position:absolute;inset:0;z-index:20;background:#00000055;border-radius:30px;display:flex;align-items:flex-end;padding:9px}
-  #kitsune-preview .ks-calc-sheet{width:100%;background:var(--ks-card-surface);border:var(--ks-card-border);color:var(--ks-ink);border-radius:var(--ks-dialog-radius);padding:var(--ks-space-4);box-shadow:var(--ks-dialog-shadow);max-height:calc(100% - 24px);overflow:auto}
+  #kitsune-preview .ks-calc-sheet{display:flex;flex-direction:column;width:100%;background:var(--ks-card-surface);border:var(--ks-card-border);color:var(--ks-ink);border-radius:var(--ks-dialog-radius);padding:var(--ks-space-4);box-shadow:var(--ks-dialog-shadow);max-height:calc(100% - 24px);overflow:hidden}
+  #kitsune-preview .ks-calc-body{min-height:0;overflow-y:auto}
+  #kitsune-preview .ks-calc-footer{flex:none}
   #kitsune-preview .ks-calc-sheet h3{font-size:18px;font-weight:600;margin:0 0 var(--ks-space-2)}
   #kitsune-preview .ks-calc-sheet .ks-amount-input{font-size:27px!important;margin:3px 0 12px}
   #kitsune-preview .ks-calc-sheet .ks-calculator{gap:var(--ks-space-2)}

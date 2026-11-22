@@ -98,7 +98,12 @@ class LedgerLayoutTest {
         File(compose.activity.cacheDir, "kitsune-calculator.png").outputStream().use {
             check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
         }
-        compose.onNodeWithText("使用此金额").performClick()
+        compose.onNodeWithText("使用此金额").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals("33.33", amount) }
+
+        expression.performClick()
+        expression.performTextReplacement("2×25")
+        compose.onNodeWithText("使用此金额").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals("50.00", amount) }
     }
 }
