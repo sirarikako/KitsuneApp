@@ -155,7 +155,7 @@
   #kitsune-preview .ks-delete-btn{display:flex;align-items:center;justify-content:center;gap:7px;color:var(--ks-danger);width:100%;min-height:var(--ks-control-height);border:var(--ks-card-border);border-radius:var(--ks-control-radius);background:var(--ks-card-surface);padding:var(--ks-space-2) var(--ks-space-4);font-size:var(--ks-font-body)}
   #kitsune-preview .ks-delete-btn svg{width:var(--ks-icon-size);height:var(--ks-icon-size)}
   #kitsune-preview .ks-danger-confirm{background:var(--ks-danger);color:var(--ks-on-danger,light-dark(#fff8f7,#451714))}
-  #kitsune-preview .ks-delete-overlay{align-items:center;padding:18px}
+  #kitsune-preview :is(.ks-delete-overlay,.ks-wallet-overlay){align-items:center;padding:18px}
   #kitsune-preview .ks-delete-sheet{background:var(--ks-card-surface);border:var(--ks-card-border);width:100%;border-radius:var(--ks-dialog-radius);padding:var(--ks-space-4);box-shadow:var(--ks-dialog-shadow);max-height:calc(100% - 24px);overflow:auto}
   #kitsune-preview .ks-delete-sheet h3{font-size:18px;font-weight:600;margin:0 0 var(--ks-space-2)}
   #kitsune-preview .ks-delete-summary{font-size:14px;line-height:1.7;margin:0 0 12px;white-space:pre-line}
@@ -182,9 +182,16 @@
   #kitsune-preview .ks-currency-amount small{font-size:11px;color:var(--ks-dim)}
   #kitsune-preview .ks-currency-group{margin-bottom:19px}
   #kitsune-preview .ks-currency-group .ks-money-card{margin-bottom:10px}
-  #kitsune-preview .ks-wallet-sheet{width:100%;background:var(--ks-card-surface);border:var(--ks-card-border);border-radius:var(--ks-dialog-radius);padding:var(--ks-space-4);box-shadow:var(--ks-dialog-shadow);max-height:calc(100% - 24px);overflow:auto}
-  #kitsune-preview .ks-wallet-sheet h3{font-size:18px;font-weight:600;margin:0 0 var(--ks-space-2)}
-  #kitsune-preview .ks-wallet-check{display:flex;align-items:center;gap:11px;min-height:55px;padding:10px 0;border-bottom:1px solid var(--ks-line);font-size:14px}
+  #kitsune-preview .ks-wallet-dialog{display:flex;flex-direction:column;gap:var(--ks-space-4);width:100%;max-width:480px;margin:auto;background:var(--ks-card-surface);border:var(--ks-card-border);border-radius:var(--ks-dialog-radius);padding:var(--ks-space-6);box-shadow:var(--ks-dialog-shadow);max-height:100%;overflow:hidden}
+  #kitsune-preview .ks-wallet-dialog h3{font-size:var(--ks-font-title);font-weight:600;line-height:1.3;margin:0}
+  #kitsune-preview .ks-wallet-body{display:grid;gap:var(--ks-space-2);overflow:auto;min-height:0}
+  #kitsune-preview .ks-wallet-body p{margin:0}
+  #kitsune-preview .ks-wallet-dialog .ks-choice{padding:var(--ks-space-2)}
+  @media(max-width:400px){#kitsune-preview .ks-wallet-dialog{padding-inline:var(--ks-space-4)}#kitsune-preview .ks-wallet-dialog .ks-choice{padding-inline:var(--ks-space-1)}}
+  #kitsune-preview .ks-wallet-dialog .ks-choice[aria-pressed=true]{box-shadow:inset 0 0 0 1px var(--ks-accent)}
+  #kitsune-preview .ks-wallet-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:var(--ks-space-2);padding-top:var(--ks-space-2)}
+  #kitsune-preview .ks-wallet-actions .ks-text-btn{font-size:var(--ks-font-body);padding:var(--ks-space-2)}
+  #kitsune-preview .ks-wallet-check{display:flex;align-items:center;gap:var(--ks-space-2);min-height:48px;font-size:var(--ks-font-body)}
   #kitsune-preview .ks-wallet-check input{width:18px;height:18px;accent-color:var(--ks-accent);flex-shrink:0}
   #kitsune-preview .ks-wallet-setting{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--ks-line);font-size:13px}
   #kitsune-preview .ks-wallet-setting small{display:block;color:var(--ks-dim);font-size:11px;margin-top:3px}
@@ -199,7 +206,7 @@
   #kitsune-preview .ks-category-form{margin-top:4px}
   #kitsune-preview .ks-category-form .ks-form-actions{align-items:center}
   #kitsune-preview .ks-wallet-check>span{flex:1}
-  #kitsune-preview .ks-wallet-check small{font-size:12px;color:var(--ks-dim)}
+  #kitsune-preview .ks-wallet-check small{font-size:var(--ks-font-note);color:var(--ks-accent)}
   #kitsune-preview .ks-filter-context{font-size:12px;color:var(--ks-dim);margin:0 0 13px}
   #kitsune-preview .ks-filter-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 15px}
   #kitsune-preview .ks-filter-chip{border:var(--ks-card-border);background:var(--ks-card-surface);font-size:var(--ks-font-tag);padding:2px 6px;border-radius:6px;color:var(--ks-dim)}
@@ -224,8 +231,7 @@
   @media(max-width:400px){#kitsune-preview .ks-stage{padding:12px 0;min-height:855px}#kitsune-preview .ks-main,#kitsune-preview .ks-top{padding-left:var(--ks-space-3);padding-right:var(--ks-space-3)}#kitsune-preview .ks-ledger-action{padding-left:var(--ks-space-3);padding-right:var(--ks-space-3)}#kitsune-preview .ks-choice{padding-left:var(--ks-space-2);padding-right:var(--ks-space-2)}}
   @media(pointer:coarse){#kitsune-preview .ks-text-btn{min-height:44px}#kitsune-preview .ks-control{font-size:16px}}
   #kitsune-preview .ks-preparation-check:has(input:checked){background:var(--ks-accent-bg);border-color:var(--ks-accent);color:var(--ks-accent)}
-  #kitsune-preview .ks-wallet-check:has(input:checked){color:var(--ks-accent)}
-  #kitsune-preview .ks-wallet-check:last-of-type,#kitsune-preview .ks-detail-list>div:last-child{border-bottom:0}
+  #kitsune-preview .ks-detail-list>div:last-child{border-bottom:0}
   #kitsune-preview .ks-appearance-preview .ks-record{cursor:default}
   #kitsune-preview .ks-appearance-preview .ks-record:hover{background:var(--ks-card-surface)}
   #kitsune-preview .ks-appearance-preview .ks-primary{margin-top:var(--ks-space-2)}
@@ -271,7 +277,7 @@
     const walletById=id=>wallets.find(w=>w.id===id)||wallets[0];
     const entryWallet=()=>wallets.find(w=>w.id===state.entryDraft.walletId)||null;
     const defaultEntryWallet=()=>wallets.find(w=>w.id===state.lastWalletId&&!w.separateAccounting)||wallets.find(w=>!w.separateAccounting)||null;
-    state.walletFilterIds=null;state.walletPickerOpen=false;state.walletDraftIds=[];state.lastWalletId='daily';
+    state.walletFilterIds=null;state.walletPickerOpen=false;state.walletDraftMode='REGULAR';state.walletDraftIds=[];state.lastWalletId='daily';
     // Financial categories are scoped by type and optional wallet; meal preparation categories are separate.
     const sharedFinancialCategories={
       EXPENSE:[{id:'ge-food',name:'餐饮',archived:false},{id:'ge-transport',name:'交通',archived:false},{id:'ge-daily',name:'日用',archived:false}],
@@ -673,7 +679,23 @@
       ${formFooter(saveButton(`保存${state.entryType}`),'交互预览 · 仅保存到当前演示')}
     </form>`;}
     function calculatorSheet(){return `<div class="ks-modal-overlay"><section class="ks-calc-sheet" role="dialog" aria-modal="true" aria-label="金额计算器"><div class="ks-calc-body"><div class="ks-row"><h3>金额计算器</h3><button type="button" class="ks-text-btn cursor-interaction" data-calc-action="cancel">关闭</button></div><label><span class="ks-note">${entryWallet()?.code||'未选择钱包'} · 支持加减乘除</span><input class="ks-amount-input" data-calc-expression inputmode="text" aria-label="计算表达式" maxlength="80" placeholder="${(entryWallet()?.scale??2)?'0.00':'0'}" value="${escapeText(state.calcExpression)}"></label><div class="ks-calculator" role="group" aria-label="计算键盘">${['C','⌫','÷','×','7','8','9','−','4','5','6','+','1','2','3','=','0','.'].map(k=>`<button type="button" class="ks-key ${['÷','×','−','+','='].includes(k)?'ks-operator':''} ${k==='0'?'ks-zero':''} ${k==='='?'ks-equal':''} cursor-interaction" data-key="${k}" aria-label="${k==='⌫'?'退格':k==='C'?'清空':k}">${k}</button>`).join('')}</div></div><div class="ks-calc-footer"><p class="ks-calc-error" role="alert"></p><div class="ks-calc-actions"><button type="button" class="ks-choice cursor-interaction" data-calc-action="cancel">取消</button><button type="button" class="ks-primary cursor-interaction" data-calc-action="apply">使用此金额</button></div></div></section></div>`;}
-    function walletPickerSheet(){const all=state.walletDraftIds.length===wallets.length,canApply=state.walletDraftIds.length>0;return `<div class="ks-modal-overlay"><section class="ks-wallet-sheet" role="dialog" aria-modal="true" aria-label="选择钱包"><h3>选择钱包</h3><p class="ks-note">独立核算钱包默认不选中，可手动加入。</p><label class="ks-wallet-check cursor-interaction"><input type="checkbox" data-wallet-all ${all?'checked':''}><span>全部钱包（含独立核算）</span></label>${wallets.map(w=>`<label class="ks-wallet-check cursor-interaction"><input type="checkbox" data-wallet-option="${w.id}" ${state.walletDraftIds.includes(w.id)?'checked':''}><span>${w.name}${w.separateAccounting?' · 独立核算':''}</span><small>${w.code}</small></label>`).join('')}${canApply?'':'<p class="ks-note">请选择至少一个钱包，或恢复默认。</p>'}<div class="ks-calc-actions"><button type="button" class="ks-choice cursor-interaction" data-wallet-action="default">恢复默认</button><button type="button" class="ks-choice cursor-interaction" data-wallet-action="cancel">取消</button><button type="button" class="ks-primary cursor-interaction" data-wallet-action="apply" ${canApply?'':'disabled'}>应用</button></div></section></div>`;}
+    function walletRangeDialog(){
+      const mode=state.walletDraftMode,manual=mode==='MANUAL',canApply=!manual||state.walletDraftIds.length>0;
+      const modeLabels={REGULAR:'常规钱包',ALL:'全部钱包',MANUAL:'手动选择'};
+      const hints={REGULAR:'仅常规钱包（独立核算关闭），包括归档历史。',ALL:'包括独立核算钱包和归档历史。',MANUAL:'独立核算钱包在下方列表中默认不勾选。'};
+      const options=wallets.map(w=>`<label class="ks-wallet-check cursor-interaction"><input type="checkbox" data-wallet-option="${w.id}" ${state.walletDraftIds.includes(w.id)?'checked':''}><span>${escapeText(w.name)} · ${w.code}</span>${w.separateAccounting?'<small>独立核算</small>':''}</label>`).join('');
+      return `<div class="ks-modal-overlay ks-wallet-overlay"><section class="ks-wallet-dialog" role="dialog" aria-modal="true" aria-label="钱包范围">
+        <h3>钱包范围</h3><div class="ks-wallet-body">
+          <p class="ks-note">默认只统计常规钱包；独立核算钱包可手动加入。</p>
+          <div class="ks-choices" role="group" aria-label="钱包范围模式">${Object.entries(modeLabels).map(([value,label])=>choice(label,value,mode,'wallet-mode')).join('')}</div>
+          <p class="ks-note">${hints[mode]}</p>${manual?options:''}
+          ${canApply?'':'<p class="ks-note">请选择至少一个钱包，或恢复默认。</p>'}
+        </div><div class="ks-wallet-actions">
+          <button type="button" class="ks-text-btn" data-wallet-action="default">恢复默认</button>
+          <button type="button" class="ks-text-btn" data-wallet-action="cancel">取消</button>
+          <button type="button" class="ks-text-btn" data-wallet-action="apply" ${canApply?'':'disabled'}>应用</button>
+        </div></section></div>`;
+    }
         function pageMealFilter(){
       const f=state.mealFilterDraft,methods=[...new Set(['下厨','外卖',...allMeals().map(m=>m.method).filter(Boolean)])],preparations=[...new Set(['炒菜','预制菜',...allMeals().flatMap(m=>m.categories)])];
       const select=(label,name,choices)=>`<label><span class="ks-label">${label}</span><select class="ks-control" name="${name}">${choices.map(([value,label])=>`<option value="${escapeText(value)}" ${f[name]===value?'selected':''}>${escapeText(label)}</option>`).join('')}</select></label>`;
@@ -812,7 +834,7 @@
       const opening=!!kind,group=opening?node:attachGhost(oldModal);
       const overlay=opening?node:group?.firstElementChild;
       if(!overlay)return;
-      const panel=overlay.firstElementChild,dialog=(opening?kind:previous)==='dialog',duration=dialog?motion.dialog:motion.sheet;
+      const panel=overlay.firstElementChild,variant=opening?kind:previous,dialog=variant==='dialog'||variant==='wallet',duration=dialog?motion.dialog:motion.sheet;
       play(overlay,opening?[{opacity:0},{opacity:1}]:[{opacity:1},{opacity:0}],duration,opening?()=>{}:discard(group));
       play(panel,dialog?(opening?[{transform:'scale(.96)'},{transform:'scale(1)'}]:[{transform:'scale(1)'},{transform:'scale(.96)'}]):(opening?[{transform:'translateY(100%)'},{transform:'translateY(0)'}]:[{transform:'translateY(0)'},{transform:'translateY(100%)'}]),duration);
     }
@@ -862,7 +884,7 @@
       phone.innerHTML=`<div class="ks-status"><span>9:41</span><span class="ks-signal">${icon('signal')}${icon('wifi')}${icon('battery-full')}</span></div><div class="ks-page-motion"><header class="ks-top ${form?'ks-subpage':''}">${header}</header><main class="ks-main">${({home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,appearance:pageAppearance,'wallet-edit':pageWalletEdit,'meal-form':pageMealForm,'meal-filter':pageMealFilter,entry:pageEntry,'entry-detail':pageEntryDetail,'category-manager':pageCategoryManager})[state.page]()}${state.notice?`<p class="ks-success" role="status">${escapeText(state.notice)}</p>`:''}</main></div>${state.page==='ledger'?`<div class="ks-ledger-action"><button type="button" class="ks-primary ks-full cursor-interaction" data-action="add-entry">${icon('plus')}记一笔</button></div>`:''}${form?'':`<nav class="ks-nav" aria-label="主导航">${navs.map(([id,name,ic])=>`<button type="button" data-page="${id}" class="cursor-interaction" ${state.page===id?'aria-current="page"':''}><span>${icon(ic)}</span>${name}</button>`).join('')}</nav>`}<div class="ks-home-indicator" aria-hidden="true"></div>`;
       if(state.calcOpen){phone.insertAdjacentHTML('beforeend',calculatorSheet());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-calc-expression]').focus({preventScroll:true});}
       if(state.deletePending){phone.insertAdjacentHTML('beforeend',deleteConfirmation());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-delete-action=cancel]').focus({preventScroll:true});}
-      if(state.walletPickerOpen){phone.insertAdjacentHTML('beforeend',walletPickerSheet());for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;const all=phone.querySelector('[data-wallet-all]');all.indeterminate=state.walletDraftIds.length>0&&state.walletDraftIds.length<wallets.length;all.focus({preventScroll:true});}
+      if(state.walletPickerOpen){phone.insertAdjacentHTML('beforeend',walletRangeDialog());for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;phone.querySelector('[data-wallet-mode][aria-pressed=true]').focus({preventScroll:true});}
       if(state.page==='appearance')updateAppearancePreview();
       globalThis.lucide?.createIcons({root:phone,attrs:{width:18,height:18}});
       rendering=false;
@@ -907,7 +929,14 @@
     function cancelDelete(){const action=state.deletePending.kind==='meal'?'delete-meal':'delete-entry';state.deletePending=null;render();phone.querySelector(`[data-action=${action}]`)?.focus({preventScroll:true});}
     function confirmDelete(){const p=state.deletePending;if(p.kind==='meal'){if(state.records[p.date])state.records[p.date][p.slot]=null;state.date=p.date;state.page=state.mealReturn;state.editing=false;}else{if(financialEntries().some(e=>e.originalExpenseId===p.id)){phone.querySelector('[data-delete-error]').textContent='请先删除这笔支出关联的退款，再删除原支出。';return;}state.deletedEntryIds.add(p.id);state.page='ledger';state.ledgerTab='流水';}state.deletePending=null;state.notice='已从当前演示删除记录。';render();}
     function closeCalculator(apply){if(apply){try{state.amount=inputAmount(calcCents(phone.querySelector('[data-calc-expression]').value));}catch(e){phone.querySelector('.ks-calc-error').textContent=e.message;return;}}state.calcOpen=false;render();phone.querySelector('[data-action=open-calculator]').focus({preventScroll:true});}
-    function closeWalletPicker(action){if(action==='apply'){if(!state.walletDraftIds.length)return;state.walletFilterIds=state.walletDraftIds.length===wallets.length?'ALL':[...state.walletDraftIds];}else if(action==='default')state.walletFilterIds=null;state.walletPickerOpen=false;render();persist();phone.querySelector('[data-action=choose-wallets]')?.focus({preventScroll:true});}
+    function closeWalletPicker(action){
+      if(action==='apply'){
+        const mode=state.walletDraftMode;
+        if(mode==='MANUAL'&&!state.walletDraftIds.length)return;
+        state.walletFilterIds=mode==='MANUAL'?[...state.walletDraftIds]:mode==='ALL'?'ALL':null;
+      }else if(action==='default')state.walletFilterIds=null;
+      state.walletPickerOpen=false;render();persist();phone.querySelector('[data-action=choose-wallets]')?.focus({preventScroll:true});
+    }
         function calcCents(expression){
       const source=expression.replace(/×/g,'*').replace(/[−–]/g,'-').replace(/÷/g,'/').replace(/\s/g,'');
       if(source.length>80||!/^\d+(?:\.\d*)?(?:[+*/-]\d+(?:\.\d*)?)*$/.test(source))throw Error('请补全金额或计算式，例如 12+8×2。');
@@ -922,6 +951,7 @@
       return cents;
     }
     phone.addEventListener('click',event=>{
+      if(event.target.matches('.ks-wallet-overlay')){closeWalletPicker('cancel');return;}
       const b=event.target.closest('button');if(!b)return;
       capture();state.notice='';
       if(b.dataset.previewMode){state.previewMode=b.dataset.previewMode;updateAppearancePreview();return;}
@@ -951,9 +981,15 @@
       if(b.dataset.archiveFinancialCategory){const c=categoryById(b.dataset.archiveFinancialCategory);if(c&&!c.isDefault){c.archived=!c.archived;state.editingFinancialCategoryId=null;render();}return;}
       if(b.dataset.action==='cancel-category-edit'){state.editingFinancialCategoryId=null;render();return;}
       if(b.dataset.action==='edit-general-categories'){state.categoryWalletId='GLOBAL';state.editingFinancialCategoryId=null;render();return;}
-      if(b.dataset.action==='choose-wallets'){state.walletDraftIds=selectedWallets().map(w=>w.id);state.walletPickerOpen=true;render();return;}
+      if(b.dataset.action==='choose-wallets'){
+        const scope=state.walletFilterIds;
+        state.walletDraftMode=Array.isArray(scope)?'MANUAL':scope==='ALL'?'ALL':'REGULAR';
+        state.walletDraftIds=Array.isArray(scope)?[...scope]:regularWallets().map(w=>w.id);
+        state.walletPickerOpen=true;render();return;
+      }
       if(b.dataset.editWallet){state.editingWalletId=b.dataset.editWallet;state.page='wallet-edit';render();return;}
       if(b.dataset.action==='save-wallet'){walletById(state.editingWalletId).separateAccounting=phone.querySelector('[data-wallet-independent]').checked;state.page='ledger';render();persist();return;}
+      if(b.dataset.walletMode){state.walletDraftMode=b.dataset.walletMode;render();return;}
       if(b.dataset.walletAction){closeWalletPicker(b.dataset.walletAction);return;}
       if(b.dataset.entryId){if(!financialEntries().some(e=>e.id===b.dataset.entryId))return;recordOrigin={page:state.page,id:b.dataset.entryId};entrance=visible(b)?rect(b):null;state.selectedEntryId=b.dataset.entryId;state.page='entry-detail';render();return;}
       if(b.dataset.action==='delete-meal'){const meal=state.records[state.editingDate]?.[state.editingSlot];if(!meal)return;state.deletePending={kind:'meal',date:state.editingDate,slot:state.editingSlot,summary:`${state.editingDate} · ${slots[state.editingSlot]}\n${meal.dishes||'无菜品内容'}`};render();return;}
@@ -977,13 +1013,17 @@
       if(b.dataset.action==='new-category'){phone.querySelector('[data-new-category]').hidden=false;phone.querySelector('[data-category-name]').focus();return;}
       if(b.dataset.action==='confirm-category'){const c=phone.querySelector('[data-category-name]').value.trim();if(c&&!state.categories.includes(c))state.categories.push(c);render();}
     });
-    phone.addEventListener('keydown',event=>{if(!state.calcOpen&&!state.deletePending&&!state.walletPickerOpen)return;if(event.key==='Escape'){event.preventDefault();if(state.walletPickerOpen)closeWalletPicker('cancel');else if(state.deletePending)cancelDelete();else closeCalculator(false);}else if(state.calcOpen&&event.key==='Enter'&&event.target.matches('[data-calc-expression]')){event.preventDefault();closeCalculator(true);}else if(event.key==='Tab'){const dialog=phone.querySelector('[role=dialog],[role=alertdialog]'),controls=[...dialog.querySelectorAll('button,input')],first=controls[0],last=controls[controls.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}});
+    phone.addEventListener('keydown',event=>{if(!state.calcOpen&&!state.deletePending&&!state.walletPickerOpen)return;if(event.key==='Escape'){event.preventDefault();if(state.walletPickerOpen)closeWalletPicker('cancel');else if(state.deletePending)cancelDelete();else closeCalculator(false);}else if(state.calcOpen&&event.key==='Enter'&&event.target.matches('[data-calc-expression]')){event.preventDefault();closeCalculator(true);}else if(event.key==='Tab'){const dialog=phone.querySelector('[role=dialog],[role=alertdialog]'),controls=[...dialog.querySelectorAll('button:not(:disabled),input:not(:disabled)')],first=controls[0],last=controls[controls.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}});
     phone.addEventListener('change',event=>{
       const e=event.target;
       if(e.matches('[data-category-wallet]')){state.categoryWalletId=e.value;state.editingFinancialCategoryId=null;render();return;}
       if(e.matches('[data-category-mode]')){const wallet=wallets.find(w=>w.id===state.categoryWalletId);if(wallet){wallet[state.financialScope==='INCOME'?'incomeCategoryMode':'expenseCategoryMode']=e.value;state.editingFinancialCategoryId=null;render();}return;}
-      if(e.matches('[data-wallet-all]')){state.walletDraftIds=e.checked?wallets.map(w=>w.id):[];render();return;}
-      if(e.matches('[data-wallet-option]')){const id=e.dataset.walletOption;state.walletDraftIds=e.checked?[...new Set([...state.walletDraftIds,id])]:state.walletDraftIds.filter(x=>x!==id);render();phone.querySelector(`[data-wallet-option=${id}]`).focus({preventScroll:true});return;}
+      if(e.matches('[data-wallet-option]')){
+        const id=e.dataset.walletOption,scroll=e.closest('.ks-wallet-body').scrollTop;
+        state.walletDraftIds=e.checked?[...new Set([...state.walletDraftIds,id])]:state.walletDraftIds.filter(x=>x!==id);
+        render();phone.querySelector('.ks-wallet-body').scrollTop=scroll;
+        phone.querySelector(`[data-wallet-option=${id}]`).focus({preventScroll:true});return;
+      }
       if(e.matches('[data-entry-form] [name=wallet]')){capture();state.entryDraft.category=chooseFinancialCategory(state.entryDraft.walletId,state.entryType,state.entryDraft.category);render();return;}
       if(e.matches('[data-month-input]')){const key=e.dataset.monthInput;if(['ledgerMonth','mealMonth'].includes(key)&&/^\d{4}-(0[1-9]|1[0-2])$/.test(e.value)&&e.value.slice(0,4)!=='0000'){state[key]=e.value;if(key==='ledgerMonth')state.ledgerRangeOpen=false;}render();persist();return;}
       if(e.matches('[data-theme]')){state.appearanceDraft.mode=e.value;updateAppearancePreview();return;}

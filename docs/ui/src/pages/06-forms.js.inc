@@ -17,7 +17,23 @@
       ${formFooter(saveButton(`保存${state.entryType}`),'交互预览 · 仅保存到当前演示')}
     </form>`;}
     function calculatorSheet(){return `<div class="ks-modal-overlay"><section class="ks-calc-sheet" role="dialog" aria-modal="true" aria-label="金额计算器"><div class="ks-calc-body"><div class="ks-row"><h3>金额计算器</h3><button type="button" class="ks-text-btn cursor-interaction" data-calc-action="cancel">关闭</button></div><label><span class="ks-note">${entryWallet()?.code||'未选择钱包'} · 支持加减乘除</span><input class="ks-amount-input" data-calc-expression inputmode="text" aria-label="计算表达式" maxlength="80" placeholder="${(entryWallet()?.scale??2)?'0.00':'0'}" value="${escapeText(state.calcExpression)}"></label><div class="ks-calculator" role="group" aria-label="计算键盘">${['C','⌫','÷','×','7','8','9','−','4','5','6','+','1','2','3','=','0','.'].map(k=>`<button type="button" class="ks-key ${['÷','×','−','+','='].includes(k)?'ks-operator':''} ${k==='0'?'ks-zero':''} ${k==='='?'ks-equal':''} cursor-interaction" data-key="${k}" aria-label="${k==='⌫'?'退格':k==='C'?'清空':k}">${k}</button>`).join('')}</div></div><div class="ks-calc-footer"><p class="ks-calc-error" role="alert"></p><div class="ks-calc-actions"><button type="button" class="ks-choice cursor-interaction" data-calc-action="cancel">取消</button><button type="button" class="ks-primary cursor-interaction" data-calc-action="apply">使用此金额</button></div></div></section></div>`;}
-    function walletPickerSheet(){const all=state.walletDraftIds.length===wallets.length,canApply=state.walletDraftIds.length>0;return `<div class="ks-modal-overlay"><section class="ks-wallet-sheet" role="dialog" aria-modal="true" aria-label="选择钱包"><h3>选择钱包</h3><p class="ks-note">独立核算钱包默认不选中，可手动加入。</p><label class="ks-wallet-check cursor-interaction"><input type="checkbox" data-wallet-all ${all?'checked':''}><span>全部钱包（含独立核算）</span></label>${wallets.map(w=>`<label class="ks-wallet-check cursor-interaction"><input type="checkbox" data-wallet-option="${w.id}" ${state.walletDraftIds.includes(w.id)?'checked':''}><span>${w.name}${w.separateAccounting?' · 独立核算':''}</span><small>${w.code}</small></label>`).join('')}${canApply?'':'<p class="ks-note">请选择至少一个钱包，或恢复默认。</p>'}<div class="ks-calc-actions"><button type="button" class="ks-choice cursor-interaction" data-wallet-action="default">恢复默认</button><button type="button" class="ks-choice cursor-interaction" data-wallet-action="cancel">取消</button><button type="button" class="ks-primary cursor-interaction" data-wallet-action="apply" ${canApply?'':'disabled'}>应用</button></div></section></div>`;}
+    function walletRangeDialog(){
+      const mode=state.walletDraftMode,manual=mode==='MANUAL',canApply=!manual||state.walletDraftIds.length>0;
+      const modeLabels={REGULAR:'常规钱包',ALL:'全部钱包',MANUAL:'手动选择'};
+      const hints={REGULAR:'仅常规钱包（独立核算关闭），包括归档历史。',ALL:'包括独立核算钱包和归档历史。',MANUAL:'独立核算钱包在下方列表中默认不勾选。'};
+      const options=wallets.map(w=>`<label class="ks-wallet-check cursor-interaction"><input type="checkbox" data-wallet-option="${w.id}" ${state.walletDraftIds.includes(w.id)?'checked':''}><span>${escapeText(w.name)} · ${w.code}</span>${w.separateAccounting?'<small>独立核算</small>':''}</label>`).join('');
+      return `<div class="ks-modal-overlay ks-wallet-overlay"><section class="ks-wallet-dialog" role="dialog" aria-modal="true" aria-label="钱包范围">
+        <h3>钱包范围</h3><div class="ks-wallet-body">
+          <p class="ks-note">默认只统计常规钱包；独立核算钱包可手动加入。</p>
+          <div class="ks-choices" role="group" aria-label="钱包范围模式">${Object.entries(modeLabels).map(([value,label])=>choice(label,value,mode,'wallet-mode')).join('')}</div>
+          <p class="ks-note">${hints[mode]}</p>${manual?options:''}
+          ${canApply?'':'<p class="ks-note">请选择至少一个钱包，或恢复默认。</p>'}
+        </div><div class="ks-wallet-actions">
+          <button type="button" class="ks-text-btn" data-wallet-action="default">恢复默认</button>
+          <button type="button" class="ks-text-btn" data-wallet-action="cancel">取消</button>
+          <button type="button" class="ks-text-btn" data-wallet-action="apply" ${canApply?'':'disabled'}>应用</button>
+        </div></section></div>`;
+    }
         function pageMealFilter(){
       const f=state.mealFilterDraft,methods=[...new Set(['下厨','外卖',...allMeals().map(m=>m.method).filter(Boolean)])],preparations=[...new Set(['炒菜','预制菜',...allMeals().flatMap(m=>m.categories)])];
       const select=(label,name,choices)=>`<label><span class="ks-label">${label}</span><select class="ks-control" name="${name}">${choices.map(([value,label])=>`<option value="${escapeText(value)}" ${f[name]===value?'selected':''}>${escapeText(label)}</option>`).join('')}</select></label>`;

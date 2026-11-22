@@ -123,7 +123,7 @@
       const opening=!!kind,group=opening?node:attachGhost(oldModal);
       const overlay=opening?node:group?.firstElementChild;
       if(!overlay)return;
-      const panel=overlay.firstElementChild,dialog=(opening?kind:previous)==='dialog',duration=dialog?motion.dialog:motion.sheet;
+      const panel=overlay.firstElementChild,variant=opening?kind:previous,dialog=variant==='dialog'||variant==='wallet',duration=dialog?motion.dialog:motion.sheet;
       play(overlay,opening?[{opacity:0},{opacity:1}]:[{opacity:1},{opacity:0}],duration,opening?()=>{}:discard(group));
       play(panel,dialog?(opening?[{transform:'scale(.96)'},{transform:'scale(1)'}]:[{transform:'scale(1)'},{transform:'scale(.96)'}]):(opening?[{transform:'translateY(100%)'},{transform:'translateY(0)'}]:[{transform:'translateY(0)'},{transform:'translateY(100%)'}]),duration);
     }

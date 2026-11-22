@@ -33,7 +33,7 @@
     const walletById=id=>wallets.find(w=>w.id===id)||wallets[0];
     const entryWallet=()=>wallets.find(w=>w.id===state.entryDraft.walletId)||null;
     const defaultEntryWallet=()=>wallets.find(w=>w.id===state.lastWalletId&&!w.separateAccounting)||wallets.find(w=>!w.separateAccounting)||null;
-    state.walletFilterIds=null;state.walletPickerOpen=false;state.walletDraftIds=[];state.lastWalletId='daily';
+    state.walletFilterIds=null;state.walletPickerOpen=false;state.walletDraftMode='REGULAR';state.walletDraftIds=[];state.lastWalletId='daily';
     // Financial categories are scoped by type and optional wallet; meal preparation categories are separate.
     const sharedFinancialCategories={
       EXPENSE:[{id:'ge-food',name:'餐饮',archived:false},{id:'ge-transport',name:'交通',archived:false},{id:'ge-daily',name:'日用',archived:false}],

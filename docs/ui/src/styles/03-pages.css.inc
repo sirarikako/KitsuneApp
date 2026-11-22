@@ -1,5 +1,12 @@
-  #kitsune-preview .ks-wallet-sheet h3{font-size:18px;font-weight:600;margin:0 0 var(--ks-space-2)}
-  #kitsune-preview .ks-wallet-check{display:flex;align-items:center;gap:11px;min-height:55px;padding:10px 0;border-bottom:1px solid var(--ks-line);font-size:14px}
+  #kitsune-preview .ks-wallet-dialog h3{font-size:var(--ks-font-title);font-weight:600;line-height:1.3;margin:0}
+  #kitsune-preview .ks-wallet-body{display:grid;gap:var(--ks-space-2);overflow:auto;min-height:0}
+  #kitsune-preview .ks-wallet-body p{margin:0}
+  #kitsune-preview .ks-wallet-dialog .ks-choice{padding:var(--ks-space-2)}
+  @media(max-width:400px){#kitsune-preview .ks-wallet-dialog{padding-inline:var(--ks-space-4)}#kitsune-preview .ks-wallet-dialog .ks-choice{padding-inline:var(--ks-space-1)}}
+  #kitsune-preview .ks-wallet-dialog .ks-choice[aria-pressed=true]{box-shadow:inset 0 0 0 1px var(--ks-accent)}
+  #kitsune-preview .ks-wallet-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:var(--ks-space-2);padding-top:var(--ks-space-2)}
+  #kitsune-preview .ks-wallet-actions .ks-text-btn{font-size:var(--ks-font-body);padding:var(--ks-space-2)}
+  #kitsune-preview .ks-wallet-check{display:flex;align-items:center;gap:var(--ks-space-2);min-height:48px;font-size:var(--ks-font-body)}
   #kitsune-preview .ks-wallet-check input{width:18px;height:18px;accent-color:var(--ks-accent);flex-shrink:0}
   #kitsune-preview .ks-wallet-setting{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--ks-line);font-size:13px}
   #kitsune-preview .ks-wallet-setting small{display:block;color:var(--ks-dim);font-size:11px;margin-top:3px}
@@ -14,7 +21,7 @@
   #kitsune-preview .ks-category-form{margin-top:4px}
   #kitsune-preview .ks-category-form .ks-form-actions{align-items:center}
   #kitsune-preview .ks-wallet-check>span{flex:1}
-  #kitsune-preview .ks-wallet-check small{font-size:12px;color:var(--ks-dim)}
+  #kitsune-preview .ks-wallet-check small{font-size:var(--ks-font-note);color:var(--ks-accent)}
   #kitsune-preview .ks-filter-context{font-size:12px;color:var(--ks-dim);margin:0 0 13px}
   #kitsune-preview .ks-filter-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 15px}
   #kitsune-preview .ks-filter-chip{border:var(--ks-card-border);background:var(--ks-card-surface);font-size:var(--ks-font-tag);padding:2px 6px;border-radius:6px;color:var(--ks-dim)}
@@ -39,8 +46,7 @@
   @media(max-width:400px){#kitsune-preview .ks-stage{padding:12px 0;min-height:855px}#kitsune-preview .ks-main,#kitsune-preview .ks-top{padding-left:var(--ks-space-3);padding-right:var(--ks-space-3)}#kitsune-preview .ks-ledger-action{padding-left:var(--ks-space-3);padding-right:var(--ks-space-3)}#kitsune-preview .ks-choice{padding-left:var(--ks-space-2);padding-right:var(--ks-space-2)}}
   @media(pointer:coarse){#kitsune-preview .ks-text-btn{min-height:44px}#kitsune-preview .ks-control{font-size:16px}}
   #kitsune-preview .ks-preparation-check:has(input:checked){background:var(--ks-accent-bg);border-color:var(--ks-accent);color:var(--ks-accent)}
-  #kitsune-preview .ks-wallet-check:has(input:checked){color:var(--ks-accent)}
-  #kitsune-preview .ks-wallet-check:last-of-type,#kitsune-preview .ks-detail-list>div:last-child{border-bottom:0}
+  #kitsune-preview .ks-detail-list>div:last-child{border-bottom:0}
   #kitsune-preview .ks-appearance-preview .ks-record{cursor:default}
   #kitsune-preview .ks-appearance-preview .ks-record:hover{background:var(--ks-card-surface)}
   #kitsune-preview .ks-appearance-preview .ks-primary{margin-top:var(--ks-space-2)}

@@ -64,7 +64,7 @@
   #kitsune-preview .ks-delete-btn{display:flex;align-items:center;justify-content:center;gap:7px;color:var(--ks-danger);width:100%;min-height:var(--ks-control-height);border:var(--ks-card-border);border-radius:var(--ks-control-radius);background:var(--ks-card-surface);padding:var(--ks-space-2) var(--ks-space-4);font-size:var(--ks-font-body)}
   #kitsune-preview .ks-delete-btn svg{width:var(--ks-icon-size);height:var(--ks-icon-size)}
   #kitsune-preview .ks-danger-confirm{background:var(--ks-danger);color:var(--ks-on-danger,light-dark(#fff8f7,#451714))}
-  #kitsune-preview .ks-delete-overlay{align-items:center;padding:18px}
+  #kitsune-preview :is(.ks-delete-overlay,.ks-wallet-overlay){align-items:center;padding:18px}
   #kitsune-preview .ks-delete-sheet{background:var(--ks-card-surface);border:var(--ks-card-border);width:100%;border-radius:var(--ks-dialog-radius);padding:var(--ks-space-4);box-shadow:var(--ks-dialog-shadow);max-height:calc(100% - 24px);overflow:auto}
   #kitsune-preview .ks-delete-sheet h3{font-size:18px;font-weight:600;margin:0 0 var(--ks-space-2)}
   #kitsune-preview .ks-delete-summary{font-size:14px;line-height:1.7;margin:0 0 12px;white-space:pre-line}
@@ -91,4 +91,4 @@
   #kitsune-preview .ks-currency-amount small{font-size:11px;color:var(--ks-dim)}
   #kitsune-preview .ks-currency-group{margin-bottom:19px}
   #kitsune-preview .ks-currency-group .ks-money-card{margin-bottom:10px}
-  #kitsune-preview .ks-wallet-sheet{width:100%;background:var(--ks-card-surface);border:var(--ks-card-border);border-radius:var(--ks-dialog-radius);padding:var(--ks-space-4);box-shadow:var(--ks-dialog-shadow);max-height:calc(100% - 24px);overflow:auto}
+  #kitsune-preview .ks-wallet-dialog{display:flex;flex-direction:column;gap:var(--ks-space-4);width:100%;max-width:480px;margin:auto;background:var(--ks-card-surface);border:var(--ks-card-border);border-radius:var(--ks-dialog-radius);padding:var(--ks-space-6);box-shadow:var(--ks-dialog-shadow);max-height:100%;overflow:hidden}

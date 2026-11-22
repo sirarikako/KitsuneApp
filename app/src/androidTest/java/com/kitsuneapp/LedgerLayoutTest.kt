@@ -11,9 +11,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -82,6 +88,66 @@ class LedgerLayoutTest {
     }
 
     @Test
+    fun walletRangeDialogAppliesModesAndKeepsIndependentWalletsOptIn() {
+        val now = "2026-11-17T12:00:00Z"
+        val regular = Wallet("regular", "日常钱包", "日常钱包", "CNY", 2, 0, 0, false, false,
+            CategoryMode.DEFAULT, CategoryMode.DEFAULT, now, now)
+        val separate = regular.copy(id = "separate", name = "省钱钱包", currencyCode = "JPY", currencyScale = 0,
+            separateAccounting = true)
+        val records = Records(DataState(installationId = "test", datasetId = "test", arrayElements = 0),
+            ThemePreferences(), emptyList(), emptyList(), emptyList(), emptyMap(), listOf(regular, separate), emptyList())
+        compose.setContent { KitsuneTheme(records.theme, forceDark = false) { LedgerPage(records, {}, {}) } }
+
+        fun inDialog(label: String) = compose.onNode(hasText(label) and hasAnyAncestor(isDialog()))
+        val range = compose.onNodeWithText("钱包范围")
+        val daily = inDialog("日常钱包 · CNY")
+        val savings = inDialog("省钱钱包 · JPY")
+        val apply = inDialog("应用")
+        val manual = inDialog("手动选择")
+        val all = inDialog("全部钱包")
+        compose.onNodeWithText("统计").performClick()
+        range.performClick()
+        inDialog("常规钱包").assertIsSelected()
+        daily.assertDoesNotExist()
+        savings.assertDoesNotExist()
+        saveScreenshot("kitsune-wallet-range-regular")
+
+        manual.performClick().assertIsSelected()
+        daily.assertIsOn()
+        savings.assertIsOff()
+        saveScreenshot("kitsune-wallet-range-manual")
+        daily.performClick().assertIsOff()
+        apply.assertIsNotEnabled()
+        savings.performClick().assertIsOn()
+        all.performClick().assertIsSelected()
+        savings.assertDoesNotExist()
+        manual.performClick()
+        daily.assertIsOff()
+        savings.assertIsOn()
+        apply.performClick()
+        compose.onNodeWithText("本月收支 · JPY").assertIsDisplayed()
+
+        range.performClick()
+        savings.assertIsOn()
+        all.performClick()
+        inDialog("取消").performClick()
+        compose.onNodeWithText("本月收支 · CNY").assertDoesNotExist()
+        range.performClick()
+        all.performClick()
+        apply.performClick()
+        compose.onNodeWithText("本月收支 · CNY").assertIsDisplayed()
+
+        range.performClick()
+        all.assertIsSelected()
+        manual.performClick()
+        daily.assertIsOn()
+        savings.assertIsOff()
+        inDialog("恢复默认").performClick()
+        compose.onNodeWithText("常规钱包").assertIsDisplayed()
+        compose.onNodeWithText("本月收支 · JPY").assertDoesNotExist()
+    }
+
+    @Test
     fun calculatorAcceptsExpressionsAndAppliesResultAfterEditing() {
         var amount: String? = null
         compose.setContent {
@@ -101,13 +167,17 @@ class LedgerLayoutTest {
         apply.assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals("33.33", amount) }
 
-        val bitmap = checkNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
-        File(compose.activity.cacheDir, "kitsune-calculator.png").outputStream().use {
-            check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
-        }
+        saveScreenshot("kitsune-calculator")
         expression.performClick()
         expression.performTextReplacement("2×25")
         apply.assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals("50.00", amount) }
+    }
+
+    private fun saveScreenshot(name: String) {
+        val bitmap = checkNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
+        File(compose.activity.cacheDir, "$name.png").outputStream().use {
+            check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
+        }
     }
 }

@@ -1,7 +1,6 @@
 package com.kitsuneapp.feature.ledger
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,7 +9,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -156,29 +154,9 @@ fun LedgerPage(records: Records, open: (String) -> Unit, openDetails: (String) -
     }
 
     if (walletPicker) {
-        var draft by rememberSaveable { mutableStateOf(wallets) }
-        val ids = draft.selected(ledger.wallets).map { it.id }
-        DesignSheet({ walletPicker = false }) {
-            Text("选择钱包", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-            Secondary("独立核算钱包默认不选中，可手动加入。")
-            WalletCheck("全部钱包（含独立核算）", "", draft.mode == RangeMode.ALL) { check ->
-                draft = if (check) WalletRange(RangeMode.ALL) else WalletRange(RangeMode.MANUAL)
-            }
-            LazyColumn(Modifier.heightIn(max = 240.dp)) {
-                items(ledger.wallets, key = { it.id }) { wallet ->
-                    WalletCheck(wallet.name + if (wallet.separateAccounting) " · 独立核算" else "",
-                        wallet.currencyCode, wallet.id in ids) { check ->
-                        draft = WalletRange(RangeMode.MANUAL, if (check) ids + wallet.id else ids - wallet.id)
-                    }
-                }
-            }
-            val canApply = draft.mode != RangeMode.MANUAL || ids.isNotEmpty()
-            if (!canApply) Secondary("请选择至少一个钱包，或恢复默认。")
-            TextAction("恢复默认", { wallets = WalletRange(); walletPicker = false })
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Choice("取消", { walletPicker = false }, Modifier.weight(1f))
-                Primary("应用", { wallets = draft; walletPicker = false }, Modifier.weight(1f), enabled = canApply)
-            }
+        WalletRangeDialog(wallets, ledger.wallets, dismiss = { walletPicker = false }) {
+            wallets = it
+            walletPicker = false
         }
     }
     if (filters) {
@@ -241,19 +219,6 @@ private fun RangeEditor(period: LedgerPeriod, modifier: Modifier, cancel: () -> 
                 Primary("应用日期", { select(period.copy(start = start, end = end)) }, Modifier.weight(1f), enabled = valid)
             }
         }
-    }
-}
-
-@Composable
-private fun WalletCheck(name: String, code: String, checked: Boolean, set: (Boolean) -> Unit) {
-    Column {
-        Row(Modifier.fillMaxWidth().heightIn(min = 55.dp).toggleable(checked, role = Role.Checkbox, onValueChange = set)
-            .padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Checkbox(checked, onCheckedChange = null)
-            Text(name, Modifier.weight(1f))
-            if (code.isNotEmpty()) Secondary(code)
-        }
-        HorizontalDivider()
     }
 }
 
