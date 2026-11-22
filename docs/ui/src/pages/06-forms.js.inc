@@ -3,8 +3,8 @@
       <fieldset><legend class="ks-label">是否计划在家吃<span class="ks-required">必选</span></legend><div class="ks-choices">${choice('是',true,state.atHome,'home-choice')}${choice('否',false,state.atHome,'home-choice')}</div></fieldset>
       <fieldset><legend class="ks-label">用餐方式<span class="ks-required">${state.atHome===true?'必选':'单选 · 可不填'}</span></legend><div class="ks-choices">${['下厨','外卖'].map(m=>choice(m,m,state.method,'method')).join('')}</div></fieldset>
       ${state.method==='下厨'?`<fieldset><legend class="ks-label">制作分类<span class="ks-required">多选 · 选填</span></legend><div class="ks-choices">${['炒菜','预制菜',...state.categories.filter(c=>!['炒菜','预制菜'].includes(c))].map(c=>choice(escapeText(c),c,state.categories.includes(c)?c:null,'category')).join('')}<button type="button" class="ks-choice cursor-interaction" data-action="new-category">＋ 新建</button></div><div data-new-category hidden><label class="ks-label" style="margin-top:10px">新分类名称<input class="ks-control" data-category-name placeholder="例如：蒸煮" maxlength="20"></label><button type="button" class="ks-text-btn cursor-interaction" data-action="confirm-category">添加到草稿</button></div></fieldset>`:''}
-      <label><span class="ks-label">菜品内容</span><textarea name="dishes" class="ks-control" rows="2" placeholder="今天吃了什么？">${escapeText(state.dishes||'')}</textarea></label>
-      <label><span class="ks-label">备注</span><textarea name="note" class="ks-control" rows="2" placeholder="还有什么想记下的？">${escapeText(state.note||'')}</textarea></label>
+      <label><span class="ks-label">菜品内容</span><input type="text" name="dishes" class="ks-control" placeholder="今天吃了什么？" value="${escapeText(state.dishes||'')}"></label>
+      <label><span class="ks-label">备注</span><input type="text" name="note" class="ks-control" placeholder="还有什么想记下的？" value="${escapeText(state.note||'')}"></label>
       ${formFooter(saveButton(`保存${slots[state.slot]}记录`)+(state.editing?deleteButton('meal','删除这条用餐记录'):''),'交互预览 · 仅保存到当前演示')}
     </form>`;}
     function pageEntry(){return `<form data-entry-form class="ks-form">

@@ -120,3 +120,8 @@
 
 - 过渡保留进入和离开时的栈深度。全屏子页进入时从右侧滑入，逐层返回时向右滑出，上一级从左侧滑回。Android、公共动效规范和离线预览已同步。
 - Chromium 验证设置与外观页之间的滑动方向、固定底栏和减少动画，覆盖 320 CSS px 浅色与 430 CSS px 深色。本地生成 Debug APK 和仪器测试 APK，21 项 JVM 测试及 lint 通过（0 错误，13 条既有警告）。[PR #20](https://github.com/sirarikako/KitsuneApp/pull/20) 的设备作业包含「设置 → 用餐方式 → 下厨」的页面返回和系统返回回归。
+
+## 用餐记录单行输入
+
+- 新增和编辑共用单行菜品、备注输入框。Android 以空格显示原文中的换行，仍按原文保存。用餐设计规范和离线 HTML 已同步。
+- Chromium 实测 320／430 CSS px 下的浅色／深色布局、长文本横向滚动及新增、编辑往返。本地 Debug APK、仪器测试 APK、21 项 JVM 测试及 lint 通过（0 错误，13 条既有警告）。[PR #20](https://github.com/sirarikako/KitsuneApp/pull/20) 的设备作业覆盖一行排版和包含换行的原文保存。

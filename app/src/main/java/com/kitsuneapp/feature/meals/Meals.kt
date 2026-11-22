@@ -16,6 +16,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kitsuneapp.AppViewModel
@@ -300,6 +304,12 @@ private fun MultiCategories(categories: List<Category>, selected: List<String>, 
     }
 }
 
+private val mealLineBreaks = Regex("[\r\n\u2028\u2029]")
+private val singleLineMealText = VisualTransformation { text ->
+    // Display stored line breaks as spaces, keeping the original text and cursor offsets.
+    TransformedText(AnnotatedString(mealLineBreaks.replace(text.text, " ")), OffsetMapping.Identity)
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot, model: AppViewModel, back: () -> Unit) {
@@ -388,8 +398,8 @@ fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot,
                     added = arrayListOf()
                 }
             }) { Text("复制上一餐内容") }
-            Field("菜品内容", dishes, { dishes = it }, multiline = true, placeholder = "今天吃了什么？")
-            Field("备注", note, { note = it }, multiline = true, placeholder = "还有什么想记下的？")
+            Field("菜品内容", dishes, { dishes = it }, transformation = singleLineMealText, placeholder = "今天吃了什么？")
+            Field("备注", note, { note = it }, transformation = singleLineMealText, placeholder = "还有什么想记下的？")
             SaveActions(busy, error, {
                 val draft = MealDraft(id, date, selectedSlot, atHome, methodId, selected,
                     if (newName.isBlank()) added else added + newName, dishes, note, clearHistorical)

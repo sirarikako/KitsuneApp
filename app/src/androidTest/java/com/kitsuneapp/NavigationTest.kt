@@ -3,6 +3,8 @@ package com.kitsuneapp
 import android.graphics.Bitmap
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
@@ -15,7 +17,11 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
+import androidx.compose.ui.text.TextLayoutResult
 import java.io.File
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -125,10 +131,16 @@ class NavigationTest {
         compose.onNodeWithText("保存早餐记录").performClick()
         compose.waitUntilAtLeastOneExists(hasText("请选择是否计划在家吃"), 15_000)
         compose.onNodeWithText("否").performClick()
-        compose.onNodeWithText("保存早餐记录").performClick()
+        val values = mapOf("菜品内容" to "番茄炒蛋、\"紫菜汤\"、".repeat(8), "备注" to "配菜另装\n少放盐")
+        for ((label, value) in values) {
+            compose.onNodeWithContentDescription(label).performScrollTo().performTextReplacement(value)
+            assertSingleLineMealText(label, value)
+        }
+        compose.onNodeWithText("保存早餐记录").performScrollTo().performClick()
         compose.waitUntilAtLeastOneExists(hasText("三餐记录"), 15_000)
         compose.onNodeWithText("早餐").performClick()
-        compose.onNodeWithText("删除这条用餐记录").performClick()
+        for ((label, value) in values) assertSingleLineMealText(label, value)
+        compose.onNodeWithText("删除这条用餐记录").performScrollTo().performClick()
         compose.onNodeWithText("确认删除").performClick()
         compose.waitUntilAtLeastOneExists(hasText("添加记录"), 15_000)
     }
@@ -147,6 +159,16 @@ class NavigationTest {
         compose.onNodeWithContentDescription(dayLabel(other)).assertIsNotSelected().performClick().assertIsSelected()
         compose.onNodeWithContentDescription(dayLabel(today)).assertIsNotSelected()
         compose.onNodeWithText("三餐记录").assertIsDisplayed()
+    }
+
+    private fun assertSingleLineMealText(label: String, value: String) {
+        val field = compose.onNodeWithContentDescription(label).performScrollTo()
+        assertEquals(value, field.fetchSemanticsNode().config[SemanticsProperties.InputText].text)
+        val layouts = mutableListOf<TextLayoutResult>()
+        field.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        val layout = layouts.single()
+        assertEquals(1, layout.lineCount)
+        assertEquals(value.replace('\n', ' '), layout.layoutInput.text.text)
     }
 
     private fun screenshot(name: String) {
