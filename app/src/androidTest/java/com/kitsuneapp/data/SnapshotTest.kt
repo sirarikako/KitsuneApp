@@ -1,0 +1,84 @@
+package com.kitsuneapp.data
+
+import android.content.Context
+import androidx.room.Room
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import java.io.ByteArrayOutputStream
+import kotlinx.coroutines.runBlocking
+import org.junit.After
+import org.junit.Assert.*
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class SnapshotTest {
+    private lateinit var database: KitsuneDatabase
+    private lateinit var repository: Repository
+    private lateinit var store: SnapshotStore
+    private lateinit var context: Context
+    private lateinit var sample: String
+
+    @Before
+    fun setUp() = runBlocking {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        context = instrumentation.targetContext
+        sample = instrumentation.context.assets.open("backup-v1.json").bufferedReader().use { it.readText() }
+        database = Room.inMemoryDatabaseBuilder(context, KitsuneDatabase::class.java).build()
+        repository = Repository(database, newId())
+        repository.initialize(true)
+        store = SnapshotStore(context, repository)
+    }
+
+    @After
+    fun tearDown() { database.close() }
+
+    @Test
+    fun documentedFixtureRoundTripsWithHistoricalFieldsAndAccurateBalances() = runBlocking {
+        store.stage(sample.byteInputStream()).use { staged ->
+            assertEquals(SnapshotCounts(1, 2, 3), staged.counts)
+            store.restore(staged) { fail("Fresh database should not require protection") }
+            assertEquals(1L, repository.read().state.revision)
+            assertEquals(staged.info.datasetId, repository.read().state.datasetId)
+        }
+        val records = repository.read()
+        val ledger = Ledger(records)
+        val wallets = records.wallets.associateBy { it.currencyCode }
+        assertEquals("8000", ledger.balance()[wallets.getValue("CNY").id].toString())
+        assertEquals("200", ledger.balance()[wallets.getValue("JPY").id].toString())
+        assertTrue(wallets.getValue("JPY").separateAccounting)
+        val output = ByteArrayOutputStream()
+        store.export(BackupKind.MANUAL, output)
+        assertTrue(output.toString("UTF-8").contains("\"openingBalanceMinor\": \"10000\""))
+        store.stage(output.toByteArray().inputStream()).use { assertEquals(SnapshotCounts(1, 2, 3), it.counts) }
+    }
+
+    @Test
+    fun oldV1DefaultsAndFailedProtectionPreserveCurrentDataset() = runBlocking {
+        val previous = sample.replace(Regex("\"walletId\":null,"), "")
+            .replace(Regex(",\"separateAccounting\":(?:true|false),\"incomeCategoryMode\":\"DEFAULT\",\"expenseCategoryMode\":\"DEFAULT\""), "")
+        repository.applyTheme(ThemePreferences(themeMode = ThemeMode.DARK))
+        val before = repository.read()
+        store.stage(previous.byteInputStream()).use { staged ->
+            assertTrue(runCatching { store.restore(staged) { error("无法保存保护文件") } }.isFailure)
+            assertEquals(before, repository.read())
+            assertTrue(staged.db.records().wallets().none { it.separateAccounting })
+            assertTrue(staged.db.records().wallets().all { it.incomeCategoryMode == CategoryMode.DEFAULT })
+        }
+    }
+
+    @Test
+    fun rejectsDuplicateKeysUnknownVersionBadForeignKeysAndMissingTime() = runBlocking {
+        val before = repository.read()
+        val malformed = listOf(
+            sample.replace("\"formatVersion\": 1", "\"formatVersion\": 9"),
+            sample.replace("\"formatVersion\": 1", "\"formatVersion\": 1, \"formatVersion\": 1"),
+            sample.replace("\"time\":\"18:30\",", ""),
+            sample.replace("\"toWalletId\":\"40000000-0000-4000-8000-000000000002\"", "\"toWalletId\":\"40000000-0000-4000-8000-000000000099\""),
+            sample.replace("\"amountMinor\":\"280\"", "\"amountMinor\":\"1281\""),
+        )
+        malformed.forEach { assertTrue(runCatching { store.stage(it.byteInputStream()).close() }.isFailure) }
+        assertEquals(before, repository.read())
+    }
+}

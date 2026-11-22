@@ -1,0 +1,343 @@
+package com.kitsuneapp.ui
+
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.DateRange
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.hideFromAccessibility
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import java.time.LocalDate
+import java.time.YearMonth
+import java.util.Locale
+
+internal fun Modifier.inert(key: Any?) = clearAndSetSemantics { hideFromAccessibility() }
+    .pointerInput(key) {
+        awaitPointerEventScope {
+            while (true) awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() }
+        }
+    }
+
+@Composable
+internal fun <T> ContentFade(state: T, modifier: Modifier = Modifier, content: @Composable (T) -> Unit) {
+    AnimatedContent(state, modifier, transitionSpec = {
+        fadeIn(tween(150, easing = motion)) togetherWith fadeOut(tween(150, easing = motion))
+    }, label = "局部内容") { shown ->
+        val active = shown == state
+        val recordMotion = LocalRecordMotion.current.takeIf { active }
+        CompositionLocalProvider(LocalRecordMotion provides recordMotion) {
+            Box(if (active) Modifier else Modifier.inert(shown)) { content(shown) }
+        }
+    }
+}
+
+@Composable
+fun Header(title: String, subtitle: String? = null, back: (() -> Unit)? = null,
+           leading: @Composable RowScope.() -> Unit = {}, action: @Composable RowScope.() -> Unit = {}) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (back != null) SquareIcon(Icons.AutoMirrored.Outlined.ArrowBack, "返回", back)
+        leading()
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.headlineSmall)
+            if (subtitle != null) Secondary(subtitle)
+        }
+        action()
+    }
+}
+
+@Composable
+fun Section(title: String, trailing: @Composable RowScope.() -> Unit = {}) {
+    Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+        trailing()
+    }
+}
+
+@Composable
+fun Secondary(text: String, modifier: Modifier = Modifier, lines: Int = Int.MAX_VALUE) {
+    Text(text, modifier, style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = lines, overflow = TextOverflow.Ellipsis)
+}
+
+@Composable
+fun Paper(modifier: Modifier = Modifier, padding: Int = 16, content: @Composable ColumnScope.() -> Unit) {
+    Surface(modifier.fillMaxWidth(), shape = CardShape, color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+        Column(Modifier.padding(padding.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun RecordRow(
+    title: String,
+    subtitle: String,
+    detail: String = "",
+    icon: ImageVector,
+    onClick: (() -> Unit)?,
+    amount: String? = null,
+    currency: String? = null,
+    amountColor: Color = Color.Unspecified,
+    empty: Boolean = false,
+    badge: String? = null,
+    sharedId: String? = null,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val interactive = if (onClick == null) Modifier else Modifier.clip(CardShape).clickable(onClick = onClick)
+    Surface(modifier = recordBounds(Modifier, sharedId).fillMaxWidth().heightIn(min = 70.dp).then(interactive),
+        shape = CardShape, color = if (empty) Color.Transparent else scheme.surface,
+        border = if (empty) null else BorderStroke(1.dp, scheme.outlineVariant)) {
+        val outline = if (empty) Modifier.drawWithCache {
+            val line = 1.dp.toPx()
+            val stroke = Stroke(line, pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx())))
+            onDrawBehind {
+                drawRoundRect(scheme.outlineVariant, topLeft = Offset(line / 2, line / 2),
+                    size = Size(size.width - line, size.height - line),
+                    cornerRadius = CornerRadius(CardRadius.toPx() - line / 2), style = stroke)
+            }
+        } else Modifier
+        BoxWithConstraints(outline.padding(12.dp), propagateMinConstraints = true) {
+            val amountWidth = maxWidth * 0.46f
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(36.dp).clip(ControlShape)
+                    .background(if (empty) scheme.primaryContainer else scheme.surfaceVariant), contentAlignment = Alignment.Center) {
+                    Icon(icon, null, Modifier.size(18.dp), tint = if (empty) scheme.primary else scheme.onSurfaceVariant)
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(title, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        if (badge != null) Tag(badge)
+                    }
+                    if (subtitle.isNotEmpty()) Secondary(subtitle, lines = 2)
+                    if (detail.isNotEmpty()) Secondary(detail, lines = 1)
+                }
+                if (amount != null) {
+                    Column(Modifier.widthIn(max = amountWidth), horizontalAlignment = Alignment.End) {
+                        Text(amount, color = amountColor, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.End)
+                        if (currency != null) Text(currency, color = scheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.End)
+                    }
+                }
+                if (onClick != null) {
+                    Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(14.dp), tint = scheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun Tag(text: String) {
+    Surface(shape = RoundedTag, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+        Text(text, Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+private val RoundedTag = androidx.compose.foundation.shape.RoundedCornerShape(6.dp)
+
+@Composable
+fun Primary(label: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, icon: ImageVector? = null) {
+    Button(onClick = onClick, modifier = modifier.heightIn(min = 46.dp), enabled = enabled, shape = ControlShape) {
+        if (icon != null) {
+            Icon(icon, null, Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+        }
+        Text(label)
+    }
+}
+
+@Composable
+fun Choice(label: String, onClick: () -> Unit, modifier: Modifier = Modifier, selected: Boolean = false, enabled: Boolean = true) {
+    val scheme = MaterialTheme.colorScheme
+    OutlinedButton(onClick = onClick, modifier = modifier.heightIn(min = 46.dp), shape = ControlShape,
+        enabled = enabled, border = BorderStroke(1.dp, if (selected) scheme.primary else scheme.outlineVariant),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = if (selected) scheme.primaryContainer else scheme.surface,
+            contentColor = if (selected) scheme.onPrimaryContainer else scheme.onSurface,
+        ), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
+        Text(label)
+    }
+}
+
+@Composable
+fun SquareIcon(icon: ImageVector, label: String, onClick: () -> Unit) {
+    OutlinedIconButton(onClick = onClick, modifier = Modifier.size(44.dp), shape = ControlShape,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+        Icon(icon, label, Modifier.size(18.dp))
+    }
+}
+
+@Composable
+fun Field(label: String, value: String, set: (String) -> Unit, modifier: Modifier = Modifier, multiline: Boolean = false,
+          keyboard: KeyboardOptions = KeyboardOptions.Default, transformation: androidx.compose.ui.text.input.VisualTransformation =
+              androidx.compose.ui.text.input.VisualTransformation.None,
+          textStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyLarge) {
+    OutlinedTextField(value, set, modifier.fillMaxWidth(), label = { Text(label) }, singleLine = !multiline,
+        shape = ControlShape, minLines = if (multiline) 2 else 1, maxLines = if (multiline) 6 else 1,
+        keyboardOptions = keyboard, visualTransformation = transformation, textStyle = textStyle,
+        colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant))
+}
+
+@Composable
+fun <T> Select(
+    title: String, value: T?, options: List<T>, label: (T) -> String, onSelect: (T) -> Unit,
+    modifier: Modifier = Modifier, placeholder: String = "请选择", enabled: Boolean = true,
+) {
+    var open by remember { mutableStateOf(false) }
+    Box(modifier) {
+        Choice("$title · " + (value?.let(label) ?: placeholder), { open = true }, Modifier.fillMaxWidth(), enabled = enabled)
+        DropdownMenu(open, { open = false }, modifier = Modifier.heightIn(max = 360.dp)) {
+            options.forEach { option ->
+                DropdownMenuItem(text = { Text(label(option)) }, onClick = { open = false; onSelect(option) })
+            }
+        }
+    }
+}
+
+@Composable
+fun Tabs(options: List<String>, selected: Int, set: (Int) -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+        options.forEachIndexed { index, option ->
+            Column(Modifier.clickable { set(index) }.heightIn(min = 46.dp).padding(top = 10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(option, fontWeight = if (index == selected) FontWeight.SemiBold else FontWeight.Normal)
+                Spacer(Modifier.height(8.dp))
+                Box(Modifier.width(30.dp).height(2.dp).background(
+                    if (index == selected) MaterialTheme.colorScheme.primary else Color.Transparent))
+            }
+        }
+    }
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+}
+
+@Composable
+internal fun platformPickerTheme() = if (LocalDarkMode.current) android.R.style.Theme_Material_Dialog_Alert
+else android.R.style.Theme_Material_Light_Dialog_Alert
+
+@Composable
+fun DateControl(label: String, value: String, set: (String) -> Unit, modifier: Modifier = Modifier, allowEmpty: Boolean = false) {
+    val context = LocalContext.current
+    val pickerTheme = platformPickerTheme()
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Choice("$label · " + value.ifEmpty { "不限" }, {
+            val date = runCatching { LocalDate.parse(value) }.getOrElse { LocalDate.now() }
+            android.app.DatePickerDialog(context, pickerTheme,
+                { _, y, m, d -> set(LocalDate.of(y, m + 1, d).toString()) },
+                date.year, date.monthValue - 1, date.dayOfMonth).show()
+        }, Modifier.weight(1f))
+        if (allowEmpty && value.isNotEmpty()) TextButton({ set("") }) { Text("清空") }
+    }
+}
+
+@Composable
+fun MonthControl(value: String, set: (String) -> Unit) {
+    var open by rememberSaveable { mutableStateOf(false) }
+    val month = YearMonth.parse(value)
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        SquareIcon(Icons.AutoMirrored.Outlined.KeyboardArrowLeft, "上个月") { set(month.minusMonths(1).toString()) }
+        Choice("${month.year} 年 ${month.monthValue} 月", { open = true }, Modifier.weight(1f))
+        SquareIcon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, "下个月") { set(month.plusMonths(1).toString()) }
+    }
+    if (open) {
+        var year by rememberSaveable { mutableStateOf(month.year.toString()) }
+        var selected by rememberSaveable { mutableIntStateOf(month.monthValue) }
+        val parsed = year.toIntOrNull()?.takeIf { it in 1..9999 }
+        AlertDialog(onDismissRequest = { open = false }, shape = DialogShape, title = { Text("选择月份") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Field("年份", year, { year = it }, keyboard = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number))
+                    Select("月份", selected, (1..12).toList(), { "$it 月" }, { selected = it })
+                }
+            },
+            confirmButton = { Primary("应用", { if (parsed != null) { set(YearMonth.of(parsed, selected).toString()); open = false } }, enabled = parsed != null) },
+            dismissButton = { TextButton({ open = false }) { Text("取消") } })
+    }
+}
+
+@Composable
+fun SaveActions(busy: Boolean, error: String?, onSave: () -> Unit, deleteLabel: String? = null, onDelete: () -> Unit = {}) {
+    if (error != null) Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+    Primary(if (busy) "正在保存…" else "保存", onSave, Modifier.fillMaxWidth(), enabled = !busy)
+    if (deleteLabel != null) {
+        TextButton(onDelete, Modifier.fillMaxWidth().heightIn(min = 46.dp), enabled = !busy,
+            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Text(deleteLabel) }
+    }
+}
+
+@Composable
+fun ConfirmDelete(description: String, dismiss: () -> Unit, confirm: () -> Unit) {
+    AlertDialog(onDismissRequest = dismiss, shape = DialogShape, title = { Text("确认删除") },
+        text = { Text(description) },
+        dismissButton = { TextButton(dismiss) { Text("取消") } },
+        confirmButton = {
+            Button(onClick = confirm, shape = ControlShape,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError)) { Text("删除") }
+        })
+}
+
+@Composable
+fun Toggle(label: String, checked: Boolean, set: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 46.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, Modifier.weight(1f))
+        Switch(checked, set)
+    }
+}
+
+@Composable
+fun Summary(first: Pair<String, String>, second: Pair<String, String>) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf(first, second).forEach { (label, value) ->
+            Paper(Modifier.weight(1f), padding = 12) {
+                Secondary(label)
+                Text(value, style = MaterialTheme.typography.titleLarge)
+            }
+        }
+    }
+}
+
+@Composable
+fun CountBar(label: String, count: Int, total: Int, unit: String = "餐") {
+    val ratio = if (total > 0) count.toFloat() / total else 0f
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(label, Modifier.weight(1f))
+        Secondary("$count $unit · " + String.format(Locale.ROOT, "%.0f%%", ratio * 100))
+    }
+    if (ratio > 0) LinearProgressIndicator(progress = { ratio }, modifier = Modifier.fillMaxWidth())
+}
+
+@Composable
+fun CalendarIcon() = Icon(Icons.Outlined.DateRange, null, Modifier.size(18.dp))

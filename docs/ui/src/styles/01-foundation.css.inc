@@ -10,7 +10,6 @@
   #kitsune-preview .ks-signal{display:flex;align-items:center;gap:5px}
   #kitsune-preview .ks-signal svg{width:13px;height:13px}
   #kitsune-preview .ks-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:var(--ks-space-4) var(--ks-space-4) var(--ks-space-3)}
-  #kitsune-preview .ks-brand{font-size:12px;letter-spacing:1.6px;color:var(--ks-dim)}
   #kitsune-preview .ks-title{margin:2px 0 0;font-weight:600;line-height:1.3;font-size:var(--ks-font-title);letter-spacing:-.5px}
   #kitsune-preview .ks-sub{font-size:12px;color:var(--ks-dim);margin:6px 0 0}
   #kitsune-preview .ks-icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;min-width:44px;min-height:44px;border-radius:var(--ks-control-radius);padding:var(--ks-space-2);border:var(--ks-card-border);background:var(--ks-card-surface);flex-shrink:0}

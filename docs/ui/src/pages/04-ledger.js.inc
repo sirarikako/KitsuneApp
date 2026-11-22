@@ -8,7 +8,9 @@
           return `<div class="ks-currency-group"><div class="ks-money-card" data-wallet-balance="${wallet.id}">
             <span class="ks-money-caption">${wallet.name} · ${wallet.code} ${wallet.separateAccounting?'<span class="ks-pill">独立核算</span>':''}</span>
             <div class="ks-amount">${money(balance,wallet.code)}</div>
-            <div class="ks-note">初始余额 ${money(wallet.opening,wallet.code)} · 全部流水</div><label class="ks-wallet-setting"><span>独立核算<small>默认不参与收支统计与流水</small></span><input type="checkbox" data-wallet-independent="${wallet.id}" aria-label="${wallet.name}独立核算" ${wallet.separateAccounting?'checked':''}></label><button type="button" class="ks-choice ks-category-shortcut cursor-interaction" data-action="manage-categories" data-category-wallet="${wallet.id}">${icon('tags')}管理本钱包分类</button>
+            <div class="ks-note">初始余额 ${money(wallet.opening,wallet.code)} · 全部流水</div>
+            <button type="button" class="ks-choice ks-full ks-category-shortcut cursor-interaction" data-edit-wallet="${wallet.id}">编辑钱包</button>
+            <button type="button" class="ks-choice ks-full ks-category-shortcut cursor-interaction" data-action="manage-categories" data-category-wallet="${wallet.id}">管理本钱包分类</button>
           </div></div>`;
         }).join('')}<p class="ks-footnote">交互预览 · 示例数据</p>`;
       const entries=allEntries.filter(matchesLedgerScope).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
@@ -44,10 +46,18 @@
           return `<button type="button" class="ks-record cursor-interaction" data-entry-id="${entry.id}" aria-label="查看${escapeText(wallet.name)} ${escapeText(category)} ${entry.type} ${wallet.code} ${money(entry.cents,wallet.code)}详情">
             ${recordIcon(glyph)}
             <span class="ks-record-copy"><span class="ks-record-title">${escapeText(lineLabel)}<span class="ks-pill">${escapeText(wallet.name)}</span></span><span class="ks-record-meta ks-record-ellipsis">${includeYear?entry.date:entry.date.slice(5)} ${entry.time}${entry.note?` · ${escapeText(entry.note)}`:''}</span></span>
-            <span class="ks-currency-amount"><strong>${entry.type==='支出'?'-':'+'}¥${money(entry.cents,wallet.code)}</strong><small>${wallet.code}</small></span>${icon('chevron-right')}
+            <span class="ks-currency-amount ${entry.type==='支出'?'ks-expense':'ks-income'}"><strong>${entry.type==='支出'?'−':'+'}${money(entry.cents,wallet.code)}</strong><small>${wallet.code}</small></span>${icon('chevron-right')}
           </button>`;
         }).join('')}
         </div>
         ${entries.length?'':empty}
       </section><p class="ks-footnote">交互预览 · 示例数据</p>`;
+    }
+    function pageWalletEdit(){
+      const wallet=walletById(state.editingWalletId);
+      return `<section class="ks-money-card">
+        <div class="ks-money-caption">${escapeText(wallet.name)} · ${wallet.code}</div>
+        <label class="ks-wallet-setting"><span>独立核算<small>开启后默认排除本钱包的收支和流水。余额与历史记录保留，可在账本手动选择。</small></span><input type="checkbox" data-wallet-independent ${wallet.separateAccounting?'checked':''}></label>
+        <button type="button" class="ks-primary ks-full cursor-interaction" data-action="save-wallet">保存</button>
+      </section><p class="ks-footnote">交互预览 · 仅演示独立核算</p>`;
     }

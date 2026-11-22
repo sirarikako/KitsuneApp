@@ -1,0 +1,104 @@
+package com.kitsuneapp.data
+
+import androidx.room.Room
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.supervisorScope
+import org.junit.After
+import org.junit.Assert.*
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class LedgerRepositoryTest {
+    private lateinit var database: KitsuneDatabase
+    private lateinit var repo: Repository
+    private lateinit var a: Wallet
+    private lateinit var b: Wallet
+    private lateinit var jpy: Wallet
+    private lateinit var expenseCategory: Category
+    private val month = LedgerPeriod("2026-11")
+
+    @Before
+    fun setUp() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        database = Room.inMemoryDatabaseBuilder(context, KitsuneDatabase::class.java).build()
+        repo = Repository(database, newId())
+        repo.initialize(true)
+        listOf(Triple("常规", "CNY", false), Triple("旅行", "CNY", true), Triple("日元", "JPY", true))
+            .forEachIndexed { index, (name, code, separate) -> repo.saveWallet(WalletDraft(null, name, code, "0", index, false, separate)) }
+        val data = repo.read()
+        a = data.wallets[0]
+        b = data.wallets[1]
+        jpy = data.wallets[2]
+        expenseCategory = data.categories.first { it.scope == Scope.EXPENSE && it.isDefault }
+    }
+
+    @After
+    fun tearDown() { database.close() }
+
+    private fun entry(type: EntryType, wallet: Wallet, amount: String, other: Wallet? = null, toAmount: String = "",
+                      original: String? = null, category: String? = null, date: String = "2026-11-21") =
+        EntryDraft(null, date, "18:30", type, wallet.id, amount, category, "",
+            other?.id, toAmount, original, "")
+
+    @Test
+    fun refundsFollowDestinationAcrossWalletAndMonthWhileTransfersDoNotCount() = runBlocking {
+        repo.saveEntry(entry(EntryType.EXPENSE, a, "100", category = expenseCategory.id, date = "2026-10-21"))
+        val out = repo.read().entries.single()
+        repo.saveEntry(entry(EntryType.REFUND, b, "30", original = out.id))
+        repo.saveEntry(entry(EntryType.TRANSFER, a, "10", other = jpy, toAmount = "200"))
+        val ledger = Ledger(repo.read())
+        assertEquals("-11000", ledger.balance()[a.id].toString())
+        assertEquals("3000", ledger.balance()[b.id].toString())
+        assertEquals("200", ledger.balance()[jpy.id].toString())
+        assertEquals("0", ledger.statistics(month, WalletRange()).single().expenses.toString())
+        assertEquals("-3000", ledger.statistics(month, WalletRange(RangeMode.MANUAL, listOf(b.id))).single()
+            .expenseCategories[expenseCategory.id].toString())
+        assertEquals(1, ledger.filtered(month, WalletRange(RangeMode.MANUAL, listOf(jpy.id))).size)
+    }
+
+    @Test
+    fun invalidOrConcurrentOverRefundCannotChangeData() = runBlocking {
+        repo.saveEntry(entry(EntryType.EXPENSE, a, "100", category = expenseCategory.id))
+        val original = repo.read().entries.single()
+        val outcomes = supervisorScope {
+            List(2) { async { runCatching { repo.saveEntry(entry(EntryType.REFUND, b, "70", original = original.id)) } } }.awaitAll()
+        }
+        assertEquals(1, outcomes.count { it.isSuccess })
+        val before = repo.read()
+        assertTrue(runCatching { repo.removeEntry(original.id) }.isFailure)
+        assertTrue(runCatching { repo.saveEntry(entry(EntryType.REFUND, jpy, "20", original = original.id)) }.isFailure)
+        assertTrue(runCatching {
+            repo.saveEntry(entry(EntryType.EXPENSE, a, "69", category = expenseCategory.id).copy(id = original.id))
+        }.isFailure)
+        assertTrue(runCatching { repo.saveEntry(entry(EntryType.TRANSFER, a, "1", other = jpy, toAmount = "1.5")) }.isFailure)
+        assertEquals(before, repo.read())
+    }
+
+    @Test
+    fun customCategoriesStayScopedAndHistoricalEditsKeepIds() = runBlocking {
+        repo.saveCategory(null, Scope.EXPENSE, null, "餐饮", 1, false)
+        repo.setCategoryMode(a.id, Scope.EXPENSE, CategoryMode.CUSTOM)
+        repo.setCategoryMode(b.id, Scope.EXPENSE, CategoryMode.CUSTOM)
+        val empty = repo.read()
+        val walletA = empty.wallets.first { it.id == a.id }
+        assertEquals(listOf(expenseCategory.id), empty.categories.filter { allowedCategory(it, walletA, Scope.EXPENSE) }.map { it.id })
+        repo.saveCategory(null, Scope.EXPENSE, a.id, "餐饮", 0, false)
+        repo.saveCategory(null, Scope.EXPENSE, b.id, "餐饮", 0, false)
+        val categories = repo.read().categories
+        val privateA = categories.first { it.walletId == a.id }
+        val privateB = categories.first { it.walletId == b.id }
+        assertTrue(runCatching { repo.saveEntry(entry(EntryType.EXPENSE, a, "3", category = privateB.id)) }.isFailure)
+        val draft = entry(EntryType.EXPENSE, a, "3", category = privateA.id)
+        repo.saveEntry(draft)
+        val saved = repo.read().entries.single()
+        repo.setCategoryMode(a.id, Scope.EXPENSE, CategoryMode.DEFAULT)
+        repo.saveEntry(draft.copy(id = saved.id, note = "保留"))
+        assertEquals(privateA.id, repo.read().entries.single().categoryId)
+    }
+}
