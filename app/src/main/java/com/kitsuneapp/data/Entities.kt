@@ -4,8 +4,6 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import java.time.Instant
-import java.time.format.DateTimeFormatterBuilder
 import java.util.UUID
 
 enum class MealSlot(val label: String) { BREAKFAST("早餐"), LUNCH("午餐"), DINNER("晚餐") }
@@ -25,14 +23,6 @@ enum class ColorSource(val label: String) { PRESET("预设调色板"), CUSTOM("�
 enum class CsvKind { MEALS, LEDGER }
 
 fun newId(): String = UUID.randomUUID().toString()
-private val utcMillis = DateTimeFormatterBuilder().appendInstant(3).toFormatter()
-fun utcNow(): String = utcMillis.format(Instant.now())
-fun canonicalTimestamp(value: String): String {
-    require(value.matches(Regex("[0-9]{4}-[0-9]{2}-[0-9]{2}T(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]{1,9})?Z"))) {
-        "无效的 UTC 时间"
-    }
-    return utcMillis.format(Instant.parse(value))
-}
 
 @Entity(indices = [Index(value = ["normalizedName"], unique = true)])
 data class MealMethod(

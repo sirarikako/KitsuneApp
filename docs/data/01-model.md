@@ -18,7 +18,7 @@
 
 - 实体 ID、datasetId、snapshotId 使用 UUID，导出为小写标准带连字符形式。每类实体的 ID 唯一，不从显示名称生成 ID。
 - datasetId 标识一套业务数据；恢复后采用恢复文件的数据集身份。本机任务代次和安装身份不属于业务备份。
-- 新建或修改实体保留 createdAt、updatedAt；导出使用 UTC 的 `YYYY-MM-DDTHH:mm:ss.SSSZ`。导入允许 UTC `Z` 结尾的有效 ISO 时间，包括没有小数秒的形式，然后统一规范化。
+- createdAt、updatedAt 在数据库中用 UTC 的 `YYYY-MM-DDTHH:mm:ss.SSSZ` 保存。JSON 按[导出目标的时间规则](02-json.md#41-顶层结构)写入。导入接受 `Z` 或 `+08:00` 结尾的有效 ISO 时间，包括没有小数秒的形式，再统一规范为 UTC 毫秒。
 - date 是严格有效的 `YYYY-MM-DD` 日历日期，不附加时区，不通过 UTC 日期推算餐次或月份。
 - 财务流水另有必填 time，使用本地业务时间字符串 `HH:mm`（24 小时制，00:00–23:59），不含秒或时区。数据库可使用严格校验的文本列，JSON／CSV 均保持相同形式；不用餐次、createdAt 或当前时间猜测缺失值。
 - date＋time 记录用户选择的发生日期时间，保存后不因设备时区变化自动转换；createdAt／updatedAt 仍为独立 UTC 审计时间。

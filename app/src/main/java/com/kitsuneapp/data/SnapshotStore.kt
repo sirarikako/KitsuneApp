@@ -41,11 +41,12 @@ class StagedSnapshot internal constructor(
 }
 
 class SnapshotStore(private val context: Context, private val repository: Repository) {
-    suspend fun export(kind: BackupKind, output: OutputStream): SnapshotInfo = withContext(Dispatchers.IO) {
+    suspend fun export(kind: BackupKind, output: OutputStream, forFolder: Boolean = false): SnapshotInfo = withContext(Dispatchers.IO) {
         repository.database.withTransaction {
             val data = repository.ownedState()
             require(data.arrayElements <= MAX_ARRAY_ELEMENTS) { "当前数据超过完整备份的记录上限" }
-            val info = SnapshotInfo(data.datasetId, newId(), data.revision, utcNow(), kind)
+            val now = utcNow()
+            val info = SnapshotInfo(data.datasetId, newId(), data.revision, if (forFolder) folderTimestamp(now) else now, kind)
             val dao = repository.dao
             jsonWriter(output).use { writer ->
                 writer.beginObject()
@@ -58,25 +59,29 @@ class SnapshotStore(private val context: Context, private val repository: Reposi
                 writer.field("backupKind", info.kind)
                 writer.name("data").beginObject()
                 writer.array("categories", dao::categoryPage, Category::id) {
-                    row(categoryFields, it.id, it.scope, it.walletId, it.name, it.sortOrder, it.archived, it.isDefault, it.createdAt, it.updatedAt)
+                    row(categoryFields, it.id, it.scope, it.walletId, it.name, it.sortOrder, it.archived, it.isDefault,
+                        it.createdAt, it.updatedAt, forFolder = forFolder)
                 }
                 writer.name("meals").beginObject()
                 writer.array("methods", dao::methodPage, MealMethod::id) {
-                    row(methodFields, it.id, it.name, it.sortOrder, it.archived, it.showPreparationCategories, it.createdAt, it.updatedAt)
+                    row(methodFields, it.id, it.name, it.sortOrder, it.archived, it.showPreparationCategories,
+                        it.createdAt, it.updatedAt, forFolder = forFolder)
                 }
                 writer.array("records", dao::mealPage, MealRecord::id) {
                     row(mealFields, it.id, it.date, it.mealSlot, it.plannedAtHome, it.mealMethodId, dao.preparationIds(it.id),
-                        it.dishes, it.note, it.createdAt, it.updatedAt)
+                        it.dishes, it.note, it.createdAt, it.updatedAt, forFolder = forFolder)
                 }
                 writer.endObject()
                 writer.name("ledger").beginObject()
                 writer.array("wallets", dao::walletPage, Wallet::id) {
                     row(walletFields, it.id, it.name, it.currencyCode, it.currencyScale, it.openingBalanceMinor.toString(),
-                        it.sortOrder, it.archived, it.separateAccounting, it.incomeCategoryMode, it.expenseCategoryMode, it.createdAt, it.updatedAt)
+                        it.sortOrder, it.archived, it.separateAccounting, it.incomeCategoryMode, it.expenseCategoryMode,
+                        it.createdAt, it.updatedAt, forFolder = forFolder)
                 }
                 writer.array("entries", dao::entryPage, FinancialEntry::id) {
                     row(entryFields, it.id, it.date, it.time, it.type, it.walletId, it.amountMinor.toString(), it.categoryId,
-                        it.toWalletId, it.toAmountMinor?.toString(), it.originalExpenseId, it.note, it.createdAt, it.updatedAt)
+                        it.toWalletId, it.toAmountMinor?.toString(), it.originalExpenseId, it.note,
+                        it.createdAt, it.updatedAt, forFolder = forFolder)
                 }
                 writer.endObject()
                 writer.name("settings").beginObject()
@@ -86,7 +91,7 @@ class SnapshotStore(private val context: Context, private val repository: Reposi
                 writer.endObject()
                 writer.name("importReceipts").beginArray()
                 walkReceipts(dao) { receipt ->
-                    writer.row(receiptFields, receipt.kind, receipt.sha256, receipt.importedAt)
+                    writer.row(receiptFields, receipt.kind, receipt.sha256, receipt.importedAt, forFolder = forFolder)
                 }
                 writer.endArray()
                 writer.endObject().endObject()
@@ -175,7 +180,7 @@ class SnapshotStore(private val context: Context, private val repository: Reposi
         require(reader.peek() == JsonToken.END_DOCUMENT) { "备份文件末尾包含多余内容" }
         SnapshotInfo(validateId(values.getValue("datasetId")), validateId(values.getValue("snapshotId")),
             parseLongString(values.getValue("revision")).also { require(it >= 0) { "修订号不能为负数" } },
-            canonicalTimestamp(values.getValue("exportedAt")), BackupKind.valueOf(values.getValue("backupKind")))
+            snapshotTimestamp(values.getValue("exportedAt")), BackupKind.valueOf(values.getValue("backupKind")))
     }
 
     private suspend fun readData(input: JsonInput, dao: RecordsDao): Unit = with(input) {

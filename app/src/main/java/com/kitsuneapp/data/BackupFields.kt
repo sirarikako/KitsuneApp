@@ -3,7 +3,7 @@ package com.kitsuneapp.data
 import com.google.gson.stream.JsonToken
 import com.google.gson.stream.JsonWriter
 
-internal enum class FieldType { TEXT, OPTIONAL_TEXT, FLAG, INT, IDS }
+internal enum class FieldType { TEXT, TIMESTAMP, OPTIONAL_TEXT, FLAG, INT, IDS }
 internal data class BackupField(val key: String, val type: FieldType = FieldType.TEXT, val absent: Boolean = false)
 internal fun text(key: String) = BackupField(key)
 internal fun reference(key: String, absent: Boolean = false) = BackupField(key, FieldType.OPTIONAL_TEXT, absent)
@@ -11,7 +11,8 @@ internal fun flag(key: String, absent: Boolean = false) = BackupField(key, Field
 internal fun number(key: String) = BackupField(key, FieldType.INT)
 internal fun ids(key: String) = BackupField(key, FieldType.IDS)
 internal fun legacy(key: String) = BackupField(key, absent = true)
-private val audit = listOf(text("createdAt"), text("updatedAt"))
+private fun timestamp(key: String) = BackupField(key, FieldType.TIMESTAMP)
+private val audit = listOf(timestamp("createdAt"), timestamp("updatedAt"))
 
 internal val methodFields = listOf(text("id"), text("name"), number("sortOrder"), flag("archived"), flag("showPreparationCategories")) + audit
 internal val categoryFields = listOf(text("id"), text("scope"), reference("walletId", true), text("name"),
@@ -24,7 +25,7 @@ internal val walletFields = listOf(text("id"), text("name"), text("currencyCode"
 internal val entryFields = listOf(text("id"), text("date"), text("time"), text("type"), text("walletId"), text("amountMinor"),
     reference("categoryId"), reference("toWalletId"), reference("toAmountMinor"), reference("originalExpenseId"), text("note")) + audit
 internal val themeFields = listOf(text("themeMode"), text("colorSource"), text("presetId"), text("customSeedColor"))
-internal val receiptFields = listOf(text("kind"), text("sha256"), text("importedAt"))
+internal val receiptFields = listOf(text("kind"), text("sha256"), timestamp("importedAt"))
 
 internal class RowReader(private val fields: Map<String, Any?>) {
     fun text(key: String) = fields.getValue(key) as String
@@ -51,7 +52,7 @@ internal suspend fun JsonInput.row(specification: List<BackupField>): RowReader 
     val values = mutableMapOf<String, Any?>()
     obj(required, spec.keys - required) { key ->
         values[key] = when (spec.getValue(key).type) {
-            FieldType.TEXT -> string().also { validateField(key, it) }
+            FieldType.TEXT, FieldType.TIMESTAMP -> string().also { validateField(key, it) }
             FieldType.OPTIONAL_TEXT -> nullable { string().also { validateField(key, it) } }
             FieldType.FLAG -> bool()
             FieldType.INT -> int()
@@ -65,7 +66,7 @@ internal suspend fun JsonInput.row(specification: List<BackupField>): RowReader 
     return RowReader(values)
 }
 
-internal fun JsonWriter.row(spec: List<BackupField>, vararg values: Any?) {
+internal fun JsonWriter.row(spec: List<BackupField>, vararg values: Any?, forFolder: Boolean = false) {
     check(values.size == spec.size)
     beginObject()
     spec.zip(values.toList()).forEach { (field, value) ->
@@ -75,7 +76,7 @@ internal fun JsonWriter.row(spec: List<BackupField>, vararg values: Any?) {
             endArray()
         } else {
             if (value is String) validateField(field.key, value)
-            field(field.key, value)
+            field(field.key, if (forFolder && field.type == FieldType.TIMESTAMP) folderTimestamp(value as String) else value)
         }
     }
     endObject()

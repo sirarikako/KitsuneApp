@@ -10,10 +10,8 @@ import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
 import java.security.MessageDigest
-import java.time.ZoneOffset
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import java.time.OffsetDateTime
+import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -21,8 +19,6 @@ import kotlinx.coroutines.withContext
 
 internal const val IO_BUFFER = 32 * 1024
 internal const val CLOUD_LIMIT = 32L * 1024 * 1024
-internal val autoName = Regex("kitsune-auto-[0-9]{8}T[0-9]{6}Z-[0-9]{4,}\\.json")
-private val timestamp = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'", Locale.ROOT)
 
 internal data class Publication(
     val name: String,
@@ -53,19 +49,16 @@ internal class FolderBackup(private val context: Context, tree: Uri) {
     suspend fun publish(file: File, info: SnapshotInfo, beforePublish: suspend () -> Unit): Publication = withContext(Dispatchers.IO) {
         val sha = file.inputStream().use { digest(it) }
         val docs = list()
-        val time = ZonedDateTime.now(ZoneOffset.UTC).format(timestamp)
+        val time = OffsetDateTime.parse(info.exportedAt).toInstant().truncatedTo(ChronoUnit.SECONDS)
         val existingUris = docs.mapTo(HashSet()) { it.uri }
-        var sequence = Math.addExact(docs.mapNotNull {
-            it.name.takeIf { name -> name.startsWith("kitsune-auto-$time-") && autoName.matches(name) }
-                ?.substringAfterLast('-')?.removeSuffix(".json")?.toIntOrNull()
-        }.maxOrNull() ?: 0, 1)
+        var sequence = nextAutoBackupSequence(docs.asSequence().map(Document::name), time)
         while (true) {
             currentCoroutineContext().ensureActive()
-            val name = "kitsune-auto-$time-" + sequence.toString().padStart(4, '0') + ".json"
+            val name = AutoBackupName(time, sequence).filename()
             val dest = create("application/json", name)
             if (dest.name != name || dest.uri in existingUris) {
                 if (dest.uri !in existingUris) remove(dest)
-                sequence = Math.addExact(sequence, 1)
+                sequence = Math.addExact(sequence, 1L)
                 continue
             }
             val marker = Publication(name, info.datasetId, info.snapshotId, sha, file.length())
@@ -115,17 +108,19 @@ internal class FolderBackup(private val context: Context, tree: Uri) {
 
     fun published(): List<Triple<Publication, Document, Document>> {
         val docs = list()
-        val data = docs.filter { autoName.matches(it.name) }.groupBy { it.name }
+        val data = docs.filter { it.name.startsWith("kitsune-auto-") && it.name.endsWith(".json") }.groupBy(Document::name)
         return docs.mapNotNull { marker ->
             if (!marker.name.endsWith(".json.ok")) return@mapNotNull null
-            val file = data[marker.name.removeSuffix(".ok")]?.singleOrNull() ?: return@mapNotNull null
+            val name = marker.name.removeSuffix(".ok")
+            val order = AutoBackupName.parse(name) ?: return@mapNotNull null
+            val file = data[name]?.singleOrNull() ?: return@mapNotNull null
             val parsed = runCatching {
                 resolver.input(marker.uri).use { gson.fromJson(it.readSmall(4096).decodeToString(), Publication::class.java) }
             }.getOrNull() ?: return@mapNotNull null
             if (parsed.name == file.name && parsed.size > 0 && (parsed.sha256 as String?)?.matches(Regex("[0-9a-f]{64}")) == true) {
-                Triple(parsed, file, marker)
+                order to Triple(parsed, file, marker)
             } else null
-        }.sortedByDescending { it.second.name }
+        }.sortedByDescending { it.first }.map { it.second }
     }
 
     suspend fun open(marker: Publication, document: Document, store: SnapshotStore): StagedSnapshot = withContext(Dispatchers.IO) {
@@ -147,8 +142,9 @@ internal class FolderBackup(private val context: Context, tree: Uri) {
         }
     }
 
-    suspend fun protect(file: File, snapshotId: String) = withContext(Dispatchers.IO) {
-        val doc = create("application/json", "kitsune-pre-restore-$snapshotId.json")
+    suspend fun protect(file: File, info: SnapshotInfo) = withContext(Dispatchers.IO) {
+        val time = folderFilenameTime(OffsetDateTime.parse(info.exportedAt).toInstant())
+        val doc = create("application/json", "kitsune-pre-restore-$time-${info.snapshotId}.json")
         try {
             resolver.verifiedCopy(file, doc.uri)
         } catch (error: Throwable) {
