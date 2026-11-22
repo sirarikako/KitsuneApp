@@ -15,7 +15,7 @@ Android 工程、Room v1、首页、用餐、钱包、记账、分类管理和�
 - [artwork/README.md](artwork/README.md)：资产来源、原始提示词、接入步骤及验证边界。
 - [artwork/SHA256SUMS](artwork/SHA256SUMS)：图标文件摘要。
 
-图标保留验证仅覆盖文件一致性、PNG 透明度、XML 语法及资源引用；新版已接入，实际启动器显示尚待验收。网页预览仍使用狐狸 emoji 示意，Android 复用上述资产。
+Android 首页和离线网页预览使用同源狐狸图标。资产验证覆盖文件一致性、透明度、XML 语法及资源引用。实际启动器显示尚待验收。
 
 ## 文档入口
 

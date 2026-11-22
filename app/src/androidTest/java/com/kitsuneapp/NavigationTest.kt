@@ -37,16 +37,18 @@ class NavigationTest {
     fun checksRequiredMealPlanAndReturnsAfterSave() {
         compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
         compose.onNodeWithText("用餐").performClick()
+        screenshot("kitsune-meals")
         compose.onNodeWithText("早餐").performClick()
-        compose.onNodeWithText("保存").performClick()
+        screenshot("kitsune-meal-form")
+        compose.onNodeWithText("保存早餐记录").performClick()
         compose.waitUntilAtLeastOneExists(hasText("请选择是否计划在家吃"), 15_000)
         compose.onNodeWithText("否").performClick()
-        compose.onNodeWithText("保存").performClick()
+        compose.onNodeWithText("保存早餐记录").performClick()
         compose.waitUntilAtLeastOneExists(hasText("三餐记录"), 15_000)
         compose.onNodeWithText("早餐").performClick()
         compose.onNodeWithText("删除这条用餐记录").performClick()
-        compose.onNodeWithText("删除").performClick()
-        compose.waitUntilAtLeastOneExists(hasText("待记录"), 15_000)
+        compose.onNodeWithText("确认删除").performClick()
+        compose.waitUntilAtLeastOneExists(hasText("添加记录"), 15_000)
     }
 
     @Test

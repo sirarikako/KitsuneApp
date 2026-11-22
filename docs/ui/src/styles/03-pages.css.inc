@@ -8,7 +8,7 @@
   #kitsune-preview .ks-setting-link>svg:last-child{flex-shrink:0}
   #kitsune-preview .ks-category-shortcut{width:100%;margin-top:12px}
   #kitsune-preview .ks-category-manager{display:flex;flex-direction:column;gap:var(--ks-space-3)}
-  #kitsune-preview .ks-category-manager .ks-category-rows{background:var(--ks-card-surface);border:var(--ks-card-border);border-radius:var(--ks-card-radius);padding:0 var(--ks-space-3)}
+  #kitsune-preview .ks-category-manager .ks-category-rows{background:var(--ks-card-surface);border:var(--ks-card-border);border-radius:var(--ks-radius);padding:0 var(--ks-space-3)}
   #kitsune-preview .ks-category-manager .ks-setting{gap:var(--ks-space-1)}
   #kitsune-preview .ks-category-manager .ks-setting .ks-choice{min-height:36px;padding:6px 8px;flex-shrink:0}
   #kitsune-preview .ks-category-form{margin-top:4px}

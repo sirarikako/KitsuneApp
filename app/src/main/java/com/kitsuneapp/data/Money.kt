@@ -18,6 +18,15 @@ fun decimalMinor(value: String, scale: Int, positive: Boolean = true): Long {
 fun money(minor: BigInteger, scale: Int): String = BigDecimal(minor, scale).toPlainString()
 fun money(minor: Long, scale: Int): String = money(minor.toBigInteger(), scale)
 
+fun displayMoney(minor: BigInteger, scale: Int): String {
+    val plain = money(minor.abs(), scale)
+    val whole = plain.substringBefore('.').reversed().chunked(3).joinToString(",").reversed()
+    val sign = if (minor.signum() < 0) "-" else ""
+    return sign + whole + if ('.' in plain) "." + plain.substringAfter('.') else ""
+}
+
+fun displayMoney(minor: Long, scale: Int): String = displayMoney(minor.toBigInteger(), scale)
+
 private fun storedMinor(minor: BigInteger): Long =
     minor.toString().toLongOrNull() ?: throw IllegalArgumentException("单笔金额超出 64 位范围")
 

@@ -132,6 +132,7 @@
       window.openai?.setWidgetState?.({modelContent:{当前页面:snapshot.page,用餐筛选:snapshot.mealListMode?snapshot.mealFilters:null},privateContent:{kitsune:snapshot}})?.catch(()=>{});
     };
     phone.ksSnapshot=()=>({page:navs.some(n=>n[0]===state.page)?state.page:'home',...appliedAppearance(),ledgerMonth:state.ledgerMonth,ledgerRange:state.ledgerRange,mealMonth:state.mealMonth,walletFilterIds:state.walletFilterIds,separateWalletIds:wallets.filter(w=>w.separateAccounting).map(w=>w.id),mealListMode:state.mealListMode,mealFilters:state.mealFilters});
+    // Android applies these same presentation roles for preset and custom seeds.
     function makePalette(seed,system){
       const rgb=h=>h.replace("#","").match(/../g).map(x=>parseInt(x,16));
       const mix=(a,b,t)=>"#"+rgb(a).map((v,i)=>Math.round(v*t+rgb(b)[i]*(1-t)).toString(16).padStart(2,"0")).join("");

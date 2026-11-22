@@ -5,13 +5,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -24,6 +19,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kitsuneapp.AppViewModel
+import com.kitsuneapp.R
 import com.kitsuneapp.data.*
 import com.kitsuneapp.ui.*
 import java.io.Serializable
@@ -46,17 +42,23 @@ data class MealFilter(
             (categories.isEmpty() || records.preparation[meal.id].orEmpty().any { it in categories }) &&
             (meal.dishes.contains(query.trim(), true) || meal.note.contains(query.trim(), true))
 
-    fun labels(records: Records) = listOfNotNull(
-        start.takeIf(String::isNotEmpty)?.let { "从 $it" },
-        end.takeIf(String::isNotEmpty)?.let { "至 $it" },
-        slot?.label, atHome?.let { if (it) "计划在家吃" else "计划不在家吃" },
-        method.takeIf(String::isNotEmpty)?.let(records::methodName),
-        categories.takeIf(List<String>::isNotEmpty)?.joinToString("、") { records.categoryNames[it].orEmpty() },
-        query.takeIf(String::isNotBlank),
-    )
+    fun labels(records: Records) = buildList {
+        if (start.isNotEmpty() || end.isNotEmpty()) add("${start.ifEmpty { "最早" }} ～ ${end.ifEmpty { "至今" }}")
+        slot?.let { add(it.label) }
+        atHome?.let { add("计划在家：${if (it) "是" else "否"}") }
+        if (method.isNotEmpty()) add(if (method == "none") "方式未填写" else records.methodName(method))
+        addAll(categories.mapNotNull(records.categoryNames::get))
+        if (query.isNotBlank()) add("关键词：${query.trim()}")
+    }
 }
 
 private data class MealsContent(val date: String? = null, val month: String? = null, val filter: MealFilter? = null)
+
+private fun MealSlot.glyph() = when (this) {
+    MealSlot.BREAKFAST -> R.drawable.ks_sunrise
+    MealSlot.LUNCH -> R.drawable.ks_sun
+    MealSlot.DINNER -> R.drawable.ks_moon
+}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -70,12 +72,13 @@ fun MealsPage(records: Records, filter: MealFilter?, daily: () -> Unit, clearCon
         Header("用餐")
         Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Tabs(listOf("记录", "统计"), tab) { tab = it }
+            Spacer(Modifier.height(4.dp))
             if (tab == 0) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (filter == null) DateControl("日期", date, { date = it }, Modifier.weight(1f))
-                    else Choice("按日浏览", daily, Modifier.weight(1f))
+                    if (filter == null) DateControl("用餐日期", date, { date = it }, Modifier.weight(1f), showLabel = false)
+                    else Choice("按日浏览", daily, icon = designIcon(R.drawable.ks_chevron_left))
                     Choice(if (labels.isEmpty()) "筛选" else "筛选 (${labels.size})", openFilter,
-                        selected = labels.isNotEmpty())
+                        selected = labels.isNotEmpty(), icon = designIcon(R.drawable.ks_list_filter))
                 }
                 if (filter == null) WeekStrip(LocalDate.parse(date)) { date = it.toString() }
             } else MonthControl(month) { month = it }
@@ -93,7 +96,7 @@ fun MealsPage(records: Records, filter: MealFilter?, daily: () -> Unit, clearCon
                     item { Section("三餐记录") }
                     items(MealSlot.entries, key = { it.name }) { slot ->
                         val meal = today[slot]
-                        if (meal == null) RecordRow(slot.label, "待记录", icon = Icons.Outlined.Add,
+                        if (meal == null) RecordRow(slot.label, "添加记录", icon = designIcon(slot.glyph()),
                             empty = true, onClick = { openMeal(shown.date, slot, null) })
                         else MealRow(records, meal, daily = true) { openExisting(meal) }
                     }
@@ -115,10 +118,10 @@ fun MealsPage(records: Records, filter: MealFilter?, daily: () -> Unit, clearCon
                         }
                         Section("筛选结果") {
                             Secondary("${matches.size} 条")
-                            if (applied != MealFilter()) TextButton(clearConditions) { Text("清空条件") }
+                            if (applied != MealFilter()) TextAction("清空条件", clearConditions)
                         }
                     }
-                    if (matches.isEmpty()) item { Paper { Text("没有符合条件的记录") } }
+                    if (matches.isEmpty()) item { EmptyState("没有符合条件的记录\n试试调整日期范围或筛选条件") }
                     items(matches, key = { it.id }) { meal ->
                         MealRow(records, meal) { openExisting(meal) }
                     }
@@ -157,14 +160,15 @@ private fun WeekStrip(day: LocalDate, select: (LocalDate) -> Unit) {
 @Composable
 private fun MealRow(records: Records, meal: MealRecord, daily: Boolean = false, onClick: () -> Unit) {
     val prep = records.preparationNames(meal.id)
-    val plan = if (meal.plannedAtHome) "计划在家吃" else "计划不在家吃"
-    val method = records.methodName(meal.mealMethodId)
-    val detail = (listOf(plan) + prep + meal.note)
+    val plan = "计划在家：${if (meal.plannedAtHome) "是" else "否"}"
+    val method = if (meal.mealMethodId == null) "方式未填写" else records.methodName(meal.mealMethodId)
+    val detail = (listOf(plan) + prep + listOfNotNull(meal.note.takeIf(String::isNotBlank)?.let { "备注：$it" }))
         .filter(String::isNotBlank).joinToString(" · ")
-    val title = if (daily) meal.mealSlot.label else meal.dishes.ifBlank { meal.mealSlot.label }
-    val subtitle = if (daily) meal.dishes.ifBlank { "未填写菜品" } else "${meal.date} · ${meal.mealSlot.label} · $method"
-    RecordRow(title, subtitle, detail, Icons.Outlined.DateRange, onClick,
-        badge = method.takeIf { daily && meal.mealMethodId != null }, sharedId = meal.id)
+    val dishes = meal.dishes.ifBlank { "未填写菜品" }
+    val title = if (daily) meal.mealSlot.label else dishes
+    val subtitle = if (daily) dishes else "${meal.date} · ${meal.mealSlot.label}"
+    RecordRow(title, subtitle, if (daily) "" else detail, designIcon(meal.mealSlot.glyph()), onClick,
+        badge = method, sharedId = meal.id, badgeInSubtitle = !daily)
 }
 
 @Composable
@@ -177,36 +181,36 @@ private fun MealStats(records: Records, month: String) {
     val allGroups = all.groupingBy { it.mealMethodId }.eachCount()
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item {
-            Section("本月概览")
+            val selected = YearMonth.parse(month)
+            Section("本月概览") { Secondary("${selected.year} 年 ${selected.monthValue} 月") }
             Summary("已记录" to "${monthly.size} 餐", "计划在家吃" to "$home 餐")
         }
         item {
             Paper {
                 Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                    Text("计划在家 · 是 $home 餐")
+                    Text("计划在家：是 $home 餐", Modifier.weight(1f))
                     Text("否 ${monthly.size - home} 餐")
                 }
-                if (monthly.isNotEmpty()) LinearProgressIndicator(
-                    progress = { home.toFloat() / monthly.size }, modifier = Modifier.fillMaxWidth(),
-                    trackColor = MaterialTheme.colorScheme.secondaryContainer)
+                if (monthly.isNotEmpty()) StatBar(home.toFloat() / monthly.size, segmented = true)
             }
         }
         item { Section("本月 · 用餐方式") }
-        if (methodGroups.isEmpty()) item { Paper { Text("这个月还没有用餐记录") } }
+        if (methodGroups.isEmpty()) item { EmptyState("这个月还没有用餐记录") }
         else item {
             Paper {
                 methodGroups.forEach { (id, count) -> CountBar(records.methodName(id), count, monthly.size) }
             }
         }
         item { Section("本月 · 制作分类") }
-        item {
+        if (prep.isEmpty()) item { EmptyState("暂无制作分类记录") }
+        else item {
             Paper {
-                if (prep.isEmpty()) Text("暂无制作分类记录")
                 prep.forEach { (id, count) -> CountBar(records.categoryNames[id].orEmpty(), count, monthly.size, "次") }
             }
         }
         item { Section("全部记录 · 用餐方式") { Secondary("共 ${all.size} 餐") } }
         item {
+            Secondary("所有月份累计，不受上方月份选择影响", Modifier.padding(bottom = 8.dp))
             Paper {
                 if (allGroups.isEmpty()) Text("暂无用餐记录")
                 allGroups.forEach { (id, count) -> CountBar(records.methodName(id), count, all.size) }
@@ -215,44 +219,68 @@ private fun MealStats(records: Records, month: String) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MealFilterPage(records: Records, initial: MealFilter, back: () -> Unit, apply: (MealFilter) -> Unit) {
     var draft by rememberSaveable { mutableStateOf(initial) }
     var error by rememberSaveable { mutableStateOf(false) }
     Column {
-        Header("用餐筛选", back = back)
-        Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            DateControl("开始日期", draft.start, { draft = draft.copy(start = it) }, allowEmpty = true)
-            DateControl("结束日期", draft.end, { draft = draft.copy(end = it) }, allowEmpty = true)
-            Select("餐次", draft.slot?.name ?: "", listOf("") + MealSlot.entries.map { it.name },
-                { if (it.isEmpty()) "不限" else MealSlot.valueOf(it).label },
-                { draft = draft.copy(slot = if (it.isEmpty()) null else MealSlot.valueOf(it)) })
-            Select("计划在家吃", draft.atHome?.toString() ?: "", listOf("", "true", "false"),
-                { if (it.isEmpty()) "不限" else if (it == "true") "是" else "否" },
-                { draft = draft.copy(atHome = it.toBooleanStrictOrNull()) })
-            Select("用餐方式", draft.method, listOf("", "none") + records.methods.map { it.id },
-                { if (it.isEmpty()) "不限" else records.methodName(it) }, { draft = draft.copy(method = it) })
-            Section("制作分类")
-            MultiCategories(records.categories.filter { it.scope == Scope.PREPARATION }, draft.categories) {
-                draft = draft.copy(categories = it)
+        Header("筛选用餐", back = back)
+        Form {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                FieldLabel("日期范围")
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    DateControl("开始日期", draft.start, { draft = draft.copy(start = it) }, Modifier.weight(1f), allowEmpty = true)
+                    DateControl("结束日期", draft.end, { draft = draft.copy(end = it) }, Modifier.weight(1f), allowEmpty = true)
+                }
             }
-            Field("菜品或备注关键词", draft.query, { draft = draft.copy(query = it) })
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Select("餐次", draft.slot?.name ?: "", listOf("") + MealSlot.entries.map { it.name },
+                    { if (it.isEmpty()) "全部餐次" else MealSlot.valueOf(it).label },
+                    { draft = draft.copy(slot = if (it.isEmpty()) null else MealSlot.valueOf(it)) }, Modifier.weight(1f))
+                Select("计划在家吃", draft.atHome?.toString() ?: "", listOf("", "true", "false"),
+                    { if (it.isEmpty()) "不限" else if (it == "true") "是" else "否" },
+                    { draft = draft.copy(atHome = it.toBooleanStrictOrNull()) }, Modifier.weight(1f))
+            }
+            Select("用餐方式", draft.method, listOf("", "none") + records.methods.map { it.id },
+                { when (it) { "" -> "全部方式"; "none" -> "未填写方式"; else -> records.methodName(it) } },
+                { draft = draft.copy(method = it) })
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                FieldLabel("制作分类", "多选，匹配任一项")
+                MultiCategories(records.categories.filter { it.scope == Scope.PREPARATION }, draft.categories) {
+                    draft = draft.copy(categories = it)
+                }
+            }
+            Field("菜品／备注关键词", draft.query, { draft = draft.copy(query = it) }, placeholder = "例如：番茄、和朋友")
+            Secondary("不同条件同时满足。未选择的条件不限制。")
             if (error) Text("开始日期不能晚于结束日期", color = MaterialTheme.colorScheme.error)
-            Primary("应用筛选", {
-                error = draft.start.isNotEmpty() && draft.end.isNotEmpty() && draft.start > draft.end
-                if (!error) apply(draft)
-            }, Modifier.fillMaxWidth())
-            Choice("重置条件", { draft = MealFilter(); error = false }, Modifier.fillMaxWidth())
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Choice("重置条件", { draft = MealFilter(); error = false }, Modifier.weight(1f))
+                Primary("应用筛选", {
+                    error = draft.start.isNotEmpty() && draft.end.isNotEmpty() && draft.start > draft.end
+                    if (!error) apply(draft)
+                }, Modifier.weight(1f))
+            }
         }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MultiCategories(categories: List<Category>, selected: List<String>, set: (List<String>) -> Unit) {
     var menu by rememberSaveable { mutableStateOf(false) }
     var search by rememberSaveable { mutableStateOf("") }
-    Choice(if (selected.isEmpty()) "选择制作分类" else "制作分类 · 已选 ${selected.size} 项", { menu = true }, Modifier.fillMaxWidth())
-    if (selected.isNotEmpty()) Secondary(categories.filter { it.id in selected }.joinToString("、") { it.name })
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        categories.take(8).forEach { category ->
+            val checked = category.id in selected
+            Choice(category.name + if (category.archived) "（已停用）" else "",
+                { set(if (checked) selected - category.id else selected + category.id) }, selected = checked,
+                icon = if (checked) designIcon(R.drawable.ks_check) else null)
+        }
+        if (categories.size > 8) Choice("更多分类", { menu = true }, icon = designIcon(R.drawable.ks_list_filter))
+    }
+    val extra = categories.drop(8).filter { it.id in selected }
+    if (extra.isNotEmpty()) Secondary("已选更多分类 · " + extra.joinToString("、") { it.name })
     if (menu) {
         AlertDialog(onDismissRequest = { menu = false }, title = { Text("选择制作分类") }, shape = DialogShape,
             text = {
@@ -272,6 +300,7 @@ private fun MultiCategories(categories: List<Category>, selected: List<String>, 
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot, model: AppViewModel, back: () -> Unit) {
     val original = records.meals.find { it.id == id }
@@ -282,6 +311,7 @@ fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot,
     var selected by rememberSaveable { mutableStateOf<List<String>>(ArrayList(records.preparation[id].orEmpty())) }
     var added by rememberSaveable { mutableStateOf<List<String>>(emptyList()) }
     var newName by rememberSaveable { mutableStateOf("") }
+    var addingCategory by rememberSaveable { mutableStateOf(false) }
     var clearHistorical by rememberSaveable { mutableStateOf(false) }
     var dishes by rememberSaveable { mutableStateOf(original?.dishes.orEmpty()) }
     var note by rememberSaveable { mutableStateOf(original?.note.orEmpty()) }
@@ -294,42 +324,57 @@ fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot,
     }.maxWithOrNull(compareBy<MealRecord> { it.date }.thenBy { it.mealSlot.ordinal })
 
     Column {
-        Header(if (original == null) "记录用餐" else "编辑用餐", back = back)
-        Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Header((if (original == null) "记录" else "编辑") + selectedSlot.label, back = back)
+        Form {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 DateControl("日期", date, { date = it }, Modifier.weight(1f))
                 Select("餐次", selectedSlot, MealSlot.entries, { it.label }, { selectedSlot = it }, Modifier.weight(1f))
             }
-            Section("是否计划在家吃")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Choice("是", { atHome = true }, Modifier.weight(1f), selected = atHome == true)
-                Choice("否", { atHome = false }, Modifier.weight(1f), selected = atHome == false)
-            }
-            Select("用餐方式", methodId ?: "", listOf("") + records.methods.filter { !it.archived || it.id == methodId }.map { it.id },
-                { if (it.isEmpty()) "未选择" else records.methodName(it) },
-                { value ->
-                    val next = value.ifEmpty { null }
-                    val changed = next != methodId
-                    methodId = next
-                    if (changed && records.methods.find { it.id == next }?.showPreparationCategories != true) {
-                        clearHistorical = true
-                        selected = arrayListOf()
-                        added = arrayListOf()
-                        newName = ""
-                    }
-                })
-            if (method?.showPreparationCategories == true) {
-                MultiCategories(records.categories.filter { it.scope == Scope.PREPARATION && (!it.archived || it.id in selected) },
-                    selected, { selected = ArrayList(it) })
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Field("新制作分类", newName, { newName = it }, Modifier.weight(1f))
-                    Choice("添加", {
-                        val name = newName.trim()
-                        if (added.none { normalizedName(it) == normalizedName(name) }) added = ArrayList(added + name)
-                        newName = ""
-                    }, enabled = newName.isNotBlank())
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                FieldLabel("是否计划在家吃", "必选")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Choice("是", { atHome = true }, selected = atHome == true)
+                    Choice("否", { atHome = false }, selected = atHome == false)
                 }
-                added.forEach { name -> Choice("$name · 移除", { added = ArrayList(added - name) }) }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                FieldLabel("用餐方式", if (atHome == true) "必选" else "单选 · 可不填")
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    records.methods.filter { !it.archived || it.id == methodId }.forEach { option ->
+                        Choice(option.name, {
+                            val next = option.id.takeUnless { it == methodId }
+                            methodId = next
+                            if (records.methods.find { it.id == next }?.showPreparationCategories != true) {
+                                clearHistorical = true
+                                selected = arrayListOf()
+                                added = arrayListOf()
+                                newName = ""
+                                addingCategory = false
+                            }
+                        }, selected = methodId == option.id)
+                    }
+                }
+            }
+            if (method?.showPreparationCategories == true) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FieldLabel("制作分类", "多选 · 选填")
+                    MultiCategories(records.categories.filter { it.scope == Scope.PREPARATION && (!it.archived || it.id in selected) },
+                        selected, { selected = ArrayList(it) })
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        added.forEach { name -> Choice("$name · 移除", { added = ArrayList(added - name) }, selected = true) }
+                        if (!addingCategory) Choice("新增分类", { addingCategory = true }, icon = designIcon(R.drawable.ks_plus))
+                    }
+                    if (addingCategory) Row(verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Field("新制作分类", newName, { newName = it }, Modifier.weight(1f), showLabel = false)
+                        Choice("添加", {
+                            val name = newName.trim()
+                            if (added.none { normalizedName(it) == normalizedName(name) }) added = ArrayList(added + name)
+                            newName = ""
+                            addingCategory = false
+                        }, enabled = newName.isNotBlank())
+                    }
+                }
             } else if (!clearHistorical && method != null && method.id == original?.mealMethodId && records.preparationNames(original.id).isNotEmpty()) {
                 Secondary("历史制作分类 · " + records.preparationNames(original.id).joinToString("、"))
             }
@@ -343,16 +388,17 @@ fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot,
                     added = arrayListOf()
                 }
             }) { Text("复制上一餐内容") }
-            Field("菜品内容", dishes, { dishes = it }, multiline = true)
-            Field("备注", note, { note = it }, multiline = true)
+            Field("菜品内容", dishes, { dishes = it }, multiline = true, placeholder = "今天吃了什么？")
+            Field("备注", note, { note = it }, multiline = true, placeholder = "还有什么想记下的？")
             SaveActions(busy, error, {
                 val draft = MealDraft(id, date, selectedSlot, atHome, methodId, selected,
                     if (newName.isBlank()) added else added + newName, dishes, note, clearHistorical)
                 model.save(back) { saveMeal(draft) }
-            }, original?.let { "删除这条用餐记录" }, { delete = true })
+            }, original?.let { "删除这条用餐记录" }, { delete = true }, "保存${selectedSlot.label}记录")
         }
     }
     if (delete && original != null) ConfirmDelete(
         "${original.date} · ${original.mealSlot.label}\n" + original.dishes.take(140),
-        { delete = false }, { delete = false; model.save(back) { deleteMeal(original.id) } })
+        { delete = false }, { delete = false; model.save(back) { deleteMeal(original.id) } },
+        title = "删除这条用餐记录？", note = "删除后，将更新今日进度、月度及全部记录统计。")
 }

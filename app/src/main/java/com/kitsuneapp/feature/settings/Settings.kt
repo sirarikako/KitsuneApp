@@ -16,10 +16,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DateRange
-import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,9 +25,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.kitsuneapp.AppViewModel
+import com.kitsuneapp.R
 import com.kitsuneapp.data.*
 import com.kitsuneapp.ui.*
 import java.util.Locale
@@ -39,17 +38,18 @@ import java.util.Locale
 fun SettingsPage(navigate: (String) -> Unit) {
     Column {
         Header("设置")
-        Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Section("分类管理")
             Paper(padding = 0) {
                 Column(Modifier.padding(horizontal = 16.dp)) {
-                    Setting("用餐方式", Icons.Outlined.DateRange) { navigate("methods") }
+                    Setting("用餐方式", designIcon(R.drawable.ks_utensils)) { navigate("methods") }
                     HorizontalDivider()
-                    Setting("制作分类", Icons.AutoMirrored.Outlined.List) { navigate("categories/PREPARATION") }
+                    Setting("制作分类", designIcon(R.drawable.ks_cooking_pot)) { navigate("categories/PREPARATION") }
                     HorizontalDivider()
-                    Setting("通用收支分类", Icons.AutoMirrored.Outlined.List) { navigate("categorySettings") }
+                    Setting("通用收支分类", designIcon(R.drawable.ks_tags)) { navigate("categorySettings") }
                     HorizontalDivider()
-                    Setting("钱包专属分类", Icons.Outlined.Edit) { navigate("walletCategories") }
+                    Setting("钱包专属分类", designIcon(R.drawable.ks_wallet)) { navigate("walletCategories") }
                 }
             }
             Section("个性化")
@@ -61,11 +61,11 @@ fun SettingsPage(navigate: (String) -> Unit) {
             Section("数据与备份")
             Paper(padding = 0) {
                 Column(Modifier.padding(horizontal = 16.dp)) {
-                    Setting("导入与导出", Icons.AutoMirrored.Outlined.List) { navigate("data") }
+                    Setting("导入与导出", designIcon(R.drawable.ks_files)) { navigate("data") }
                     HorizontalDivider()
-                    Setting("本地文件夹备份", Icons.Outlined.Settings) { navigate("folder") }
+                    Setting("本地文件夹备份", designIcon(R.drawable.ks_hard_drive)) { navigate("folder") }
                     HorizontalDivider()
-                    Setting("GitHub 备份", Icons.Outlined.Settings) { navigate("github") }
+                    Setting("GitHub 备份", designIcon(R.drawable.ks_cloud)) { navigate("github") }
                 }
             }
         }
@@ -73,14 +73,17 @@ fun SettingsPage(navigate: (String) -> Unit) {
 }
 
 @Composable
-fun Setting(label: String, icon: ImageVector? = null, action: () -> Unit) {
+fun Setting(label: String, icon: ImageVector? = null, hint: String? = null, action: () -> Unit) {
     val tint = MaterialTheme.colorScheme.onSurfaceVariant
     Row(Modifier.fillMaxWidth().heightIn(min = if (icon == null) 44.dp else 55.dp)
-        .clickable(onClick = action).padding(vertical = 4.dp),
+        .clickable(role = Role.Button, onClick = action).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         if (icon != null) Icon(icon, null, Modifier.size(18.dp), tint = tint)
-        Text(label, Modifier.weight(1f))
-        Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(14.dp), tint = tint)
+        Column(Modifier.weight(1f)) {
+            Text(label)
+            if (hint != null) Secondary(hint)
+        }
+        Icon(designIcon(R.drawable.ks_chevron_right), null, Modifier.size(14.dp), tint = tint)
     }
 }
 
@@ -97,18 +100,37 @@ fun VocabularyPage(
     val path = if (scope == null) "method" else "category/${scope.name}/${owner ?: "-"}"
     Column {
         Header(title, back = back)
-        Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Primary("新增$title", { navigate("$path/-") }, Modifier.fillMaxWidth())
+        Form {
+            val glyph = if (methods) R.drawable.ks_utensils else R.drawable.ks_tags
             if (methods) {
-                records.methods.forEach {
-                    RecordRow(it.name, if (it.showPreparationCategories) "显示制作分类" else "隐藏制作分类",
-                        icon = Icons.AutoMirrored.Outlined.List, badge = if (it.archived) "已停用" else null, onClick = { navigate("$path/" + it.id) })
+                Paper(padding = 0) {
+                    Column(Modifier.padding(horizontal = 16.dp)) {
+                        records.methods.forEachIndexed { i, method ->
+                            if (i > 0) HorizontalDivider()
+                            val info = if (method.showPreparationCategories) "显示制作分类" else "隐藏制作分类"
+                            Setting(method.name, designIcon(glyph), info + if (method.archived) " · 已停用" else "") {
+                                navigate("$path/" + method.id)
+                            }
+                        }
+                    }
                 }
-            } else records.categories.filter { it.scope == scope && it.walletId == owner }.forEach {
-                if (it.isDefault) Paper { Text(it.name); Secondary("全局兜底分类") }
-                else RecordRow(it.name, "排序 ${it.sortOrder}", icon = Icons.AutoMirrored.Outlined.List,
-                    badge = if (it.archived) "已停用" else null, onClick = { navigate("$path/" + it.id) })
+            } else {
+                val categories = records.categories.filter { it.scope == scope && it.walletId == owner }
+                if (categories.isEmpty()) EmptyState("暂无$title")
+                else Paper(padding = 0) {
+                    Column(Modifier.padding(horizontal = 16.dp)) {
+                        categories.forEachIndexed { i, category ->
+                            if (i > 0) HorizontalDivider()
+                            if (category.isDefault) FixedCategory(category.name)
+                            else Setting(category.name, designIcon(glyph),
+                                "排序 ${category.sortOrder}" + if (category.archived) " · 已停用" else "") {
+                                navigate("$path/" + category.id)
+                            }
+                        }
+                    }
+                }
             }
+            Primary("新增$title", { navigate("$path/-") }, Modifier.fillMaxWidth(), icon = designIcon(R.drawable.ks_plus))
         }
     }
 }
@@ -130,8 +152,8 @@ fun VocabularyForm(records: Records, id: String?, scope: Scope?, owner: String?,
     val error by model.error.collectAsState()
     Column {
         Header((if (id == null) "新增" else "编辑") + title, back = back)
-        Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Field("名称", name, { name = it })
+        Form {
+            Field("名称", name, { name = it }, placeholder = "输入名称")
             Field("排序（数字越小越靠前）", order, { order = it }, keyboard = KeyboardOptions(keyboardType = KeyboardType.Number))
             if (scope == null) Toggle("显示制作分类", show) { show = it }
             Toggle("停用", archived) { archived = it }
@@ -156,27 +178,79 @@ fun CategorySettings(records: Records, model: AppViewModel, specific: Boolean, w
     var wallet by rememberSaveable { mutableStateOf(walletId) }
     var scope by rememberSaveable { mutableStateOf(Scope.EXPENSE) }
     val current = records.wallets.find { it.id == wallet }
+    val busy by model.busy.collectAsState()
+    val error by model.error.collectAsState()
+    val editable = !specific || current?.categoryMode(scope) == CategoryMode.CUSTOM
     Column {
         Header(if (specific) "钱包专属分类" else "通用收支分类", back = back)
-        Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (specific) Select("钱包", wallet, records.wallets.map { it.id },
+        Form {
+            Secondary("钱包没有设置专属分类时，自动使用通用分类。收入与支出分别设置。")
+            if (specific) Select("管理对象", wallet, records.wallets.map { it.id },
                 { id -> records.wallets.find { it.id == id }?.let { it.name + " · " + it.currencyCode } ?: "已移除" }, { wallet = it })
-            Tabs(listOf("支出", "收入"), if (scope == Scope.EXPENSE) 0 else 1) { scope = if (it == 0) Scope.EXPENSE else Scope.INCOME }
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                FieldLabel("收支类型")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Choice("支出", { scope = Scope.EXPENSE }, selected = scope == Scope.EXPENSE)
+                    Choice("收入", { scope = Scope.INCOME }, selected = scope == Scope.INCOME)
+                }
+            }
             if (current != null) {
-                val busy by model.busy.collectAsState()
-                val error by model.error.collectAsState()
-                Select("分类来源", current.categoryMode(scope), CategoryMode.entries,
-                    { if (it == CategoryMode.DEFAULT) "使用通用分类" else "使用专属分类" },
+                Select("${current.name} · ${scope.label}分类来源", current.categoryMode(scope), CategoryMode.entries,
+                    { if (it == CategoryMode.DEFAULT) "使用通用分类" else "使用本钱包专属分类" },
                     { mode -> model.save { setCategoryMode(current.id, scope, mode) } }, enabled = !busy)
-                if (current.categoryMode(scope) == CategoryMode.CUSTOM) {
-                    Secondary("该方向只使用钱包专属分类与全局未分类。")
-                } else Secondary("专属词表仍可维护，切换来源后生效。")
-                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
             if (!specific || current != null) {
-                Primary("管理${scope.label}分类", { open("categories/${scope.name}/${current?.id ?: "-"}") }, Modifier.fillMaxWidth())
+                val owner = current?.id.takeIf { editable }
+                val path = "categories/${scope.name}/${current?.id ?: "-"}"
+                val draft = "category/${scope.name}/${current?.id ?: "-"}"
+                val choices = records.categories.filter { it.scope == scope && it.walletId == owner && !it.isDefault }
+                Secondary(when {
+                    current == null -> "通用类别供未开启专属分类的钱包使用。"
+                    editable -> "使用本钱包专属分类。即使没有自定义项，也只保留“未分类”。"
+                    else -> "使用通用分类。切为专属后，两套列表独立维护。"
+                })
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Section((current?.name?.let { "$it · " } ?: "") + scope.label + "分类")
+                    Paper(padding = 0) {
+                        Column(Modifier.padding(horizontal = 12.dp)) {
+                            choices.forEach { category ->
+                                Row(Modifier.fillMaxWidth().heightIn(min = 55.dp).padding(vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text(category.name)
+                                        if (category.archived) Secondary("已停用")
+                                    }
+                                    if (editable) {
+                                        Choice("改名", { open("$draft/${category.id}") }, enabled = !busy)
+                                        Choice(if (category.archived) "启用" else "停用", {
+                                            model.save { saveCategory(category.id, scope, owner, category.name, category.sortOrder, !category.archived) }
+                                        }, enabled = !busy)
+                                    } else Secondary("通用")
+                                }
+                                HorizontalDivider()
+                            }
+                            FixedCategory("未分类")
+                        }
+                    }
+                }
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                if (editable) Primary("新增分类", { open("$draft/-") }, Modifier.fillMaxWidth(), enabled = !busy,
+                    icon = designIcon(R.drawable.ks_plus))
+                Choice(if (editable) "管理排序与分类" else "管理本钱包专属分类", { open(path) }, Modifier.fillMaxWidth(), enabled = !busy)
             } else Secondary("请选择钱包")
         }
+    }
+}
+
+@Composable
+private fun FixedCategory(name: String) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 55.dp).padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.weight(1f)) {
+            Text(name)
+            Secondary("固定兜底")
+        }
+        Secondary("所有钱包可用")
     }
 }
 

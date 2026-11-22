@@ -23,6 +23,7 @@
   #kitsune-preview .ks-empty-state{text-align:center;padding:24px 8px;color:var(--ks-dim);font-size:13px}
   #kitsune-preview .ks-home-brand{display:flex;align-items:center;gap:12px}
   #kitsune-preview .ks-app-mark{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:48px;height:48px;border-radius:15px;background:light-dark(#f7dfc6,#59402e);font-size:30px;line-height:1}
+  #kitsune-preview .ks-app-mark img{width:36px;height:36px;object-fit:contain}
 
   #kitsune-preview .ks-home-brand .ks-sub{margin-top:3px}
   #kitsune-preview .ks-home-currency{display:grid;grid-template-columns:36px repeat(2,minmax(0,1fr));align-items:start;gap:var(--ks-space-2);padding:var(--ks-space-3) 0}

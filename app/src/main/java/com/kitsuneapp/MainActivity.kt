@@ -15,14 +15,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.DateRange
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.automirrored.outlined.List
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -30,6 +23,7 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
@@ -37,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -223,13 +218,13 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
             }
         }
         if (stack.size == 1) {
-            val icons = listOf(Icons.Outlined.Home, Icons.Outlined.DateRange, Icons.AutoMirrored.Outlined.List, Icons.Outlined.Settings)
+            val icons = listOf(R.drawable.ks_house, R.drawable.ks_utensils, R.drawable.ks_wallet, R.drawable.ks_sliders_horizontal)
             val colors = MaterialTheme.colorScheme
             Surface(color = colors.surface) {
                 Column {
                     HorizontalDivider(color = colors.outlineVariant)
-                    Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 8.dp, vertical = 4.dp)
-                        .selectableGroup(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 10.dp, top = 10.dp, end = 10.dp, bottom = 8.dp)
+                        .selectableGroup(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                         roots.forEachIndexed { index, route ->
                             val selected = root == route
                             val tint = if (selected) colors.primary else colors.onSurfaceVariant
@@ -239,7 +234,7 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
                                 Box(Modifier.size(49.dp, 25.dp).clip(CircleShape)
                                     .then(if (selected) Modifier.background(colors.primaryContainer) else Modifier),
                                     contentAlignment = Alignment.Center) {
-                                    Icon(icons[index], null, Modifier.size(18.dp),
+                                    Icon(designIcon(icons[index]), null, Modifier.size(18.dp),
                                         tint = if (selected) colors.onPrimaryContainer else tint)
                                 }
                                 Text(titles[index], style = MaterialTheme.typography.labelSmall, color = tint,
@@ -265,18 +260,31 @@ private fun Home(records: Records, now: LocalDateTime, open: (String) -> Unit, m
     Column(Modifier.verticalScroll(rememberScrollState())) {
         val dateLabel = now.format(DateTimeFormatter.ofPattern("M 月 d 日 · EEEE", Locale.SIMPLIFIED_CHINESE))
         Header("日常记录", dateLabel, leading = {
-            Image(painterResource(R.drawable.fox_artwork), contentDescription = null, modifier = Modifier.size(48.dp))
+            Box(Modifier.size(48.dp).clip(RoundedCornerShape(15.dp))
+                .background(if (LocalDarkMode.current) Color(0xFF59402E) else Color(0xFFF7DFC6)),
+                contentAlignment = Alignment.Center) {
+                Image(painterResource(R.drawable.fox_artwork), contentDescription = null, modifier = Modifier.size(36.dp))
+            }
         })
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.padding(start = 16.dp, top = 24.dp, end = 16.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Paper {
-                Section("今日用餐  ${recorded.size} / 3") { TextButton({ open("meals") }) { Text("全部记录 ›") } }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("今日用餐", style = MaterialTheme.typography.titleMedium)
+                        Text(recorded.size.toString(), fontSize = 26.sp, lineHeight = 33.sp, fontWeight = FontWeight.Medium)
+                        Secondary("/ 3")
+                    }
+                    TextAction("全部记录", { open("meals") }, designIcon(R.drawable.ks_chevron_right))
+                }
+                Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     val pendingColor = MaterialTheme.colorScheme.onSurfaceVariant
                     MealSlot.entries.forEach { slot ->
                         val done = recorded.containsKey(slot)
                         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically) {
-                            if (done) Icon(Icons.Outlined.CheckCircle, null, Modifier.size(14.dp), tint = incomeColor)
+                            if (done) Icon(designIcon(R.drawable.ks_circle_check), null, Modifier.size(14.dp), tint = incomeColor)
                             else Spacer(Modifier.size(14.dp).drawBehind {
                                 val line = 1.dp.toPx()
                                 drawCircle(pendingColor, radius = size.minDimension / 2 - line,
@@ -290,30 +298,33 @@ private fun Home(records: Records, now: LocalDateTime, open: (String) -> Unit, m
                 val current = recorded[suggested]
                 Primary((if (current == null) "记录" else "编辑") + suggested.label,
                     { meal(today, suggested, current?.id) }, Modifier.fillMaxWidth(),
-                    icon = if (current == null) Icons.Outlined.Add else Icons.Outlined.Edit)
+                    icon = designIcon(if (current == null) R.drawable.ks_plus else R.drawable.ks_pencil))
             }
-            Section("本月收支") { TextButton({ open("ledger") }) { Text("查看账本 ↗") } }
+            Section("本月收支") { TextAction("查看账本", { open("ledger") }, designIcon(R.drawable.ks_arrow_up_right)) }
             Paper {
                 val ledger = remember(records) { Ledger(records) }
                 val month = java.time.YearMonth.from(now).toString()
                 val totals = remember(ledger, month) { ledger.statistics(LedgerPeriod(month), WalletRange()) }
                 if (totals.isEmpty()) Secondary("暂无常规钱包的收支")
-                totals.forEach { total ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(total.currency, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+                totals.forEachIndexed { index, total ->
+                    if (index > 0) HorizontalDivider()
+                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
+                        Text(total.currency, Modifier.width(36.dp), color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                         Column(Modifier.weight(1f)) {
-                            Secondary("净支出")
-                            Text(money(total.expenses, total.scale), fontWeight = FontWeight.SemiBold)
+                            Text("净支出", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(displayMoney(total.expenses, total.scale), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                         }
                         Column(Modifier.weight(1f)) {
-                            Secondary("收入")
-                            Text(money(total.income, total.scale), fontWeight = FontWeight.SemiBold)
+                            Text("收入", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(displayMoney(total.income, total.scale), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
                 Primary("记一笔", {
                     open(if (ledger.availableWallets().isEmpty()) "wallet/-" else "entryForm/-")
-                }, Modifier.fillMaxWidth(), icon = Icons.Outlined.Add)
+                }, Modifier.fillMaxWidth(), icon = designIcon(R.drawable.ks_plus))
             }
         }
     }

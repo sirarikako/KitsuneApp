@@ -16,12 +16,16 @@ import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.dp
+import androidx.test.platform.app.InstrumentationRegistry
 import com.kitsuneapp.data.*
 import com.kitsuneapp.feature.ledger.LedgerPage
+import com.kitsuneapp.feature.ledger.Calculator
 import com.kitsuneapp.ui.KitsuneTheme
 import java.io.File
 import java.time.LocalDate
@@ -61,6 +65,7 @@ class LedgerLayoutTest {
         assertTrue(currency.top >= value.bottom)
         compose.onNodeWithText("旅行钱包", substring = true).assertDoesNotExist()
         val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
+        assertEquals(0xFF201E1B.toInt(), bitmap.getPixel(8, 8))
         File(compose.activity.cacheDir, "kitsune-ledger-narrow-dark.png").outputStream().use {
             check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
         }
@@ -72,5 +77,28 @@ class LedgerLayoutTest {
         compose.onNodeWithText("87.50").assertIsDisplayed()
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("旅行钱包 · JPY"))
         compose.onNodeWithText("旅行钱包 · JPY").assertIsDisplayed()
+    }
+
+    @Test
+    fun calculatorAcceptsExpressionsAndAppliesResultAfterEditing() {
+        var amount: String? = null
+        compose.setContent {
+            KitsuneTheme(ThemePreferences(), forceDark = false) {
+                Calculator(2, "CNY", "12.50", dismiss = {}, apply = { amount = it })
+            }
+        }
+        val expression = compose.onNodeWithContentDescription("计算表达式")
+        expression.performTextReplacement("1÷0")
+        compose.onNodeWithText("=").performClick()
+        compose.onNodeWithText("除数不能为零").assertIsDisplayed()
+        expression.performTextReplacement("1÷3×100")
+        compose.onNodeWithText("=").performClick()
+        compose.onNodeWithText("33.33").assertIsDisplayed()
+        val bitmap = checkNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
+        File(compose.activity.cacheDir, "kitsune-calculator.png").outputStream().use {
+            check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
+        }
+        compose.onNodeWithText("使用此金额").performClick()
+        compose.runOnIdle { assertEquals("33.33", amount) }
     }
 }

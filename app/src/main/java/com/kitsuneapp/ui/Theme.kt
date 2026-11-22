@@ -30,7 +30,7 @@ import com.materialkolor.ktx.animateColorScheme
 
 val LocalDarkMode = staticCompositionLocalOf { false }
 val incomeColor: Color
-    @Composable get() = if (LocalDarkMode.current) Color(0xFFB7D0AE) else Color(0xFF3F6242)
+    @Composable get() = MaterialTheme.colorScheme.tertiary
 val motion = androidx.compose.animation.core.CubicBezierEasing(0.2f, 0f, 0f, 1f)
 internal val CardRadius = 17.dp
 val CardShape = RoundedCornerShape(CardRadius)
@@ -44,6 +44,7 @@ internal fun tonalColors(seed: Color, dark: Boolean): ColorScheme = dynamicColor
 private val type = Typography(
     headlineSmall = TextStyle(fontSize = 26.sp, fontWeight = FontWeight.SemiBold, lineHeight = 33.sp),
     titleMedium = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, lineHeight = 22.sp),
+    titleLarge = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Medium, lineHeight = 27.sp),
     bodyLarge = TextStyle(fontSize = 14.sp, lineHeight = 21.sp),
     bodyMedium = TextStyle(fontSize = 14.sp, lineHeight = 21.sp),
     bodySmall = TextStyle(fontSize = 12.sp, lineHeight = 18.sp),
@@ -61,13 +62,14 @@ fun KitsuneTheme(preferences: ThemePreferences, forceDark: Boolean? = null, refr
     val context = LocalContext.current
     val colors: ColorScheme = remember(preferences, dark, context, refresh) {
         if (preferences.colorSource == ColorSource.SYSTEM && Build.VERSION.SDK_INT >= 31) {
-            if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            (if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context))
+                .copy(tertiary = designIncomeColor(dark))
         } else {
             val seed = when (preferences.colorSource) {
                 ColorSource.CUSTOM -> preferences.customSeedColor
                 else -> presets[preferences.presetId]?.second ?: "#C47A4A"
             }
-            tonalColors(Color(android.graphics.Color.parseColor(seed)), dark)
+            designColors(Color(android.graphics.Color.parseColor(seed)), dark)
         }
     }
     val applied = if (forceDark != null) colors else key(dark) { animateColorScheme(colors, tween(250, easing = motion)) }

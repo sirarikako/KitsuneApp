@@ -12,6 +12,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kitsuneapp.AppViewModel
+import com.kitsuneapp.R
 import com.kitsuneapp.RestorePreview
 import com.kitsuneapp.backup.CLOUD_LIMIT
 import com.kitsuneapp.backup.FolderOption
@@ -48,15 +49,17 @@ fun DataManagementPage(records: Records, model: AppViewModel, back: () -> Unit) 
 
     Column {
         Header("导入与导出", back = back)
-        Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Form {
             Section("完整 JSON")
             Paper {
-                Setting("导出完整备份") { if (!busy) exportJson.launch("kitsune-manual.json") }
+                Setting("导出完整备份", designIcon(R.drawable.ks_files)) { if (!busy) exportJson.launch("kitsune-manual.json") }
                 HorizontalDivider()
-                Setting("从 JSON 恢复") { if (!busy) importJson.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }
+                Setting("从 JSON 恢复", designIcon(R.drawable.ks_undo2)) {
+                    if (!busy) importJson.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
+                }
                 if (configured) {
                     HorizontalDivider()
-                    Setting("从文件夹备份恢复") {
+                    Setting("从文件夹备份恢复", designIcon(R.drawable.ks_hard_drive)) {
                         if (!busy) model.backup {
                             val options = folderOptions()
                             require(options.isNotEmpty()) { "目录中没有已发布的自动备份" }
@@ -235,7 +238,7 @@ fun FolderPage(records: Records, model: AppViewModel, open: (String) -> Unit, ba
     }
     Column {
         Header("本地文件夹备份", back = back)
-        Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Form {
             Paper {
                 Text(when {
                     folder != null && (directory == null || directory.generation == state.generation && directory.revision > state.revision) ->
