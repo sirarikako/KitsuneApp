@@ -14,11 +14,13 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.dp
@@ -88,22 +90,24 @@ class LedgerLayoutTest {
             }
         }
         val expression = compose.onNodeWithContentDescription("计算表达式")
+        val equals = compose.onNodeWithText("=")
+        val apply = compose.onNodeWithText("使用此金额")
         expression.performTextReplacement("1÷0")
-        compose.onNodeWithText("=").performClick()
+        equals.performScrollTo().performClick()
         compose.onNodeWithText("除数不能为零").assertIsDisplayed()
-        expression.performTextReplacement("1÷3×100")
-        compose.onNodeWithText("=").performClick()
-        compose.onNodeWithText("33.33").assertIsDisplayed()
+        expression.performScrollTo().performTextReplacement("1÷3×100")
+        equals.performScrollTo().performClick()
+        compose.waitUntil(5_000) { compose.onNodeWithText("33.33").isDisplayed() }
+        apply.assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals("33.33", amount) }
+
         val bitmap = checkNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
         File(compose.activity.cacheDir, "kitsune-calculator.png").outputStream().use {
             check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
         }
-        compose.onNodeWithText("使用此金额").assertIsDisplayed().performClick()
-        compose.runOnIdle { assertEquals("33.33", amount) }
-
         expression.performClick()
         expression.performTextReplacement("2×25")
-        compose.onNodeWithText("使用此金额").assertIsDisplayed().performClick()
+        apply.assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals("50.00", amount) }
     }
 }

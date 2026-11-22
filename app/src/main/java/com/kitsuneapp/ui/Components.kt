@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -442,6 +443,7 @@ fun ConfirmDelete(description: String, dismiss: () -> Unit, confirm: () -> Unit,
 @Composable
 internal fun DesignSheet(
     dismiss: () -> Unit,
+    scroll: ScrollState = rememberScrollState(),
     footer: (@Composable ColumnScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -452,7 +454,7 @@ internal fun DesignSheet(
             color = colors.surface, border = BorderStroke(1.dp, colors.outlineVariant)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 val body = if (footer == null) Modifier else Modifier.weight(1f, fill = false)
-                Column(body.verticalScroll(rememberScrollState()),
+                Column(body.verticalScroll(scroll),
                     verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
                 footer?.invoke(this)
             }

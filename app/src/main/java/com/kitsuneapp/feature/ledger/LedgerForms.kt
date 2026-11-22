@@ -4,6 +4,7 @@ import android.app.TimePickerDialog
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,6 +22,7 @@ import com.kitsuneapp.AppViewModel
 import com.kitsuneapp.R
 import com.kitsuneapp.data.*
 import com.kitsuneapp.ui.*
+import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -359,6 +361,8 @@ private fun AmountField(label: String, value: String, set: (String) -> Unit, wal
 internal fun Calculator(scale: Int, currency: String, initial: String, dismiss: () -> Unit, apply: (String) -> Unit) {
     var text by rememberSaveable { mutableStateOf(initial) }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
+    val scroll = rememberScrollState()
+    val scope = rememberCoroutineScope()
     fun evaluate(): String? {
         return try {
             money(calculate(text, scale), scale).also { error = null }
@@ -378,7 +382,7 @@ internal fun Calculator(scale: Int, currency: String, initial: String, dismiss: 
             else -> update(text + key)
         }
     }
-    DesignSheet(dismiss, footer = {
+    DesignSheet(dismiss, scroll = scroll, footer = {
         error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Choice("取消", dismiss, Modifier.weight(1f))
@@ -414,6 +418,7 @@ internal fun Calculator(scale: Int, currency: String, initial: String, dismiss: 
                     evaluate()?.let {
                         update(it)
                         focus.clearFocus()
+                        scope.launch { scroll.scrollTo(0) }
                     }
                 }, Modifier.width(keyWidth).fillMaxHeight())
             }
