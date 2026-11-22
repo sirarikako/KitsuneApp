@@ -71,15 +71,15 @@
       if(state.date!==recordOrigin.date&&!state.mealListMode)return null;
       return [...phone.querySelectorAll('.ks-record[data-meal]')].find(n=>n.dataset.meal===recordOrigin.slot&&(n.dataset.mealDate||state.date)===recordOrigin.date&&!n.classList.contains('ks-empty'));
     };
-    function animatePage(previous,oldPage,sourceRect,oldNav,oldHeight){
-      const node=pageNode(),next=state.page;
+    function animatePage(previous,current,oldPage,sourceRect,oldNav,oldHeight){
+      const node=pageNode(),next=current.page;
       if(!node||!previous||previous.page===next){oldPage?.remove();return;}
       const oldIsPrimary=primary(previous.page),newIsPrimary=primary(next);
       if(oldIsPrimary&&newIsPrimary){
         attachGhost(oldPage);play(oldPage,outFade,motion.primary,discard(oldPage));
         play(node,[{opacity:0,transform:'scale(.96)'},{opacity:0,offset:.25,transform:'scale(.96)'},{opacity:1,transform:'scale(1)'}],motion.primary);return;
       }
-      const entering=oldIsPrimary&&!newIsPrimary;
+      const entering=current.stack.length>previous.stack.length;
       // Keep the departing bar under the page layer at its last measured position.
       if(oldNav){phone.style.minHeight=oldHeight+'px';oldNav.style.zIndex='0';attachGhost(oldNav);}
       const finishEnter=()=>{

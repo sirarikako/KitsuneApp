@@ -156,10 +156,10 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
         }
     }
 
-    val transition = updateTransition(top, label = "页面过渡")
+    val transition = updateTransition(stack, label = "页面过渡")
     val onPrimaryPage = top in roots
     NavigationFrame(bottomBar = {
-        if (onPrimaryPage || transition.currentState in roots) {
+        if (onPrimaryPage || transition.currentState.last() in roots) {
             MainNavigation(root, onPrimaryPage, ::open)
         }
     }) { bottomBarHeight ->
@@ -167,27 +167,31 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
             val shared = this
             transition.AnimatedContent(
                 modifier = Modifier.fillMaxSize(),
+                contentKey = { it.last() },
                 transitionSpec = {
+                    val from = initialState.last()
+                    val to = targetState.last()
                     val record = recordNavigation
-                    val transform = record != null && ((record.source == initialState && record.detail == targetState) ||
-                        (record.detail == initialState && record.source == targetState))
+                    val transform = record != null && ((record.source == from && record.detail == to) ||
+                        (record.detail == from && record.source == to))
                     val pageTransition = when {
                         transform -> fadeIn(tween(280, easing = motion)) togetherWith fadeOut(tween(280, easing = motion))
-                        initialState in roots && targetState in roots -> {
+                        from in roots && to in roots -> {
                             (fadeIn(tween(112, delayMillis = 88, easing = motion)) +
                                 scaleIn(tween(112, delayMillis = 88, easing = motion), initialScale = 0.96f)) togetherWith
                                 fadeOut(tween(88, easing = motion))
                         }
-                        stack.size > 1 && targetState in stack && stack.indexOf(targetState) > stack.indexOf(initialState) ->
+                        targetState.size > initialState.size ->
                             slideInHorizontally(tween(240, easing = motion)) { it } togetherWith
                                 slideOutHorizontally(tween(240, easing = motion)) { -it / 5 }
                         else -> slideInHorizontally(tween(220, easing = motion)) { -it / 5 } togetherWith
                             slideOutHorizontally(tween(220, easing = motion)) { it }
                     }
-                    pageTransition.targetContentZIndex = stack.size.toFloat()
+                    pageTransition.targetContentZIndex = targetState.size.toFloat()
                     pageTransition.using(null)
                 },
-            ) { path ->
+            ) { pageStack ->
+                val path = pageStack.last()
                 holder.SaveableStateProvider(path) {
                     val parts = path.split("/")
                     val goBack = { if (!model.isBusy && path == stack.last()) back() }

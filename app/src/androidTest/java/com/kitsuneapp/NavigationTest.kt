@@ -77,6 +77,45 @@ class NavigationTest {
     }
 
     @Test
+    fun returnsRightFromNestedSettingsWithEitherBackAction() {
+        compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
+        compose.onNodeWithText("设置").performClick()
+        val methods = compose.onNodeWithText("用餐方式")
+        val edit = compose.onNodeWithText("编辑用餐方式")
+        val cooking = compose.onNodeWithText("下厨")
+        methods.performClick()
+        val methodsPosition = methods.fetchSemanticsNode().positionInRoot
+
+        compose.mainClock.autoAdvance = false
+        try {
+            cooking.performClick()
+            compose.mainClock.advanceTimeBy(96)
+            val enteringPosition = edit.fetchSemanticsNode().positionInRoot
+            compose.mainClock.advanceTimeBy(280)
+            val editPosition = edit.fetchSemanticsNode().positionInRoot
+            assertTrue("The editor should enter from the right", enteringPosition.x > editPosition.x)
+            assertEquals(editPosition.y, enteringPosition.y, 1f)
+
+            fun checkReturn(back: () -> Unit) {
+                back()
+                compose.mainClock.advanceTimeBy(96)
+                val returningPosition = methods.fetchSemanticsNode().positionInRoot
+                assertTrue("The parent should return from the left", returningPosition.x < methodsPosition.x)
+                assertEquals(methodsPosition.y, returningPosition.y, 1f)
+                compose.mainClock.advanceTimeBy(260)
+                cooking.assertIsDisplayed()
+            }
+
+            checkReturn { compose.onNodeWithContentDescription("返回").performClick() }
+            cooking.performClick()
+            compose.mainClock.advanceTimeBy(320)
+            checkReturn { compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() } }
+        } finally {
+            compose.mainClock.autoAdvance = true
+        }
+    }
+
+    @Test
     fun checksRequiredMealPlanAndReturnsAfterSave() {
         compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
         compose.onNodeWithText("用餐").performClick()

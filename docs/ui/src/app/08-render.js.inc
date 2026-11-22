@@ -26,9 +26,11 @@
       if(state.page==='appearance')updateAppearancePreview();
       globalThis.lucide?.createIcons({root:phone,attrs:{width:18,height:18}});
       rendering=false;
-      rendered={page:state.page,modal:kind,local:key};
+      const previousStack=previous?.stack??[],pageIndex=previousStack.indexOf(state.page);
+      const stack=primary(state.page)?[state.page]:pageIndex<0?[...previousStack,state.page]:previousStack.slice(0,pageIndex+1);
+      rendered={page:state.page,modal:kind,local:key,stack};
       if(!reducedMotion.matches){
-        if(changingPage)animatePage(previous,oldPage,sourceRect,oldNav,oldHeight);
+        if(changingPage)animatePage(previous,rendered,oldPage,sourceRect,oldNav,oldHeight);
         if(localChanged){attachGhost(oldLocal);play(oldLocal,outFade,motion.local,discard(oldLocal));for(const node of localNodes())play(node,inFade,motion.local);}
         animateModal(previous?.modal||null,oldModal);
         if(previous?.page==='appearance'&&state.page==='appearance'){
