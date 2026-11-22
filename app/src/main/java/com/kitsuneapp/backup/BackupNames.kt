@@ -1,6 +1,7 @@
 package com.kitsuneapp.backup
 
-import com.kitsuneapp.data.folderBackupOffset
+import com.kitsuneapp.data.BackupKind
+import com.kitsuneapp.data.backupOffset
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
@@ -11,11 +12,21 @@ import java.util.Locale
 private val autoName = Regex("""kitsune-auto-([0-9]{8}T[0-9]{6}(?:Z|\+0800))-([0-9]{4,})\.json""")
 private val filenameTime = DateTimeFormatter.ofPattern("uuuuMMdd'T'HHmmssXX", Locale.ROOT)
     .withResolverStyle(ResolverStyle.STRICT)
+private val backupFilenameFormatter = filenameTime.withZone(backupOffset)
 
-internal fun folderFilenameTime(time: Instant): String = filenameTime.withZone(folderBackupOffset).format(time)
+internal fun backupFilenameTime(time: Instant): String = backupFilenameFormatter.format(time)
+
+internal fun suggestedBackupFilename(kind: BackupKind, time: Instant = Instant.now()): String {
+    val prefix = when (kind) {
+        BackupKind.MANUAL -> "kitsune-manual"
+        BackupKind.PRE_RESTORE -> "kitsune-pre-restore"
+        BackupKind.AUTO -> error("Automatic backups require a sequence number")
+    }
+    return "$prefix-${backupFilenameTime(time)}.json"
+}
 
 internal data class AutoBackupName(val time: Instant, val sequence: Long) : Comparable<AutoBackupName> {
-    fun filename() = "kitsune-auto-${folderFilenameTime(time)}-${sequence.toString().padStart(4, '0')}.json"
+    fun filename() = "kitsune-auto-${backupFilenameTime(time)}-${sequence.toString().padStart(4, '0')}.json"
 
     override fun compareTo(other: AutoBackupName) = compareValuesBy(this, other, AutoBackupName::time, AutoBackupName::sequence)
 

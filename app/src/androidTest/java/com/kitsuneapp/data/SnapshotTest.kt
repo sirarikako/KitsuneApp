@@ -38,6 +38,7 @@ class SnapshotTest {
     fun documentedFixtureRoundTripsWithHistoricalFieldsAndAccurateBalances() = runBlocking {
         store.stage(sample.byteInputStream()).use { staged ->
             assertEquals(SnapshotCounts(1, 2, 3), staged.counts)
+            assertEquals("2026-11-16T20:00:00.000+08:00", staged.info.exportedAt)
             store.restore(staged) { fail("Fresh database should not require protection") }
             assertEquals(1L, repository.read().state.revision)
             assertEquals(staged.info.datasetId, repository.read().state.datasetId)
@@ -55,7 +56,7 @@ class SnapshotTest {
     }
 
     @Test
-    fun folderSnapshotsStorePlusEightAndRestoreCanonicalUtc() = runBlocking {
+    fun allBackupKindsStorePlusEightAndRestoreCanonicalUtc() = runBlocking {
         val sha = "ab".repeat(32)
         val fixture = sample.replace("\"importReceipts\": []", """"importReceipts": [
             {"kind":"LEDGER","sha256":"$sha","importedAt":"2026-11-16T20:30:00.456Z"}
@@ -64,15 +65,16 @@ class SnapshotTest {
         val source = repository.read()
         val absoluteTime = Regex(""""(?:exportedAt|createdAt|updatedAt|importedAt)": "([^"]+)"""")
 
-        for (kind in listOf(BackupKind.AUTO, BackupKind.PRE_RESTORE)) {
+        for (kind in BackupKind.entries) {
             val output = ByteArrayOutputStream()
-            val info = store.export(kind, output, forFolder = true)
+            val info = store.export(kind, output)
             val json = output.toString("UTF-8")
             val times = absoluteTime.findAll(json).map { it.groupValues[1] }.toList()
             assertEquals(24, times.size)
             assertEquals(info.exportedAt, times.first())
             assertTrue(times.all { it.endsWith("+08:00") })
             assertTrue(json.contains("\"importedAt\": \"2026-11-17T04:30:00.456+08:00\""))
+            if (kind == BackupKind.AUTO) assertEquals(output.size().toLong(), store.measure())
 
             store.stage(output.toByteArray().inputStream()).use { staged ->
                 val dao = staged.db.records()
@@ -85,12 +87,6 @@ class SnapshotTest {
                 assertEquals(repository.dao.receipts(), dao.receipts())
             }
         }
-
-        val output = ByteArrayOutputStream()
-        store.export(BackupKind.AUTO, output)
-        val times = absoluteTime.findAll(output.toString("UTF-8")).map { it.groupValues[1] }.toList()
-        assertEquals(24, times.size)
-        assertTrue(times.all { it.endsWith("Z") })
     }
 
     @Test

@@ -11,7 +11,7 @@
 | datasetId | string | UUID |
 | snapshotId | string | UUID，每份快照的唯一身份 |
 | revision | string | 非负 64 位十进制整数，本机数据修订，不能用于跨设备比较新旧 |
-| exportedAt | string | 带时区的 ISO 时间，按导出目标选用 `Z` 或 `+08:00` |
+| exportedAt | string | 快照生成时刻，导出为固定 UTC+8 的 ISO 时间 |
 | backupKind | string | AUTO／MANUAL／PRE_RESTORE |
 | data | object | 下表的业务快照 |
 
@@ -26,7 +26,7 @@
 | importReceipts | 全部成功导入凭据数组 |
 
 - 共用时间字段适用于方式、分类、用餐、钱包、流水；importReceipts 使用 importedAt，主题单例不含时间字段。
-- 写入已授权目录的 AUTO 和 PRE_RESTORE 以固定 UTC+8 输出 exportedAt、createdAt、updatedAt、importedAt，例如 `2026-11-18T09:30:15.000+08:00`。单次文件导出和 GitHub 仍输出 UTC `Z`。日期及 HH:mm 业务时间保留原值。导入识别两种时区后缀，审计时间和凭据时间按同一实际时刻恢复为库内 UTC。
+- 所有 AUTO、MANUAL 和 PRE_RESTORE 导出均以固定 UTC+8 写入 exportedAt、createdAt、updatedAt、importedAt，例如 `2026-11-18T09:30:15.000+08:00`。业务日期与 HH:mm 为用户选择的值。导入接受 `Z` 或 `+08:00`，审计时间和凭据时间按同一实际时刻恢复为库内 UTC。恢复摘要按 UTC+8 显示 exportedAt。
 - 导出不含 normalizedName，导入重建；Category 包含 isDefault 和 walletId；Wallet 包含 currencyScale、separateAccounting、incomeCategoryMode 和 expenseCategoryMode。完整 JSON 总是导出所有通用／专属分类、钱包和流水，与当前页的默认筛选或类别模式无关；CSV 全量导出同样不得套用页面默认钱包范围。
 - backupKind=AUTO 用于更新各目标的最新完整备份，包括设置页的“立即备份”。MANUAL 用于手动导出，PRE_RESTORE 用于恢复前的独立保护文件，两者由用户自行保管。
 - 全部实体数组按 id 升序输出；关联 ID 数组去重并按 ID 升序输出；凭据按 kind、sha256 排序。字段按本节示例的固定顺序序列化，便于比较历史。
@@ -35,7 +35,7 @@
 
 ### 4.2 完整且可校验的虚构示例
 
-此示例包含下厨晚餐、CNY／JPY 钱包、支出、跨币种转账及部分退款。为减少重复，数组对象采用紧凑排版；正式导出按上节统一缩进。
+此兼容示例采用旧版的 `Z` 时间，包含下厨晚餐、CNY／JPY 钱包、支出、跨币种转账及部分退款。为减少重复，数组对象采用紧凑排版；正式导出按上节统一缩进。
 
 ```json
 {

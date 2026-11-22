@@ -143,7 +143,7 @@ internal class FolderBackup(private val context: Context, tree: Uri) {
     }
 
     suspend fun protect(file: File, info: SnapshotInfo) = withContext(Dispatchers.IO) {
-        val time = folderFilenameTime(OffsetDateTime.parse(info.exportedAt).toInstant())
+        val time = backupFilenameTime(OffsetDateTime.parse(info.exportedAt).toInstant())
         val doc = create("application/json", "kitsune-pre-restore-$time-${info.snapshotId}.json")
         try {
             resolver.verifiedCopy(file, doc.uri)

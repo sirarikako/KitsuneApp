@@ -19,7 +19,10 @@ import com.kitsuneapp.AppViewModel
 import com.kitsuneapp.RestorePreview
 import com.kitsuneapp.backup.CLOUD_LIMIT
 import com.kitsuneapp.backup.GitHubState
+import com.kitsuneapp.backup.suggestedBackupFilename
+import com.kitsuneapp.data.BackupKind
 import com.kitsuneapp.data.Records
+import com.kitsuneapp.data.backupStatusTime
 import com.kitsuneapp.ui.*
 import java.math.BigDecimal
 import kotlinx.coroutines.CancellationException
@@ -76,7 +79,7 @@ fun GitHubPage(records: Records, model: AppViewModel, back: () -> Unit) {
                     owned.lastRevision == state.revision -> "最新修订已备份"
                     else -> "最新修订等待备份"
                 })
-                owned?.succeededAt?.let { Secondary("上次成功 · $it") }
+                backupStatusTime(owned?.succeededAt)?.let { Secondary("上次成功 · $it") }
                 if (owned != null) {
                     Secondary("${owned.target.owner}/${owned.target.repository} · ${owned.target.branch}")
                 }
@@ -108,7 +111,7 @@ fun GitHubPage(records: Records, model: AppViewModel, back: () -> Unit) {
                 Paper {
                     val capacity = owned.capacity
                     Secondary(capacity.sizeKb?.let { "最近一次 · ${formatCapacity(it)} MB" } ?: "尚无有效容量读数")
-                    capacity.checkedAt?.let { Secondary("检查时间 · $it") }
+                    backupStatusTime(capacity.checkedAt)?.let { Secondary("检查时间 · $it") }
                     if (capacity.failed) Secondary("当前无法更新仓库容量")
                     Field("提醒阈值（MB）", threshold, { threshold = it }, keyboard = KeyboardOptions(keyboardType = KeyboardType.Number))
                     Choice("保存阈值", { model.backup { service.setThreshold(threshold) } }, Modifier.fillMaxWidth(), enabled = !busy)
@@ -139,7 +142,8 @@ fun GitHubPage(records: Records, model: AppViewModel, back: () -> Unit) {
         val staged = preview.source.stage
         if (restoring && staged != null) {
             RestoreDialog(staged, state.revision != 0L, hasFolder, busy, error,
-                { restoring = false }, { model.restoreBackup(preview, null) }, { protect.launch("kitsune-pre-restore.json") })
+                { restoring = false }, { model.restoreBackup(preview, null) },
+                { protect.launch(suggestedBackupFilename(BackupKind.PRE_RESTORE)) })
         } else {
             AlertDialog(onDismissRequest = { model.discardRestorePreview(preview) }, shape = DialogShape,
                 title = { Text("核对远端备份") }, text = {

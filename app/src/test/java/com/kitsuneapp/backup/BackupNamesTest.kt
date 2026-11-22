@@ -1,12 +1,20 @@
 package com.kitsuneapp.backup
 
+import com.kitsuneapp.data.BackupKind
 import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class FolderBackupNamesTest {
+class BackupNamesTest {
+    @Test
+    fun suggestsPlusEightNamesForSingleFileExports() {
+        val time = Instant.parse("2026-11-17T16:30:15Z")
+        assertEquals("kitsune-manual-20261118T003015+0800.json", suggestedBackupFilename(BackupKind.MANUAL, time))
+        assertEquals("kitsune-pre-restore-20261118T003015+0800.json", suggestedBackupFilename(BackupKind.PRE_RESTORE, time))
+    }
+
     @Test
     fun writesOffsetAndContinuesTheSequenceAcrossBothFilenameFormats() {
         val time = Instant.parse("2026-11-17T16:30:15Z")

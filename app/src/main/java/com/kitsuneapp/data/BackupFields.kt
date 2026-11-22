@@ -66,7 +66,7 @@ internal suspend fun JsonInput.row(specification: List<BackupField>): RowReader 
     return RowReader(values)
 }
 
-internal fun JsonWriter.row(spec: List<BackupField>, vararg values: Any?, forFolder: Boolean = false) {
+internal fun JsonWriter.row(spec: List<BackupField>, vararg values: Any?) {
     check(values.size == spec.size)
     beginObject()
     spec.zip(values.toList()).forEach { (field, value) ->
@@ -76,7 +76,7 @@ internal fun JsonWriter.row(spec: List<BackupField>, vararg values: Any?, forFol
             endArray()
         } else {
             if (value is String) validateField(field.key, value)
-            field(field.key, if (forFolder && field.type == FieldType.TIMESTAMP) folderTimestamp(value as String) else value)
+            field(field.key, if (field.type == FieldType.TIMESTAMP) backupTimestamp(value as String) else value)
         }
     }
     endObject()

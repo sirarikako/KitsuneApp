@@ -18,6 +18,7 @@ import com.kitsuneapp.backup.CLOUD_LIMIT
 import com.kitsuneapp.backup.FolderOption
 import com.kitsuneapp.backup.input
 import com.kitsuneapp.backup.output
+import com.kitsuneapp.backup.suggestedBackupFilename
 import com.kitsuneapp.data.*
 import com.kitsuneapp.ui.*
 
@@ -52,7 +53,9 @@ fun DataManagementPage(records: Records, model: AppViewModel, back: () -> Unit) 
         Form {
             Section("完整 JSON")
             Paper {
-                Setting("导出完整备份", designIcon(R.drawable.ks_files)) { if (!busy) exportJson.launch("kitsune-manual.json") }
+                Setting("导出完整备份", designIcon(R.drawable.ks_files)) {
+                    if (!busy) exportJson.launch(suggestedBackupFilename(BackupKind.MANUAL))
+                }
                 HorizontalDivider()
                 Setting("从 JSON 恢复", designIcon(R.drawable.ks_undo2)) {
                     if (!busy) importJson.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
@@ -101,7 +104,7 @@ fun DataManagementPage(records: Records, model: AppViewModel, back: () -> Unit) 
     localRestore?.let { source ->
         RestoreDialog(source.snapshot, records.state.revision != 0L, configured, busy, error,
             { model.discardRestorePreview(source) }, { model.restoreBackup(source, null) },
-            { protect.launch("kitsune-pre-restore.json") })
+            { protect.launch(suggestedBackupFilename(BackupKind.PRE_RESTORE)) })
     }
 }
 
@@ -249,7 +252,7 @@ fun FolderPage(records: Records, model: AppViewModel, open: (String) -> Unit, ba
                     current -> "最新修订已备份"
                     else -> "最新修订等待备份"
                 })
-                directory?.succeededAt?.let { Secondary("上次成功 · $it") }
+                backupStatusTime(directory?.succeededAt)?.let { Secondary("上次成功 · $it") }
                 if (directory?.cleanupPending == true) Secondary("已发布新备份，正在等待清理旧文件。")
                 Secondary("使用 Android 文件夹授权。新备份校验发布后才清理之前的自动备份。")
             }

@@ -136,7 +136,7 @@ class BackupCoordinator internal constructor(private val context: Context, priva
                 }
                 val file = File.createTempFile("folder-write-", ".json", context.cacheDir)
                 try {
-                    val info = file.outputStream().use { snapshots.export(BackupKind.AUTO, it, forFolder = true) }
+                    val info = file.outputStream().use { snapshots.export(BackupKind.AUTO, it) }
                     val marker = folder.publish(file, info) {
                         check(repository.ownedState().generation == state.generation) { "备份已切换到新数据集" }
                     }
@@ -229,7 +229,7 @@ class BackupCoordinator internal constructor(private val context: Context, priva
         snapshots.restore(staged, beforeCommit) { state ->
             val file = File.createTempFile("restore-protection-", ".json", context.cacheDir)
             try {
-                val protected = file.outputStream().use { snapshots.export(BackupKind.PRE_RESTORE, it, forFolder = safetyUri == null) }
+                val protected = file.outputStream().use { snapshots.export(BackupKind.PRE_RESTORE, it) }
                 check(protected.datasetId == state.datasetId && protected.revision == state.revision) {
                     "本机数据已变化，请重新确认恢复"
                 }
