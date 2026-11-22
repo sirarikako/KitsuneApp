@@ -1,14 +1,11 @@
 package com.kitsuneapp.feature.ledger
 
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -18,6 +15,15 @@ import androidx.compose.ui.unit.dp
 import com.kitsuneapp.data.*
 import com.kitsuneapp.ui.*
 import java.time.YearMonth
+
+private data class LedgerContent(
+    val page: Int,
+    val period: LedgerPeriod,
+    val wallets: WalletRange,
+    val type: EntryType? = null,
+    val category: String? = null,
+    val note: String = "",
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,8 +39,6 @@ fun LedgerPage(records: Records, open: (String) -> Unit, openDetails: (String) -
     var datePicker by rememberSaveable { mutableStateOf(false) }
     var filters by rememberSaveable { mutableStateOf(false) }
     val selected = wallets.selected(ledger.wallets)
-    val matching = remember(ledger, period, wallets) { ledger.filtered(period, wallets) }
-    val balances = remember(ledger) { ledger.balance() }
     Column {
         Header("记账")
         Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -54,36 +58,57 @@ fun LedgerPage(records: Records, open: (String) -> Unit, openDetails: (String) -
                 if (selected.isEmpty() && ledger.wallets.isNotEmpty()) Secondary("当前范围没有钱包，可手动选择")
             }
         }
-        Crossfade(tab, modifier = Modifier.weight(1f), animationSpec = tween(150, easing = motion), label = "账本标签") { page ->
+        val content = if (tab == 0) LedgerContent(tab, period, wallets, type, category, note)
+            else LedgerContent(tab, period, wallets)
+        ContentFade(content, Modifier.weight(1f)) { shown ->
+            val totals = remember(ledger, shown.period, shown.wallets, shown.page == 1) {
+                if (shown.page == 1) emptyList() else ledger.statistics(shown.period, shown.wallets)
+            }
+            val balances = remember(ledger, shown.page == 1) { if (shown.page == 1) ledger.balance() else emptyMap() }
+            val periodLabel = if (shown.period.start == null) "${YearMonth.parse(shown.period.month).monthValue} 月" else "所选期间"
             LazyColumn(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                when (page) {
+                when (shown.page) {
                     0 -> {
-                        val entries = matching.filter {
-                            (type == null || it.type == type) && (category == null || ledger.categoryId(it) == category) &&
-                                it.note.contains(note.trim(), true)
+                        val entries = ledger.filtered(shown.period, shown.wallets).filter {
+                            (shown.type == null || it.type == shown.type) &&
+                                (shown.category == null || ledger.categoryId(it) == shown.category) &&
+                                it.note.contains(shown.note.trim(), true)
                         }
+                        items(totals, key = { "summary:${it.currency}" }) { total ->
+                            Paper {
+                                Text("$periodLabel 净支出 · ${total.currency}", color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.bodySmall)
+                                Text(money(total.expenses, total.scale), style = MaterialTheme.typography.headlineSmall)
+                                Secondary("收入 ${money(total.income, total.scale)}")
+                            }
+                        }
+                        item { Section("$periodLabel 流水") { Secondary("${entries.size} 笔") } }
                         if (entries.isEmpty()) item { Paper { Text(if (ledger.wallets.isEmpty()) "先创建一个钱包" else "这段时间没有符合条件的账目") } }
                         items(entries, key = { it.id }) { entry -> EntryRow(ledger, entry) { openDetails(entry.id) } }
                     }
                     1 -> {
+                        item { Section("我的钱包") { Secondary("每个钱包余额单独计算") } }
                         item { Primary("新建钱包", { open("wallet/-") }, Modifier.fillMaxWidth()) }
                         items(ledger.wallets, key = { it.id }) { wallet ->
                             Paper {
-                                RecordRow(wallet.name, listOfNotNull(wallet.currencyCode, "已归档".takeIf { wallet.archived }).joinToString(" · "),
-                                    icon = Icons.AutoMirrored.Outlined.List, badge = "独立核算".takeIf { wallet.separateAccounting },
-                                    amount = money(balances.getValue(wallet.id), wallet.currencyScale) + " " + wallet.currencyCode,
-                                    onClick = { open("wallet/" + wallet.id) })
-                                TextButton({ open("walletCategories/" + wallet.id) }) { Text("管理钱包专属分类") }
+                                Text(ledger.walletLabel(wallet.id), color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.titleMedium)
+                                if (wallet.separateAccounting) Tag("独立核算")
+                                if (wallet.archived) Tag("已归档")
+                                Text(money(balances.getValue(wallet.id), wallet.currencyScale),
+                                    style = MaterialTheme.typography.headlineSmall)
+                                Secondary("初始余额 ${money(wallet.openingBalanceMinor, wallet.currencyScale)} · 全部流水")
+                                Choice("编辑钱包", { open("wallet/" + wallet.id) }, Modifier.fillMaxWidth())
+                                Choice("管理本钱包分类", { open("walletCategories/" + wallet.id) }, Modifier.fillMaxWidth())
                             }
                         }
                     }
                     else -> {
-                        val totals = ledger.statistics(period, wallets)
                         if (totals.isEmpty()) item { Paper { Text("暂无收支 · 收入 0 · 净支出 0") } }
                         items(totals, key = { it.currency }) { total ->
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Section(total.currency)
+                                Section("$periodLabel 收支 · ${total.currency}")
                                 Summary("收入" to money(total.income, total.scale), "净支出" to money(total.expenses, total.scale))
                                 Paper {
                                     CategoryTotals("收入分类", total.incomeCategories, total.scale, ledger)
@@ -97,7 +122,7 @@ fun LedgerPage(records: Records, open: (String) -> Unit, openDetails: (String) -
         }
         Primary("记一笔", {
             open(if (ledger.availableWallets().isEmpty()) "wallet/-" else "entryForm/-")
-        }, Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 8.dp))
+        }, Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 8.dp), icon = Icons.Outlined.Add)
     }
 
     if (walletPicker) {
@@ -121,7 +146,9 @@ fun LedgerPage(records: Records, open: (String) -> Unit, openDetails: (String) -
                         }
                     }
                 }
-                Primary("应用钱包范围", { wallets = draft; walletPicker = false }, Modifier.fillMaxWidth())
+                val canApply = draft.mode != RangeMode.MANUAL || draft.walletIds.isNotEmpty()
+                if (!canApply) Secondary("请选择至少一个钱包，或恢复默认。")
+                Primary("应用钱包范围", { wallets = draft; walletPicker = false }, Modifier.fillMaxWidth(), enabled = canApply)
             }
         }
     }
@@ -187,26 +214,33 @@ private fun CategoryTotals(title: String, totals: Map<String, java.math.BigInteg
 
 fun Ledger.entryAmount(entry: FinancialEntry): String {
     val source = requireNotNull(wallet(entry.walletId))
-    val value = money(entry.amountMinor, source.currencyScale) + " " + source.currencyCode
-    return when (entry.type) {
-        EntryType.EXPENSE -> "−$value"
-        EntryType.INCOME, EntryType.REFUND -> "+$value"
-        EntryType.TRANSFER -> {
-            val target = requireNotNull(wallet(entry.toWalletId))
-            value + " → " + money(requireNotNull(entry.toAmountMinor), target.currencyScale) + " " + target.currencyCode
-        }
+    val value = signedAmount(entry, source.currencyScale) + " " + source.currencyCode
+    if (entry.type != EntryType.TRANSFER) return value
+    val target = requireNotNull(wallet(entry.toWalletId))
+    return value + " → " + money(requireNotNull(entry.toAmountMinor), target.currencyScale) + " " + target.currencyCode
+}
+
+private fun signedAmount(entry: FinancialEntry, scale: Int): String {
+    val sign = when (entry.type) {
+        EntryType.EXPENSE -> "−"
+        EntryType.INCOME, EntryType.REFUND -> "+"
+        EntryType.TRANSFER -> ""
     }
+    return sign + money(entry.amountMinor, scale)
 }
 
 @Composable
 private fun EntryRow(ledger: Ledger, entry: FinancialEntry, onClick: () -> Unit) {
-    val names = if (entry.type == EntryType.TRANSFER) ledger.walletLabel(entry.walletId) + " → " + ledger.walletLabel(entry.toWalletId)
-        else ledger.walletLabel(entry.walletId)
+    val transfer = entry.type == EntryType.TRANSFER
+    val wallet = requireNotNull(ledger.wallet(entry.walletId))
+    val names = if (transfer) wallet.name + " → " + requireNotNull(ledger.wallet(entry.toWalletId)).name else wallet.name
     val category = ledger.categoryLabel(ledger.categoryId(entry)).ifBlank { entry.type.label }
-    RecordRow(category, "${entry.date} ${entry.time} · $names", entry.note, Icons.AutoMirrored.Outlined.List, onClick,
-        amount = ledger.entryAmount(entry), amountColor = when (entry.type) {
+    val subtitle = "${entry.date} ${entry.time}" + if (transfer) "" else " · ${entry.type.label}"
+    RecordRow(category, subtitle, entry.note, Icons.AutoMirrored.Outlined.List, onClick,
+        amount = if (transfer) ledger.entryAmount(entry) else signedAmount(entry, wallet.currencyScale),
+        currency = wallet.currencyCode.takeUnless { transfer }, amountColor = when (entry.type) {
             EntryType.INCOME, EntryType.REFUND -> incomeColor
             EntryType.EXPENSE -> MaterialTheme.colorScheme.error
             EntryType.TRANSFER -> MaterialTheme.colorScheme.onSurface
-        }, badge = entry.type.label, sharedId = entry.id)
+        }, badge = names, sharedId = entry.id)
 }

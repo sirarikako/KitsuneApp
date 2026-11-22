@@ -32,7 +32,8 @@ val LocalDarkMode = staticCompositionLocalOf { false }
 val incomeColor: Color
     @Composable get() = if (LocalDarkMode.current) Color(0xFFB7D0AE) else Color(0xFF3F6242)
 val motion = androidx.compose.animation.core.CubicBezierEasing(0.2f, 0f, 0f, 1f)
-val CardShape = RoundedCornerShape(17.dp)
+internal val CardRadius = 17.dp
+val CardShape = RoundedCornerShape(CardRadius)
 val ControlShape = RoundedCornerShape(12.dp)
 val DialogShape = RoundedCornerShape(24.dp)
 

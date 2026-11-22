@@ -11,9 +11,15 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.DateRange
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.Settings
@@ -22,12 +28,14 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.hideFromAccessibility
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
@@ -40,6 +48,8 @@ import com.kitsuneapp.feature.ledger.*
 import com.kitsuneapp.feature.settings.*
 import com.kitsuneapp.ui.*
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
@@ -178,12 +188,7 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
                     val active = path == top
                     val navigation = recordNavigation
                     val key = navigation?.id?.takeIf { path == navigation.detail }
-                    val outgoing = if (active) Modifier else Modifier.clearAndSetSemantics { hideFromAccessibility() }
-                        .pointerInput(path) {
-                            awaitPointerEventScope { while (true) {
-                                awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() }
-                            } }
-                        }
+                    val outgoing = if (active) Modifier else Modifier.inert(path)
                     CompositionLocalProvider(LocalRecordMotion provides RecordMotion(shared, this@AnimatedContent)) {
                         Box(recordBounds(outgoing, key).fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                             when (parts[0]) {
@@ -219,12 +224,29 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
         }
         if (stack.size == 1) {
             val icons = listOf(Icons.Outlined.Home, Icons.Outlined.DateRange, Icons.AutoMirrored.Outlined.List, Icons.Outlined.Settings)
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                roots.forEachIndexed { index, route ->
-                    NavigationBarItem(selected = root == route, onClick = { open(route) },
-                        icon = { Icon(icons[index], null, Modifier.size(18.dp)) },
-                        label = { Text(titles[index], style = MaterialTheme.typography.labelSmall) })
+            val colors = MaterialTheme.colorScheme
+            Surface(color = colors.surface) {
+                Column {
+                    HorizontalDivider(color = colors.outlineVariant)
+                    Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 8.dp, vertical = 4.dp)
+                        .selectableGroup(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        roots.forEachIndexed { index, route ->
+                            val selected = root == route
+                            val tint = if (selected) colors.primary else colors.onSurfaceVariant
+                            Column(Modifier.weight(1f).heightIn(min = 49.dp).clip(ControlShape)
+                                .selectable(selected, role = Role.Tab, onClick = { open(route) }).padding(vertical = 4.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Box(Modifier.size(49.dp, 25.dp).clip(CircleShape)
+                                    .then(if (selected) Modifier.background(colors.primaryContainer) else Modifier),
+                                    contentAlignment = Alignment.Center) {
+                                    Icon(icons[index], null, Modifier.size(18.dp),
+                                        tint = if (selected) colors.onPrimaryContainer else tint)
+                                }
+                                Text(titles[index], style = MaterialTheme.typography.labelSmall, color = tint,
+                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
+                            }
+                        }
+                    }
                 }
             }
         } else Spacer(Modifier.navigationBarsPadding())
@@ -241,20 +263,34 @@ private fun Home(records: Records, now: LocalDateTime, open: (String) -> Unit, m
         else -> MealSlot.DINNER
     }
     Column(Modifier.verticalScroll(rememberScrollState())) {
-        Header("日常记录", today) {
+        val dateLabel = now.format(DateTimeFormatter.ofPattern("M 月 d 日 · EEEE", Locale.SIMPLIFIED_CHINESE))
+        Header("日常记录", dateLabel, leading = {
             Image(painterResource(R.drawable.fox_artwork), contentDescription = null, modifier = Modifier.size(48.dp))
-        }
+        })
         Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Paper {
                 Section("今日用餐  ${recorded.size} / 3") { TextButton({ open("meals") }) { Text("全部记录 ›") } }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MealSlot.entries.forEach {
-                        Tag(it.label + if (recorded.containsKey(it)) "已记" else "待记")
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val pendingColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    MealSlot.entries.forEach { slot ->
+                        val done = recorded.containsKey(slot)
+                        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically) {
+                            if (done) Icon(Icons.Outlined.CheckCircle, null, Modifier.size(14.dp), tint = incomeColor)
+                            else Spacer(Modifier.size(14.dp).drawBehind {
+                                val line = 1.dp.toPx()
+                                drawCircle(pendingColor, radius = size.minDimension / 2 - line,
+                                    style = Stroke(line, pathEffect = PathEffect.dashPathEffect(floatArrayOf(2.dp.toPx(), 2.dp.toPx()))))
+                            })
+                            Text(slot.label + if (done) "已记" else "待记", style = MaterialTheme.typography.bodySmall,
+                                color = if (done) MaterialTheme.colorScheme.onSurface else pendingColor)
+                        }
                     }
                 }
                 val current = recorded[suggested]
                 Primary((if (current == null) "记录" else "编辑") + suggested.label,
-                    { meal(today, suggested, current?.id) }, Modifier.fillMaxWidth())
+                    { meal(today, suggested, current?.id) }, Modifier.fillMaxWidth(),
+                    icon = if (current == null) Icons.Outlined.Add else Icons.Outlined.Edit)
             }
             Section("本月收支") { TextButton({ open("ledger") }) { Text("查看账本 ↗") } }
             Paper {
@@ -264,20 +300,20 @@ private fun Home(records: Records, now: LocalDateTime, open: (String) -> Unit, m
                 if (totals.isEmpty()) Secondary("暂无常规钱包的收支")
                 totals.forEach { total ->
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Tag(total.currency)
+                        Text(total.currency, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
                         Column(Modifier.weight(1f)) {
                             Secondary("净支出")
-                            Text(money(total.expenses, total.scale))
+                            Text(money(total.expenses, total.scale), fontWeight = FontWeight.SemiBold)
                         }
                         Column(Modifier.weight(1f)) {
                             Secondary("收入")
-                            Text(money(total.income, total.scale))
+                            Text(money(total.income, total.scale), fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
                 Primary("记一笔", {
                     open(if (ledger.availableWallets().isEmpty()) "wallet/-" else "entryForm/-")
-                }, Modifier.fillMaxWidth())
+                }, Modifier.fillMaxWidth(), icon = Icons.Outlined.Add)
             }
         }
     }

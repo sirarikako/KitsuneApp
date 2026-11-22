@@ -5,22 +5,22 @@
       const oldEditor=phone.querySelector('[data-appearance-editor]');
       const editorWasVisible=!!oldEditor&&!oldEditor.hidden;
       const editorHeight=editorWasVisible?oldEditor.getBoundingClientRect().height:0;
-      const editorCopy=editorWasVisible&&state.page==='settings'&&!appearanceChanged(pendingAppearance())?cloneVisual(oldEditor):null;
+      const editorCopy=editorWasVisible&&state.page==='appearance'&&!appearanceChanged(pendingAppearance())?cloneVisual(oldEditor):null;
       const oldPage=changingPage&&!reducedMotion.matches?ghost([pageNode()].filter(Boolean)):null;
       const oldModal=previous?.modal&&!kind&&!reducedMotion.matches?ghost([modalNode()].filter(Boolean),true):null;
       const localChanged=previous&&!changingPage&&key!==previous.local;
       const oldLocal=localChanged&&!reducedMotion.matches?ghost(localNodes()):null;
       const sourceRect=entrance;entrance=null;if(changingPage&&primary(previous.page)&&!primary(state.page)&&!sourceRect)recordOrigin=null;
       rendering=true;
-      const form=['meal-form','meal-filter','entry','entry-detail','category-manager'].includes(state.page);
-      const titles={home:'日常记录',meals:'用餐记录',ledger:'我的账本',settings:'设置', 'meal-form':`${state.editing?'编辑':'记录'}${slots[state.slot]}`,'meal-filter':'筛选用餐',entry:'记一笔','entry-detail':'账目详情','category-manager':'分类管理'};
+      const form=!primary(state.page);
+      const titles={home:'日常记录',meals:'用餐',ledger:'记账',settings:'设置',appearance:'外观与调色板','wallet-edit':'编辑钱包', 'meal-form':`${state.editing?'编辑':'记录'}${slots[state.slot]}`,'meal-filter':'筛选用餐',entry:'记一笔','entry-detail':'账目详情','category-manager':'分类管理'};
       const heading=`<h2 class="ks-title">${titles[state.page]}</h2>`;
-      const header=state.page==='home'?`<div class="ks-home-brand"><span class="ks-app-mark" role="img" aria-label="狐狸应用图标示意">🦊</span><div>${heading}<p class="ks-sub">11 月 17 日 · 星期二</p></div></div>`:form?`<button type="button" class="ks-icon-btn cursor-interaction" data-action="back" aria-label="返回">${icon('arrow-left')}</button>${heading}`:`<div><div class="ks-brand">KITSUNE / 日常记录</div>${heading}</div>`;
-      phone.innerHTML=`<div class="ks-status"><span>9:41</span><span class="ks-signal">${icon('signal')}${icon('wifi')}${icon('battery-full')}</span></div><div class="ks-page-motion"><header class="ks-top ${form?'ks-subpage':''}">${header}</header><main class="ks-main">${({home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,'meal-form':pageMealForm,'meal-filter':pageMealFilter,entry:pageEntry,'entry-detail':pageEntryDetail,'category-manager':pageCategoryManager})[state.page]()}${state.notice?`<p class="ks-success" role="status">${escapeText(state.notice)}</p>`:''}</main></div>${state.page==='ledger'?`<div class="ks-ledger-action"><button type="button" class="ks-primary ks-full cursor-interaction" data-action="add-entry">${icon('plus')}记一笔</button></div>`:''}${form?'':`<nav class="ks-nav" aria-label="主导航">${navs.map(([id,name,ic])=>`<button type="button" data-page="${id}" class="cursor-interaction" ${state.page===id?'aria-current="page"':''}><span>${icon(ic)}</span>${name}</button>`).join('')}</nav>`}<div class="ks-home-indicator" aria-hidden="true"></div>`;
+      const header=state.page==='home'?`<div class="ks-home-brand"><span class="ks-app-mark" role="img" aria-label="狐狸应用图标示意">🦊</span><div>${heading}<p class="ks-sub">11 月 17 日 · 星期二</p></div></div>`:form?`<button type="button" class="ks-icon-btn cursor-interaction" data-action="back" aria-label="返回">${icon('arrow-left')}</button>${heading}`:heading;
+      phone.innerHTML=`<div class="ks-status"><span>9:41</span><span class="ks-signal">${icon('signal')}${icon('wifi')}${icon('battery-full')}</span></div><div class="ks-page-motion"><header class="ks-top ${form?'ks-subpage':''}">${header}</header><main class="ks-main">${({home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,appearance:pageAppearance,'wallet-edit':pageWalletEdit,'meal-form':pageMealForm,'meal-filter':pageMealFilter,entry:pageEntry,'entry-detail':pageEntryDetail,'category-manager':pageCategoryManager})[state.page]()}${state.notice?`<p class="ks-success" role="status">${escapeText(state.notice)}</p>`:''}</main></div>${state.page==='ledger'?`<div class="ks-ledger-action"><button type="button" class="ks-primary ks-full cursor-interaction" data-action="add-entry">${icon('plus')}记一笔</button></div>`:''}${form?'':`<nav class="ks-nav" aria-label="主导航">${navs.map(([id,name,ic])=>`<button type="button" data-page="${id}" class="cursor-interaction" ${state.page===id?'aria-current="page"':''}><span>${icon(ic)}</span>${name}</button>`).join('')}</nav>`}<div class="ks-home-indicator" aria-hidden="true"></div>`;
       if(state.calcOpen){phone.insertAdjacentHTML('beforeend',calculatorSheet());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-calc-expression]').focus({preventScroll:true});}
       if(state.deletePending){phone.insertAdjacentHTML('beforeend',deleteConfirmation());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-delete-action=cancel]').focus({preventScroll:true});}
       if(state.walletPickerOpen){phone.insertAdjacentHTML('beforeend',walletPickerSheet());for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;const all=phone.querySelector('[data-wallet-all]');all.indeterminate=state.walletDraftIds.length>0&&state.walletDraftIds.length<wallets.length;all.focus({preventScroll:true});}
-      if(state.page==='settings')updateAppearancePreview();
+      if(state.page==='appearance')updateAppearancePreview();
       globalThis.lucide?.createIcons({root:phone,attrs:{width:18,height:18}});
       rendering=false;
       rendered={page:state.page,modal:kind,local:key};
@@ -28,7 +28,7 @@
         if(changingPage)animatePage(previous,oldPage,sourceRect);
         if(localChanged){attachGhost(oldLocal);play(oldLocal,outFade,motion.local,discard(oldLocal));for(const node of localNodes())play(node,inFade,motion.local);}
         animateModal(previous?.modal||null,oldModal);
-        if(previous?.page==='settings'&&state.page==='settings'){
+        if(previous?.page==='appearance'&&state.page==='appearance'){
           const editor=phone.querySelector('[data-appearance-editor]');
           if(editorWasVisible&&editor.hidden)collapseAppearance(editor,editorCopy,editorHeight);
           else if(!editorWasVisible&&!editor.hidden)expandAppearance(editor);
@@ -64,7 +64,7 @@
     function cancelDelete(){const action=state.deletePending.kind==='meal'?'delete-meal':'delete-entry';state.deletePending=null;render();phone.querySelector(`[data-action=${action}]`)?.focus({preventScroll:true});}
     function confirmDelete(){const p=state.deletePending;if(p.kind==='meal'){if(state.records[p.date])state.records[p.date][p.slot]=null;state.date=p.date;state.page=state.mealReturn;state.editing=false;}else{if(financialEntries().some(e=>e.originalExpenseId===p.id)){phone.querySelector('[data-delete-error]').textContent='请先删除这笔支出关联的退款，再删除原支出。';return;}state.deletedEntryIds.add(p.id);state.page='ledger';state.ledgerTab='流水';}state.deletePending=null;state.notice='已从当前演示删除记录。';render();}
     function closeCalculator(apply){if(apply){try{state.amount=inputAmount(calcCents(phone.querySelector('[data-calc-expression]').value));}catch(e){phone.querySelector('.ks-calc-error').textContent=e.message;return;}}state.calcOpen=false;render();phone.querySelector('[data-action=open-calculator]').focus({preventScroll:true});}
-    function closeWalletPicker(action){if(action==='apply'){if(!state.walletDraftIds.length){phone.querySelector('[data-wallet-error]').textContent='请选择钱包，或恢复默认。';return;}state.walletFilterIds=state.walletDraftIds.length===wallets.length?'ALL':[...state.walletDraftIds];}else if(action==='default')state.walletFilterIds=null;state.walletPickerOpen=false;render();persist();phone.querySelector('[data-action=choose-wallets]')?.focus({preventScroll:true});}
+    function closeWalletPicker(action){if(action==='apply'){if(!state.walletDraftIds.length)return;state.walletFilterIds=state.walletDraftIds.length===wallets.length?'ALL':[...state.walletDraftIds];}else if(action==='default')state.walletFilterIds=null;state.walletPickerOpen=false;render();persist();phone.querySelector('[data-action=choose-wallets]')?.focus({preventScroll:true});}
         function calcCents(expression){
       const source=expression.replace(/×/g,'*').replace(/[−–]/g,'-').replace(/÷/g,'/').replace(/\s/g,'');
       if(source.length>80||!/^\d+(?:\.\d*)?(?:[+*/-]\d+(?:\.\d*)?)*$/.test(source))throw Error('请补全金额或计算式，例如 12+8×2。');

@@ -1,19 +1,35 @@
     function pageSettings(){
+      const item=(glyph,label,attrs='')=>`<${attrs?'button type="button"':'div'} class="ks-setting ${attrs?'ks-setting-link cursor-interaction':''}" ${attrs}>${icon(glyph)}<span>${label}</span>${icon('chevron-right')}</${attrs?'button':'div'}>`;
+      return `${section('分类管理')}<div class="ks-settings">
+        ${item('utensils','用餐方式')}
+        ${item('cooking-pot','制作分类')}
+        ${item('tags','通用收支分类','data-action="manage-categories" data-category-wallet="GLOBAL"')}
+        ${item('wallet','钱包专属分类','data-action="manage-categories" data-category-wallet="daily"')}
+      </div>
+      ${section('个性化')}<div class="ks-settings">${item('palette','外观与调色板','data-action="open-appearance"')}</div>
+      ${section('数据与备份')}<div class="ks-settings">
+        ${item('files','导入与导出')}
+        ${item('hard-drive','本地文件夹备份')}
+        ${item('cloud','GitHub 备份')}
+      </div>`;
+    }
+    function pageAppearance(){
       const draft=state.appearanceDraft;
-      return `${section('外观')}<div class="ks-settings">
+      return `<div class="ks-settings">
         <label class="ks-setting">${icon('sun-moon')}<span>明暗模式</span><select data-theme aria-label="明暗模式">${themeModes.map(([value,label])=>`<option value="${value}" ${draft.mode===value?'selected':''}>${label}</option>`).join('')}</select></label>
         <label class="ks-setting">${icon('palette')}<span>配色来源</span><select data-color-source aria-label="配色来源">${[['PRESET','预设调色板'],['CUSTOM','自选主色'],['SYSTEM','跟随系统壁纸']].map(([v,n])=>`<option value="${v}" ${draft.colorSource===v?'selected':''}>${n}</option>`).join('')}</select></label>
         ${draft.colorSource==='PRESET'?`<label class="ks-setting">${icon('swatch-book')}<span>调色板</span><select data-palette aria-label="调色板">${[['#c47a4a','杏橙'],['#5f7f64','茶绿'],['#587c9b','雾蓝'],['#8a729f','薰衣草'],['#a76f82','豆沙粉']].map(([v,n])=>`<option value="${v}" ${draft.presetColor===v?'selected':''}>${n}</option>`).join('')}</select></label>`:''}
         ${draft.colorSource==='CUSTOM'?`<label class="ks-custom-color-row"><input type="color" data-custom-picker aria-label="选择主色" value="${normalizeHex(draft.customColor)||style.customColor}"><input type="text" data-custom-hex aria-label="主色 HEX" value="${escapeText(draft.customColor)}" placeholder="#C47A4A" maxlength="7" spellcheck="false"></label>`:''}
         ${draft.colorSource==='SYSTEM'?`<div class="ks-setting">${icon('sparkles')}<span>使用系统壁纸配色</span><small>Android 12+</small></div>`:''}
       </div>
+      <button type="button" class="ks-text-btn cursor-interaction" data-action="reset-appearance">恢复默认</button>
       <div data-appearance-editor hidden>
         ${draft.colorSource==='SYSTEM'?'<p class="ks-appearance-note">此处使用示意色板，真实配色由手机系统提供。</p>':''}
         <div class="ks-preview-modes" role="group" aria-label="预览明暗"><span class="ks-note">预览明暗</span><div class="ks-choices">${themeModes.slice(1).map(([value,label])=>choice(label,value,null,'preview-mode')).join('')}</div></div>
-        <div class="ks-appearance-preview" data-appearance-preview aria-label="配色预览"><div class="ks-record">${recordIcon('sunrise')}<span class="ks-record-copy"><span class="ks-record-title">早餐 <span class="ks-pill">下厨</span></span><span class="ks-record-meta">燕麦粥、煎蛋</span></span></div><div class="ks-theme-swatches" aria-hidden="true"><span></span><span></span><span></span><span></span></div><div class="ks-record">${recordIcon('receipt-text')}<span class="ks-record-copy"><span class="ks-record-title">餐饮</span><span class="ks-record-meta">支出</span></span><span class="ks-currency-amount"><strong>−¥28.00</strong><small>CNY</small></span></div><span class="ks-primary ks-full" aria-hidden="true">保存</span></div>
+        <div class="ks-appearance-preview" data-appearance-preview aria-label="配色预览"><div class="ks-record">${recordIcon('sunrise')}<span class="ks-record-copy"><span class="ks-record-title">早餐 <span class="ks-pill">下厨</span></span><span class="ks-record-meta">燕麦粥、煎蛋</span></span></div><div class="ks-record">${recordIcon('receipt-text')}<span class="ks-record-copy"><span class="ks-record-title">工资</span><span class="ks-record-meta">收入</span></span><span class="ks-currency-amount ks-income"><strong>+100.00</strong><small>CNY</small></span></div><div class="ks-record">${recordIcon('receipt-text')}<span class="ks-record-copy"><span class="ks-record-title">餐饮</span><span class="ks-record-meta">支出</span></span><span class="ks-currency-amount ks-expense"><strong>−28.00</strong><small>CNY</small></span></div><span class="ks-primary ks-full" aria-hidden="true">保存</span></div>
         <p class="ks-error" data-appearance-error role="alert"></p><div class="ks-appearance-actions"><button type="button" class="ks-choice cursor-interaction" data-action="cancel-appearance">取消</button><button type="button" class="ks-primary cursor-interaction" data-action="apply-appearance">应用外观</button></div>
       </div>
-      ${section('分类管理')}<div class="ks-settings"><div class="ks-setting">${icon('utensils')}<span>用餐方式</span><small>下厨、外卖</small></div><div class="ks-setting">${icon('cooking-pot')}<span>制作分类</span><small>炒菜、预制菜</small></div><button type="button" class="ks-setting ks-setting-link cursor-interaction" data-action="manage-categories" data-category-wallet="GLOBAL">${icon('tags')}<span>通用收支分类</span><small>默认钱包使用</small>${icon('chevron-right')}</button><button type="button" class="ks-setting ks-setting-link cursor-interaction" data-action="manage-categories" data-category-wallet="daily">${icon('wallet')}<span>钱包专属分类</span><small>按钱包设置收入／支出</small>${icon('chevron-right')}</button></div>${section('数据与备份')}<div class="ks-settings"><div class="ks-setting">${icon('hard-drive')}<span>文件夹自动备份</span><small>未启用</small></div><div class="ks-setting">${icon('cloud')}<span>GitHub 私有仓库</span><small>未配置</small></div><div class="ks-setting">${icon('file-json')}<span>JSON 备份与恢复</span></div><div class="ks-setting">${icon('sheet')}<span>CSV 导入与导出</span></div></div><p class="ks-footnote">KitsuneApp · 本地优先，安心记录</p>`;
+      `;
     }
     function pageCategoryManager(){
       const wallet=state.categoryWalletId==='GLOBAL'?null:wallets.find(w=>w.id===state.categoryWalletId);

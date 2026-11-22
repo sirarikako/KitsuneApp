@@ -1904,7 +1904,6 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-signal{display:flex;align-items:center;gap:5px}
   #kitsune-preview .ks-signal svg{width:13px;height:13px}
   #kitsune-preview .ks-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:var(--ks-space-4) var(--ks-space-4) var(--ks-space-3)}
-  #kitsune-preview .ks-brand{font-size:12px;letter-spacing:1.6px;color:var(--ks-dim)}
   #kitsune-preview .ks-title{margin:2px 0 0;font-weight:600;line-height:1.3;font-size:var(--ks-font-title);letter-spacing:-.5px}
   #kitsune-preview .ks-sub{font-size:12px;color:var(--ks-dim);margin:6px 0 0}
   #kitsune-preview .ks-icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;min-width:44px;min-height:44px;border-radius:var(--ks-control-radius);padding:var(--ks-space-2);border:var(--ks-card-border);background:var(--ks-card-surface);flex-shrink:0}
@@ -2065,6 +2064,8 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-currency-amount{display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;max-width:46%;text-align:right;font-variant-numeric:tabular-nums}
   #kitsune-preview .ks-currency-amount strong,#kitsune-preview .ks-currency-group strong,#kitsune-preview .ks-amount{overflow-wrap:anywhere}
   #kitsune-preview .ks-currency-amount strong{font-size:14px;font-weight:600}
+  #kitsune-preview .ks-currency-amount.ks-expense strong{color:var(--ks-danger)}
+  #kitsune-preview .ks-currency-amount.ks-income strong{color:var(--ks-good)}
   #kitsune-preview .ks-currency-amount small{font-size:11px;color:var(--ks-dim)}
   #kitsune-preview .ks-currency-group{margin-bottom:19px}
   #kitsune-preview .ks-currency-group .ks-money-card{margin-bottom:10px}
@@ -2099,11 +2100,6 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-appearance-preview .ks-row{font-size:var(--ks-font-body)}
   #kitsune-preview .ks-preview-modes{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
   #kitsune-preview .ks-preview-modes .ks-choice{min-height:var(--ks-control-height);padding:var(--ks-space-2) var(--ks-space-3)}
-  #kitsune-preview .ks-theme-swatches{display:flex;gap:6px;margin:10px 0}
-  #kitsune-preview .ks-theme-swatches span{height:20px;flex:1;border-radius:6px;background:var(--ks-accent)}
-  #kitsune-preview .ks-theme-swatches span:nth-child(2){background:color-mix(in srgb,var(--ks-seed) 70%,var(--ks-paper))}
-  #kitsune-preview .ks-theme-swatches span:nth-child(3){background:color-mix(in srgb,var(--ks-seed) 42%,var(--ks-paper))}
-  #kitsune-preview .ks-theme-swatches span:nth-child(4){background:var(--ks-paper)}
   #kitsune-preview .ks-appearance-actions{display:grid;grid-template-columns:1fr 1fr;margin:12px 0 20px;gap:var(--ks-space-2)}
   #kitsune-preview .ks-custom-color-row{display:flex;align-items:center;gap:var(--ks-space-2);padding:var(--ks-space-3) 0;border-bottom:0}
   #kitsune-preview .ks-custom-color-row input[type=color]{width:45px;padding:3px;flex-shrink:0;min-height:var(--ks-control-height);background:var(--ks-card-surface);border:var(--ks-card-border);border-radius:var(--ks-control-radius);font-size:var(--ks-font-body)}
@@ -2120,7 +2116,6 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-appearance-preview .ks-record{cursor:default}
   #kitsune-preview .ks-appearance-preview .ks-record:hover{background:var(--ks-card-surface)}
   #kitsune-preview .ks-appearance-preview .ks-primary{margin-top:var(--ks-space-2)}
-  #kitsune-preview .ks-theme-swatches span:last-child{border:var(--ks-card-border)}
   #kitsune-preview .ks-phone{overflow:clip}
   #kitsune-preview .ks-page-motion{display:flex;flex:1;flex-direction:column;min-width:0;background:var(--ks-bg)}
   #kitsune-preview .ks-motion-copy{position:absolute;inset:0;z-index:8;pointer-events:none;overflow:hidden;border-radius:30px}
@@ -2153,8 +2148,9 @@ html&gt;body{padding:0}&lt;/style&gt;
   if(!phone)return;
   {
     const cardRadius=17;
-    const style = {accent:&#x27;#c47a4a&#x27;,mode:&#x27;system&#x27;,mealHour:&#x27;auto&#x27;,colorSource:&#x27;PRESET&#x27;,presetColor:&#x27;#c47a4a&#x27;,customColor:&#x27;#C47A4A&#x27;};
-    const state = {page:&#x27;settings&#x27;, date:&#x27;2026-11-17&#x27;, ledgerMonth:&#x27;2026-11&#x27;,mealMonth:&#x27;2026-11&#x27;,ledgerTab:&#x27;统计&#x27;, mealTab:&#x27;记录&#x27;, slot:2, atHome:null, method:null, categories:[], amount:&#x27;&#x27;,calcOpen:false,calcExpression:&#x27;&#x27;,entryType:&#x27;支出&#x27;,entryDraft:{dateTime:&#x27;2026-11-17T09:41&#x27;,note:&#x27;&#x27;,category:&#x27;ge-food&#x27;,walletId:&#x27;daily&#x27;},notice:&#x27;&#x27;, mealReturn:&#x27;home&#x27;, entries:[], records:{}};
+    const defaultAppearance={mode:&#x27;system&#x27;,colorSource:&#x27;PRESET&#x27;,presetColor:&#x27;#c47a4a&#x27;,customColor:&#x27;#C47A4A&#x27;};
+    const style = {accent:&#x27;#c47a4a&#x27;,mealHour:&#x27;auto&#x27;,...defaultAppearance};
+    const state = {page:&#x27;home&#x27;, date:&#x27;2026-11-17&#x27;, ledgerMonth:&#x27;2026-11&#x27;,mealMonth:&#x27;2026-11&#x27;,ledgerTab:&#x27;流水&#x27;, mealTab:&#x27;记录&#x27;, slot:2, atHome:null, method:null, categories:[], amount:&#x27;&#x27;,calcOpen:false,calcExpression:&#x27;&#x27;,entryType:&#x27;支出&#x27;,entryDraft:{dateTime:&#x27;2026-11-17T09:41&#x27;,note:&#x27;&#x27;,category:&#x27;ge-food&#x27;,walletId:&#x27;daily&#x27;},notice:&#x27;&#x27;, mealReturn:&#x27;home&#x27;, entries:[], records:{}};
     state.ledgerRange=null;state.ledgerRangeOpen=false;state.previewMode=null;
     const blankMealFilters=()=&gt;({from:&#x27;&#x27;,to:&#x27;&#x27;,slot:&#x27;any&#x27;,atHome:&#x27;any&#x27;,method:&#x27;any&#x27;,preparations:[],keyword:&#x27;&#x27;});
     state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
@@ -2309,7 +2305,17 @@ html&gt;body{padding:0}&lt;/style&gt;
         &lt;div class=&quot;ks-money-meta&quot;&gt;&lt;span&gt;收入 &lt;span data-income&gt;${money(total(entries,&#x27;收入&#x27;),code)}&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
       &lt;/div&gt;`;
     }
-    const week = () =&gt; `&lt;div class=&quot;ks-week&quot; aria-label=&quot;选择日期&quot;&gt;${[&#x27;一&#x27;,&#x27;二&#x27;,&#x27;三&#x27;,&#x27;四&#x27;,&#x27;五&#x27;,&#x27;六&#x27;,&#x27;日&#x27;].map((d,i)=&gt;`&lt;button class=&quot;ks-day cursor-interaction&quot; data-date=&quot;2026-11-${16+i}&quot; type=&quot;button&quot; aria-pressed=&quot;${state.date===`2026-11-${16+i}`}&quot;&gt;&lt;small&gt;${d}&lt;/small&gt;&lt;span&gt;${16+i}&lt;/span&gt;&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`;
+    function week(){
+      const selected=new Date(state.date+&#x27;T00:00:00Z&#x27;);
+      const monday=selected.getUTCDate()-(selected.getUTCDay()+6)%7;
+      const days=[&#x27;一&#x27;,&#x27;二&#x27;,&#x27;三&#x27;,&#x27;四&#x27;,&#x27;五&#x27;,&#x27;六&#x27;,&#x27;日&#x27;].map((label,i)=&gt;{
+        const day=new Date(selected);day.setUTCDate(monday+i);
+        const month=day.getUTCMonth()+1,number=day.getUTCDate(),iso=day.toISOString().split(&#x27;T&#x27;)[0];
+        const available=day.getUTCFullYear()&gt;=1&amp;&amp;day.getUTCFullYear()&lt;=9999;
+        return `&lt;button class=&quot;ks-day cursor-interaction&quot; data-date=&quot;${iso}&quot; type=&quot;button&quot; ${available?&#x27;&#x27;:&#x27;disabled&#x27;} aria-label=&quot;${month} 月 ${number} 日，星期${label}&quot; aria-pressed=&quot;${state.date===iso}&quot;&gt;&lt;small&gt;${label}&lt;/small&gt;&lt;span&gt;${number}&lt;/span&gt;&lt;/button&gt;`;
+      }).join(&#x27;&#x27;);
+      return `&lt;div class=&quot;ks-week&quot; role=&quot;group&quot; aria-label=&quot;选择日期&quot;&gt;${days}&lt;/div&gt;`;
+    }
     const section = (title,extra=&#x27;&#x27;) =&gt; `&lt;div class=&quot;ks-section ks-row&quot;&gt;&lt;h3&gt;${title}&lt;/h3&gt;${extra}&lt;/div&gt;`;
     const choice = (label,value,current,action) =&gt; `&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-${action}=&quot;${escapeText(value)}&quot; aria-pressed=&quot;${current===value}&quot;&gt;${label}&lt;/button&gt;`;
     const monthPicker = (key,label) =&gt; `&lt;div class=&quot;ks-month-picker&quot; role=&quot;group&quot; aria-label=&quot;${label}月份选择&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-icon-btn cursor-interaction&quot; data-month-step=&quot;-1&quot; data-month-key=&quot;${key}&quot; aria-label=&quot;${label}上个月&quot;&gt;${icon(&#x27;chevron-left&#x27;)}&lt;/button&gt;&lt;label class=&quot;ks-month-field&quot;&gt;&lt;input type=&quot;month&quot; value=&quot;${state[key]}&quot; data-month-input=&quot;${key}&quot; aria-label=&quot;${label}月份&quot; min=&quot;0001-01&quot; max=&quot;9999-12&quot;&gt;&lt;/label&gt;&lt;button type=&quot;button&quot; class=&quot;ks-icon-btn cursor-interaction&quot; data-month-step=&quot;1&quot; data-month-key=&quot;${key}&quot; aria-label=&quot;${label}下个月&quot;&gt;${icon(&#x27;chevron-right&#x27;)}&lt;/button&gt;&lt;/div&gt;`;
@@ -2400,7 +2406,9 @@ html&gt;body{padding:0}&lt;/style&gt;
           return `&lt;div class=&quot;ks-currency-group&quot;&gt;&lt;div class=&quot;ks-money-card&quot; data-wallet-balance=&quot;${wallet.id}&quot;&gt;
             &lt;span class=&quot;ks-money-caption&quot;&gt;${wallet.name} · ${wallet.code} ${wallet.separateAccounting?&#x27;&lt;span class=&quot;ks-pill&quot;&gt;独立核算&lt;/span&gt;&#x27;:&#x27;&#x27;}&lt;/span&gt;
             &lt;div class=&quot;ks-amount&quot;&gt;${money(balance,wallet.code)}&lt;/div&gt;
-            &lt;div class=&quot;ks-note&quot;&gt;初始余额 ${money(wallet.opening,wallet.code)} · 全部流水&lt;/div&gt;&lt;label class=&quot;ks-wallet-setting&quot;&gt;&lt;span&gt;独立核算&lt;small&gt;默认不参与收支统计与流水&lt;/small&gt;&lt;/span&gt;&lt;input type=&quot;checkbox&quot; data-wallet-independent=&quot;${wallet.id}&quot; aria-label=&quot;${wallet.name}独立核算&quot; ${wallet.separateAccounting?&#x27;checked&#x27;:&#x27;&#x27;}&gt;&lt;/label&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice ks-category-shortcut cursor-interaction&quot; data-action=&quot;manage-categories&quot; data-category-wallet=&quot;${wallet.id}&quot;&gt;${icon(&#x27;tags&#x27;)}管理本钱包分类&lt;/button&gt;
+            &lt;div class=&quot;ks-note&quot;&gt;初始余额 ${money(wallet.opening,wallet.code)} · 全部流水&lt;/div&gt;
+            &lt;button type=&quot;button&quot; class=&quot;ks-choice ks-full ks-category-shortcut cursor-interaction&quot; data-edit-wallet=&quot;${wallet.id}&quot;&gt;编辑钱包&lt;/button&gt;
+            &lt;button type=&quot;button&quot; class=&quot;ks-choice ks-full ks-category-shortcut cursor-interaction&quot; data-action=&quot;manage-categories&quot; data-category-wallet=&quot;${wallet.id}&quot;&gt;管理本钱包分类&lt;/button&gt;
           &lt;/div&gt;&lt;/div&gt;`;
         }).join(&#x27;&#x27;)}&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 示例数据&lt;/p&gt;`;
       const entries=allEntries.filter(matchesLedgerScope).sort((a,b)=&gt;(b.date+b.time).localeCompare(a.date+a.time));
@@ -2436,29 +2444,53 @@ html&gt;body{padding:0}&lt;/style&gt;
           return `&lt;button type=&quot;button&quot; class=&quot;ks-record cursor-interaction&quot; data-entry-id=&quot;${entry.id}&quot; aria-label=&quot;查看${escapeText(wallet.name)} ${escapeText(category)} ${entry.type} ${wallet.code} ${money(entry.cents,wallet.code)}详情&quot;&gt;
             ${recordIcon(glyph)}
             &lt;span class=&quot;ks-record-copy&quot;&gt;&lt;span class=&quot;ks-record-title&quot;&gt;${escapeText(lineLabel)}&lt;span class=&quot;ks-pill&quot;&gt;${escapeText(wallet.name)}&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;ks-record-meta ks-record-ellipsis&quot;&gt;${includeYear?entry.date:entry.date.slice(5)} ${entry.time}${entry.note?` · ${escapeText(entry.note)}`:&#x27;&#x27;}&lt;/span&gt;&lt;/span&gt;
-            &lt;span class=&quot;ks-currency-amount&quot;&gt;&lt;strong&gt;${entry.type===&#x27;支出&#x27;?&#x27;-&#x27;:&#x27;+&#x27;}¥${money(entry.cents,wallet.code)}&lt;/strong&gt;&lt;small&gt;${wallet.code}&lt;/small&gt;&lt;/span&gt;${icon(&#x27;chevron-right&#x27;)}
+            &lt;span class=&quot;ks-currency-amount ${entry.type===&#x27;支出&#x27;?&#x27;ks-expense&#x27;:&#x27;ks-income&#x27;}&quot;&gt;&lt;strong&gt;${entry.type===&#x27;支出&#x27;?&#x27;−&#x27;:&#x27;+&#x27;}${money(entry.cents,wallet.code)}&lt;/strong&gt;&lt;small&gt;${wallet.code}&lt;/small&gt;&lt;/span&gt;${icon(&#x27;chevron-right&#x27;)}
           &lt;/button&gt;`;
         }).join(&#x27;&#x27;)}
         &lt;/div&gt;
         ${entries.length?&#x27;&#x27;:empty}
       &lt;/section&gt;&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 示例数据&lt;/p&gt;`;
     }
+    function pageWalletEdit(){
+      const wallet=walletById(state.editingWalletId);
+      return `&lt;section class=&quot;ks-money-card&quot;&gt;
+        &lt;div class=&quot;ks-money-caption&quot;&gt;${escapeText(wallet.name)} · ${wallet.code}&lt;/div&gt;
+        &lt;label class=&quot;ks-wallet-setting&quot;&gt;&lt;span&gt;独立核算&lt;small&gt;开启后默认排除本钱包的收支和流水。余额与历史记录保留，可在账本手动选择。&lt;/small&gt;&lt;/span&gt;&lt;input type=&quot;checkbox&quot; data-wallet-independent ${wallet.separateAccounting?&#x27;checked&#x27;:&#x27;&#x27;}&gt;&lt;/label&gt;
+        &lt;button type=&quot;button&quot; class=&quot;ks-primary ks-full cursor-interaction&quot; data-action=&quot;save-wallet&quot;&gt;保存&lt;/button&gt;
+      &lt;/section&gt;&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 仅演示独立核算&lt;/p&gt;`;
+    }
     function pageSettings(){
+      const item=(glyph,label,attrs=&#x27;&#x27;)=&gt;`&lt;${attrs?&#x27;button type=&quot;button&quot;&#x27;:&#x27;div&#x27;} class=&quot;ks-setting ${attrs?&#x27;ks-setting-link cursor-interaction&#x27;:&#x27;&#x27;}&quot; ${attrs}&gt;${icon(glyph)}&lt;span&gt;${label}&lt;/span&gt;${icon(&#x27;chevron-right&#x27;)}&lt;/${attrs?&#x27;button&#x27;:&#x27;div&#x27;}&gt;`;
+      return `${section(&#x27;分类管理&#x27;)}&lt;div class=&quot;ks-settings&quot;&gt;
+        ${item(&#x27;utensils&#x27;,&#x27;用餐方式&#x27;)}
+        ${item(&#x27;cooking-pot&#x27;,&#x27;制作分类&#x27;)}
+        ${item(&#x27;tags&#x27;,&#x27;通用收支分类&#x27;,&#x27;data-action=&quot;manage-categories&quot; data-category-wallet=&quot;GLOBAL&quot;&#x27;)}
+        ${item(&#x27;wallet&#x27;,&#x27;钱包专属分类&#x27;,&#x27;data-action=&quot;manage-categories&quot; data-category-wallet=&quot;daily&quot;&#x27;)}
+      &lt;/div&gt;
+      ${section(&#x27;个性化&#x27;)}&lt;div class=&quot;ks-settings&quot;&gt;${item(&#x27;palette&#x27;,&#x27;外观与调色板&#x27;,&#x27;data-action=&quot;open-appearance&quot;&#x27;)}&lt;/div&gt;
+      ${section(&#x27;数据与备份&#x27;)}&lt;div class=&quot;ks-settings&quot;&gt;
+        ${item(&#x27;files&#x27;,&#x27;导入与导出&#x27;)}
+        ${item(&#x27;hard-drive&#x27;,&#x27;本地文件夹备份&#x27;)}
+        ${item(&#x27;cloud&#x27;,&#x27;GitHub 备份&#x27;)}
+      &lt;/div&gt;`;
+    }
+    function pageAppearance(){
       const draft=state.appearanceDraft;
-      return `${section(&#x27;外观&#x27;)}&lt;div class=&quot;ks-settings&quot;&gt;
+      return `&lt;div class=&quot;ks-settings&quot;&gt;
         &lt;label class=&quot;ks-setting&quot;&gt;${icon(&#x27;sun-moon&#x27;)}&lt;span&gt;明暗模式&lt;/span&gt;&lt;select data-theme aria-label=&quot;明暗模式&quot;&gt;${themeModes.map(([value,label])=&gt;`&lt;option value=&quot;${value}&quot; ${draft.mode===value?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${label}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;
         &lt;label class=&quot;ks-setting&quot;&gt;${icon(&#x27;palette&#x27;)}&lt;span&gt;配色来源&lt;/span&gt;&lt;select data-color-source aria-label=&quot;配色来源&quot;&gt;${[[&#x27;PRESET&#x27;,&#x27;预设调色板&#x27;],[&#x27;CUSTOM&#x27;,&#x27;自选主色&#x27;],[&#x27;SYSTEM&#x27;,&#x27;跟随系统壁纸&#x27;]].map(([v,n])=&gt;`&lt;option value=&quot;${v}&quot; ${draft.colorSource===v?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${n}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;
         ${draft.colorSource===&#x27;PRESET&#x27;?`&lt;label class=&quot;ks-setting&quot;&gt;${icon(&#x27;swatch-book&#x27;)}&lt;span&gt;调色板&lt;/span&gt;&lt;select data-palette aria-label=&quot;调色板&quot;&gt;${[[&#x27;#c47a4a&#x27;,&#x27;杏橙&#x27;],[&#x27;#5f7f64&#x27;,&#x27;茶绿&#x27;],[&#x27;#587c9b&#x27;,&#x27;雾蓝&#x27;],[&#x27;#8a729f&#x27;,&#x27;薰衣草&#x27;],[&#x27;#a76f82&#x27;,&#x27;豆沙粉&#x27;]].map(([v,n])=&gt;`&lt;option value=&quot;${v}&quot; ${draft.presetColor===v?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${n}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;`:&#x27;&#x27;}
         ${draft.colorSource===&#x27;CUSTOM&#x27;?`&lt;label class=&quot;ks-custom-color-row&quot;&gt;&lt;input type=&quot;color&quot; data-custom-picker aria-label=&quot;选择主色&quot; value=&quot;${normalizeHex(draft.customColor)||style.customColor}&quot;&gt;&lt;input type=&quot;text&quot; data-custom-hex aria-label=&quot;主色 HEX&quot; value=&quot;${escapeText(draft.customColor)}&quot; placeholder=&quot;#C47A4A&quot; maxlength=&quot;7&quot; spellcheck=&quot;false&quot;&gt;&lt;/label&gt;`:&#x27;&#x27;}
         ${draft.colorSource===&#x27;SYSTEM&#x27;?`&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;sparkles&#x27;)}&lt;span&gt;使用系统壁纸配色&lt;/span&gt;&lt;small&gt;Android 12+&lt;/small&gt;&lt;/div&gt;`:&#x27;&#x27;}
       &lt;/div&gt;
+      &lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-action=&quot;reset-appearance&quot;&gt;恢复默认&lt;/button&gt;
       &lt;div data-appearance-editor hidden&gt;
         ${draft.colorSource===&#x27;SYSTEM&#x27;?&#x27;&lt;p class=&quot;ks-appearance-note&quot;&gt;此处使用示意色板，真实配色由手机系统提供。&lt;/p&gt;&#x27;:&#x27;&#x27;}
         &lt;div class=&quot;ks-preview-modes&quot; role=&quot;group&quot; aria-label=&quot;预览明暗&quot;&gt;&lt;span class=&quot;ks-note&quot;&gt;预览明暗&lt;/span&gt;&lt;div class=&quot;ks-choices&quot;&gt;${themeModes.slice(1).map(([value,label])=&gt;choice(label,value,null,&#x27;preview-mode&#x27;)).join(&#x27;&#x27;)}&lt;/div&gt;&lt;/div&gt;
-        &lt;div class=&quot;ks-appearance-preview&quot; data-appearance-preview aria-label=&quot;配色预览&quot;&gt;&lt;div class=&quot;ks-record&quot;&gt;${recordIcon(&#x27;sunrise&#x27;)}&lt;span class=&quot;ks-record-copy&quot;&gt;&lt;span class=&quot;ks-record-title&quot;&gt;早餐 &lt;span class=&quot;ks-pill&quot;&gt;下厨&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;ks-record-meta&quot;&gt;燕麦粥、煎蛋&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-theme-swatches&quot; aria-hidden=&quot;true&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-record&quot;&gt;${recordIcon(&#x27;receipt-text&#x27;)}&lt;span class=&quot;ks-record-copy&quot;&gt;&lt;span class=&quot;ks-record-title&quot;&gt;餐饮&lt;/span&gt;&lt;span class=&quot;ks-record-meta&quot;&gt;支出&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;ks-currency-amount&quot;&gt;&lt;strong&gt;−¥28.00&lt;/strong&gt;&lt;small&gt;CNY&lt;/small&gt;&lt;/span&gt;&lt;/div&gt;&lt;span class=&quot;ks-primary ks-full&quot; aria-hidden=&quot;true&quot;&gt;保存&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;ks-appearance-preview&quot; data-appearance-preview aria-label=&quot;配色预览&quot;&gt;&lt;div class=&quot;ks-record&quot;&gt;${recordIcon(&#x27;sunrise&#x27;)}&lt;span class=&quot;ks-record-copy&quot;&gt;&lt;span class=&quot;ks-record-title&quot;&gt;早餐 &lt;span class=&quot;ks-pill&quot;&gt;下厨&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;ks-record-meta&quot;&gt;燕麦粥、煎蛋&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-record&quot;&gt;${recordIcon(&#x27;receipt-text&#x27;)}&lt;span class=&quot;ks-record-copy&quot;&gt;&lt;span class=&quot;ks-record-title&quot;&gt;工资&lt;/span&gt;&lt;span class=&quot;ks-record-meta&quot;&gt;收入&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;ks-currency-amount ks-income&quot;&gt;&lt;strong&gt;+100.00&lt;/strong&gt;&lt;small&gt;CNY&lt;/small&gt;&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-record&quot;&gt;${recordIcon(&#x27;receipt-text&#x27;)}&lt;span class=&quot;ks-record-copy&quot;&gt;&lt;span class=&quot;ks-record-title&quot;&gt;餐饮&lt;/span&gt;&lt;span class=&quot;ks-record-meta&quot;&gt;支出&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;ks-currency-amount ks-expense&quot;&gt;&lt;strong&gt;−28.00&lt;/strong&gt;&lt;small&gt;CNY&lt;/small&gt;&lt;/span&gt;&lt;/div&gt;&lt;span class=&quot;ks-primary ks-full&quot; aria-hidden=&quot;true&quot;&gt;保存&lt;/span&gt;&lt;/div&gt;
         &lt;p class=&quot;ks-error&quot; data-appearance-error role=&quot;alert&quot;&gt;&lt;/p&gt;&lt;div class=&quot;ks-appearance-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-action=&quot;cancel-appearance&quot;&gt;取消&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary cursor-interaction&quot; data-action=&quot;apply-appearance&quot;&gt;应用外观&lt;/button&gt;&lt;/div&gt;
       &lt;/div&gt;
-      ${section(&#x27;分类管理&#x27;)}&lt;div class=&quot;ks-settings&quot;&gt;&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;utensils&#x27;)}&lt;span&gt;用餐方式&lt;/span&gt;&lt;small&gt;下厨、外卖&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;cooking-pot&#x27;)}&lt;span&gt;制作分类&lt;/span&gt;&lt;small&gt;炒菜、预制菜&lt;/small&gt;&lt;/div&gt;&lt;button type=&quot;button&quot; class=&quot;ks-setting ks-setting-link cursor-interaction&quot; data-action=&quot;manage-categories&quot; data-category-wallet=&quot;GLOBAL&quot;&gt;${icon(&#x27;tags&#x27;)}&lt;span&gt;通用收支分类&lt;/span&gt;&lt;small&gt;默认钱包使用&lt;/small&gt;${icon(&#x27;chevron-right&#x27;)}&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-setting ks-setting-link cursor-interaction&quot; data-action=&quot;manage-categories&quot; data-category-wallet=&quot;daily&quot;&gt;${icon(&#x27;wallet&#x27;)}&lt;span&gt;钱包专属分类&lt;/span&gt;&lt;small&gt;按钱包设置收入／支出&lt;/small&gt;${icon(&#x27;chevron-right&#x27;)}&lt;/button&gt;&lt;/div&gt;${section(&#x27;数据与备份&#x27;)}&lt;div class=&quot;ks-settings&quot;&gt;&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;hard-drive&#x27;)}&lt;span&gt;文件夹自动备份&lt;/span&gt;&lt;small&gt;未启用&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;cloud&#x27;)}&lt;span&gt;GitHub 私有仓库&lt;/span&gt;&lt;small&gt;未配置&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;file-json&#x27;)}&lt;span&gt;JSON 备份与恢复&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-setting&quot;&gt;${icon(&#x27;sheet&#x27;)}&lt;span&gt;CSV 导入与导出&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;p class=&quot;ks-footnote&quot;&gt;KitsuneApp · 本地优先，安心记录&lt;/p&gt;`;
+      `;
     }
     function pageCategoryManager(){
       const wallet=state.categoryWalletId===&#x27;GLOBAL&#x27;?null:wallets.find(w=&gt;w.id===state.categoryWalletId);
@@ -2514,7 +2546,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       ${formFooter(saveButton(`保存${state.entryType}`),&#x27;交互预览 · 仅保存到当前演示&#x27;)}
     &lt;/form&gt;`;}
     function calculatorSheet(){return `&lt;div class=&quot;ks-modal-overlay&quot;&gt;&lt;section class=&quot;ks-calc-sheet&quot; role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;金额计算器&quot;&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;h3&gt;金额计算器&lt;/h3&gt;&lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-calc-action=&quot;cancel&quot;&gt;关闭&lt;/button&gt;&lt;/div&gt;&lt;label&gt;&lt;span class=&quot;ks-note&quot;&gt;${entryWallet()?.code||&#x27;未选择钱包&#x27;} · 支持加减乘除&lt;/span&gt;&lt;input class=&quot;ks-amount-input&quot; data-calc-expression inputmode=&quot;text&quot; aria-label=&quot;计算表达式&quot; maxlength=&quot;80&quot; placeholder=&quot;${(entryWallet()?.scale??2)?&#x27;0.00&#x27;:&#x27;0&#x27;}&quot; value=&quot;${escapeText(state.calcExpression)}&quot;&gt;&lt;/label&gt;&lt;div class=&quot;ks-calculator&quot; role=&quot;group&quot; aria-label=&quot;计算键盘&quot;&gt;${[&#x27;C&#x27;,&#x27;⌫&#x27;,&#x27;÷&#x27;,&#x27;×&#x27;,&#x27;7&#x27;,&#x27;8&#x27;,&#x27;9&#x27;,&#x27;−&#x27;,&#x27;4&#x27;,&#x27;5&#x27;,&#x27;6&#x27;,&#x27;+&#x27;,&#x27;1&#x27;,&#x27;2&#x27;,&#x27;3&#x27;,&#x27;=&#x27;,&#x27;0&#x27;,&#x27;.&#x27;].map(k=&gt;`&lt;button type=&quot;button&quot; class=&quot;ks-key ${[&#x27;÷&#x27;,&#x27;×&#x27;,&#x27;−&#x27;,&#x27;+&#x27;,&#x27;=&#x27;].includes(k)?&#x27;ks-operator&#x27;:&#x27;&#x27;} ${k===&#x27;0&#x27;?&#x27;ks-zero&#x27;:&#x27;&#x27;} ${k===&#x27;=&#x27;?&#x27;ks-equal&#x27;:&#x27;&#x27;} cursor-interaction&quot; data-key=&quot;${k}&quot; aria-label=&quot;${k===&#x27;⌫&#x27;?&#x27;退格&#x27;:k===&#x27;C&#x27;?&#x27;清空&#x27;:k}&quot;&gt;${k}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;&lt;p class=&quot;ks-calc-error&quot; role=&quot;alert&quot;&gt;&lt;/p&gt;&lt;div class=&quot;ks-calc-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-calc-action=&quot;cancel&quot;&gt;取消&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary cursor-interaction&quot; data-calc-action=&quot;apply&quot;&gt;使用此金额&lt;/button&gt;&lt;/div&gt;&lt;/section&gt;&lt;/div&gt;`;}
-    function walletPickerSheet(){const all=state.walletDraftIds.length===wallets.length;return `&lt;div class=&quot;ks-modal-overlay&quot;&gt;&lt;section class=&quot;ks-wallet-sheet&quot; role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;选择钱包&quot;&gt;&lt;h3&gt;选择钱包&lt;/h3&gt;&lt;p class=&quot;ks-note&quot;&gt;独立核算钱包默认不选中，可手动加入。&lt;/p&gt;&lt;label class=&quot;ks-wallet-check cursor-interaction&quot;&gt;&lt;input type=&quot;checkbox&quot; data-wallet-all ${all?&#x27;checked&#x27;:&#x27;&#x27;}&gt;&lt;span&gt;全部钱包（含独立核算）&lt;/span&gt;&lt;/label&gt;${wallets.map(w=&gt;`&lt;label class=&quot;ks-wallet-check cursor-interaction&quot;&gt;&lt;input type=&quot;checkbox&quot; data-wallet-option=&quot;${w.id}&quot; ${state.walletDraftIds.includes(w.id)?&#x27;checked&#x27;:&#x27;&#x27;}&gt;&lt;span&gt;${w.name}${w.separateAccounting?&#x27; · 独立核算&#x27;:&#x27;&#x27;}&lt;/span&gt;&lt;small&gt;${w.code}&lt;/small&gt;&lt;/label&gt;`).join(&#x27;&#x27;)}&lt;p class=&quot;ks-error&quot; data-wallet-error role=&quot;alert&quot;&gt;&lt;/p&gt;&lt;div class=&quot;ks-calc-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-wallet-action=&quot;default&quot;&gt;恢复默认&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-wallet-action=&quot;cancel&quot;&gt;取消&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary cursor-interaction&quot; data-wallet-action=&quot;apply&quot;&gt;应用&lt;/button&gt;&lt;/div&gt;&lt;/section&gt;&lt;/div&gt;`;}
+    function walletPickerSheet(){const all=state.walletDraftIds.length===wallets.length,canApply=state.walletDraftIds.length&gt;0;return `&lt;div class=&quot;ks-modal-overlay&quot;&gt;&lt;section class=&quot;ks-wallet-sheet&quot; role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;选择钱包&quot;&gt;&lt;h3&gt;选择钱包&lt;/h3&gt;&lt;p class=&quot;ks-note&quot;&gt;独立核算钱包默认不选中，可手动加入。&lt;/p&gt;&lt;label class=&quot;ks-wallet-check cursor-interaction&quot;&gt;&lt;input type=&quot;checkbox&quot; data-wallet-all ${all?&#x27;checked&#x27;:&#x27;&#x27;}&gt;&lt;span&gt;全部钱包（含独立核算）&lt;/span&gt;&lt;/label&gt;${wallets.map(w=&gt;`&lt;label class=&quot;ks-wallet-check cursor-interaction&quot;&gt;&lt;input type=&quot;checkbox&quot; data-wallet-option=&quot;${w.id}&quot; ${state.walletDraftIds.includes(w.id)?&#x27;checked&#x27;:&#x27;&#x27;}&gt;&lt;span&gt;${w.name}${w.separateAccounting?&#x27; · 独立核算&#x27;:&#x27;&#x27;}&lt;/span&gt;&lt;small&gt;${w.code}&lt;/small&gt;&lt;/label&gt;`).join(&#x27;&#x27;)}${canApply?&#x27;&#x27;:&#x27;&lt;p class=&quot;ks-note&quot;&gt;请选择至少一个钱包，或恢复默认。&lt;/p&gt;&#x27;}&lt;div class=&quot;ks-calc-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-wallet-action=&quot;default&quot;&gt;恢复默认&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-wallet-action=&quot;cancel&quot;&gt;取消&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary cursor-interaction&quot; data-wallet-action=&quot;apply&quot; ${canApply?&#x27;&#x27;:&#x27;disabled&#x27;}&gt;应用&lt;/button&gt;&lt;/div&gt;&lt;/section&gt;&lt;/div&gt;`;}
         function pageMealFilter(){
       const f=state.mealFilterDraft,methods=[...new Set([&#x27;下厨&#x27;,&#x27;外卖&#x27;,...allMeals().map(m=&gt;m.method).filter(Boolean)])],preparations=[...new Set([&#x27;炒菜&#x27;,&#x27;预制菜&#x27;,...allMeals().flatMap(m=&gt;m.categories)])];
       const select=(label,name,choices)=&gt;`&lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;${label}&lt;/span&gt;&lt;select class=&quot;ks-control&quot; name=&quot;${name}&quot;&gt;${choices.map(([value,label])=&gt;`&lt;option value=&quot;${escapeText(value)}&quot; ${f[name]===value?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${escapeText(label)}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;`;
@@ -2674,22 +2706,22 @@ html&gt;body{padding:0}&lt;/style&gt;
       const oldEditor=phone.querySelector(&#x27;[data-appearance-editor]&#x27;);
       const editorWasVisible=!!oldEditor&amp;&amp;!oldEditor.hidden;
       const editorHeight=editorWasVisible?oldEditor.getBoundingClientRect().height:0;
-      const editorCopy=editorWasVisible&amp;&amp;state.page===&#x27;settings&#x27;&amp;&amp;!appearanceChanged(pendingAppearance())?cloneVisual(oldEditor):null;
+      const editorCopy=editorWasVisible&amp;&amp;state.page===&#x27;appearance&#x27;&amp;&amp;!appearanceChanged(pendingAppearance())?cloneVisual(oldEditor):null;
       const oldPage=changingPage&amp;&amp;!reducedMotion.matches?ghost([pageNode()].filter(Boolean)):null;
       const oldModal=previous?.modal&amp;&amp;!kind&amp;&amp;!reducedMotion.matches?ghost([modalNode()].filter(Boolean),true):null;
       const localChanged=previous&amp;&amp;!changingPage&amp;&amp;key!==previous.local;
       const oldLocal=localChanged&amp;&amp;!reducedMotion.matches?ghost(localNodes()):null;
       const sourceRect=entrance;entrance=null;if(changingPage&amp;&amp;primary(previous.page)&amp;&amp;!primary(state.page)&amp;&amp;!sourceRect)recordOrigin=null;
       rendering=true;
-      const form=[&#x27;meal-form&#x27;,&#x27;meal-filter&#x27;,&#x27;entry&#x27;,&#x27;entry-detail&#x27;,&#x27;category-manager&#x27;].includes(state.page);
-      const titles={home:&#x27;日常记录&#x27;,meals:&#x27;用餐记录&#x27;,ledger:&#x27;我的账本&#x27;,settings:&#x27;设置&#x27;, &#x27;meal-form&#x27;:`${state.editing?&#x27;编辑&#x27;:&#x27;记录&#x27;}${slots[state.slot]}`,&#x27;meal-filter&#x27;:&#x27;筛选用餐&#x27;,entry:&#x27;记一笔&#x27;,&#x27;entry-detail&#x27;:&#x27;账目详情&#x27;,&#x27;category-manager&#x27;:&#x27;分类管理&#x27;};
+      const form=!primary(state.page);
+      const titles={home:&#x27;日常记录&#x27;,meals:&#x27;用餐&#x27;,ledger:&#x27;记账&#x27;,settings:&#x27;设置&#x27;,appearance:&#x27;外观与调色板&#x27;,&#x27;wallet-edit&#x27;:&#x27;编辑钱包&#x27;, &#x27;meal-form&#x27;:`${state.editing?&#x27;编辑&#x27;:&#x27;记录&#x27;}${slots[state.slot]}`,&#x27;meal-filter&#x27;:&#x27;筛选用餐&#x27;,entry:&#x27;记一笔&#x27;,&#x27;entry-detail&#x27;:&#x27;账目详情&#x27;,&#x27;category-manager&#x27;:&#x27;分类管理&#x27;};
       const heading=`&lt;h2 class=&quot;ks-title&quot;&gt;${titles[state.page]}&lt;/h2&gt;`;
-      const header=state.page===&#x27;home&#x27;?`&lt;div class=&quot;ks-home-brand&quot;&gt;&lt;span class=&quot;ks-app-mark&quot; role=&quot;img&quot; aria-label=&quot;狐狸应用图标示意&quot;&gt;🦊&lt;/span&gt;&lt;div&gt;${heading}&lt;p class=&quot;ks-sub&quot;&gt;11 月 17 日 · 星期二&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;`:form?`&lt;button type=&quot;button&quot; class=&quot;ks-icon-btn cursor-interaction&quot; data-action=&quot;back&quot; aria-label=&quot;返回&quot;&gt;${icon(&#x27;arrow-left&#x27;)}&lt;/button&gt;${heading}`:`&lt;div&gt;&lt;div class=&quot;ks-brand&quot;&gt;KITSUNE / 日常记录&lt;/div&gt;${heading}&lt;/div&gt;`;
-      phone.innerHTML=`&lt;div class=&quot;ks-status&quot;&gt;&lt;span&gt;9:41&lt;/span&gt;&lt;span class=&quot;ks-signal&quot;&gt;${icon(&#x27;signal&#x27;)}${icon(&#x27;wifi&#x27;)}${icon(&#x27;battery-full&#x27;)}&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-page-motion&quot;&gt;&lt;header class=&quot;ks-top ${form?&#x27;ks-subpage&#x27;:&#x27;&#x27;}&quot;&gt;${header}&lt;/header&gt;&lt;main class=&quot;ks-main&quot;&gt;${({home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,&#x27;meal-form&#x27;:pageMealForm,&#x27;meal-filter&#x27;:pageMealFilter,entry:pageEntry,&#x27;entry-detail&#x27;:pageEntryDetail,&#x27;category-manager&#x27;:pageCategoryManager})[state.page]()}${state.notice?`&lt;p class=&quot;ks-success&quot; role=&quot;status&quot;&gt;${escapeText(state.notice)}&lt;/p&gt;`:&#x27;&#x27;}&lt;/main&gt;&lt;/div&gt;${state.page===&#x27;ledger&#x27;?`&lt;div class=&quot;ks-ledger-action&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary ks-full cursor-interaction&quot; data-action=&quot;add-entry&quot;&gt;${icon(&#x27;plus&#x27;)}记一笔&lt;/button&gt;&lt;/div&gt;`:&#x27;&#x27;}${form?&#x27;&#x27;:`&lt;nav class=&quot;ks-nav&quot; aria-label=&quot;主导航&quot;&gt;${navs.map(([id,name,ic])=&gt;`&lt;button type=&quot;button&quot; data-page=&quot;${id}&quot; class=&quot;cursor-interaction&quot; ${state.page===id?&#x27;aria-current=&quot;page&quot;&#x27;:&#x27;&#x27;}&gt;&lt;span&gt;${icon(ic)}&lt;/span&gt;${name}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/nav&gt;`}&lt;div class=&quot;ks-home-indicator&quot; aria-hidden=&quot;true&quot;&gt;&lt;/div&gt;`;
+      const header=state.page===&#x27;home&#x27;?`&lt;div class=&quot;ks-home-brand&quot;&gt;&lt;span class=&quot;ks-app-mark&quot; role=&quot;img&quot; aria-label=&quot;狐狸应用图标示意&quot;&gt;🦊&lt;/span&gt;&lt;div&gt;${heading}&lt;p class=&quot;ks-sub&quot;&gt;11 月 17 日 · 星期二&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;`:form?`&lt;button type=&quot;button&quot; class=&quot;ks-icon-btn cursor-interaction&quot; data-action=&quot;back&quot; aria-label=&quot;返回&quot;&gt;${icon(&#x27;arrow-left&#x27;)}&lt;/button&gt;${heading}`:heading;
+      phone.innerHTML=`&lt;div class=&quot;ks-status&quot;&gt;&lt;span&gt;9:41&lt;/span&gt;&lt;span class=&quot;ks-signal&quot;&gt;${icon(&#x27;signal&#x27;)}${icon(&#x27;wifi&#x27;)}${icon(&#x27;battery-full&#x27;)}&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-page-motion&quot;&gt;&lt;header class=&quot;ks-top ${form?&#x27;ks-subpage&#x27;:&#x27;&#x27;}&quot;&gt;${header}&lt;/header&gt;&lt;main class=&quot;ks-main&quot;&gt;${({home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,appearance:pageAppearance,&#x27;wallet-edit&#x27;:pageWalletEdit,&#x27;meal-form&#x27;:pageMealForm,&#x27;meal-filter&#x27;:pageMealFilter,entry:pageEntry,&#x27;entry-detail&#x27;:pageEntryDetail,&#x27;category-manager&#x27;:pageCategoryManager})[state.page]()}${state.notice?`&lt;p class=&quot;ks-success&quot; role=&quot;status&quot;&gt;${escapeText(state.notice)}&lt;/p&gt;`:&#x27;&#x27;}&lt;/main&gt;&lt;/div&gt;${state.page===&#x27;ledger&#x27;?`&lt;div class=&quot;ks-ledger-action&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary ks-full cursor-interaction&quot; data-action=&quot;add-entry&quot;&gt;${icon(&#x27;plus&#x27;)}记一笔&lt;/button&gt;&lt;/div&gt;`:&#x27;&#x27;}${form?&#x27;&#x27;:`&lt;nav class=&quot;ks-nav&quot; aria-label=&quot;主导航&quot;&gt;${navs.map(([id,name,ic])=&gt;`&lt;button type=&quot;button&quot; data-page=&quot;${id}&quot; class=&quot;cursor-interaction&quot; ${state.page===id?&#x27;aria-current=&quot;page&quot;&#x27;:&#x27;&#x27;}&gt;&lt;span&gt;${icon(ic)}&lt;/span&gt;${name}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/nav&gt;`}&lt;div class=&quot;ks-home-indicator&quot; aria-hidden=&quot;true&quot;&gt;&lt;/div&gt;`;
       if(state.calcOpen){phone.insertAdjacentHTML(&#x27;beforeend&#x27;,calculatorSheet());phone.querySelector(&#x27;.ks-top&#x27;).inert=true;phone.querySelector(&#x27;.ks-main&#x27;).inert=true;phone.querySelector(&#x27;[data-calc-expression]&#x27;).focus({preventScroll:true});}
       if(state.deletePending){phone.insertAdjacentHTML(&#x27;beforeend&#x27;,deleteConfirmation());phone.querySelector(&#x27;.ks-top&#x27;).inert=true;phone.querySelector(&#x27;.ks-main&#x27;).inert=true;phone.querySelector(&#x27;[data-delete-action=cancel]&#x27;).focus({preventScroll:true});}
       if(state.walletPickerOpen){phone.insertAdjacentHTML(&#x27;beforeend&#x27;,walletPickerSheet());for(const child of phone.children)if(!child.classList.contains(&#x27;ks-modal-overlay&#x27;))child.inert=true;const all=phone.querySelector(&#x27;[data-wallet-all]&#x27;);all.indeterminate=state.walletDraftIds.length&gt;0&amp;&amp;state.walletDraftIds.length&lt;wallets.length;all.focus({preventScroll:true});}
-      if(state.page===&#x27;settings&#x27;)updateAppearancePreview();
+      if(state.page===&#x27;appearance&#x27;)updateAppearancePreview();
       globalThis.lucide?.createIcons({root:phone,attrs:{width:18,height:18}});
       rendering=false;
       rendered={page:state.page,modal:kind,local:key};
@@ -2697,7 +2729,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         if(changingPage)animatePage(previous,oldPage,sourceRect);
         if(localChanged){attachGhost(oldLocal);play(oldLocal,outFade,motion.local,discard(oldLocal));for(const node of localNodes())play(node,inFade,motion.local);}
         animateModal(previous?.modal||null,oldModal);
-        if(previous?.page===&#x27;settings&#x27;&amp;&amp;state.page===&#x27;settings&#x27;){
+        if(previous?.page===&#x27;appearance&#x27;&amp;&amp;state.page===&#x27;appearance&#x27;){
           const editor=phone.querySelector(&#x27;[data-appearance-editor]&#x27;);
           if(editorWasVisible&amp;&amp;editor.hidden)collapseAppearance(editor,editorCopy,editorHeight);
           else if(!editorWasVisible&amp;&amp;!editor.hidden)expandAppearance(editor);
@@ -2733,7 +2765,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     function cancelDelete(){const action=state.deletePending.kind===&#x27;meal&#x27;?&#x27;delete-meal&#x27;:&#x27;delete-entry&#x27;;state.deletePending=null;render();phone.querySelector(`[data-action=${action}]`)?.focus({preventScroll:true});}
     function confirmDelete(){const p=state.deletePending;if(p.kind===&#x27;meal&#x27;){if(state.records[p.date])state.records[p.date][p.slot]=null;state.date=p.date;state.page=state.mealReturn;state.editing=false;}else{if(financialEntries().some(e=&gt;e.originalExpenseId===p.id)){phone.querySelector(&#x27;[data-delete-error]&#x27;).textContent=&#x27;请先删除这笔支出关联的退款，再删除原支出。&#x27;;return;}state.deletedEntryIds.add(p.id);state.page=&#x27;ledger&#x27;;state.ledgerTab=&#x27;流水&#x27;;}state.deletePending=null;state.notice=&#x27;已从当前演示删除记录。&#x27;;render();}
     function closeCalculator(apply){if(apply){try{state.amount=inputAmount(calcCents(phone.querySelector(&#x27;[data-calc-expression]&#x27;).value));}catch(e){phone.querySelector(&#x27;.ks-calc-error&#x27;).textContent=e.message;return;}}state.calcOpen=false;render();phone.querySelector(&#x27;[data-action=open-calculator]&#x27;).focus({preventScroll:true});}
-    function closeWalletPicker(action){if(action===&#x27;apply&#x27;){if(!state.walletDraftIds.length){phone.querySelector(&#x27;[data-wallet-error]&#x27;).textContent=&#x27;请选择钱包，或恢复默认。&#x27;;return;}state.walletFilterIds=state.walletDraftIds.length===wallets.length?&#x27;ALL&#x27;:[...state.walletDraftIds];}else if(action===&#x27;default&#x27;)state.walletFilterIds=null;state.walletPickerOpen=false;render();persist();phone.querySelector(&#x27;[data-action=choose-wallets]&#x27;)?.focus({preventScroll:true});}
+    function closeWalletPicker(action){if(action===&#x27;apply&#x27;){if(!state.walletDraftIds.length)return;state.walletFilterIds=state.walletDraftIds.length===wallets.length?&#x27;ALL&#x27;:[...state.walletDraftIds];}else if(action===&#x27;default&#x27;)state.walletFilterIds=null;state.walletPickerOpen=false;render();persist();phone.querySelector(&#x27;[data-action=choose-wallets]&#x27;)?.focus({preventScroll:true});}
         function calcCents(expression){
       const source=expression.replace(/×/g,&#x27;*&#x27;).replace(/[−–]/g,&#x27;-&#x27;).replace(/÷/g,&#x27;/&#x27;).replace(/\s/g,&#x27;&#x27;);
       if(source.length&gt;80||!/^\d+(?:\.\d*)?(?:[+*/-]\d+(?:\.\d*)?)*$/.test(source))throw Error(&#x27;请补全金额或计算式，例如 12+8×2。&#x27;);
@@ -2751,6 +2783,8 @@ html&gt;body{padding:0}&lt;/style&gt;
       const b=event.target.closest(&#x27;button&#x27;);if(!b)return;
       capture();state.notice=&#x27;&#x27;;
       if(b.dataset.previewMode){state.previewMode=b.dataset.previewMode;updateAppearancePreview();return;}
+      if(b.dataset.action===&#x27;open-appearance&#x27;){resetAppearance();state.page=&#x27;appearance&#x27;;render();return;}
+      if(b.dataset.action===&#x27;reset-appearance&#x27;){state.appearanceDraft={...defaultAppearance};render();return;}
       if(b.dataset.action===&#x27;cancel-appearance&#x27;){resetAppearance();render();return;}
       if(b.dataset.action===&#x27;apply-appearance&#x27;){
         const next=pendingAppearance();
@@ -2776,6 +2810,8 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(b.dataset.action===&#x27;cancel-category-edit&#x27;){state.editingFinancialCategoryId=null;render();return;}
       if(b.dataset.action===&#x27;edit-general-categories&#x27;){state.categoryWalletId=&#x27;GLOBAL&#x27;;state.editingFinancialCategoryId=null;render();return;}
       if(b.dataset.action===&#x27;choose-wallets&#x27;){state.walletDraftIds=selectedWallets().map(w=&gt;w.id);state.walletPickerOpen=true;render();return;}
+      if(b.dataset.editWallet){state.editingWalletId=b.dataset.editWallet;state.page=&#x27;wallet-edit&#x27;;render();return;}
+      if(b.dataset.action===&#x27;save-wallet&#x27;){walletById(state.editingWalletId).separateAccounting=phone.querySelector(&#x27;[data-wallet-independent]&#x27;).checked;state.page=&#x27;ledger&#x27;;render();persist();return;}
       if(b.dataset.walletAction){closeWalletPicker(b.dataset.walletAction);return;}
       if(b.dataset.entryId){if(!financialEntries().some(e=&gt;e.id===b.dataset.entryId))return;recordOrigin={page:state.page,id:b.dataset.entryId};entrance=visible(b)?rect(b):null;state.selectedEntryId=b.dataset.entryId;state.page=&#x27;entry-detail&#x27;;render();return;}
       if(b.dataset.action===&#x27;delete-meal&#x27;){const meal=state.records[state.editingDate]?.[state.editingSlot];if(!meal)return;state.deletePending={kind:&#x27;meal&#x27;,date:state.editingDate,slot:state.editingSlot,summary:`${state.editingDate} · ${slots[state.editingSlot]}\n${meal.dishes||&#x27;无菜品内容&#x27;}`};render();return;}
@@ -2795,7 +2831,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(b.dataset.entryType){state.entryType=b.dataset.entryType;state.entryDraft.category=chooseFinancialCategory(state.entryDraft.walletId,state.entryType,financialScopeOf(state.entryType)===&#x27;INCOME&#x27;?&#x27;gi-salary&#x27;:&#x27;ge-food&#x27;);render();return;}
       if(b.dataset.key!==undefined){const input=phone.querySelector(&#x27;[data-calc-expression]&#x27;),k=b.dataset.key;state.calcExpression=input.value;phone.querySelector(&#x27;.ks-calc-error&#x27;).textContent=&#x27;&#x27;;if(k===&#x27;C&#x27;)state.calcExpression=&#x27;&#x27;;else if(k===&#x27;⌫&#x27;)state.calcExpression=state.calcExpression.slice(0,-1);else if(k===&#x27;=&#x27;){try{state.calcExpression=inputAmount(calcCents(state.calcExpression));}catch(e){phone.querySelector(&#x27;.ks-calc-error&#x27;).textContent=e.message;return;}}else if(state.calcExpression.length&lt;80)state.calcExpression+=k;input.value=state.calcExpression;return;}
       if(b.dataset.action===&#x27;add-entry&#x27;){state.page=&#x27;entry&#x27;;state.amount=&#x27;&#x27;;state.ledgerRangeOpen=false;state.entryType=&#x27;支出&#x27;;state.entryDraft={dateTime:`${demoToday}T09:41`,note:&#x27;&#x27;,category:defaultEntryWallet()?&#x27;ge-food&#x27;:&#x27;&#x27;,walletId:defaultEntryWallet()?.id||&#x27;&#x27;};render();return;}
-      if(b.dataset.action===&#x27;back&#x27;){state.page=state.page===&#x27;category-manager&#x27;?state.categoryReturn:state.page===&#x27;meal-filter&#x27;?&#x27;meals&#x27;:state.page===&#x27;meal-form&#x27;?state.mealReturn:&#x27;ledger&#x27;;render();return;}
+      if(b.dataset.action===&#x27;back&#x27;){state.page=state.page===&#x27;category-manager&#x27;?state.categoryReturn:state.page===&#x27;appearance&#x27;?&#x27;settings&#x27;:state.page===&#x27;meal-filter&#x27;?&#x27;meals&#x27;:state.page===&#x27;meal-form&#x27;?state.mealReturn:&#x27;ledger&#x27;;render();return;}
       if(b.dataset.action===&#x27;new-category&#x27;){phone.querySelector(&#x27;[data-new-category]&#x27;).hidden=false;phone.querySelector(&#x27;[data-category-name]&#x27;).focus();return;}
       if(b.dataset.action===&#x27;confirm-category&#x27;){const c=phone.querySelector(&#x27;[data-category-name]&#x27;).value.trim();if(c&amp;&amp;!state.categories.includes(c))state.categories.push(c);render();}
     });
@@ -2804,7 +2840,6 @@ html&gt;body{padding:0}&lt;/style&gt;
       const e=event.target;
       if(e.matches(&#x27;[data-category-wallet]&#x27;)){state.categoryWalletId=e.value;state.editingFinancialCategoryId=null;render();return;}
       if(e.matches(&#x27;[data-category-mode]&#x27;)){const wallet=wallets.find(w=&gt;w.id===state.categoryWalletId);if(wallet){wallet[state.financialScope===&#x27;INCOME&#x27;?&#x27;incomeCategoryMode&#x27;:&#x27;expenseCategoryMode&#x27;]=e.value;state.editingFinancialCategoryId=null;render();}return;}
-      if(e.matches(&#x27;[data-wallet-independent]&#x27;)){const w=wallets.find(w=&gt;w.id===e.dataset.walletIndependent);if(w){w.separateAccounting=e.checked;render();persist();}return;}
       if(e.matches(&#x27;[data-wallet-all]&#x27;)){state.walletDraftIds=e.checked?wallets.map(w=&gt;w.id):[];render();return;}
       if(e.matches(&#x27;[data-wallet-option]&#x27;)){const id=e.dataset.walletOption;state.walletDraftIds=e.checked?[...new Set([...state.walletDraftIds,id])]:state.walletDraftIds.filter(x=&gt;x!==id);render();phone.querySelector(`[data-wallet-option=${id}]`).focus({preventScroll:true});return;}
       if(e.matches(&#x27;[data-entry-form] [name=wallet]&#x27;)){capture();state.entryDraft.category=chooseFinancialCategory(state.entryDraft.walletId,state.entryType,state.entryDraft.category);render();return;}
@@ -2812,7 +2847,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(e.matches(&#x27;[data-theme]&#x27;)){state.appearanceDraft.mode=e.value;updateAppearancePreview();return;}
       if(e.matches(&#x27;[data-color-source]&#x27;)){state.appearanceDraft.colorSource=e.value;render();return;}
       if(e.matches(&#x27;[data-palette]&#x27;)){state.appearanceDraft.presetColor=e.value;updateAppearancePreview();return;}
-      if(e.matches(&#x27;[data-date-input]&#x27;)){state.date=e.value||&#x27;2026-11-17&#x27;;render();}
+      if(e.matches(&#x27;[data-date-input]&#x27;)){state.date=isDate(e.value)?e.value:demoToday;render();}
       if(e.matches(&#x27;[data-meal-form] [name=slot]&#x27;)){capture();render();}
     });
     phone.addEventListener(&#x27;input&#x27;,event=&gt;{

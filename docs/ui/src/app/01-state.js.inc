@@ -23,8 +23,9 @@
   if(!phone)return;
   {
     const cardRadius=17;
-    const style = {accent:'#c47a4a',mode:'system',mealHour:'auto',colorSource:'PRESET',presetColor:'#c47a4a',customColor:'#C47A4A'};
-    const state = {page:'settings', date:'2026-11-17', ledgerMonth:'2026-11',mealMonth:'2026-11',ledgerTab:'统计', mealTab:'记录', slot:2, atHome:null, method:null, categories:[], amount:'',calcOpen:false,calcExpression:'',entryType:'支出',entryDraft:{dateTime:'2026-11-17T09:41',note:'',category:'ge-food',walletId:'daily'},notice:'', mealReturn:'home', entries:[], records:{}};
+    const defaultAppearance={mode:'system',colorSource:'PRESET',presetColor:'#c47a4a',customColor:'#C47A4A'};
+    const style = {accent:'#c47a4a',mealHour:'auto',...defaultAppearance};
+    const state = {page:'home', date:'2026-11-17', ledgerMonth:'2026-11',mealMonth:'2026-11',ledgerTab:'流水', mealTab:'记录', slot:2, atHome:null, method:null, categories:[], amount:'',calcOpen:false,calcExpression:'',entryType:'支出',entryDraft:{dateTime:'2026-11-17T09:41',note:'',category:'ge-food',walletId:'daily'},notice:'', mealReturn:'home', entries:[], records:{}};
     state.ledgerRange=null;state.ledgerRangeOpen=false;state.previewMode=null;
     const blankMealFilters=()=>({from:'',to:'',slot:'any',atHome:'any',method:'any',preparations:[],keyword:''});
     state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
@@ -179,7 +180,17 @@
         <div class="ks-money-meta"><span>收入 <span data-income>${money(total(entries,'收入'),code)}</span></span></div>
       </div>`;
     }
-    const week = () => `<div class="ks-week" aria-label="选择日期">${['一','二','三','四','五','六','日'].map((d,i)=>`<button class="ks-day cursor-interaction" data-date="2026-11-${16+i}" type="button" aria-pressed="${state.date===`2026-11-${16+i}`}"><small>${d}</small><span>${16+i}</span></button>`).join('')}</div>`;
+    function week(){
+      const selected=new Date(state.date+'T00:00:00Z');
+      const monday=selected.getUTCDate()-(selected.getUTCDay()+6)%7;
+      const days=['一','二','三','四','五','六','日'].map((label,i)=>{
+        const day=new Date(selected);day.setUTCDate(monday+i);
+        const month=day.getUTCMonth()+1,number=day.getUTCDate(),iso=day.toISOString().split('T')[0];
+        const available=day.getUTCFullYear()>=1&&day.getUTCFullYear()<=9999;
+        return `<button class="ks-day cursor-interaction" data-date="${iso}" type="button" ${available?'':'disabled'} aria-label="${month} 月 ${number} 日，星期${label}" aria-pressed="${state.date===iso}"><small>${label}</small><span>${number}</span></button>`;
+      }).join('');
+      return `<div class="ks-week" role="group" aria-label="选择日期">${days}</div>`;
+    }
     const section = (title,extra='') => `<div class="ks-section ks-row"><h3>${title}</h3>${extra}</div>`;
     const choice = (label,value,current,action) => `<button type="button" class="ks-choice cursor-interaction" data-${action}="${escapeText(value)}" aria-pressed="${current===value}">${label}</button>`;
     const monthPicker = (key,label) => `<div class="ks-month-picker" role="group" aria-label="${label}月份选择"><button type="button" class="ks-icon-btn cursor-interaction" data-month-step="-1" data-month-key="${key}" aria-label="${label}上个月">${icon('chevron-left')}</button><label class="ks-month-field"><input type="month" value="${state[key]}" data-month-input="${key}" aria-label="${label}月份" min="0001-01" max="9999-12"></label><button type="button" class="ks-icon-btn cursor-interaction" data-month-step="1" data-month-key="${key}" aria-label="${label}下个月">${icon('chevron-right')}</button></div>`;

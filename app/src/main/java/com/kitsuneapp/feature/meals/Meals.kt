@@ -1,11 +1,13 @@
 package com.kitsuneapp.feature.meals
 
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
@@ -15,6 +17,11 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kitsuneapp.AppViewModel
 import com.kitsuneapp.data.*
@@ -49,12 +56,16 @@ data class MealFilter(
     )
 }
 
+private data class MealsContent(val date: String? = null, val month: String? = null, val filter: MealFilter? = null)
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MealsPage(records: Records, filter: MealFilter?, daily: () -> Unit, clearConditions: () -> Unit, openFilter: () -> Unit,
               openMeal: (String, MealSlot, String?) -> Unit, openExisting: (MealRecord) -> Unit) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var date by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
     var month by rememberSaveable { mutableStateOf(YearMonth.now().toString()) }
+    val labels = filter?.labels(records).orEmpty()
     Column {
         Header("用餐")
         Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -63,49 +74,48 @@ fun MealsPage(records: Records, filter: MealFilter?, daily: () -> Unit, clearCon
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (filter == null) DateControl("日期", date, { date = it }, Modifier.weight(1f))
                     else Choice("按日浏览", daily, Modifier.weight(1f))
-                    Choice("筛选", openFilter)
+                    Choice(if (labels.isEmpty()) "筛选" else "筛选 (${labels.size})", openFilter,
+                        selected = labels.isNotEmpty())
                 }
-                if (filter == null) {
-                    val day = LocalDate.parse(date)
-                    Paper(padding = 4) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                            val monday = day.minusDays((day.dayOfWeek.value - 1).toLong())
-                            (0L..6L).forEach { offset ->
-                                val weekday = monday.plusDays(offset)
-                                Box(Modifier.weight(1f)) {
-                                    Choice(weekday.dayOfMonth.toString(), { date = weekday.toString() },
-                                        Modifier.fillMaxWidth(), selected = weekday == day)
-                                }
-                            }
-                        }
-                    }
-                }
+                if (filter == null) WeekStrip(LocalDate.parse(date)) { date = it.toString() }
             } else MonthControl(month) { month = it }
         }
-        Crossfade(tab, animationSpec = tween(150, easing = motion), label = "用餐标签") { section ->
-            if (section == 1) MealStats(records, month)
-            else if (filter == null) {
-                val today = records.meals.filter { it.date == date }.associateBy { it.mealSlot }
+        val content = when {
+            tab == 1 -> MealsContent(month = month)
+            filter != null -> MealsContent(filter = filter)
+            else -> MealsContent(date = date)
+        }
+        ContentFade(content, Modifier.weight(1f)) { shown ->
+            if (shown.month != null) MealStats(records, shown.month)
+            else if (shown.date != null) {
+                val today = records.meals.filter { it.date == shown.date }.associateBy { it.mealSlot }
                 LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     item { Section("三餐记录") }
                     items(MealSlot.entries, key = { it.name }) { slot ->
                         val meal = today[slot]
                         if (meal == null) RecordRow(slot.label, "待记录", icon = Icons.Outlined.Add,
-                            empty = true, onClick = { openMeal(date, slot, null) })
-                        else MealRow(records, meal) { openExisting(meal) }
+                            empty = true, onClick = { openMeal(shown.date, slot, null) })
+                        else MealRow(records, meal, daily = true) { openExisting(meal) }
                     }
                 }
             } else {
-                val matches = remember(records, filter) {
-                    records.meals.filter { filter.matches(it, records) }
+                val applied = requireNotNull(shown.filter)
+                val matches = remember(records, applied) {
+                    records.meals.filter { applied.matches(it, records) }
                         .sortedWith(compareByDescending<MealRecord> { it.date }.thenBy { it.mealSlot.ordinal })
                 }
                 LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     item {
-                        filter.labels(records).takeIf(List<String>::isNotEmpty)?.let { Secondary(it.joinToString(" · ")) }
+                        val chips = applied.labels(records)
+                        if (chips.isNotEmpty()) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                chips.forEach { Tag(it) }
+                            }
+                        }
                         Section("筛选结果") {
                             Secondary("${matches.size} 条")
-                            if (filter != MealFilter()) TextButton(clearConditions) { Text("清空条件") }
+                            if (applied != MealFilter()) TextButton(clearConditions) { Text("清空条件") }
                         }
                     }
                     if (matches.isEmpty()) item { Paper { Text("没有符合条件的记录") } }
@@ -119,13 +129,42 @@ fun MealsPage(records: Records, filter: MealFilter?, daily: () -> Unit, clearCon
 }
 
 @Composable
-private fun MealRow(records: Records, meal: MealRecord, onClick: () -> Unit) {
+private fun WeekStrip(day: LocalDate, select: (LocalDate) -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val monday = day.minusDays((day.dayOfWeek.value - 1).toLong())
+    Paper(padding = 4) {
+        Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(1.dp)) {
+            listOf("一", "二", "三", "四", "五", "六", "日").forEachIndexed { index, label ->
+                val date = monday.plusDays(index.toLong())
+                val selected = date == day
+                val style = if (selected) Modifier.background(colors.primaryContainer)
+                    .border(1.dp, colors.primary, ControlShape) else Modifier
+                Column(Modifier.weight(1f).heightIn(min = 48.dp).clip(ControlShape).then(style)
+                    .selectable(selected, role = Role.RadioButton, onClick = { select(date) })
+                    .semantics { contentDescription = "${date.monthValue} 月 ${date.dayOfMonth} 日，星期$label" }
+                    .padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center) {
+                    Text(label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center,
+                        color = if (selected) colors.onPrimaryContainer else colors.onSurfaceVariant)
+                    Text(date.dayOfMonth.toString(), textAlign = TextAlign.Center,
+                        color = if (selected) colors.onPrimaryContainer else colors.onSurface)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MealRow(records: Records, meal: MealRecord, daily: Boolean = false, onClick: () -> Unit) {
     val prep = records.preparationNames(meal.id)
-    val detail = (listOf(if (meal.plannedAtHome) "计划在家吃" else "计划不在家吃") + prep + meal.note)
+    val plan = if (meal.plannedAtHome) "计划在家吃" else "计划不在家吃"
+    val method = records.methodName(meal.mealMethodId)
+    val detail = (listOf(plan) + prep + meal.note)
         .filter(String::isNotBlank).joinToString(" · ")
-    RecordRow(meal.dishes.ifBlank { meal.mealSlot.label },
-        "${meal.date} · ${meal.mealSlot.label} · ${records.methodName(meal.mealMethodId)}",
-        detail, Icons.Outlined.DateRange, onClick, sharedId = meal.id)
+    val title = if (daily) meal.mealSlot.label else meal.dishes.ifBlank { meal.mealSlot.label }
+    val subtitle = if (daily) meal.dishes.ifBlank { "未填写菜品" } else "${meal.date} · ${meal.mealSlot.label} · $method"
+    RecordRow(title, subtitle, detail, Icons.Outlined.DateRange, onClick,
+        badge = method.takeIf { daily && meal.mealMethodId != null }, sharedId = meal.id)
 }
 
 @Composable

@@ -123,6 +123,6 @@ python docs/ui/build_preview.py
 
 文档验证覆盖文件编码与链接、需求一致性、JSON／CSV 示例的可解析性及样例数据关系。数据格式文档中的示例是虚构数据，不是从真实应用导出的结果。
 
-早期 UI 原型已在离线浏览器中检查浅色、深色和窄屏布局及核心交互；历史备选视觉已废弃，不作为当前设计依据。最新全局组件标准化版本已经进行颜色公式和 JavaScript 语法检查、重新打包；尚未进行该版本的浏览器视觉回归。过期截图已删除，不作为开发依据。现行视觉源稿及验证边界见 [UI 设计说明](docs/ui/README.md)。
+现行离线预览已在 Chromium 中验证浅色、深色、窄屏和标准宽度下的主要页面与交互。Android 和网页的视觉同步记录见 [UI 设计说明](docs/ui/README.md) 与 [开发进度](docs/IMPLEMENTATION_PROGRESS.md)。
 
 本次 Android 构建、测试及设备验证范围见 [开发进度](docs/IMPLEMENTATION_PROGRESS.md)。
