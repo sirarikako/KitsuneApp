@@ -23,13 +23,67 @@ jobs:
       - run: ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:assembleDebugAndroidTest
       - uses: actions/upload-artifact@v4
         with:
-          name: kitsune-debug
+          name: kitsune-debug-ci
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: verification-reports
           path: app/build/reports/
+  sign-test-apk:
+    if: >-
+      github.repository == 'sirarikako/KitsuneApp' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/android-full-implementation')
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: kitsune-debug-ci
+          path: apk-input
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'build-tools;35.0.0'
+      - id: sign
+        name: Sign and verify the fixed test APK
+        env:
+          KITSUNE_TEST_KEYSTORE_BASE64: ${{ secrets.KITSUNE_TEST_KEYSTORE_BASE64 }}
+        shell: bash
+        run: |
+          if [[ -z "$KITSUNE_TEST_KEYSTORE_BASE64" ]]; then
+            echo "::notice::KITSUNE_TEST_KEYSTORE_BASE64 is missing. Only the temporary CI APK is available."
+            exit 0
+          fi
+          umask 077
+          keystore="$(mktemp "$RUNNER_TEMP/kitsune-test-keystore.XXXXXX")"
+          trap 'rm -f -- "$keystore"' EXIT
+          printf '%s' "$KITSUNE_TEST_KEYSTORE_BASE64" | base64 --decode > "$keystore"
+          unset KITSUNE_TEST_KEYSTORE_BASE64
+          apksigner="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          mkdir -p apk-signed
+          "$apksigner" sign --ks "$keystore" --ks-key-alias androiddebugkey \
+            --ks-pass pass:android --v4-signing-enabled false \
+            --in apk-input/app-debug.apk --out apk-signed/app-debug.apk
+          certificates="$("$apksigner" verify --print-certs apk-signed/app-debug.apk)"
+          fingerprint="$(awk '/^Signer #[0-9]+ certificate SHA-256 digest:/{print $NF}' <<< "$certificates")"
+          if [[ "$fingerprint" != '7ba1cc5366bd8c4718429457011ab20064c9bf6bdc600c1f5b9bba3651d02f17' ]]; then
+            echo "::error::The signed APK does not match the approved test certificate."
+            exit 1
+          fi
+          printf 'Test signing certificate SHA-256: %s\n' "$fingerprint"
+          echo 'signed=true' >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        if: steps.sign.outputs.signed == 'true'
+        with:
+          name: kitsune-debug
+          path: apk-signed/app-debug.apk
+          if-no-files-found: error
   device-tests:
     runs-on: ubuntu-latest
     steps:

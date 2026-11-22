@@ -95,7 +95,15 @@ python docs/ui/build_preview.py
 ./gradlew :app:installDebug
 ```
 
-调试 APK 生成在 `app/build/outputs/apk/debug/app-debug.apk`。安装到设备可使用 `adb install -r app/build/outputs/apk/debug/app-debug.apk`。发布签名需由持有发布密钥的维护者另行配置。测试和 lint 报告位于 `app/build/reports/`。CI 将构建产物和报告上传为 Actions artifacts。
+调试 APK 生成在 `app/build/outputs/apk/debug/app-debug.apk`。安装到设备可使用 `adb install -r app/build/outputs/apk/debug/app-debug.apk`。发布签名需由持有发布密钥的维护者另行配置。测试和 lint 报告位于 `app/build/reports/`。
+
+GitHub Actions 的 `kitsune-debug` 使用固定测试证书，适合连续覆盖安装。它由 `main` 或 `feat/android-full-implementation` 的推送构建或手动运行生成，需在仓库 Actions Secrets 中配置 `KITSUNE_TEST_KEYSTORE_BASE64`，值为已核对的原工作区调试 keystore 的 Base64。签名作业校验证书 SHA-256 后才上传。各次验证构建还提供使用运行器临时签名的 `kitsune-debug-ci`，供当次测试使用。旧测试包切换证书时，先导出完整 JSON 备份，再安装固定签名包并恢复。
+
+持有原工作区调试 keystore 且有仓库 Secret 管理权限时，可通过标准输入配置密钥。
+
+```bash
+base64 -w0 /path/to/debug.keystore | gh secret set KITSUNE_TEST_KEYSTORE_BASE64 --repo sirarikako/KitsuneApp
+```
 
 ## 数据使用方式
 
