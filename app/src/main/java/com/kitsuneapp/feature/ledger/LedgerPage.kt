@@ -1,6 +1,5 @@
 package com.kitsuneapp.feature.ledger
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -41,24 +40,20 @@ fun LedgerPage(records: Records, open: (String) -> Unit, openDetails: (String) -
     var datePicker by rememberSaveable { mutableStateOf(false) }
     var filters by rememberSaveable { mutableStateOf(false) }
     val selected = wallets.selected(ledger.wallets)
-    BackHandler(datePicker && tab != 1) { datePicker = false }
     Column {
         Header("记账")
         Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Tabs(listOf("流水", "钱包", "统计"), tab) { tab = it; datePicker = false }
             Spacer(Modifier.height(4.dp))
             if (tab != 1) {
-                if (period.start == null) MonthControl(period.month) { period = LedgerPeriod(it) }
-                ScopeControl("日期范围", if (period.start == null) "自定义" else period.label,
-                    R.drawable.ks_calendar_days) { datePicker = !datePicker }
-                if (period.start != null && !datePicker) TextAction("返回按月", { period = LedgerPeriod(period.month) })
-                if (!datePicker) ScopeControl("钱包范围", when (wallets.mode) {
+                LedgerPeriodControl(period, { datePicker = true }) { period = it }
+                ScopeControl("钱包范围", when (wallets.mode) {
                     RangeMode.REGULAR -> "常规钱包"
                     RangeMode.ALL -> "全部钱包（含独立核算）"
                     RangeMode.MANUAL -> selected.singleOrNull()?.let { ledger.walletLabel(it.id) }
                         ?: "已选 ${selected.size} 个钱包"
                 }, R.drawable.ks_wallet) { walletPicker = true }
-                if (!datePicker && wallets.mode != RangeMode.REGULAR && selected.size > 1) {
+                if (wallets.mode != RangeMode.REGULAR && selected.size > 1) {
                     Secondary(selected.joinToString("、") { ledger.walletLabel(it.id) }, lines = 2)
                 }
                 if (selected.isEmpty() && ledger.wallets.isNotEmpty()) Secondary("当前范围没有钱包，可手动选择")
@@ -66,10 +61,7 @@ fun LedgerPage(records: Records, open: (String) -> Unit, openDetails: (String) -
         }
         val content = if (tab == 0) LedgerContent(tab, period, wallets, type, category, note)
             else LedgerContent(tab, period, wallets)
-        if (datePicker && tab != 1) RangeEditor(period, Modifier.weight(1f), { datePicker = false }) {
-            period = it
-            datePicker = false
-        } else ContentFade(content, Modifier.weight(1f)) { shown ->
+        ContentFade(content, Modifier.weight(1f)) { shown ->
             val totals = remember(ledger, shown.period, shown.wallets, shown.page == 1) {
                 if (shown.page == 1) emptyList() else ledger.statistics(shown.period, shown.wallets)
             }
@@ -153,6 +145,12 @@ fun LedgerPage(records: Records, open: (String) -> Unit, openDetails: (String) -
             icon = designIcon(R.drawable.ks_plus))
     }
 
+    if (datePicker && tab != 1) {
+        LedgerPeriodDialog(period, dismiss = { datePicker = false }) {
+            period = it
+            datePicker = false
+        }
+    }
     if (walletPicker) {
         WalletRangeDialog(wallets, ledger.wallets, dismiss = { walletPicker = false }) {
             wallets = it
@@ -195,30 +193,6 @@ private fun ScopeControl(label: String, value: String, icon: Int, onClick: () ->
         Text(label, color = colors.onSurfaceVariant)
         Text(value, Modifier.weight(1f), color = colors.primary, textAlign = TextAlign.End)
         Icon(designIcon(R.drawable.ks_chevron_down), null, Modifier.size(14.dp), tint = colors.primary)
-    }
-}
-
-@Composable
-private fun RangeEditor(period: LedgerPeriod, modifier: Modifier, cancel: () -> Unit, select: (LedgerPeriod) -> Unit) {
-    var start by rememberSaveable { mutableStateOf(period.start.orEmpty()) }
-    var end by rememberSaveable { mutableStateOf(period.end.orEmpty()) }
-    val valid = start.isNotEmpty() && end.isNotEmpty() && start <= end
-    LazyColumn(modifier, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                DateControl("开始日期", start, { start = it }, Modifier.weight(1f))
-                DateControl("结束日期", end, { end = it }, Modifier.weight(1f))
-            }
-        }
-        if (end.isNotEmpty() && start > end) item {
-            Text("开始日期不能晚于结束日期", color = MaterialTheme.colorScheme.error)
-        }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Choice("取消", cancel, Modifier.weight(1f))
-                Primary("应用日期", { select(period.copy(start = start, end = end)) }, Modifier.weight(1f), enabled = valid)
-            }
-        }
     }
 }
 

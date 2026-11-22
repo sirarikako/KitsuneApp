@@ -17,6 +17,26 @@
       ${formFooter(saveButton(`保存${state.entryType}`),'交互预览 · 仅保存到当前演示')}
     </form>`;}
     function calculatorSheet(){return `<div class="ks-modal-overlay"><section class="ks-calc-sheet" role="dialog" aria-modal="true" aria-label="金额计算器"><div class="ks-calc-body"><div class="ks-row"><h3>金额计算器</h3><button type="button" class="ks-text-btn cursor-interaction" data-calc-action="cancel">关闭</button></div><label><span class="ks-note">${entryWallet()?.code||'未选择钱包'} · 支持加减乘除</span><input class="ks-amount-input" data-calc-expression inputmode="text" aria-label="计算表达式" maxlength="80" placeholder="${(entryWallet()?.scale??2)?'0.00':'0'}" value="${escapeText(state.calcExpression)}"></label><div class="ks-calculator" role="group" aria-label="计算键盘">${['C','⌫','÷','×','7','8','9','−','4','5','6','+','1','2','3','=','0','.'].map(k=>`<button type="button" class="ks-key ${['÷','×','−','+','='].includes(k)?'ks-operator':''} ${k==='0'?'ks-zero':''} ${k==='='?'ks-equal':''} cursor-interaction" data-key="${k}" aria-label="${k==='⌫'?'退格':k==='C'?'清空':k}">${k}</button>`).join('')}</div></div><div class="ks-calc-footer"><p class="ks-calc-error" role="alert"></p><div class="ks-calc-actions"><button type="button" class="ks-choice cursor-interaction" data-calc-action="cancel">取消</button><button type="button" class="ks-primary cursor-interaction" data-calc-action="apply">使用此金额</button></div></div></section></div>`;}
+    function ledgerPeriodDialog(){
+      const draft=state.ledgerPeriodDraft;
+      return `<div class="ks-modal-overlay ks-period-overlay"><form class="ks-period-dialog" data-ledger-period role="dialog" aria-modal="true" aria-label="日期范围">
+        <h3>日期范围</h3>
+        <div class="ks-period-body">
+          <div class="ks-period-modes" role="group" aria-label="日期范围模式">${choice('按月','month',draft.mode,'period-mode')}${choice('自定义日期','range',draft.mode,'period-mode')}</div>
+          ${draft.mode==='month'?`
+            <label><span class="ks-label">年份</span><input type="text" inputmode="numeric" name="year" class="ks-control" value="${escapeText(draft.year)}"></label>
+            <div class="ks-period-months" role="group" aria-label="月份">${Array.from({length:12},(_,i)=>choice(`${i+1} 月`,String(i+1),draft.month,'period-month')).join('')}</div>
+          `:`
+            <label><span class="ks-label">开始日期</span><input type="date" name="from" class="ks-control" value="${draft.from}" min="0001-01-01" max="9999-12-31"></label>
+            <label><span class="ks-label">结束日期</span><input type="date" name="to" class="ks-control" value="${draft.to}" min="0001-01-01" max="9999-12-31"></label>
+          `}
+          <p class="ks-error" data-period-error role="alert">${ledgerPeriodError(draft)}</p>
+        </div>
+        <div class="ks-period-actions">
+          <button type="button" class="ks-text-btn" data-action="cancel-ledger-period">取消</button>
+          <button type="submit" class="ks-text-btn" ${canApplyLedgerPeriod(draft)?'':'disabled'}>应用</button>
+        </div></form></div>`;
+    }
     function walletRangeDialog(){
       const mode=state.walletDraftMode,manual=mode==='MANUAL',canApply=!manual||state.walletDraftIds.length>0;
       const modeLabels={REGULAR:'常规钱包',ALL:'全部钱包',MANUAL:'手动选择'};

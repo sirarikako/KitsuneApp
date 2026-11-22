@@ -26,7 +26,7 @@
     const defaultAppearance={mode:'system',colorSource:'PRESET',presetColor:'#c47a4a',customColor:'#C47A4A'};
     const style = {accent:'#c47a4a',mealHour:'auto',...defaultAppearance};
     const state = {page:'home', date:'2026-11-17', ledgerMonth:'2026-11',mealMonth:'2026-11',ledgerTab:'流水', mealTab:'记录', slot:2, atHome:null, method:null, categories:[], amount:'',calcOpen:false,calcExpression:'',entryType:'支出',entryDraft:{dateTime:'2026-11-17T09:41',note:'',category:'ge-food',walletId:'daily'},notice:'', mealReturn:'home', entries:[], records:{}};
-    state.ledgerRange=null;state.ledgerRangeOpen=false;state.previewMode=null;
+    state.ledgerRange=null;state.ledgerPeriodDraft=null;state.previewMode=null;
     const blankMealFilters=()=>({from:'',to:'',slot:'any',atHome:'any',method:'any',preparations:[],keyword:''});
     state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
     const wallets=[{id:'daily',name:'日常钱包',code:'CNY',scale:2,opening:0n,separateAccounting:false},{id:'pocket',name:'零钱钱包',code:'CNY',scale:2,opening:50000n,separateAccounting:false},{id:'travel',name:'旅行钱包',code:'JPY',scale:0,opening:20000n,separateAccounting:true}];
@@ -208,25 +208,19 @@
     const section = (title,extra='') => `<div class="ks-section ks-row"><h3>${title}</h3>${extra}</div>`;
     const choice = (label,value,current,action) => `<button type="button" class="ks-choice cursor-interaction" data-${action}="${escapeText(value)}" aria-pressed="${current===value}">${label}</button>`;
     const monthPicker = (key,label) => `<div class="ks-month-picker" role="group" aria-label="${label}月份选择"><button type="button" class="ks-icon-btn cursor-interaction" data-month-step="-1" data-month-key="${key}" aria-label="${label}上个月">${icon('chevron-left')}</button><label class="ks-month-field"><input type="month" value="${state[key]}" data-month-input="${key}" aria-label="${label}月份" min="0001-01" max="9999-12"></label><button type="button" class="ks-icon-btn cursor-interaction" data-month-step="1" data-month-key="${key}" aria-label="${label}下个月">${icon('chevron-right')}</button></div>`;
-    function ledgerDatePicker(){
-      const range=state.ledgerRange;
-      const label=state.ledgerTab==='流水'?'流水':'收支统计';
-      return `<div>
-        ${range?'':monthPicker('ledgerMonth',label)}
-        <div class="ks-toolbar"><button type="button" class="ks-toolbar-action ks-scope" data-action="edit-ledger-range" aria-expanded="${state.ledgerRangeOpen}">
-          <span>${icon('calendar-range')}日期范围</span>
-          <span>${range?`${range.from} 至 ${range.to}`:'自定义'}${icon('chevron-down')}</span>
-        </button></div>
-        ${state.ledgerRangeOpen?`<form class="ks-form ks-ledger-range-form" data-ledger-range-form>
-          <div class="ks-field-row">
-            <label><span class="ks-label">开始日期</span><input type="date" name="from" class="ks-control" value="${range?.from||''}" min="0001-01-01" max="9999-12-31" required></label>
-            <label><span class="ks-label">结束日期</span><input type="date" name="to" class="ks-control" value="${range?.to||''}" min="0001-01-01" max="9999-12-31" required></label>
-          </div>
-          ${formFooter(`<div class="ks-form-actions"><button type="button" class="ks-choice" data-action="cancel-ledger-range">取消</button>${saveButton('应用日期')}</div>`)}
-        </form>`:''}
-        ${range?`<button type="button" class="ks-text-btn" data-action="ledger-month-mode">${icon('calendar-days')}返回按月</button>`:''}
+    function ledgerPeriodControl(){
+      const range=state.ledgerRange,month=state.ledgerMonth,[year,number]=month.split('-').map(Number);
+      const display=range?`${range.from} 至 ${range.to}`:`${year} 年 ${number} 月`;
+      return `<div class="ks-month-picker ks-ledger-period" role="group" aria-label="流水与统计期间">
+        ${range?'':`<button type="button" class="ks-icon-btn cursor-interaction" data-month-step="-1" data-month-key="ledgerMonth" aria-label="上个月" ${month==='0001-01'?'disabled':''}>${icon('chevron-left')}</button>`}
+        <button type="button" class="ks-choice ks-period-trigger cursor-interaction" data-action="choose-ledger-period" aria-haspopup="dialog" aria-label="选择日期范围：${display}">${icon('calendar-days')}<span>${display}</span></button>
+        ${range?'':`<button type="button" class="ks-icon-btn cursor-interaction" data-month-step="1" data-month-key="ledgerMonth" aria-label="下个月" ${month==='9999-12'?'disabled':''}>${icon('chevron-right')}</button>`}
       </div>`;
     }
+    const canApplyLedgerPeriod=draft=>draft.mode==='month'?/^\d{1,4}$/.test(draft.year)&&Number(draft.year)>0:
+      isDate(draft.from)&&isDate(draft.to)&&draft.from<=draft.to;
+    const ledgerPeriodError=draft=>draft.mode==='month'&&!canApplyLedgerPeriod(draft)?'请输入 1 至 9999 的年份':
+      draft.mode==='range'&&draft.from&&draft.to&&draft.from>draft.to?'开始日期不能晚于结束日期':'';
     const walletScope=()=>{const chosen=selectedWallets(),label=state.walletFilterIds===null?'常规钱包':state.walletFilterIds==='ALL'?'全部钱包（含独立核算）':chosen.length===1?`${chosen[0].name} · ${chosen[0].code}`:`已选 ${chosen.length} 个钱包`;return `<div class="ks-toolbar"><button type="button" class="ks-toolbar-action ks-scope cursor-interaction" data-action="choose-wallets" aria-label="选择统计与流水的钱包范围"><span>${icon('wallet')}钱包范围</span><span>${escapeText(label)}${icon('chevron-down')}</span></button></div>${state.walletFilterIds&&chosen.length>1?`<p class="ks-filter-context">${chosen.map(w=>`${escapeText(w.name)} · ${w.code}`).join('、')}</p>`:''}`;};
     const methodCounts = meals => [...new Set(['下厨','外卖','未填写',...meals.map(m=>m.method||'未填写')])].map(method=>({method,count:meals.filter(m=>(m.method||'未填写')===method).length}));
     const recommendedSlot = () => {const hour=style.mealHour==='auto'?new Date().getHours():Number(style.mealHour);return hour<11?0:hour<17?1:2;};

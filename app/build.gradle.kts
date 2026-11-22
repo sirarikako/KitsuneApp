@@ -55,5 +55,6 @@ dependencies {
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.ui.test)
     androidTestImplementation(libs.android.junit)
+    androidTestImplementation(libs.android.espresso)
     debugImplementation(libs.compose.test.manifest)
 }

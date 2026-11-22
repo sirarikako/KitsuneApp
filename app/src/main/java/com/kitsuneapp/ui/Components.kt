@@ -87,7 +87,7 @@ fun Header(title: String, subtitle: String? = null, back: (() -> Unit)? = null,
            leading: @Composable RowScope.() -> Unit = {}, action: @Composable RowScope.() -> Unit = {}) {
     Row(Modifier.fillMaxWidth().padding(start = 16.dp, top = if (back == null) 16.dp else 12.dp, end = 16.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        if (back != null) SquareIcon(designIcon(R.drawable.ks_arrow_left), "返回", back)
+        if (back != null) SquareIcon(designIcon(R.drawable.ks_arrow_left), "返回", onClick = back)
         leading()
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.headlineSmall)
@@ -254,12 +254,13 @@ internal fun OutlinedAction(
 }
 
 @Composable
-fun SquareIcon(icon: ImageVector, label: String, onClick: () -> Unit) {
+fun SquareIcon(icon: ImageVector, label: String, enabled: Boolean = true, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     Box(Modifier.size(44.dp).clip(ControlShape).background(colors.surface)
-        .border(1.dp, colors.outlineVariant, ControlShape).clickable(role = Role.Button, onClick = onClick),
+        .border(1.dp, colors.outlineVariant, ControlShape).clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center) {
-        Icon(icon, label, Modifier.size(18.dp))
+        Icon(icon, label, Modifier.size(18.dp),
+            tint = if (enabled) LocalContentColor.current else colors.onSurfaceVariant.copy(alpha = 0.38f))
     }
 }
 

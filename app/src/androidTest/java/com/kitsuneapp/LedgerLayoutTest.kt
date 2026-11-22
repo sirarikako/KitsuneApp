@@ -1,6 +1,8 @@
 package com.kitsuneapp
 
 import android.graphics.Bitmap
+import android.view.View
+import android.widget.DatePicker
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -22,6 +24,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
@@ -30,6 +33,12 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.dp
+import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.UiController
+import androidx.test.espresso.ViewAction
+import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom
+import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kitsuneapp.data.*
 import com.kitsuneapp.feature.ledger.LedgerPage
@@ -37,6 +46,8 @@ import com.kitsuneapp.feature.ledger.Calculator
 import com.kitsuneapp.ui.KitsuneTheme
 import java.io.File
 import java.time.LocalDate
+import java.time.YearMonth
+import org.hamcrest.Matcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -145,6 +156,95 @@ class LedgerLayoutTest {
         inDialog("恢复默认").performClick()
         compose.onNodeWithText("常规钱包").assertIsDisplayed()
         compose.onNodeWithText("本月收支 · JPY").assertDoesNotExist()
+    }
+
+    @Test
+    fun sharesMonthlyAndCustomPeriodsBetweenLedgerTabs() {
+        val current = YearMonth.now()
+        val previous = current.minusMonths(1)
+        val from = previous.atEndOfMonth()
+        val to = current.atDay(1)
+        val timestamp = "2026-11-17T12:00:00Z"
+        val wallet = Wallet("regular", "日常钱包", "日常钱包", "CNY", 2, 0, 0, false, false,
+            CategoryMode.DEFAULT, CategoryMode.DEFAULT, timestamp, timestamp)
+        val category = Category("food", Scope.EXPENSE, null, "", "餐饮", "餐饮", 0, false, false, timestamp, timestamp)
+        val entries = listOf(from.minusDays(1) to 300L, from to 700L, to to 1_200L).map { (date, amount) ->
+            FinancialEntry(date.toString(), date.toString(), "12:00", EntryType.EXPENSE,
+                wallet.id, amount, category.id, null, null, null, "", timestamp, timestamp)
+        }
+        val records = Records(DataState(installationId = "test", datasetId = "test", arrayElements = 0),
+            ThemePreferences(), emptyList(), listOf(category), emptyList(), emptyMap(), listOf(wallet), entries)
+        compose.setContent { KitsuneTheme(records.theme, forceDark = false) { LedgerPage(records, {}, {}) } }
+
+        fun monthLabel(month: YearMonth) = LedgerPeriod(month.toString()).label
+        fun inDialog(label: String) = compose.onNode(hasText(label) and hasAnyAncestor(isDialog()))
+        val picker = compose.onNodeWithContentDescription("选择日期范围")
+        val monthly = inDialog("按月")
+        val custom = inDialog("自定义日期")
+        val apply = inDialog("应用")
+
+        compose.onNodeWithText(monthLabel(current)).assertIsDisplayed()
+        compose.onNodeWithContentDescription("上个月").performClick()
+        compose.onNodeWithText(monthLabel(previous)).assertIsDisplayed()
+        compose.onNodeWithContentDescription("下个月").performClick()
+        compose.onNodeWithText(monthLabel(current)).assertIsDisplayed()
+
+        picker.performClick()
+        monthly.assertIsSelected()
+        val year = compose.onNodeWithContentDescription("年份")
+        year.performTextReplacement("0")
+        apply.assertIsNotEnabled()
+        year.performTextReplacement(previous.year.toString())
+        inDialog("${previous.monthValue} 月").performScrollTo().performClick().assertIsSelected()
+        apply.performClick()
+        compose.onNodeWithText(monthLabel(previous)).assertIsDisplayed()
+        compose.onNodeWithText("10.00").assertIsDisplayed()
+
+        picker.performClick()
+        custom.performClick().assertIsSelected()
+        apply.assertIsNotEnabled()
+        pickLedgerDate("开始日期", from)
+        pickLedgerDate("结束日期", from.minusDays(1))
+        inDialog("开始日期不能晚于结束日期").assertIsDisplayed()
+        monthly.performClick()
+        custom.performClick()
+        inDialog("开始日期不能晚于结束日期").assertIsDisplayed()
+        apply.assertIsNotEnabled()
+        pickLedgerDate("结束日期", to)
+        apply.performClick()
+
+        val range = compose.onNodeWithText("$from 至 $to")
+        range.assertIsDisplayed()
+        compose.onNodeWithText("19.00").assertIsDisplayed()
+        compose.onNodeWithText("统计").performClick()
+        range.assertIsDisplayed()
+        compose.onNodeWithText("所选期间收支 · CNY").assertIsDisplayed()
+        compose.onAllNodesWithText("19.00")[0].assertIsDisplayed()
+
+        picker.performClick()
+        custom.assertIsSelected()
+        monthly.performClick()
+        inDialog("${previous.monthValue} 月").assertIsSelected()
+        inDialog("取消").performClick()
+        range.assertIsDisplayed()
+        picker.performClick()
+        monthly.performClick()
+        apply.performClick()
+        compose.onNodeWithText(monthLabel(previous)).assertIsDisplayed()
+        compose.onNodeWithText("流水").performClick()
+        compose.onNodeWithText(monthLabel(previous)).assertIsDisplayed()
+    }
+
+    private fun pickLedgerDate(label: String, date: LocalDate) {
+        compose.onNodeWithContentDescription(label).performClick()
+        onView(isAssignableFrom(DatePicker::class.java)).perform(object : ViewAction {
+            override fun getConstraints(): Matcher<View> = isAssignableFrom(DatePicker::class.java)
+            override fun getDescription() = "Select a date in the platform calendar"
+            override fun perform(uiController: UiController, view: View) {
+                (view as DatePicker).updateDate(date.year, date.monthValue - 1, date.dayOfMonth)
+            }
+        })
+        onView(withId(android.R.id.button1)).perform(click())
     }
 
     @Test

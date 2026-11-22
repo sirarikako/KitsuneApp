@@ -14,7 +14,7 @@
           </div></div>`;
         }).join('')}<p class="ks-footnote">交互预览 · 示例数据</p>`;
       const entries=allEntries.filter(matchesLedgerScope).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
-      const picker=ledgerDatePicker()+walletScope(),groups=currencyGroups(entries,selectedWallets());
+      const picker=ledgerPeriodControl()+walletScope(),groups=currencyGroups(entries,selectedWallets());
       const period=state.ledgerRange?'所选期间':'本月';
       const includeYear=state.ledgerRange&&state.ledgerRange.from.slice(0,4)!==state.ledgerRange.to.slice(0,4);
       const empty='<p class="ks-empty-state">所选日期和钱包范围内没有账目</p>';
