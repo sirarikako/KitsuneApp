@@ -1894,7 +1894,7 @@ html&gt;body{padding:0}&lt;/style&gt;
 &lt;/div&gt;
 &lt;style&gt;
   #kitsune-preview .ks-stage{min-height:830px;display:flex;justify-content:center;align-items:flex-start;padding:24px 10px 18px;box-sizing:border-box}
-  #kitsune-preview .ks-phone{--ks-seed:#c47a4a;--ks-bg:light-dark(#f6f3ed,#201e1b);--ks-paper:light-dark(#fffcf7,#2a2723);--ks-ink:light-dark(#302b26,#f3eae1);--ks-dim:light-dark(#76695e,#baaea2);--ks-line:light-dark(#e5ded4,#443c34);--ks-soft:light-dark(#eee7dc,#383129);--ks-accent:light-dark(#92532e,#efb68c);--ks-accent-bg:light-dark(#f2e1d2,#463226);--ks-good:light-dark(#46624a,#b7d0ae);--ks-good-bg:light-dark(#e7eddf,#303e2e);--ks-danger:light-dark(#a63832,#ffb4ab);--ks-card-surface:var(--ks-paper);--ks-card-border:1px solid var(--ks-line);--ks-radius:17px;--ks-space-1:4px;--ks-space-2:8px;--ks-space-3:12px;--ks-space-4:16px;--ks-space-6:24px;--ks-control-radius:12px;--ks-dialog-radius:24px;--ks-control-height:46px;--ks-icon-size:18px;--ks-font-body:14px;--ks-font-note:12px;--ks-font-tag:11px;--ks-font-title:26px;--ks-font-section:15px;--ks-dialog-shadow:0 8px 30px #00000024;--ks-action-bg:var(--ks-accent);--ks-action-text:var(--ks-paper);width:min(100%,390px);min-height:776px;box-sizing:border-box;background:var(--ks-bg);color:var(--ks-ink);border:1px solid var(--ks-line);border-radius:30px;box-shadow:0 15px 45px #00000010;font-family:&quot;Segoe UI&quot;,&quot;Microsoft YaHei&quot;,sans-serif;font-size:14px;line-height:1.55;display:flex;flex-direction:column;position:relative;overflow-wrap:anywhere;color-scheme:inherit}
+  #kitsune-preview .ks-phone{--ks-seed:#c47a4a;--ks-bg:light-dark(#f4ebe5,#271f1a);--ks-paper:light-dark(#fcf9f7,#362c25);--ks-ink:light-dark(#302b26,#f3eae1);--ks-dim:light-dark(#6e6257,#baaea2);--ks-line:light-dark(#dfd2c9,#4f4138);--ks-soft:light-dark(#ece1da,#43372f);--ks-accent:light-dark(#895837,#e4bda0);--ks-accent-bg:light-dark(#f2e2d8,#463325);--ks-good:light-dark(#46624a,#b7d0ae);--ks-good-bg:light-dark(#e7eddf,#303e2e);--ks-danger:light-dark(#a63832,#ffb4ab);--ks-card-surface:var(--ks-paper);--ks-card-border:1px solid var(--ks-line);--ks-radius:17px;--ks-space-1:4px;--ks-space-2:8px;--ks-space-3:12px;--ks-space-4:16px;--ks-space-6:24px;--ks-control-radius:12px;--ks-dialog-radius:24px;--ks-control-height:46px;--ks-icon-size:18px;--ks-font-body:14px;--ks-font-note:12px;--ks-font-tag:11px;--ks-font-title:26px;--ks-font-section:15px;--ks-dialog-shadow:0 8px 30px #00000024;--ks-action-bg:var(--ks-accent);--ks-action-text:var(--ks-paper);width:min(100%,390px);min-height:776px;box-sizing:border-box;background:var(--ks-bg);color:var(--ks-ink);border:1px solid var(--ks-line);border-radius:30px;box-shadow:0 15px 45px #00000010;font-family:&quot;Segoe UI&quot;,&quot;Microsoft YaHei&quot;,sans-serif;font-size:14px;line-height:1.55;display:flex;flex-direction:column;position:relative;overflow-wrap:anywhere;color-scheme:inherit}
   #kitsune-preview .ks-phone *{box-sizing:border-box}
   #kitsune-preview .ks-phone :where(button,input,select,textarea){font:inherit;color:inherit}
   #kitsune-preview .ks-phone button{cursor:var(--cursor-interaction,pointer)}
@@ -2261,27 +2261,39 @@ html&gt;body{padding:0}&lt;/style&gt;
     };
     phone.ksSnapshot=()=&gt;({page:navs.some(n=&gt;n[0]===state.page)?state.page:&#x27;home&#x27;,...appliedAppearance(),ledgerMonth:state.ledgerMonth,ledgerRange:state.ledgerRange,mealMonth:state.mealMonth,walletFilterIds:state.walletFilterIds,separateWalletIds:wallets.filter(w=&gt;w.separateAccounting).map(w=&gt;w.id),mealListMode:state.mealListMode,mealFilters:state.mealFilters});
     // Android applies these same presentation roles for preset and custom seeds.
-    function makePalette(seed,system){
+    function makePalette(seed,source){
       const rgb=h=&gt;h.replace(&quot;#&quot;,&quot;&quot;).match(/../g).map(x=&gt;parseInt(x,16));
       const mix=(a,b,t)=&gt;&quot;#&quot;+rgb(a).map((v,i)=&gt;Math.round(v*t+rgb(b)[i]*(1-t)).toString(16).padStart(2,&quot;0&quot;)).join(&quot;&quot;);
       const luminance=h=&gt;rgb(h).map(v=&gt;{v/=255;return v&lt;=.04045?v/12.92:((v+.055)/1.055)**2.4}).reduce((s,v,i)=&gt;s+v*[.2126,.7152,.0722][i],0);
       const contrast=(a,b)=&gt;(Math.max(luminance(a),luminance(b))+.05)/(Math.min(luminance(a),luminance(b))+.05);
       const safe=(color,backgrounds,light)=&gt;{const end=light?&quot;#000000&quot;:&quot;#ffffff&quot;;for(let i=0;i&lt;=100;i++){const candidate=mix(color,end,1-i/100);if(backgrounds.every(bg=&gt;contrast(candidate,bg)&gt;=4.6))return candidate;}throw Error(&quot;unreachable contrast&quot;);};
+      function surfaceTones(light){
+        if(source===&#x27;PRESET&#x27;)return [
+          mix(seed,light?&quot;#fafafa&quot;:&quot;#151515&quot;,light?.12:.10),
+          mix(seed,light?&quot;#ffffff&quot;:&quot;#1f1f1f&quot;,light?.045:.14),
+          mix(seed,light?&quot;#f3f3f3&quot;:&quot;#292929&quot;,light?.15:.17),
+          mix(seed,light?&quot;#e5e5e5&quot;:&quot;#343434&quot;,light?.18:.19)
+        ];
+        // The wallpaper demo uses illustrative colors for the tones Android gets from the system.
+        if(source===&#x27;SYSTEM&#x27;)return [
+          mix(seed,light?&quot;#fbfcf7&quot;:&quot;#191c17&quot;,light?.06:.12),
+          mix(seed,light?&quot;#ffffff&quot;:&quot;#262921&quot;,light?.03:.16),
+          mix(seed,light?&quot;#f5f6ed&quot;:&quot;#292d24&quot;,light?.15:.22),
+          mix(seed,light?&quot;#e3e5d9&quot;:&quot;#41463a&quot;,light?.21:.24)
+        ];
+        return light?[&quot;#f6f3ed&quot;,&quot;#fffcf7&quot;,&quot;#eee7dc&quot;,&quot;#e5ded4&quot;]:[&quot;#201e1b&quot;,&quot;#2a2723&quot;,&quot;#383129&quot;,&quot;#443c34&quot;];
+      }
       const modes=[true,false].map(light=&gt;{
-        // The wallpaper demo uses illustrative colors for the separate page and card tones Android gets from the system.
-        const bg=system?mix(seed,light?&quot;#fbfcf7&quot;:&quot;#191c17&quot;,light?.06:.12):light?&quot;#f6f3ed&quot;:&quot;#201e1b&quot;;
-        const paper=system?mix(seed,light?&quot;#ffffff&quot;:&quot;#262921&quot;,light?.03:.16):light?&quot;#fffcf7&quot;:&quot;#2a2723&quot;;
-        const soft=system?mix(seed,light?&quot;#f5f6ed&quot;:&quot;#292d24&quot;,light?.15:.22):light?&quot;#eee7dc&quot;:&quot;#383129&quot;;
-        const line=system?mix(seed,light?&quot;#e3e5d9&quot;:&quot;#41463a&quot;,light?.21:.24):light?&quot;#e5ded4&quot;:&quot;#443c34&quot;;
-        const selected=mix(seed,light?&quot;#fffcf7&quot;:&quot;#211e1a&quot;,light?.18:.23);
+        const [bg,paper,soft,line]=surfaceTones(light);
+        const selected=mix(seed,light?(source===&#x27;SYSTEM&#x27;?&quot;#fffcf7&quot;:paper):&quot;#211e1a&quot;,light?.18:.23);
         const surfaces=[bg,paper,soft,selected];
         const accent=safe(mix(seed,light?&quot;#342c23&quot;:&quot;#fff4e6&quot;,light?.72:.45),surfaces,light);
         return {bg,paper,soft,line,selected,accent,ink:safe(light?&quot;#302b26&quot;:&quot;#f3eae1&quot;,surfaces,light),dim:safe(light?&quot;#76695e&quot;:&quot;#baaea2&quot;,surfaces,light),good:safe(light?&quot;#46624a&quot;:&quot;#b7d0ae&quot;,surfaces,light),danger:safe(light?&quot;#a63832&quot;:&quot;#ffb4ab&quot;,surfaces,light),onAction:paper,onDanger:safe(light?&quot;#fff8f7&quot;:&quot;#451714&quot;,[safe(light?&quot;#a63832&quot;:&quot;#ffb4ab&quot;,surfaces,light)],!light)};
       });
       return modes;
     }
-    const paintColors=(target,seed,system=false)=&gt;{
-      const [light,dark]=makePalette(seed,system);
+    const paintColors=(target,seed,source)=&gt;{
+      const [light,dark]=makePalette(seed,source);
       const value=key=&gt;`light-dark(${light[key]},${dark[key]})`;
       const roles={&#x27;--ks-bg&#x27;:&#x27;bg&#x27;,&#x27;--ks-paper&#x27;:&#x27;paper&#x27;,&#x27;--ks-soft&#x27;:&#x27;soft&#x27;,&#x27;--ks-line&#x27;:&#x27;line&#x27;,&#x27;--ks-accent-bg&#x27;:&#x27;selected&#x27;,&#x27;--ks-accent&#x27;:&#x27;accent&#x27;,&#x27;--ks-ink&#x27;:&#x27;ink&#x27;,&#x27;--ks-dim&#x27;:&#x27;dim&#x27;,&#x27;--ks-good&#x27;:&#x27;good&#x27;,&#x27;--ks-danger&#x27;:&#x27;danger&#x27;,&#x27;--ks-action-bg&#x27;:&#x27;accent&#x27;,&#x27;--ks-action-text&#x27;:&#x27;onAction&#x27;,&#x27;--ks-on-danger&#x27;:&#x27;onDanger&#x27;,&#x27;--ks-card-surface&#x27;:&#x27;paper&#x27;};
       target.style.setProperty(&#x27;--ks-seed&#x27;,seed);
@@ -2291,7 +2303,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     const applyStyle = () =&gt; {
       style.accent=colorSeed(style);
       phone.style.setProperty(&#x27;--ks-radius&#x27;,`${cardRadius}px`);
-      paintColors(phone,style.accent,style.colorSource===&#x27;SYSTEM&#x27;);
+      paintColors(phone,style.accent,style.colorSource);
       phone.style.colorScheme=style.mode===&#x27;system&#x27;?&#x27;inherit&#x27;:style.mode;
     };
     const recordIcon = glyph =&gt; `&lt;span class=&quot;ks-record-icon&quot;&gt;${icon(glyph)}&lt;/span&gt;`;
@@ -2777,7 +2789,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       const preferredMode=draft.mode===&#x27;system&#x27;?(systemDark.matches?&#x27;dark&#x27;:&#x27;light&#x27;):draft.mode;
       const mode=state.previewMode||preferredMode;
       preview.style.colorScheme=mode;
-      paintColors(preview,colorSeed(draft),draft.colorSource===&#x27;SYSTEM&#x27;);
+      paintColors(preview,colorSeed(draft),draft.colorSource);
       for(const button of editor.querySelectorAll(&#x27;[data-preview-mode]&#x27;))button.setAttribute(&#x27;aria-pressed&#x27;,String(button.dataset.previewMode===mode));
     }
     function pageEntryDetail(){const e=financialEntries().find(e=&gt;e.id===state.selectedEntryId);if(!e)return &#x27;&lt;p class=&quot;ks-empty-state&quot;&gt;这笔账目已不存在&lt;/p&gt;&#x27;;const w=walletById(e.walletId);return `&lt;section class=&quot;ks-entry-detail&quot;&gt;&lt;div class=&quot;ks-detail-amount&quot;&gt;&lt;span class=&quot;ks-note&quot;&gt;${e.type} · ${w.code}&lt;/span&gt;&lt;div class=&quot;ks-amount&quot;&gt;${e.type===&#x27;支出&#x27;?&#x27;−&#x27;:&#x27;+&#x27;}${money(e.cents,w.code)}&lt;/div&gt;&lt;/div&gt;&lt;dl class=&quot;ks-detail-list&quot;&gt;${[[&#x27;日期时间&#x27;,`${e.date} ${e.time}`],[&#x27;钱包&#x27;,`${w.name} · ${w.code}`],[&#x27;分类&#x27;,entryCategory(e)],[&#x27;备注&#x27;,e.note||&#x27;无&#x27;]].map(([label,value])=&gt;`&lt;div&gt;&lt;dt&gt;${label}&lt;/dt&gt;&lt;dd&gt;${escapeText(value)}&lt;/dd&gt;&lt;/div&gt;`).join(&#x27;&#x27;)}&lt;/dl&gt;${deleteButton(&#x27;entry&#x27;,&#x27;删除这笔账目&#x27;)}&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 示例数据&lt;/p&gt;&lt;/section&gt;`;}

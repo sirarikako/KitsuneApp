@@ -70,11 +70,13 @@ fun KitsuneTheme(preferences: ThemePreferences, forceDark: Boolean? = null, refr
                 tertiary = designIncomeColor(dark),
             )
         } else {
-            val seed = when (preferences.colorSource) {
-                ColorSource.CUSTOM -> preferences.customSeedColor
-                else -> presets[preferences.presetId]?.second ?: "#C47A4A"
+            val usePresetTones = preferences.colorSource != ColorSource.CUSTOM
+            val seed = if (usePresetTones) {
+                presets[preferences.presetId]?.second ?: "#C47A4A"
+            } else {
+                preferences.customSeedColor
             }
-            designColors(Color(android.graphics.Color.parseColor(seed)), dark)
+            designColors(Color(android.graphics.Color.parseColor(seed)), dark, usePresetTones)
         }
     }
     val applied = if (forceDark != null) colors else key(dark) { animateColorScheme(colors, tween(250, easing = motion)) }

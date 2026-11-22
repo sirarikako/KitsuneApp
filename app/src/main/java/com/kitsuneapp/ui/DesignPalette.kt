@@ -8,11 +8,20 @@ import kotlin.math.roundToInt
 
 // Match the visual roles in makePalette in docs/ui/src/app/01-state.js.inc.
 // The platform and Tonal Spot still provide the rest of the Material roles.
-internal fun designColors(seed: Color, dark: Boolean): ColorScheme {
-    val background = Color(if (dark) 0xFF201E1B else 0xFFF6F3ED)
-    val paper = Color(if (dark) 0xFF2A2723 else 0xFFFFFCF7)
-    val soft = Color(if (dark) 0xFF383129 else 0xFFEEE7DC)
-    val line = Color(if (dark) 0xFF443C34 else 0xFFE5DED4)
+internal fun designColors(seed: Color, dark: Boolean, usePresetTones: Boolean): ColorScheme {
+    // Mixing the seed with neutral grays keeps the preset's hue while changing lightness.
+    val background = if (usePresetTones) {
+        mix(seed, Color(if (dark) 0xFF151515 else 0xFFFAFAFA), if (dark) 0.10 else 0.12)
+    } else Color(if (dark) 0xFF201E1B else 0xFFF6F3ED)
+    val paper = if (usePresetTones) {
+        mix(seed, Color(if (dark) 0xFF1F1F1F else 0xFFFFFFFF), if (dark) 0.14 else 0.045)
+    } else Color(if (dark) 0xFF2A2723 else 0xFFFFFCF7)
+    val soft = if (usePresetTones) {
+        mix(seed, Color(if (dark) 0xFF292929 else 0xFFF3F3F3), if (dark) 0.17 else 0.15)
+    } else Color(if (dark) 0xFF383129 else 0xFFEEE7DC)
+    val line = if (usePresetTones) {
+        mix(seed, Color(if (dark) 0xFF343434 else 0xFFE5E5E5), if (dark) 0.19 else 0.18)
+    } else Color(if (dark) 0xFF443C34 else 0xFFE5DED4)
     val selected = mix(seed, if (dark) Color(0xFF211E1A) else paper, if (dark) 0.23 else 0.18)
     val surfaces = listOf(background, paper, soft, selected)
     val accent = readable(mix(seed, Color(if (dark) 0xFFFFF4E6 else 0xFF342C23), if (dark) 0.45 else 0.72),

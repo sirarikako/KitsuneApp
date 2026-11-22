@@ -133,27 +133,39 @@
     };
     phone.ksSnapshot=()=>({page:navs.some(n=>n[0]===state.page)?state.page:'home',...appliedAppearance(),ledgerMonth:state.ledgerMonth,ledgerRange:state.ledgerRange,mealMonth:state.mealMonth,walletFilterIds:state.walletFilterIds,separateWalletIds:wallets.filter(w=>w.separateAccounting).map(w=>w.id),mealListMode:state.mealListMode,mealFilters:state.mealFilters});
     // Android applies these same presentation roles for preset and custom seeds.
-    function makePalette(seed,system){
+    function makePalette(seed,source){
       const rgb=h=>h.replace("#","").match(/../g).map(x=>parseInt(x,16));
       const mix=(a,b,t)=>"#"+rgb(a).map((v,i)=>Math.round(v*t+rgb(b)[i]*(1-t)).toString(16).padStart(2,"0")).join("");
       const luminance=h=>rgb(h).map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4}).reduce((s,v,i)=>s+v*[.2126,.7152,.0722][i],0);
       const contrast=(a,b)=>(Math.max(luminance(a),luminance(b))+.05)/(Math.min(luminance(a),luminance(b))+.05);
       const safe=(color,backgrounds,light)=>{const end=light?"#000000":"#ffffff";for(let i=0;i<=100;i++){const candidate=mix(color,end,1-i/100);if(backgrounds.every(bg=>contrast(candidate,bg)>=4.6))return candidate;}throw Error("unreachable contrast");};
+      function surfaceTones(light){
+        if(source==='PRESET')return [
+          mix(seed,light?"#fafafa":"#151515",light?.12:.10),
+          mix(seed,light?"#ffffff":"#1f1f1f",light?.045:.14),
+          mix(seed,light?"#f3f3f3":"#292929",light?.15:.17),
+          mix(seed,light?"#e5e5e5":"#343434",light?.18:.19)
+        ];
+        // The wallpaper demo uses illustrative colors for the tones Android gets from the system.
+        if(source==='SYSTEM')return [
+          mix(seed,light?"#fbfcf7":"#191c17",light?.06:.12),
+          mix(seed,light?"#ffffff":"#262921",light?.03:.16),
+          mix(seed,light?"#f5f6ed":"#292d24",light?.15:.22),
+          mix(seed,light?"#e3e5d9":"#41463a",light?.21:.24)
+        ];
+        return light?["#f6f3ed","#fffcf7","#eee7dc","#e5ded4"]:["#201e1b","#2a2723","#383129","#443c34"];
+      }
       const modes=[true,false].map(light=>{
-        // The wallpaper demo uses illustrative colors for the separate page and card tones Android gets from the system.
-        const bg=system?mix(seed,light?"#fbfcf7":"#191c17",light?.06:.12):light?"#f6f3ed":"#201e1b";
-        const paper=system?mix(seed,light?"#ffffff":"#262921",light?.03:.16):light?"#fffcf7":"#2a2723";
-        const soft=system?mix(seed,light?"#f5f6ed":"#292d24",light?.15:.22):light?"#eee7dc":"#383129";
-        const line=system?mix(seed,light?"#e3e5d9":"#41463a",light?.21:.24):light?"#e5ded4":"#443c34";
-        const selected=mix(seed,light?"#fffcf7":"#211e1a",light?.18:.23);
+        const [bg,paper,soft,line]=surfaceTones(light);
+        const selected=mix(seed,light?(source==='SYSTEM'?"#fffcf7":paper):"#211e1a",light?.18:.23);
         const surfaces=[bg,paper,soft,selected];
         const accent=safe(mix(seed,light?"#342c23":"#fff4e6",light?.72:.45),surfaces,light);
         return {bg,paper,soft,line,selected,accent,ink:safe(light?"#302b26":"#f3eae1",surfaces,light),dim:safe(light?"#76695e":"#baaea2",surfaces,light),good:safe(light?"#46624a":"#b7d0ae",surfaces,light),danger:safe(light?"#a63832":"#ffb4ab",surfaces,light),onAction:paper,onDanger:safe(light?"#fff8f7":"#451714",[safe(light?"#a63832":"#ffb4ab",surfaces,light)],!light)};
       });
       return modes;
     }
-    const paintColors=(target,seed,system=false)=>{
-      const [light,dark]=makePalette(seed,system);
+    const paintColors=(target,seed,source)=>{
+      const [light,dark]=makePalette(seed,source);
       const value=key=>`light-dark(${light[key]},${dark[key]})`;
       const roles={'--ks-bg':'bg','--ks-paper':'paper','--ks-soft':'soft','--ks-line':'line','--ks-accent-bg':'selected','--ks-accent':'accent','--ks-ink':'ink','--ks-dim':'dim','--ks-good':'good','--ks-danger':'danger','--ks-action-bg':'accent','--ks-action-text':'onAction','--ks-on-danger':'onDanger','--ks-card-surface':'paper'};
       target.style.setProperty('--ks-seed',seed);
@@ -163,7 +175,7 @@
     const applyStyle = () => {
       style.accent=colorSeed(style);
       phone.style.setProperty('--ks-radius',`${cardRadius}px`);
-      paintColors(phone,style.accent,style.colorSource==='SYSTEM');
+      paintColors(phone,style.accent,style.colorSource);
       phone.style.colorScheme=style.mode==='system'?'inherit':style.mode;
     };
     const recordIcon = glyph => `<span class="ks-record-icon">${icon(glyph)}</span>`;

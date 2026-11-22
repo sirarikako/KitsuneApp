@@ -59,7 +59,7 @@
       const preferredMode=draft.mode==='system'?(systemDark.matches?'dark':'light'):draft.mode;
       const mode=state.previewMode||preferredMode;
       preview.style.colorScheme=mode;
-      paintColors(preview,colorSeed(draft),draft.colorSource==='SYSTEM');
+      paintColors(preview,colorSeed(draft),draft.colorSource);
       for(const button of editor.querySelectorAll('[data-preview-mode]'))button.setAttribute('aria-pressed',String(button.dataset.previewMode===mode));
     }
     function pageEntryDetail(){const e=financialEntries().find(e=>e.id===state.selectedEntryId);if(!e)return '<p class="ks-empty-state">这笔账目已不存在</p>';const w=walletById(e.walletId);return `<section class="ks-entry-detail"><div class="ks-detail-amount"><span class="ks-note">${e.type} · ${w.code}</span><div class="ks-amount">${e.type==='支出'?'−':'+'}${money(e.cents,w.code)}</div></div><dl class="ks-detail-list">${[['日期时间',`${e.date} ${e.time}`],['钱包',`${w.name} · ${w.code}`],['分类',entryCategory(e)],['备注',e.note||'无']].map(([label,value])=>`<div><dt>${label}</dt><dd>${escapeText(value)}</dd></div>`).join('')}</dl>${deleteButton('entry','删除这笔账目')}<p class="ks-footnote">交互预览 · 示例数据</p></section>`;}

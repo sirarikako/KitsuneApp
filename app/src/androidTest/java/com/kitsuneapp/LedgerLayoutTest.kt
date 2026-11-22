@@ -67,7 +67,7 @@ class LedgerLayoutTest {
         assertTrue(currency.top >= value.bottom)
         compose.onNodeWithText("旅行钱包", substring = true).assertDoesNotExist()
         val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
-        assertEquals(0xFF201E1B.toInt(), bitmap.getPixel(8, 8))
+        assertEquals(0xFF271F1A.toInt(), bitmap.getPixel(8, 8))
         File(compose.activity.cacheDir, "kitsune-ledger-narrow-dark.png").outputStream().use {
             check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
         }
