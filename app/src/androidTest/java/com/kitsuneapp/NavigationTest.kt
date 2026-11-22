@@ -1,6 +1,7 @@
 package com.kitsuneapp
 
 import android.graphics.Bitmap
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
@@ -10,18 +11,23 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import java.io.File
 import java.time.LocalDate
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
 @OptIn(ExperimentalTestApi::class)
 class NavigationTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule val compose = createAndroidComposeRule<MainActivity>(effectContext = object : MotionDurationScale {
+        override val scaleFactor = 1f
+    })
 
     @Test
     fun opensAppearanceFromSettings() {
@@ -31,6 +37,43 @@ class NavigationTest {
         screenshot("kitsune-settings")
         compose.onNodeWithText("外观与调色板").performClick()
         compose.onNodeWithText("恢复默认").assertIsDisplayed()
+    }
+
+    @Test
+    fun keepsPageViewportAndMainNavigationFixedDuringSubpageSlide() {
+        compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
+        compose.onNodeWithText("设置").performClick()
+        val pageViewport = compose.onNodeWithTag("navigation-pages")
+        val mainNav = compose.onNodeWithTag("main-navigation", useUnmergedTree = true)
+        val appearance = compose.onNodeWithText("外观与调色板")
+        val viewportBounds = pageViewport.fetchSemanticsNode().boundsInRoot
+        val navPosition = mainNav.fetchSemanticsNode().positionInRoot
+
+        compose.mainClock.autoAdvance = false
+        try {
+            appearance.performClick()
+            compose.mainClock.advanceTimeBy(96)
+            assertEquals(viewportBounds, pageViewport.fetchSemanticsNode().boundsInRoot)
+            assertEquals(navPosition, mainNav.fetchSemanticsNode().positionInRoot)
+            val slidingTitle = appearance.fetchSemanticsNode().positionInRoot
+
+            compose.mainClock.advanceTimeBy(280)
+            val settledTitle = appearance.fetchSemanticsNode().positionInRoot
+            assertTrue("The child page should enter from the right", slidingTitle.x > settledTitle.x)
+            assertEquals(settledTitle.y, slidingTitle.y, 1f)
+            assertEquals(viewportBounds, pageViewport.fetchSemanticsNode().boundsInRoot)
+            mainNav.assertDoesNotExist()
+
+            compose.onNodeWithContentDescription("返回").performClick()
+            compose.mainClock.advanceTimeBy(96)
+            assertEquals(viewportBounds, pageViewport.fetchSemanticsNode().boundsInRoot)
+            assertEquals(navPosition, mainNav.fetchSemanticsNode().positionInRoot)
+            compose.mainClock.advanceTimeBy(260)
+            appearance.assertIsDisplayed()
+            assertEquals(navPosition, mainNav.fetchSemanticsNode().positionInRoot)
+        } finally {
+            compose.mainClock.autoAdvance = true
+        }
     }
 
     @Test

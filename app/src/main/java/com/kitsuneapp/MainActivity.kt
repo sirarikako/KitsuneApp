@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -22,14 +23,18 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
@@ -151,17 +156,22 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
         }
     }
 
-    Column(Modifier.fillMaxSize().statusBarsPadding().imePadding()) {
-        SharedTransitionLayout(Modifier.weight(1f).fillMaxWidth()) {
+    val transition = updateTransition(top, label = "页面过渡")
+    val onPrimaryPage = top in roots
+    NavigationFrame(bottomBar = {
+        if (onPrimaryPage || transition.currentState in roots) {
+            MainNavigation(root, onPrimaryPage, ::open)
+        }
+    }) { bottomBarHeight ->
+        SharedTransitionLayout(Modifier.fillMaxSize().clipToBounds().testTag("navigation-pages")) {
             val shared = this
-            AnimatedContent(
-                targetState = top,
+            transition.AnimatedContent(
                 modifier = Modifier.fillMaxSize(),
                 transitionSpec = {
                     val record = recordNavigation
                     val transform = record != null && ((record.source == initialState && record.detail == targetState) ||
                         (record.detail == initialState && record.source == targetState))
-                    when {
+                    val pageTransition = when {
                         transform -> fadeIn(tween(280, easing = motion)) togetherWith fadeOut(tween(280, easing = motion))
                         initialState in roots && targetState in roots -> {
                             (fadeIn(tween(112, delayMillis = 88, easing = motion)) +
@@ -174,8 +184,9 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
                         else -> slideInHorizontally(tween(220, easing = motion)) { -it / 5 } togetherWith
                             slideOutHorizontally(tween(220, easing = motion)) { it }
                     }
+                    pageTransition.targetContentZIndex = stack.size.toFloat()
+                    pageTransition.using(null)
                 },
-                label = "页面过渡",
             ) { path ->
                 holder.SaveableStateProvider(path) {
                     val parts = path.split("/")
@@ -184,8 +195,14 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
                     val navigation = recordNavigation
                     val key = navigation?.id?.takeIf { path == navigation.detail }
                     val outgoing = if (active) Modifier else Modifier.inert(path)
+                    val pageBackground = Modifier.background(MaterialTheme.colorScheme.background)
+                    val pageInsets = if (path in roots) {
+                        Modifier.padding(bottom = bottomBarHeight).then(pageBackground)
+                    } else {
+                        pageBackground.navigationBarsPadding()
+                    }
                     CompositionLocalProvider(LocalRecordMotion provides RecordMotion(shared, this@AnimatedContent)) {
-                        Box(recordBounds(outgoing, key).fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                        Box(recordBounds(outgoing, key).fillMaxSize().then(pageInsets)) {
                             when (parts[0]) {
                                 "home" -> Home(records, now, ::open, ::openMeal)
                                 "meals" -> MealsPage(records, filter, { filter = null }, { filter = MealFilter() },
@@ -212,39 +229,56 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
                                 "entryForm" -> EntryForm(records, parts[1].takeUnless { it == "-" }, null, model, goBack, ::back)
                                 "refund" -> EntryForm(records, null, parts[1], model, goBack, ::back)
                             }
-                    }
-                    }
-                }
-            }
-        }
-        if (stack.size == 1) {
-            val icons = listOf(R.drawable.ks_house, R.drawable.ks_utensils, R.drawable.ks_wallet, R.drawable.ks_sliders_horizontal)
-            val colors = MaterialTheme.colorScheme
-            Surface(color = colors.surface) {
-                Column {
-                    HorizontalDivider(color = colors.outlineVariant)
-                    Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 10.dp, top = 10.dp, end = 10.dp, bottom = 8.dp)
-                        .selectableGroup(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                        roots.forEachIndexed { index, route ->
-                            val selected = root == route
-                            val tint = if (selected) colors.primary else colors.onSurfaceVariant
-                            Column(Modifier.weight(1f).heightIn(min = 49.dp).clip(ControlShape)
-                                .selectable(selected, role = Role.Tab, onClick = { open(route) }).padding(vertical = 4.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Box(Modifier.size(49.dp, 25.dp).clip(CircleShape)
-                                    .then(if (selected) Modifier.background(colors.primaryContainer) else Modifier),
-                                    contentAlignment = Alignment.Center) {
-                                    Icon(designIcon(icons[index]), null, Modifier.size(18.dp),
-                                        tint = if (selected) colors.onPrimaryContainer else tint)
-                                }
-                                Text(titles[index], style = MaterialTheme.typography.labelSmall, color = tint,
-                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
-                            }
                         }
                     }
                 }
             }
-        } else Spacer(Modifier.navigationBarsPadding())
+        }
+    }
+}
+
+@Composable
+private fun NavigationFrame(bottomBar: @Composable () -> Unit, pages: @Composable (Dp) -> Unit) {
+    // Measure the bar before the pages so only primary routes reserve its actual height.
+    // The full-height page layer stays put and covers the stationary bar as a subpage slides in.
+    SubcomposeLayout(Modifier.fillMaxSize().statusBarsPadding().imePadding()) { constraints ->
+        val bar = subcompose("bottomBar", bottomBar).singleOrNull()?.measure(constraints.copy(minHeight = 0))
+        val viewport = subcompose("pages") { pages((bar?.height ?: 0).toDp()) }.single().measure(constraints)
+        layout(viewport.width, viewport.height) {
+            bar?.placeRelative(0, viewport.height - bar.height)
+            viewport.placeRelative(0, 0)
+        }
+    }
+}
+
+@Composable
+private fun MainNavigation(root: String, active: Boolean, open: (String) -> Unit) {
+    val icons = listOf(R.drawable.ks_house, R.drawable.ks_utensils, R.drawable.ks_wallet, R.drawable.ks_sliders_horizontal)
+    val colors = MaterialTheme.colorScheme
+    val modifier = Modifier.testTag("main-navigation").let { if (active) it else it.inert(root) }
+    Surface(modifier, color = colors.surface) {
+        Column {
+            HorizontalDivider(color = colors.outlineVariant)
+            Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 10.dp, top = 10.dp, end = 10.dp, bottom = 8.dp)
+                .selectableGroup(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                roots.forEachIndexed { index, route ->
+                    val selected = root == route
+                    val tint = if (selected) colors.primary else colors.onSurfaceVariant
+                    Column(Modifier.weight(1f).heightIn(min = 49.dp).clip(ControlShape)
+                        .selectable(selected, enabled = active, role = Role.Tab, onClick = { open(route) }).padding(vertical = 4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(Modifier.size(49.dp, 25.dp).clip(CircleShape)
+                            .then(if (selected) Modifier.background(colors.primaryContainer) else Modifier),
+                            contentAlignment = Alignment.Center) {
+                            Icon(designIcon(icons[index]), null, Modifier.size(18.dp),
+                                tint = if (selected) colors.onPrimaryContainer else tint)
+                        }
+                        Text(titles[index], style = MaterialTheme.typography.labelSmall, color = tint,
+                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
+                    }
+                }
+            }
+        }
     }
 }
 

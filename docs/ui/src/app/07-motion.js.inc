@@ -13,12 +13,13 @@
       for(const animation of [...running])animation.cancel();
       running.clear();
       phone.querySelectorAll('.ks-motion-copy,.ks-motion-appearance-copy').forEach(node=>node.remove());
+      phone.style.minHeight='';
     };
     reducedMotion.addEventListener('change',()=>{if(reducedMotion.matches){stopMotion();themeAnimation?.cancel();}});
     const rect=node=>{
       if(!node)return null;
       const r=node.getBoundingClientRect(),p=phone.getBoundingClientRect();
-      return r.width&&r.height?{x:r.left-p.left,y:r.top-p.top,w:r.width,h:r.height}:null;
+      return r.width&&r.height?{x:r.left-p.left-phone.clientLeft,y:r.top-p.top-phone.clientTop,w:r.width,h:r.height}:null;
     };
     const visible=node=>{
       if(!node)return false;
@@ -70,7 +71,7 @@
       if(state.date!==recordOrigin.date&&!state.mealListMode)return null;
       return [...phone.querySelectorAll('.ks-record[data-meal]')].find(n=>n.dataset.meal===recordOrigin.slot&&(n.dataset.mealDate||state.date)===recordOrigin.date&&!n.classList.contains('ks-empty'));
     };
-    function animatePage(previous,oldPage,sourceRect){
+    function animatePage(previous,oldPage,sourceRect,oldNav,oldHeight){
       const node=pageNode(),next=state.page;
       if(!node||!previous||previous.page===next){oldPage?.remove();return;}
       const oldIsPrimary=primary(previous.page),newIsPrimary=primary(next);
@@ -79,6 +80,17 @@
         play(node,[{opacity:0,transform:'scale(.96)'},{opacity:0,offset:.25,transform:'scale(.96)'},{opacity:1,transform:'scale(1)'}],motion.primary);return;
       }
       const entering=oldIsPrimary&&!newIsPrimary;
+      // Keep the departing bar under the page layer at its last measured position.
+      if(oldNav){phone.style.minHeight=oldHeight+'px';oldNav.style.zIndex='0';attachGhost(oldNav);}
+      const finishEnter=()=>{
+        if(oldNav?.isConnected){oldNav.remove();phone.style.minHeight='';}
+        node.style.zIndex='';node.style.position='';
+      };
+      // The preview grows with its content. Extend a shorter outgoing subpage over the restored bar.
+      if(newIsPrimary&&oldPage){
+        const nav=rect(phone.querySelector(':scope > .ks-nav')),copy=oldPage.firstElementChild;
+        if(nav)copy.style.height=Math.max(parseFloat(copy.style.height),nav.y+nav.h-parseFloat(copy.style.top))+'px';
+      }
       const box=rect(node),target=!entering?originNode():null;
       // Use the real card only when visible and inside the destination page; never guess its position.
       const card=entering?sourceRect:visible(target)?rect(target):null;
@@ -87,7 +99,7 @@
         if(entering){
           attachGhost(oldPage);oldPage.style.zIndex='0';node.style.position='relative';node.style.zIndex='1';
           play(oldPage,[{opacity:1},{opacity:0}],motion.card,discard(oldPage));
-          play(node,[{clipPath:clip(card,box,radius)},{clipPath:fullClip}],motion.card,()=>{node.style.zIndex='';node.style.position='';});
+          play(node,[{clipPath:clip(card,box,radius)},{clipPath:fullClip}],motion.card,finishEnter);
         }else{
           const oldBox={x:parseFloat(copy.style.left),y:parseFloat(copy.style.top),w:parseFloat(copy.style.width),h:parseFloat(copy.style.height)};
           // If the original row moved outside the old page's bounds, fall back to the standard pop.
@@ -100,7 +112,7 @@
       attachGhost(oldPage);
       if(entering){
         if(oldPage){oldPage.style.zIndex='0';node.style.position='relative';node.style.zIndex='1';play(oldPage,[{transform:'translateX(0)'},{transform:'translateX(-12%)'}],motion.push,discard(oldPage));}
-        play(node,[{transform:'translateX(100%)'},{transform:'translateX(0)'}],motion.push,()=>{node.style.zIndex='';node.style.position='';});
+        play(node,[{transform:'translateX(100%)'},{transform:'translateX(0)'}],motion.push,finishEnter);
       }else{
         play(oldPage,[{transform:'translateX(0)'},{transform:'translateX(100%)'}],motion.pop,discard(oldPage));play(node,[{transform:'translateX(-12%)'},{transform:'translateX(0)'}],motion.pop);
       }

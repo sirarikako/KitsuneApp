@@ -2579,12 +2579,13 @@ html&gt;body{padding:0}&lt;/style&gt;
       for(const animation of [...running])animation.cancel();
       running.clear();
       phone.querySelectorAll(&#x27;.ks-motion-copy,.ks-motion-appearance-copy&#x27;).forEach(node=&gt;node.remove());
+      phone.style.minHeight=&#x27;&#x27;;
     };
     reducedMotion.addEventListener(&#x27;change&#x27;,()=&gt;{if(reducedMotion.matches){stopMotion();themeAnimation?.cancel();}});
     const rect=node=&gt;{
       if(!node)return null;
       const r=node.getBoundingClientRect(),p=phone.getBoundingClientRect();
-      return r.width&amp;&amp;r.height?{x:r.left-p.left,y:r.top-p.top,w:r.width,h:r.height}:null;
+      return r.width&amp;&amp;r.height?{x:r.left-p.left-phone.clientLeft,y:r.top-p.top-phone.clientTop,w:r.width,h:r.height}:null;
     };
     const visible=node=&gt;{
       if(!node)return false;
@@ -2636,7 +2637,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(state.date!==recordOrigin.date&amp;&amp;!state.mealListMode)return null;
       return [...phone.querySelectorAll(&#x27;.ks-record[data-meal]&#x27;)].find(n=&gt;n.dataset.meal===recordOrigin.slot&amp;&amp;(n.dataset.mealDate||state.date)===recordOrigin.date&amp;&amp;!n.classList.contains(&#x27;ks-empty&#x27;));
     };
-    function animatePage(previous,oldPage,sourceRect){
+    function animatePage(previous,oldPage,sourceRect,oldNav,oldHeight){
       const node=pageNode(),next=state.page;
       if(!node||!previous||previous.page===next){oldPage?.remove();return;}
       const oldIsPrimary=primary(previous.page),newIsPrimary=primary(next);
@@ -2645,6 +2646,17 @@ html&gt;body{padding:0}&lt;/style&gt;
         play(node,[{opacity:0,transform:&#x27;scale(.96)&#x27;},{opacity:0,offset:.25,transform:&#x27;scale(.96)&#x27;},{opacity:1,transform:&#x27;scale(1)&#x27;}],motion.primary);return;
       }
       const entering=oldIsPrimary&amp;&amp;!newIsPrimary;
+      // Keep the departing bar under the page layer at its last measured position.
+      if(oldNav){phone.style.minHeight=oldHeight+&#x27;px&#x27;;oldNav.style.zIndex=&#x27;0&#x27;;attachGhost(oldNav);}
+      const finishEnter=()=&gt;{
+        if(oldNav?.isConnected){oldNav.remove();phone.style.minHeight=&#x27;&#x27;;}
+        node.style.zIndex=&#x27;&#x27;;node.style.position=&#x27;&#x27;;
+      };
+      // The preview grows with its content. Extend a shorter outgoing subpage over the restored bar.
+      if(newIsPrimary&amp;&amp;oldPage){
+        const nav=rect(phone.querySelector(&#x27;:scope &gt; .ks-nav&#x27;)),copy=oldPage.firstElementChild;
+        if(nav)copy.style.height=Math.max(parseFloat(copy.style.height),nav.y+nav.h-parseFloat(copy.style.top))+&#x27;px&#x27;;
+      }
       const box=rect(node),target=!entering?originNode():null;
       // Use the real card only when visible and inside the destination page; never guess its position.
       const card=entering?sourceRect:visible(target)?rect(target):null;
@@ -2653,7 +2665,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         if(entering){
           attachGhost(oldPage);oldPage.style.zIndex=&#x27;0&#x27;;node.style.position=&#x27;relative&#x27;;node.style.zIndex=&#x27;1&#x27;;
           play(oldPage,[{opacity:1},{opacity:0}],motion.card,discard(oldPage));
-          play(node,[{clipPath:clip(card,box,radius)},{clipPath:fullClip}],motion.card,()=&gt;{node.style.zIndex=&#x27;&#x27;;node.style.position=&#x27;&#x27;;});
+          play(node,[{clipPath:clip(card,box,radius)},{clipPath:fullClip}],motion.card,finishEnter);
         }else{
           const oldBox={x:parseFloat(copy.style.left),y:parseFloat(copy.style.top),w:parseFloat(copy.style.width),h:parseFloat(copy.style.height)};
           // If the original row moved outside the old page&#x27;s bounds, fall back to the standard pop.
@@ -2666,7 +2678,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       attachGhost(oldPage);
       if(entering){
         if(oldPage){oldPage.style.zIndex=&#x27;0&#x27;;node.style.position=&#x27;relative&#x27;;node.style.zIndex=&#x27;1&#x27;;play(oldPage,[{transform:&#x27;translateX(0)&#x27;},{transform:&#x27;translateX(-12%)&#x27;}],motion.push,discard(oldPage));}
-        play(node,[{transform:&#x27;translateX(100%)&#x27;},{transform:&#x27;translateX(0)&#x27;}],motion.push,()=&gt;{node.style.zIndex=&#x27;&#x27;;node.style.position=&#x27;&#x27;;});
+        play(node,[{transform:&#x27;translateX(100%)&#x27;},{transform:&#x27;translateX(0)&#x27;}],motion.push,finishEnter);
       }else{
         play(oldPage,[{transform:&#x27;translateX(0)&#x27;},{transform:&#x27;translateX(100%)&#x27;}],motion.pop,discard(oldPage));play(node,[{transform:&#x27;translateX(-12%)&#x27;},{transform:&#x27;translateX(0)&#x27;}],motion.pop);
       }
@@ -2712,10 +2724,13 @@ html&gt;body{padding:0}&lt;/style&gt;
       const editorHeight=editorWasVisible?oldEditor.getBoundingClientRect().height:0;
       const editorCopy=editorWasVisible&amp;&amp;state.page===&#x27;appearance&#x27;&amp;&amp;!appearanceChanged(pendingAppearance())?cloneVisual(oldEditor):null;
       const oldPage=changingPage&amp;&amp;!reducedMotion.matches?ghost([pageNode()].filter(Boolean)):null;
+      const leavingPrimary=changingPage&amp;&amp;primary(previous.page)&amp;&amp;!primary(state.page);
+      const oldNav=leavingPrimary&amp;&amp;!reducedMotion.matches?ghost([phone.querySelector(&#x27;:scope &gt; .ks-nav&#x27;)]):null;
+      const oldHeight=oldNav?phone.getBoundingClientRect().height:0;
       const oldModal=previous?.modal&amp;&amp;!kind&amp;&amp;!reducedMotion.matches?ghost([modalNode()].filter(Boolean),true):null;
       const localChanged=previous&amp;&amp;!changingPage&amp;&amp;key!==previous.local;
       const oldLocal=localChanged&amp;&amp;!reducedMotion.matches?ghost(localNodes()):null;
-      const sourceRect=entrance;entrance=null;if(changingPage&amp;&amp;primary(previous.page)&amp;&amp;!primary(state.page)&amp;&amp;!sourceRect)recordOrigin=null;
+      const sourceRect=entrance;entrance=null;if(leavingPrimary&amp;&amp;!sourceRect)recordOrigin=null;
       rendering=true;
       const form=!primary(state.page);
       const titles={home:&#x27;日常记录&#x27;,meals:&#x27;用餐&#x27;,ledger:&#x27;记账&#x27;,settings:&#x27;设置&#x27;,appearance:&#x27;外观与调色板&#x27;,&#x27;wallet-edit&#x27;:&#x27;编辑钱包&#x27;, &#x27;meal-form&#x27;:`${state.editing?&#x27;编辑&#x27;:&#x27;记录&#x27;}${slots[state.slot]}`,&#x27;meal-filter&#x27;:&#x27;筛选用餐&#x27;,entry:&#x27;记一笔&#x27;,&#x27;entry-detail&#x27;:&#x27;账目详情&#x27;,&#x27;category-manager&#x27;:&#x27;分类管理&#x27;};
@@ -2730,7 +2745,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       rendering=false;
       rendered={page:state.page,modal:kind,local:key};
       if(!reducedMotion.matches){
-        if(changingPage)animatePage(previous,oldPage,sourceRect);
+        if(changingPage)animatePage(previous,oldPage,sourceRect,oldNav,oldHeight);
         if(localChanged){attachGhost(oldLocal);play(oldLocal,outFade,motion.local,discard(oldLocal));for(const node of localNodes())play(node,inFade,motion.local);}
         animateModal(previous?.modal||null,oldModal);
         if(previous?.page===&#x27;appearance&#x27;&amp;&amp;state.page===&#x27;appearance&#x27;){

@@ -7,10 +7,13 @@
       const editorHeight=editorWasVisible?oldEditor.getBoundingClientRect().height:0;
       const editorCopy=editorWasVisible&&state.page==='appearance'&&!appearanceChanged(pendingAppearance())?cloneVisual(oldEditor):null;
       const oldPage=changingPage&&!reducedMotion.matches?ghost([pageNode()].filter(Boolean)):null;
+      const leavingPrimary=changingPage&&primary(previous.page)&&!primary(state.page);
+      const oldNav=leavingPrimary&&!reducedMotion.matches?ghost([phone.querySelector(':scope > .ks-nav')]):null;
+      const oldHeight=oldNav?phone.getBoundingClientRect().height:0;
       const oldModal=previous?.modal&&!kind&&!reducedMotion.matches?ghost([modalNode()].filter(Boolean),true):null;
       const localChanged=previous&&!changingPage&&key!==previous.local;
       const oldLocal=localChanged&&!reducedMotion.matches?ghost(localNodes()):null;
-      const sourceRect=entrance;entrance=null;if(changingPage&&primary(previous.page)&&!primary(state.page)&&!sourceRect)recordOrigin=null;
+      const sourceRect=entrance;entrance=null;if(leavingPrimary&&!sourceRect)recordOrigin=null;
       rendering=true;
       const form=!primary(state.page);
       const titles={home:'日常记录',meals:'用餐',ledger:'记账',settings:'设置',appearance:'外观与调色板','wallet-edit':'编辑钱包', 'meal-form':`${state.editing?'编辑':'记录'}${slots[state.slot]}`,'meal-filter':'筛选用餐',entry:'记一笔','entry-detail':'账目详情','category-manager':'分类管理'};
@@ -25,7 +28,7 @@
       rendering=false;
       rendered={page:state.page,modal:kind,local:key};
       if(!reducedMotion.matches){
-        if(changingPage)animatePage(previous,oldPage,sourceRect);
+        if(changingPage)animatePage(previous,oldPage,sourceRect,oldNav,oldHeight);
         if(localChanged){attachGhost(oldLocal);play(oldLocal,outFade,motion.local,discard(oldLocal));for(const node of localNodes())play(node,inFade,motion.local);}
         animateModal(previous?.modal||null,oldModal);
         if(previous?.page==='appearance'&&state.page==='appearance'){
