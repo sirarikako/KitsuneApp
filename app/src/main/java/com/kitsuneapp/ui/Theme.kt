@@ -62,8 +62,13 @@ fun KitsuneTheme(preferences: ThemePreferences, forceDark: Boolean? = null, refr
     val context = LocalContext.current
     val colors: ColorScheme = remember(preferences, dark, context, refresh) {
         if (preferences.colorSource == ColorSource.SYSTEM && Build.VERSION.SDK_INT >= 31) {
-            (if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context))
-                .copy(tertiary = designIncomeColor(dark))
+            val system = if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            // Material's dynamic background and surface use the same tone by default.
+            system.copy(
+                background = if (dark) system.background else system.surfaceContainerLow,
+                surface = if (dark) system.surfaceContainer else system.surfaceContainerLowest,
+                tertiary = designIncomeColor(dark),
+            )
         } else {
             val seed = when (preferences.colorSource) {
                 ColorSource.CUSTOM -> preferences.customSeedColor

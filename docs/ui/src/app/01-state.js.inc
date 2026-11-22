@@ -140,6 +140,7 @@
       const contrast=(a,b)=>(Math.max(luminance(a),luminance(b))+.05)/(Math.min(luminance(a),luminance(b))+.05);
       const safe=(color,backgrounds,light)=>{const end=light?"#000000":"#ffffff";for(let i=0;i<=100;i++){const candidate=mix(color,end,1-i/100);if(backgrounds.every(bg=>contrast(candidate,bg)>=4.6))return candidate;}throw Error("unreachable contrast");};
       const modes=[true,false].map(light=>{
+        // The wallpaper demo uses illustrative colors for the separate page and card tones Android gets from the system.
         const bg=system?mix(seed,light?"#fbfcf7":"#191c17",light?.06:.12):light?"#f6f3ed":"#201e1b";
         const paper=system?mix(seed,light?"#ffffff":"#262921",light?.03:.16):light?"#fffcf7":"#2a2723";
         const soft=system?mix(seed,light?"#f5f6ed":"#292d24",light?.15:.22):light?"#eee7dc":"#383129";
