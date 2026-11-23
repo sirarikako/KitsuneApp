@@ -1,5 +1,6 @@
 package com.kitsuneapp.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -95,6 +96,7 @@ data class Wallet(
     val expenseCategoryMode: CategoryMode,
     val createdAt: String,
     val updatedAt: String,
+    @ColumnInfo(defaultValue = "0") val defaultToIncome: Boolean = false,
 ) {
     fun categoryMode(scope: Scope): CategoryMode = when (scope) {
         Scope.INCOME -> incomeCategoryMode

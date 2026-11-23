@@ -11,9 +11,9 @@ import androidx.room.Upsert
 @Database(
     entities = [MealMethod::class, Category::class, MealRecord::class, MealPreparationCategory::class,
         Wallet::class, FinancialEntry::class, ThemePreferences::class, ImportReceipt::class, DataState::class],
-    version = 2,
+    version = 3,
     exportSchema = true,
-    autoMigrations = [AutoMigration(from = 1, to = 2)],
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3)],
 )
 abstract class KitsuneDatabase : RoomDatabase() {
     abstract fun records(): RecordsDao
@@ -65,6 +65,7 @@ interface RecordsDao {
     @Query("DELETE FROM MealRecord WHERE id = :id") suspend fun deleteMeal(id: String): Int
 
     @Query("SELECT * FROM Wallet ORDER BY sortOrder, id") suspend fun wallets(): List<Wallet>
+    @Query("SELECT id FROM Wallet WHERE defaultToIncome = 1") suspend fun incomeDefaultWalletIds(): List<String>
     @Query("SELECT * FROM Wallet WHERE id = :id") suspend fun wallet(id: String): Wallet?
     @Query("SELECT * FROM Wallet WHERE normalizedName = :name AND currencyCode = :code")
     suspend fun walletByName(name: String, code: String): Wallet?

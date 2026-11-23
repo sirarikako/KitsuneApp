@@ -44,6 +44,7 @@ fun WalletForm(records: Records, id: String?, model: AppViewModel, back: () -> U
     var archived by rememberSaveable { mutableStateOf(wallet?.archived ?: false) }
     var separate by rememberSaveable { mutableStateOf(wallet?.separateAccounting ?: false) }
     var setAsDefault by rememberSaveable { mutableStateOf(wallet != null && wallet.id == records.state.defaultWalletId) }
+    var defaultToIncome by rememberSaveable { mutableStateOf(wallet?.defaultToIncome ?: false) }
     var delete by rememberSaveable { mutableStateOf(false) }
     var pickCurrency by rememberSaveable { mutableStateOf(false) }
     val busy by model.busy.collectAsState()
@@ -71,6 +72,8 @@ fun WalletForm(records: Records, id: String?, model: AppViewModel, back: () -> U
                 Secondary("开启后默认排除本钱包的收支和流水。余额与历史记录保留，可在账本手动选择。")
                 HorizontalDivider()
                 Toggle("设为默认钱包", setAsDefault && !archived, enabled = !archived) { setAsDefault = it }
+                HorizontalDivider()
+                Toggle("默认记为收入", defaultToIncome) { defaultToIncome = it }
                 if (wallet != null) {
                     HorizontalDivider()
                     Toggle("归档钱包", archived) { archived = it }
@@ -80,7 +83,7 @@ fun WalletForm(records: Records, id: String?, model: AppViewModel, back: () -> U
                 model.save(back) {
                     saveWallet(WalletDraft(id, name, code.orEmpty(), amount,
                         requireNotNull(order.toIntOrNull()) { "排序必须为非负整数" }, archived, separate,
-                        setAsDefault = setAsDefault && !archived))
+                        setAsDefault = setAsDefault && !archived, defaultToIncome = defaultToIncome))
                 }
             }, wallet?.takeUnless { locked }?.let { "删除钱包" }, { delete = true })
         }
@@ -178,6 +181,9 @@ fun EntryDetails(records: Records, id: String, model: AppViewModel, open: (Strin
         title = "删除这笔账目？", note = "删除后，将更新流水、收支统计和钱包余额。")
 }
 
+private fun defaultEntryType(wallet: Wallet?) =
+    if (wallet?.defaultToIncome == true) EntryType.INCOME else EntryType.EXPENSE
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun EntryForm(records: Records, id: String?, expenseId: String?, model: AppViewModel, back: () -> Unit, finished: () -> Unit) {
@@ -185,12 +191,15 @@ fun EntryForm(records: Records, id: String?, expenseId: String?, model: AppViewM
     val original = ledger.entry(id)
     val expense = ledger.entry(expenseId ?: original?.originalExpenseId)
     val now = remember { LocalDateTime.now() }
-    var type by rememberSaveable { mutableStateOf(original?.type ?: if (expenseId != null) EntryType.REFUND else EntryType.EXPENSE) }
     var date by rememberSaveable { mutableStateOf(original?.date ?: now.toLocalDate().toString()) }
     var time by rememberSaveable { mutableStateOf(original?.time ?: now.format(DateTimeFormatter.ofPattern("HH:mm", Locale.ROOT))) }
     var walletId by rememberSaveable { mutableStateOf(original?.walletId ?: expense?.walletId ?: ledger.preferredWallet()?.id) }
     var targetId by rememberSaveable { mutableStateOf(original?.toWalletId) }
     val wallet = ledger.wallet(walletId)
+    var type by rememberSaveable {
+        mutableStateOf(original?.type ?: if (expenseId != null) EntryType.REFUND else defaultEntryType(wallet))
+    }
+    var followsWalletType by rememberSaveable { mutableStateOf(id == null && expenseId == null) }
     val target = ledger.wallet(targetId)
     val sourceExpenseWallet = ledger.wallet(expense?.walletId)
     var categoryId by rememberSaveable { mutableStateOf(original?.categoryId ?:
@@ -240,6 +249,7 @@ fun EntryForm(records: Records, id: String?, expenseId: String?, model: AppViewM
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf(EntryType.EXPENSE, EntryType.INCOME, EntryType.TRANSFER).forEach { option ->
                             Choice(option.label, {
+                                followsWalletType = false
                                 if (option != type) { unselectCategory(wallet, option); type = option }
                             }, selected = type == option)
                         }
@@ -265,6 +275,7 @@ fun EntryForm(records: Records, id: String?, expenseId: String?, model: AppViewM
                     WalletControl("到账钱包", ledger.walletLabel(targetId), Modifier.weight(1f)) { walletSheet = 2 }
                 } else if (scope != null) {
                     Select("分类", categoryId, options.map { it.id }, ledger::categoryLabel, {
+                        followsWalletType = false
                         categoryId = it
                         categoryCleared = false
                         editingCategory = false
@@ -279,6 +290,7 @@ fun EntryForm(records: Records, id: String?, expenseId: String?, model: AppViewM
                 if (categoryCleared) Secondary("请重新选择该钱包的分类")
                 TextAction(if (editingCategory) "取消新增分类" else "新增分类", {
                     editingCategory = !editingCategory
+                    if (editingCategory) followsWalletType = false
                     if (!editingCategory) newCategory = ""
                 }, designIcon(R.drawable.ks_plus))
                 if (editingCategory) {
@@ -327,7 +339,12 @@ fun EntryForm(records: Records, id: String?, expenseId: String?, model: AppViewM
                     val current = if (source) walletId else targetId
                     Choice(ledger.walletLabel(item.id) + if (item.separateAccounting) " · 独立核算" else "", {
                         if (source) {
-                            if (walletId != item.id) unselectCategory(item, type)
+                            if (walletId != item.id) {
+                                val nextType = if (followsWalletType) defaultEntryType(item) else type
+                                if (nextType != type) categoryId = null
+                                unselectCategory(item, nextType)
+                                type = nextType
+                            }
                             walletId = item.id
                         } else targetId = item.id
                         walletSheet = 0

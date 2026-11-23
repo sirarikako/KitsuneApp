@@ -48,27 +48,39 @@ class LedgerRepositoryTest {
             other?.id, toAmount, original, "")
 
     @Test
-    fun versionOneDatabaseKeepsStateWhenAddingDefaultWallet() = runBlocking {
+    fun olderDatabasesKeepWalletsAndDefaultsWhenAddingIncomePreference() = runBlocking {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
-        val name = "wallet-migration-" + newId()
         val state = repo.read().state
         val migration = MigrationTestHelper(instrumentation, KitsuneDatabase::class.java)
-        try {
-            migration.createDatabase(name, 1).use { old ->
-                old.execSQL(
-                    "INSERT INTO DataState (`key`, installationId, datasetId, revision, generation, arrayElements) VALUES (0, ?, ?, ?, ?, ?)",
-                    arrayOf<Any>(state.installationId, state.datasetId, state.revision, state.generation, state.arrayElements),
-                )
-            }
-            val upgraded = Room.databaseBuilder(context, KitsuneDatabase::class.java, name).build()
+        for (version in 1..2) {
+            val name = "wallet-migration-" + newId()
+            val defaultWalletId = a.id.takeIf { version == 2 }
             try {
-                assertEquals(state, upgraded.records().state())
+                migration.createDatabase(name, version).use { old ->
+                    old.execSQL(
+                        "INSERT INTO DataState (`key`, installationId, datasetId, revision, generation, arrayElements) VALUES (0, ?, ?, ?, ?, ?)",
+                        arrayOf<Any>(state.installationId, state.datasetId, state.revision, state.generation, state.arrayElements),
+                    )
+                    old.execSQL(
+                        """INSERT INTO Wallet (id, name, normalizedName, currencyCode, currencyScale, openingBalanceMinor,
+                            sortOrder, archived, separateAccounting, incomeCategoryMode, expenseCategoryMode, createdAt, updatedAt)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?)""",
+                        arrayOf<Any>(a.id, a.name, a.normalizedName, a.currencyCode, a.currencyScale, a.openingBalanceMinor,
+                            a.sortOrder, a.incomeCategoryMode.name, a.expenseCategoryMode.name, a.createdAt, a.updatedAt),
+                    )
+                    if (defaultWalletId != null) old.execSQL("UPDATE DataState SET defaultWalletId = ?", arrayOf(defaultWalletId))
+                }
+                val upgraded = Room.databaseBuilder(context, KitsuneDatabase::class.java, name).build()
+                try {
+                    assertEquals(state.copy(defaultWalletId = defaultWalletId), upgraded.records().state())
+                    assertEquals(a, upgraded.records().wallet(a.id))
+                } finally {
+                    upgraded.close()
+                }
             } finally {
-                upgraded.close()
+                context.deleteDatabase(name)
             }
-        } finally {
-            context.deleteDatabase(name)
         }
     }
 

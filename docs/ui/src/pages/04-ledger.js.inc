@@ -155,6 +155,7 @@
         <div class="ks-money-caption">${escapeText(wallet.name)} · ${wallet.code}</div>
         <label class="ks-wallet-setting"><span>独立核算<small>开启后默认排除本钱包的收支和流水。余额与历史记录保留，可在账本手动选择。</small></span><input type="checkbox" data-wallet-independent ${wallet.separateAccounting?'checked':''}></label>
         <label class="ks-wallet-setting"><span>设为默认钱包</span><input type="checkbox" data-wallet-default ${state.defaultWalletId===wallet.id?'checked':''} ${wallet.archived?'disabled':''}></label>
+        <label class="ks-wallet-setting"><span>默认记为收入</span><input type="checkbox" data-wallet-income-default ${wallet.defaultToIncome?'checked':''}></label>
         <button type="button" class="ks-primary ks-full cursor-interaction" data-action="save-wallet">保存</button>
       </section><p class="ks-footnote">交互预览 · 示例数据</p>`;
     }

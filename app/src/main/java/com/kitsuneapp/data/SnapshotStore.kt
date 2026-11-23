@@ -138,6 +138,8 @@ class SnapshotStore(private val context: Context, private val repository: Reposi
             val target = repository.dao
             repository.database.withTransaction {
                 check(repository.ownedState() == state) { "本机数据已变化，请重新确认恢复" }
+                val sameDataset = state.datasetId == staged.info.datasetId
+                val incomeDefaultWalletIds = if (sameDataset) target.incomeDefaultWalletIds().toSet() else emptySet()
                 target.clearEntries()
                 target.clearPreparation()
                 target.clearMeals()
@@ -145,7 +147,9 @@ class SnapshotStore(private val context: Context, private val repository: Reposi
                 target.clearCategories()
                 target.clearWallets()
                 target.clearReceipts()
-                walk(source::walletPage, Wallet::id) { target.insertWallet(it) }
+                walk(source::walletPage, Wallet::id) { wallet ->
+                    target.insertWallet(wallet.copy(defaultToIncome = wallet.id in incomeDefaultWalletIds))
+                }
                 walk(source::categoryPage, Category::id) { target.insertCategory(it) }
                 walk(source::methodPage, MealMethod::id) { target.insertMethod(it) }
                 walk(source::mealPage, MealRecord::id) { meal ->
@@ -158,7 +162,7 @@ class SnapshotStore(private val context: Context, private val repository: Reposi
                 walkReceipts(source) { target.insert(it) }
                 target.put(checkNotNull(source.theme()))
                 val defaultWalletId = state.defaultWalletId?.takeIf {
-                    state.datasetId == staged.info.datasetId && target.wallet(it)?.archived == false
+                    sameDataset && target.wallet(it)?.archived == false
                 }
                 target.put(state.copy(datasetId = staged.info.datasetId,
                     revision = Math.addExact(state.revision, 1L), generation = Math.addExact(state.generation, 1L),

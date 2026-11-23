@@ -12,6 +12,7 @@ data class WalletDraft(
     val archived: Boolean,
     val separateAccounting: Boolean,
     val setAsDefault: Boolean? = null,
+    val defaultToIncome: Boolean? = null,
 )
 
 data class EntryDraft(
@@ -51,7 +52,8 @@ suspend fun Repository.saveWallet(draft: WalletDraft) = change { state ->
     val now = utcNow()
     val wallet = Wallet(id, name, normalized, code, scale, decimalMinor(draft.openingBalance, scale, positive = false),
         draft.sortOrder, draft.archived, draft.separateAccounting, previous?.incomeCategoryMode ?: CategoryMode.DEFAULT,
-        previous?.expenseCategoryMode ?: CategoryMode.DEFAULT, previous?.createdAt ?: now, now)
+        previous?.expenseCategoryMode ?: CategoryMode.DEFAULT, previous?.createdAt ?: now, now,
+        defaultToIncome = draft.defaultToIncome ?: previous?.defaultToIncome ?: false)
     val walletChanged = previous == null || wallet.copy(updatedAt = previous.updatedAt) != previous
     val defaultWalletId = when {
         !wallet.archived && draft.setAsDefault == true -> id

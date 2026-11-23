@@ -75,6 +75,53 @@ class NavigationTest {
     }
 
     @Test
+    fun newEntriesUseTheWalletTypeUntilTheUserChoosesAnotherType() {
+        compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
+        val repository = runBlocking { (compose.activity.application as KitsuneApplication).repository() }
+        val suffix = UUID.randomUUID().toString().take(6)
+        val expenseName = "日常$suffix"
+        val incomeName = "收款$suffix"
+        val walletIds = runBlocking {
+            repository.saveWallet(WalletDraft(null, expenseName, "CNY", "0", 0, false, false))
+            repository.saveWallet(WalletDraft(null, incomeName, "JPY", "0", 1, false, true,
+                setAsDefault = true, defaultToIncome = true))
+            repository.read().wallets.filter { it.name == expenseName || it.name == incomeName }.map { it.id }
+        }
+        val incomeWallet = "$incomeName · JPY"
+        val expenseWallet = "$expenseName · CNY"
+        try {
+            compose.onNodeWithText("记账").performClick()
+            compose.onNodeWithText("钱包").performClick()
+            compose.waitUntilAtLeastOneExists(hasText(incomeWallet), 20_000)
+            compose.onNodeWithText("首页").performClick()
+            compose.onNodeWithText("记一笔").performScrollTo().performClick()
+            compose.onNodeWithText("收入").assertIsSelected()
+
+            compose.onNodeWithText(incomeWallet).performClick()
+            compose.onNodeWithText(expenseWallet).performClick()
+            compose.onNodeWithText("支出").assertIsSelected()
+            compose.onNodeWithText(expenseWallet).performClick()
+            compose.onNodeWithText("$incomeWallet · 独立核算").performClick()
+            compose.onNodeWithText("收入").assertIsSelected()
+
+            compose.onNodeWithText("支出").performClick()
+            compose.onNodeWithText(incomeWallet).performClick()
+            compose.onNodeWithText(expenseWallet).performClick()
+            compose.onNodeWithText(expenseWallet).performClick()
+            compose.onNodeWithText("$incomeWallet · 独立核算").performClick()
+            compose.onNodeWithText("支出").assertIsSelected()
+
+            compose.onNodeWithContentDescription("返回").performClick()
+            compose.onNodeWithText("记账").performClick()
+            compose.onNodeWithText("流水").performClick()
+            compose.onNodeWithText("记一笔").performClick()
+            compose.onNodeWithText("收入").assertIsSelected()
+        } finally {
+            runBlocking { walletIds.forEach { repository.removeWallet(it) } }
+        }
+    }
+
+    @Test
     fun opensAppearanceFromSettings() {
         compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
         screenshot("kitsune-home")

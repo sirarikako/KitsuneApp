@@ -4,7 +4,7 @@
 
 | 概念 | v1 约定 |
 | --- | --- |
-| Room 数据库 schemaVersion | 当前为 2；从 1 自动迁移 |
+| Room 数据库 schemaVersion | 当前为 3；从 1、2 自动迁移 |
 | 完整 JSON formatVersion | 数字 `1` |
 | 完整 JSON format | 固定字符串 `kitsune-backup` |
 | CSV | 两套固定表头，称为 meals-v1 和 ledger-v1；不在文件开头插入非 CSV 注释 |
@@ -149,6 +149,7 @@ ImportReceipt 字段：`kind,sha256,importedAt`，联合唯一键为 `(kind,sha2
 ### 3.6 仅本机内部状态
 
 - `DataState.defaultWalletId` 保存本机为当前数据集指定的默认记账钱包，空值表示按最近使用的常规钱包回退。它不随 JSON 或 CSV 迁移；恢复同一数据集时，只有该钱包仍存在且未归档才保留本机选择。
+- `Wallet.defaultToIncome` 保存钱包在本机的默认收支类型。新建和已迁移的钱包默认是支出（`false`）。恢复同一数据集时保留仍存在钱包的本机设置；换设备或恢复其他数据集时使用支出默认值。
 
 以下对象不进入完整备份：
 
