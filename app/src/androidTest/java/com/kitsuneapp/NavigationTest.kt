@@ -26,6 +26,8 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.test.platform.app.InstrumentationRegistry
+import com.kitsuneapp.data.MealDraft
+import com.kitsuneapp.data.MealSlot
 import com.kitsuneapp.data.Scope
 import com.kitsuneapp.data.WalletDraft
 import com.kitsuneapp.data.removeWallet
@@ -80,6 +82,52 @@ class NavigationTest {
         screenshot("kitsune-settings")
         compose.onNodeWithText("外观与调色板").performClick()
         compose.onNodeWithText("恢复默认").assertIsDisplayed()
+    }
+
+    @Test
+    fun mealStatisticsCanIncludeHistoricalMealsWhileKeepingTheKeywordFilter() {
+        compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
+        val repository = runBlocking { (compose.activity.application as KitsuneApplication).repository() }
+        val keyword = "统计测试-" + UUID.randomUUID()
+        val date = LocalDate.now().minusMonths(1).withDayOfMonth(1).toString()
+        val mealId = runBlocking {
+            repository.saveMeal(MealDraft(
+                date = date,
+                slot = MealSlot.BREAKFAST,
+                atHome = false,
+                methodId = null,
+                preparationIds = emptyList(),
+                newPreparations = emptyList(),
+                dishes = keyword,
+                note = "",
+            ))
+            repository.read().meals.single { it.dishes == keyword }.id
+        }
+        try {
+            compose.onNodeWithText("用餐").performClick()
+            compose.onNodeWithText("统计").performClick()
+            compose.onNodeWithText("本月").assertIsDisplayed()
+            compose.onNodeWithText("筛选").performClick()
+            compose.onNodeWithText("本月").assertIsSelected()
+            compose.onNodeWithContentDescription("菜品／备注关键词").performScrollTo().performTextReplacement(keyword)
+            compose.onNodeWithText("应用筛选").performScrollTo().performClick()
+            compose.onNodeWithText("没有符合条件的用餐记录").assertIsDisplayed()
+
+            compose.onNodeWithText("筛选").performClick()
+            compose.onNodeWithText("所有时间").performClick().assertIsSelected()
+            compose.onNodeWithText("应用筛选").performScrollTo().performClick()
+            compose.onNodeWithText("所有时间").assertIsDisplayed()
+            compose.onNodeWithText("关键词：$keyword").assertIsDisplayed()
+            compose.onNodeWithText("否 1 餐").assertIsDisplayed()
+            compose.onNodeWithText("未填写").assertIsDisplayed()
+
+            compose.onNodeWithText("记录").performClick()
+            compose.onNodeWithText("三餐记录").assertIsDisplayed()
+            compose.onNodeWithText("统计").performClick()
+            compose.onNodeWithText("所有时间").assertIsDisplayed()
+        } finally {
+            runBlocking { repository.deleteMeal(mealId) }
+        }
     }
 
     @Test

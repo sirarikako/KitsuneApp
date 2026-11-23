@@ -115,6 +115,7 @@ private data class RecordNavigation(val id: String, val source: String, val deta
 private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
     var stack by rememberSaveable { mutableStateOf<List<String>>(listOf("home")) }
     var filter by rememberSaveable { mutableStateOf<MealFilter?>(null) }
+    var mealStatsFilter by rememberSaveable { mutableStateOf<MealFilter?>(null) }
     val holder = rememberSaveableStateHolder()
     var recordNavigation by remember { mutableStateOf<RecordNavigation?>(null) }
     val top = stack.last()
@@ -159,6 +160,8 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
             delay((60 - now.second) * 1000L)
         }
     }
+    val mealMonth = java.time.YearMonth.from(now)
+    val currentMealMonth = remember(mealMonth) { MealFilter.forMonth(mealMonth) }
 
     val transition = updateTransition(stack, label = "页面过渡")
     val onPrimaryPage = top in roots
@@ -213,12 +216,30 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
                         Box(recordBounds(outgoing, key).fillMaxSize().then(pageInsets)) {
                             when (parts[0]) {
                                 "home" -> Home(records, now, ::open, ::openMeal)
-                                "meals" -> MealsPage(records, filter, { filter = null }, { filter = MealFilter() },
-                                    { open("mealFilter") }, ::openMeal) { meal ->
+                                "meals" -> MealsPage(
+                                    records = records,
+                                    filter = filter,
+                                    statsFilter = mealStatsFilter ?: currentMealMonth,
+                                    currentMonth = currentMealMonth,
+                                    daily = { filter = null },
+                                    clearConditions = { filter = MealFilter() },
+                                    openFilter = { open("mealFilter") },
+                                    openStatsFilter = { open("mealFilter/statistics") },
+                                    openMeal = ::openMeal,
+                                ) { meal ->
                                     openRecord("meal/${meal.date}/${meal.mealSlot.name}/${meal.id}", meal.id)
                                 }
                                 "meal" -> MealForm(records, parts[3].takeUnless { it == "-" }, parts[1], MealSlot.valueOf(parts[2]), model, goBack)
-                                "mealFilter" -> MealFilterPage(records, filter ?: MealFilter(), goBack) { filter = it; back() }
+                                "mealFilter" -> {
+                                    val statistics = parts.getOrNull(1) == "statistics"
+                                    val defaults = if (statistics) currentMealMonth else MealFilter()
+                                    val applied = if (statistics) mealStatsFilter else filter
+                                    MealFilterPage(records, applied ?: defaults, defaults, currentMealMonth, goBack) {
+                                        if (statistics) mealStatsFilter = it.takeUnless { it == currentMealMonth }
+                                        else filter = it
+                                        back()
+                                    }
+                                }
                                 "settings" -> {
                                     val config by model.backupServices.github.state.collectAsState()
                                     SettingsPage(config?.pause(records.state) != null, ::open)

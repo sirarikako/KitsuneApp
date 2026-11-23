@@ -2001,11 +2001,7 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-daily-state.ks-pending{color:var(--ks-dim)}
   #kitsune-preview .ks-daily-state.ks-pending svg{color:var(--ks-dim)}
 
-  #kitsune-preview .ks-month-picker{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:3px 0 19px}
-  #kitsune-preview .ks-month-field{flex:1;min-width:0;text-align:center}
-  #kitsune-preview .ks-month-field input{display:block;max-width:190px;width:100%;margin:auto;text-align:center;min-height:var(--ks-control-height);border:var(--ks-card-border);border-radius:var(--ks-control-radius);background:var(--ks-card-surface);padding:var(--ks-space-2) var(--ks-space-3);font-size:var(--ks-font-body)}
 
-  #kitsune-preview .ks-all-methods{margin-top:var(--ks-space-6);padding-top:0;border-top:0}
   #kitsune-preview .ks-empty-state{text-align:center;padding:24px 8px;color:var(--ks-dim);font-size:13px}
   #kitsune-preview .ks-home-brand{display:flex;align-items:center;gap:12px}
   #kitsune-preview .ks-app-mark{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:48px;height:48px;border-radius:15px;background:light-dark(#f7dfc6,#59402e);font-size:30px;line-height:1}
@@ -2205,13 +2201,21 @@ html&gt;body{padding:0}&lt;/style&gt;
     const cardRadius=17;
     const defaultAppearance={mode:&#x27;system&#x27;,colorSource:&#x27;PRESET&#x27;,presetColor:&#x27;#c47a4a&#x27;,customColor:&#x27;#C47A4A&#x27;};
     const style = {accent:&#x27;#c47a4a&#x27;,mealHour:&#x27;auto&#x27;,...defaultAppearance};
-    const state = {page:&#x27;home&#x27;, date:&#x27;2026-11-17&#x27;, ledgerMonth:&#x27;2026-11&#x27;,mealMonth:&#x27;2026-11&#x27;,ledgerTab:&#x27;流水&#x27;, mealTab:&#x27;记录&#x27;, slot:2, atHome:null, method:null, categories:[], amount:&#x27;&#x27;,calcOpen:false,calcExpression:&#x27;&#x27;,entryType:&#x27;支出&#x27;,entryDraft:{dateTime:&#x27;2026-11-17T09:41&#x27;,note:&#x27;&#x27;,category:&#x27;ge-food&#x27;,walletId:&#x27;daily&#x27;},notice:&#x27;&#x27;, mealReturn:&#x27;home&#x27;, entries:[], records:{}};
+    const state = {page:&#x27;home&#x27;, date:&#x27;2026-11-17&#x27;, ledgerMonth:&#x27;2026-11&#x27;,ledgerTab:&#x27;流水&#x27;, mealTab:&#x27;记录&#x27;, slot:2, atHome:null, method:null, categories:[], amount:&#x27;&#x27;,calcOpen:false,calcExpression:&#x27;&#x27;,entryType:&#x27;支出&#x27;,entryDraft:{dateTime:&#x27;2026-11-17T09:41&#x27;,note:&#x27;&#x27;,category:&#x27;ge-food&#x27;,walletId:&#x27;daily&#x27;},notice:&#x27;&#x27;, mealReturn:&#x27;home&#x27;, entries:[], records:{}};
     state.ledgerRange=null;state.ledgerPeriodDraft=null;state.previewMode=null;
     const blankLedgerFilters=()=&gt;({type:&#x27;&#x27;,category:&#x27;&#x27;,note:&#x27;&#x27;});
     state.ledgerFilters=blankLedgerFilters();state.ledgerFiltersOpen=false;
     state.githubDemo={backedUp:false,review:null,scenario:&#x27;normal&#x27;,wifi:false,draftWifi:false,editing:false,uploading:false};
-    const blankMealFilters=()=&gt;({from:&#x27;&#x27;,to:&#x27;&#x27;,slot:&#x27;any&#x27;,atHome:&#x27;any&#x27;,method:&#x27;any&#x27;,preparations:[],keyword:&#x27;&#x27;});
+    const demoMealMonth=demoToday.slice(0,7);
+    const demoMonthEnd=new Date(Date.UTC(Number(demoMealMonth.slice(0,4)),Number(demoMealMonth.slice(5)),0));
+    const mealDatePresets={month:{from:demoMealMonth+&#x27;-01&#x27;,to:demoMonthEnd.toISOString().slice(0,10)},all:{from:&#x27;&#x27;,to:&#x27;&#x27;}};
+    const blankMealFilters=(dates=mealDatePresets.all)=&gt;({...dates,slot:&#x27;any&#x27;,atHome:&#x27;any&#x27;,method:&#x27;any&#x27;,preparations:[],keyword:&#x27;&#x27;});
+    const mealDatePreset=({from,to})=&gt;Object.keys(mealDatePresets).find(key=&gt;{
+      const dates=mealDatePresets[key];
+      return dates.from===from&amp;&amp;dates.to===to;
+    });
     state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
+    state.mealStatsFilters=blankMealFilters(mealDatePresets.month);
     const mealMethods=[&#x27;下厨&#x27;,&#x27;外卖&#x27;],mealPreparations=[&#x27;炒菜&#x27;,&#x27;预制菜&#x27;];
     const mealOptionLabels={method:&#x27;用餐方式&#x27;,preparation:&#x27;制作分类&#x27;};
     const wallets=[{id:&#x27;daily&#x27;,name:&#x27;日常钱包&#x27;,code:&#x27;CNY&#x27;,scale:2,opening:0n,separateAccounting:false},{id:&#x27;pocket&#x27;,name:&#x27;零钱钱包&#x27;,code:&#x27;CNY&#x27;,scale:2,opening:50000n,separateAccounting:false},{id:&#x27;travel&#x27;,name:&#x27;旅行钱包&#x27;,code:&#x27;JPY&#x27;,scale:0,opening:20000n,separateAccounting:true}];
@@ -2254,7 +2258,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     // Accept only the original primary preview preferences from old saved arrays.
     const saved=Array.isArray(savedState)?savedState[0]:savedState;
     state.deletedEntryIds=new Set();state.nextEntryId=1;state.deletePending=null;
-    if(saved){const s=saved;if([&#x27;light&#x27;,&#x27;dark&#x27;,&#x27;system&#x27;].includes(s.mode))style.mode=s.mode;for(const key of [&#x27;ledgerMonth&#x27;,&#x27;mealMonth&#x27;])if(/^\d{4}-(0[1-9]|1[0-2])$/.test(s[key]||&#x27;&#x27;)&amp;&amp;s[key].slice(0,4)!==&#x27;0000&#x27;)state[key]=s[key];if(s.walletFilterIds===&#x27;ALL&#x27;)state.walletFilterIds=&#x27;ALL&#x27;;else if(Array.isArray(s.walletFilterIds)){const ids=wallets.filter(w=&gt;s.walletFilterIds.includes(w.id)).map(w=&gt;w.id);if(ids.length)state.walletFilterIds=ids;}if(Array.isArray(s.separateWalletIds))wallets.forEach(w=&gt;{w.separateAccounting=s.separateWalletIds.includes(w.id);});const f=s.mealFilters;if(f&amp;&amp;typeof f===&#x27;object&#x27;){for(const key of [&#x27;from&#x27;,&#x27;to&#x27;])if(typeof f[key]===&#x27;string&#x27;&amp;&amp;/^\d{4}-\d{2}-\d{2}$/.test(f[key]))state.mealFilters[key]=f[key];if([&#x27;any&#x27;,&#x27;0&#x27;,&#x27;1&#x27;,&#x27;2&#x27;].includes(f.slot))state.mealFilters.slot=f.slot;if([&#x27;any&#x27;,&#x27;yes&#x27;,&#x27;no&#x27;].includes(f.atHome))state.mealFilters.atHome=f.atHome;if(typeof f.method===&#x27;string&#x27;)state.mealFilters.method=f.method.slice(0,80);if(typeof f.keyword===&#x27;string&#x27;)state.mealFilters.keyword=f.keyword.slice(0,100);if(Array.isArray(f.preparations))state.mealFilters.preparations=f.preparations.filter(x=&gt;typeof x===&#x27;string&#x27;).slice(0,30).map(x=&gt;x.slice(0,80));state.mealListMode=s.mealListMode===true;}}
+    if(saved){const s=saved;if([&#x27;light&#x27;,&#x27;dark&#x27;,&#x27;system&#x27;].includes(s.mode))style.mode=s.mode;if(/^\d{4}-(0[1-9]|1[0-2])$/.test(s.ledgerMonth||&#x27;&#x27;)&amp;&amp;s.ledgerMonth.slice(0,4)!==&#x27;0000&#x27;)state.ledgerMonth=s.ledgerMonth;if(s.walletFilterIds===&#x27;ALL&#x27;)state.walletFilterIds=&#x27;ALL&#x27;;else if(Array.isArray(s.walletFilterIds)){const ids=wallets.filter(w=&gt;s.walletFilterIds.includes(w.id)).map(w=&gt;w.id);if(ids.length)state.walletFilterIds=ids;}if(Array.isArray(s.separateWalletIds))wallets.forEach(w=&gt;{w.separateAccounting=s.separateWalletIds.includes(w.id);});const f=s.mealFilters;if(f&amp;&amp;typeof f===&#x27;object&#x27;){for(const key of [&#x27;from&#x27;,&#x27;to&#x27;])if(typeof f[key]===&#x27;string&#x27;&amp;&amp;/^\d{4}-\d{2}-\d{2}$/.test(f[key]))state.mealFilters[key]=f[key];if([&#x27;any&#x27;,&#x27;0&#x27;,&#x27;1&#x27;,&#x27;2&#x27;].includes(f.slot))state.mealFilters.slot=f.slot;if([&#x27;any&#x27;,&#x27;yes&#x27;,&#x27;no&#x27;].includes(f.atHome))state.mealFilters.atHome=f.atHome;if(typeof f.method===&#x27;string&#x27;)state.mealFilters.method=f.method.slice(0,80);if(typeof f.keyword===&#x27;string&#x27;)state.mealFilters.keyword=f.keyword.slice(0,100);if(Array.isArray(f.preparations))state.mealFilters.preparations=f.preparations.filter(x=&gt;typeof x===&#x27;string&#x27;).slice(0,30).map(x=&gt;x.slice(0,80));state.mealListMode=s.mealListMode===true;}}
     state.records[&#x27;2026-11-17&#x27;] = [{atHome:true,method:&#x27;下厨&#x27;,categories:[],dishes:&#x27;燕麦粥、煎蛋&#x27;,note:&#x27;&#x27;},{atHome:false,method:&#x27;外卖&#x27;,categories:[],dishes:&#x27;照烧鸡腿饭&#x27;,note:&#x27;&#x27;},null];
     if(saved){const s=saved;if([&#x27;PRESET&#x27;,&#x27;CUSTOM&#x27;,&#x27;SYSTEM&#x27;].includes(s.colorSource))style.colorSource=s.colorSource;if(normalizeHex(s.presetColor))style.presetColor=s.presetColor.toLowerCase();if(normalizeHex(s.customColor))style.customColor=normalizeHex(s.customColor);}
     const isDate=value=&gt;/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(value)&amp;&amp;value.slice(0,4)!==&#x27;0000&#x27;&amp;&amp;new Date(value).toJSON()?.slice(0,10)===value;
@@ -2311,14 +2315,38 @@ html&gt;body{padding:0}&lt;/style&gt;
     };
     const currencyGroups=(entries,scope)=&gt;[...new Set(scope.map(w=&gt;w.code))].map(code=&gt;({code,entries:entries.filter(e=&gt;walletById(e.walletId).code===code)}));
     const allMeals = () =&gt; Object.entries(state.records).flatMap(([date,records])=&gt;records.flatMap((record,slot)=&gt;record?[{...record,date,slot}]:[]));
-    const mealFilterLabels=()=&gt;{const f=state.mealFilters,labels=[];if(f.from||f.to)labels.push(`${f.from||&#x27;最早&#x27;} ～ ${f.to||&#x27;至今&#x27;}`);if(f.slot!==&#x27;any&#x27;)labels.push(slots[Number(f.slot)]);if(f.atHome!==&#x27;any&#x27;)labels.push(`计划在家：${f.atHome===&#x27;yes&#x27;?&#x27;是&#x27;:&#x27;否&#x27;}`);if(f.method!==&#x27;any&#x27;)labels.push(f.method===&#x27;none&#x27;?&#x27;方式未填写&#x27;:f.method);labels.push(...f.preparations);if(f.keyword)labels.push(`关键词：${f.keyword}`);return labels;};
-    const filteredMeals=()=&gt;{const f=state.mealFilters,keyword=f.keyword.toLocaleLowerCase();return allMeals().filter(m=&gt;(!f.from||m.date&gt;=f.from)&amp;&amp;(!f.to||m.date&lt;=f.to)&amp;&amp;(f.slot===&#x27;any&#x27;||m.slot===Number(f.slot))&amp;&amp;(f.atHome===&#x27;any&#x27;||m.atHome===(f.atHome===&#x27;yes&#x27;))&amp;&amp;(f.method===&#x27;any&#x27;||(f.method===&#x27;none&#x27;?!m.method:m.method===f.method))&amp;&amp;(!f.preparations.length||f.preparations.some(c=&gt;m.categories.includes(c)))&amp;&amp;(!keyword||`${m.dishes}\n${m.note}`.toLocaleLowerCase().includes(keyword))).sort((a,b)=&gt;b.date.localeCompare(a.date)||a.slot-b.slot);};
+    function mealDateSummary(f){
+      const preset=mealDatePreset(f);
+      if(preset===&#x27;month&#x27;)return &#x27;本月&#x27;;
+      if(preset===&#x27;all&#x27;)return &#x27;所有时间&#x27;;
+      if(!f.from)return &#x27;截至 &#x27;+f.to;
+      if(!f.to)return &#x27;从 &#x27;+f.from+&#x27; 起&#x27;;
+      return f.from+&#x27; 至 &#x27;+f.to;
+    }
+    function mealFilterLabels(f,includeDates=true){
+      const labels=[];
+      if(includeDates&amp;&amp;(f.from||f.to))labels.push(`${f.from||&#x27;最早&#x27;} ～ ${f.to||&#x27;至今&#x27;}`);
+      if(f.slot!==&#x27;any&#x27;)labels.push(slots[Number(f.slot)]);
+      if(f.atHome!==&#x27;any&#x27;)labels.push(`计划在家：${f.atHome===&#x27;yes&#x27;?&#x27;是&#x27;:&#x27;否&#x27;}`);
+      if(f.method!==&#x27;any&#x27;)labels.push(f.method===&#x27;none&#x27;?&#x27;方式未填写&#x27;:f.method);
+      labels.push(...f.preparations);
+      if(f.keyword)labels.push(`关键词：${f.keyword}`);
+      return labels;
+    }
+    function filteredMeals(f){
+      const keyword=f.keyword.toLocaleLowerCase();
+      return allMeals().filter(m=&gt;(!f.from||m.date&gt;=f.from)&amp;&amp;(!f.to||m.date&lt;=f.to)&amp;&amp;
+        (f.slot===&#x27;any&#x27;||m.slot===Number(f.slot))&amp;&amp;(f.atHome===&#x27;any&#x27;||m.atHome===(f.atHome===&#x27;yes&#x27;))&amp;&amp;
+        (f.method===&#x27;any&#x27;||(f.method===&#x27;none&#x27;?!m.method:m.method===f.method))&amp;&amp;
+        (!f.preparations.length||f.preparations.some(c=&gt;m.categories.includes(c)))&amp;&amp;
+        (!keyword||m.dishes.toLocaleLowerCase().includes(keyword)||m.note.toLocaleLowerCase().includes(keyword)));
+    }
     const records = () =&gt; state.records[state.date] || [null,null,null];
     const persist = () =&gt; {
       const snapshot=phone.ksSnapshot();
       window.openai?.setWidgetState?.({modelContent:{当前页面:snapshot.page,用餐筛选:snapshot.mealListMode?snapshot.mealFilters:null},privateContent:{kitsune:snapshot}})?.catch(()=&gt;{});
     };
-    phone.ksSnapshot=()=&gt;({page:navs.some(n=&gt;n[0]===state.page)?state.page:&#x27;home&#x27;,...appliedAppearance(),ledgerMonth:state.ledgerMonth,ledgerRange:state.ledgerRange,mealMonth:state.mealMonth,walletFilterIds:state.walletFilterIds,separateWalletIds:wallets.filter(w=&gt;w.separateAccounting).map(w=&gt;w.id),mealListMode:state.mealListMode,mealFilters:state.mealFilters});
+    phone.ksSnapshot=()=&gt;({page:navs.some(n=&gt;n[0]===state.page)?state.page:&#x27;home&#x27;,...appliedAppearance(),ledgerMonth:state.ledgerMonth,ledgerRange:state.ledgerRange,walletFilterIds:state.walletFilterIds,separateWalletIds:wallets.filter(w=&gt;w.separateAccounting).map(w=&gt;w.id),mealListMode:state.mealListMode,mealFilters:state.mealFilters});
     // Android applies these same presentation roles for preset and custom seeds.
     function makePalette(seed,source){
       const rgb=h=&gt;h.replace(&quot;#&quot;,&quot;&quot;).match(/../g).map(x=&gt;parseInt(x,16));
@@ -2403,7 +2431,6 @@ html&gt;body{padding:0}&lt;/style&gt;
     }
     const section = (title,extra=&#x27;&#x27;) =&gt; `&lt;div class=&quot;ks-section ks-row&quot;&gt;&lt;h3&gt;${title}&lt;/h3&gt;${extra}&lt;/div&gt;`;
     const choice = (label,value,current,action) =&gt; `&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-${action}=&quot;${escapeText(value)}&quot; aria-pressed=&quot;${current===value}&quot;&gt;${label}&lt;/button&gt;`;
-    const monthPicker = (key,label) =&gt; `&lt;div class=&quot;ks-month-picker&quot; role=&quot;group&quot; aria-label=&quot;${label}月份选择&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-icon-btn cursor-interaction&quot; data-month-step=&quot;-1&quot; data-month-key=&quot;${key}&quot; aria-label=&quot;${label}上个月&quot;&gt;${icon(&#x27;chevron-left&#x27;)}&lt;/button&gt;&lt;label class=&quot;ks-month-field&quot;&gt;&lt;input type=&quot;month&quot; value=&quot;${state[key]}&quot; data-month-input=&quot;${key}&quot; aria-label=&quot;${label}月份&quot; min=&quot;0001-01&quot; max=&quot;9999-12&quot;&gt;&lt;/label&gt;&lt;button type=&quot;button&quot; class=&quot;ks-icon-btn cursor-interaction&quot; data-month-step=&quot;1&quot; data-month-key=&quot;${key}&quot; aria-label=&quot;${label}下个月&quot;&gt;${icon(&#x27;chevron-right&#x27;)}&lt;/button&gt;&lt;/div&gt;`;
     function ledgerPeriodControl(){
       const range=state.ledgerRange,[year,month]=state.ledgerMonth.split(&#x27;-&#x27;).map(Number);
       const display=range?`${range.from.replaceAll(&#x27;-&#x27;,&#x27;/&#x27;)} ～ ${range.to.replaceAll(&#x27;-&#x27;,&#x27;/&#x27;)}`:`${year}年${month}月`;
@@ -2461,32 +2488,31 @@ html&gt;body{padding:0}&lt;/style&gt;
     function pageMeals(){
       const tabs=`&lt;div class=&quot;ks-segments&quot; aria-label=&quot;用餐视图&quot;&gt;${[&#x27;记录&#x27;,&#x27;统计&#x27;].map(t=&gt;`&lt;button type=&quot;button&quot; data-meal-tab=&quot;${t}&quot; aria-pressed=&quot;${state.mealTab===t}&quot; class=&quot;cursor-interaction&quot;&gt;${t}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`;
       if(state.mealTab===&#x27;记录&#x27;){
-        const labels=mealFilterLabels(),filterButton=`&lt;button type=&quot;button&quot; class=&quot;ks-toolbar-action cursor-interaction&quot; data-action=&quot;meal-filter&quot;&gt;${icon(&#x27;list-filter&#x27;)}筛选${state.mealListMode&amp;&amp;labels.length?` (${labels.length})`:&#x27;&#x27;}&lt;/button&gt;`;
+        const labels=mealFilterLabels(state.mealFilters),filterButton=`&lt;button type=&quot;button&quot; class=&quot;ks-toolbar-action cursor-interaction&quot; data-action=&quot;meal-filter&quot;&gt;${icon(&#x27;list-filter&#x27;)}筛选${state.mealListMode&amp;&amp;labels.length?` (${labels.length})`:&#x27;&#x27;}&lt;/button&gt;`;
         if(!state.mealListMode)return `${tabs}&lt;div class=&quot;ks-toolbar&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-control ks-date-trigger cursor-interaction&quot; aria-label=&quot;用餐日期 ${state.date}&quot; data-action=&quot;open-meal-calendar&quot;&gt;${state.date}${icon(&#x27;calendar-days&#x27;)}&lt;/button&gt;${filterButton}&lt;/div&gt;${week()}${section(&#x27;三餐记录&#x27;)}${mealCards()}`;
-        const matches=filteredMeals();
+        const matches=filteredMeals(state.mealFilters).sort((a,b)=&gt;b.date.localeCompare(a.date)||a.slot-b.slot);
         const resultActions=`&lt;div class=&quot;ks-row&quot;&gt;&lt;span class=&quot;ks-note&quot; data-match-count&gt;${matches.length} 条&lt;/span&gt;${labels.length?&#x27;&lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-action=&quot;clear-meal-filters&quot;&gt;清空条件&lt;/button&gt;&#x27;:&#x27;&#x27;}&lt;/div&gt;`;
         return `${tabs}&lt;div class=&quot;ks-toolbar&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-toolbar-action cursor-interaction&quot; data-action=&quot;meal-daily&quot;&gt;${icon(&#x27;chevron-left&#x27;)}按日浏览&lt;/button&gt;${filterButton}&lt;/div&gt;${labels.length?`&lt;div class=&quot;ks-filter-chips&quot; aria-label=&quot;已应用的筛选条件&quot;&gt;${labels.map(label=&gt;`&lt;span class=&quot;ks-filter-chip&quot;&gt;${escapeText(label)}&lt;/span&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`:&#x27;&#x27;}${section(&#x27;筛选结果&#x27;,resultActions)}&lt;div class=&quot;ks-record-list&quot; data-meal-results aria-live=&quot;polite&quot;&gt;${matches.map(mealResult).join(&#x27;&#x27;)}${!matches.length?&#x27;&lt;p class=&quot;ks-empty-state&quot;&gt;没有符合条件的记录&lt;br&gt;试试调整日期范围或筛选条件&lt;/p&gt;&#x27;:&#x27;&#x27;}&lt;/div&gt;`;
       }
-      const all=allMeals(),monthly=all.filter(m=&gt;m.date.startsWith(state.mealMonth));
-      const homeCount=monthly.filter(m=&gt;m.atHome).length;
-      const rows=methodCounts(monthly),allRows=methodCounts(all);
-      const preparationNames=[...new Set(monthly.flatMap(m=&gt;m.categories))];
-      return `${tabs}${monthPicker(&#x27;mealMonth&#x27;,&#x27;用餐统计&#x27;)}
-        &lt;section data-monthly-meals aria-label=&quot;所选月份用餐统计&quot; aria-live=&quot;polite&quot;&gt;
-          ${section(&#x27;本月概览&#x27;,`&lt;span class=&quot;ks-note&quot;&gt;${state.mealMonth.replace(&#x27;-&#x27;,&#x27; 年 &#x27;)} 月&lt;/span&gt;`)}
-          &lt;div class=&quot;ks-summary&quot;&gt;&lt;div&gt;&lt;span class=&quot;ks-note&quot;&gt;已记录&lt;/span&gt;&lt;strong data-monthly-count&gt;${monthly.length} 餐&lt;/strong&gt;&lt;/div&gt;&lt;div&gt;&lt;span class=&quot;ks-note&quot;&gt;计划在家吃&lt;/span&gt;&lt;strong&gt;${homeCount} 餐&lt;/strong&gt;&lt;/div&gt;&lt;/div&gt;
-          &lt;div class=&quot;ks-stats-panel&quot;&gt;&lt;div class=&quot;ks-stat-row&quot;&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;span&gt;计划在家：是 ${homeCount} 餐&lt;/span&gt;&lt;span&gt;否 ${monthly.length-homeCount} 餐&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-plan-visual&quot; role=&quot;img&quot; aria-label=&quot;计划在家吃：是 ${homeCount} 餐，否 ${monthly.length-homeCount} 餐&quot;&gt;&lt;span class=&quot;ks-plan-yes&quot; style=&quot;width:${monthly.length?homeCount/monthly.length*100:0}%&quot;&gt;&lt;/span&gt;&lt;span class=&quot;ks-plan-no&quot; style=&quot;width:${monthly.length?(monthly.length-homeCount)/monthly.length*100:0}%&quot;&gt;&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
-          ${section(&#x27;本月 · 用餐方式&#x27;)}
-          &lt;div class=&quot;ks-stats-panel&quot;&gt;${rows.map(({method,count})=&gt;countBar(method,count,monthly.length)).join(&#x27;&#x27;)}&lt;/div&gt;
-          ${!monthly.length?&#x27;&lt;p class=&quot;ks-empty-state&quot;&gt;这个月还没有用餐记录&lt;/p&gt;&#x27;:&#x27;&#x27;}
-          ${section(&#x27;本月 · 制作分类&#x27;)}
-          ${preparationNames.length?`&lt;div class=&quot;ks-stats-panel&quot;&gt;${preparationNames.map(name=&gt;countBar(name,monthly.filter(m=&gt;m.categories.includes(name)).length,monthly.length,&#x27;次&#x27;)).join(&#x27;&#x27;)}&lt;/div&gt;`:&#x27;&lt;p class=&quot;ks-empty-state&quot;&gt;暂无制作分类记录&lt;/p&gt;&#x27;}
+      const filters=state.mealStatsFilters,labels=mealFilterLabels(filters,false);
+      const matches=filteredMeals(filters),total=matches.length;
+      const homeCount=matches.filter(m=&gt;m.atHome).length,awayCount=total-homeCount;
+      const rows=methodCounts(matches).filter(row=&gt;row.count&gt;0);
+      const preparationNames=[...new Set(matches.flatMap(m=&gt;m.categories))];
+      const planBar=total?`&lt;div class=&quot;ks-plan-visual&quot; aria-hidden=&quot;true&quot;&gt;&lt;span class=&quot;ks-plan-yes&quot; style=&quot;width:${homeCount/total*100}%&quot;&gt;&lt;/span&gt;&lt;span class=&quot;ks-plan-no&quot; style=&quot;width:${awayCount/total*100}%&quot;&gt;&lt;/span&gt;&lt;/div&gt;`:&#x27;&#x27;;
+      return `${tabs}
+        &lt;div class=&quot;ks-toolbar&quot;&gt;&lt;span&gt;${escapeText(mealDateSummary(filters))}&lt;/span&gt;&lt;button type=&quot;button&quot; class=&quot;ks-toolbar-action cursor-interaction&quot; data-action=&quot;meal-filter&quot;&gt;${icon(&#x27;list-filter&#x27;)}筛选&lt;/button&gt;&lt;/div&gt;
+        &lt;section data-meal-statistics aria-label=&quot;用餐统计&quot; aria-live=&quot;polite&quot;&gt;
+          ${labels.length?`&lt;div class=&quot;ks-filter-chips&quot; aria-label=&quot;已应用的筛选条件&quot;&gt;${labels.map(label=&gt;`&lt;span class=&quot;ks-filter-chip&quot;&gt;${escapeText(label)}&lt;/span&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`:&#x27;&#x27;}
+          ${section(&#x27;用餐概览&#x27;)}
+          &lt;div class=&quot;ks-summary&quot;&gt;&lt;div&gt;&lt;span class=&quot;ks-note&quot;&gt;已记录&lt;/span&gt;&lt;strong data-meal-stat-count&gt;${total} 餐&lt;/strong&gt;&lt;/div&gt;&lt;div&gt;&lt;span class=&quot;ks-note&quot;&gt;计划在家吃&lt;/span&gt;&lt;strong&gt;${homeCount} 餐&lt;/strong&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;ks-stats-panel&quot;&gt;&lt;div class=&quot;ks-stat-row&quot;&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;span&gt;计划在家：是 ${homeCount} 餐&lt;/span&gt;&lt;span&gt;否 ${awayCount} 餐&lt;/span&gt;&lt;/div&gt;${planBar}&lt;/div&gt;&lt;/div&gt;
+          ${section(&#x27;用餐方式&#x27;)}
+          ${rows.length?`&lt;div class=&quot;ks-stats-panel&quot;&gt;${rows.map(({method,count})=&gt;countBar(method,count,total)).join(&#x27;&#x27;)}&lt;/div&gt;`:&#x27;&lt;p class=&quot;ks-empty-state&quot;&gt;没有符合条件的用餐记录&lt;/p&gt;&#x27;}
+          ${section(&#x27;制作分类&#x27;)}
+          ${preparationNames.length?`&lt;div class=&quot;ks-stats-panel&quot;&gt;${preparationNames.map(name=&gt;countBar(name,matches.filter(m=&gt;m.categories.includes(name)).length,total,&#x27;次&#x27;)).join(&#x27;&#x27;)}&lt;/div&gt;`:&#x27;&lt;p class=&quot;ks-empty-state&quot;&gt;暂无制作分类记录&lt;/p&gt;&#x27;}
         &lt;/section&gt;
-        &lt;section class=&quot;ks-all-methods&quot; data-all-methods aria-label=&quot;全部记录按用餐方式统计&quot;&gt;
-          ${section(&#x27;全部记录 · 用餐方式&#x27;,`&lt;span class=&quot;ks-note&quot;&gt;共 ${all.length} 餐&lt;/span&gt;`)}
-          &lt;p class=&quot;ks-note&quot; style=&quot;margin:0 0 8px&quot;&gt;所有月份累计，不受上方月份选择影响&lt;/p&gt;
-          &lt;div class=&quot;ks-stats-panel&quot;&gt;${allRows.map(({method,count})=&gt;countBar(method,count,all.length)).join(&#x27;&#x27;)}&lt;/div&gt;
-        &lt;/section&gt;&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 示例数据&lt;/p&gt;`;
+        &lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 示例数据&lt;/p&gt;`;
     }
     function ledgerCategoryPanel(type,code,entries){
       const income=type===&#x27;收入&#x27;,totals=new Map();
@@ -2930,11 +2956,15 @@ html&gt;body{padding:0}&lt;/style&gt;
           &lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-wallet-action=&quot;apply&quot; ${canApply?&#x27;&#x27;:&#x27;disabled&#x27;}&gt;应用&lt;/button&gt;
         &lt;/div&gt;&lt;/section&gt;&lt;/div&gt;`;
     }
-        function pageMealFilter(){
+    function pageMealFilter(){
       const f=state.mealFilterDraft,methods=[...new Set([...mealMethods,...allMeals().map(m=&gt;m.method).filter(Boolean)])],preparations=[...new Set([...mealPreparations,...allMeals().flatMap(m=&gt;m.categories)])];
+      const datePreset=mealDatePreset(f);
       const select=(label,name,choices)=&gt;`&lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;${label}&lt;/span&gt;&lt;select class=&quot;ks-control&quot; name=&quot;${name}&quot;&gt;${choices.map(([value,label])=&gt;`&lt;option value=&quot;${escapeText(value)}&quot; ${f[name]===value?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${escapeText(label)}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;`;
       return `&lt;form class=&quot;ks-form&quot; data-meal-filter-form&gt;
-        &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;日期范围&lt;/legend&gt;&lt;div class=&quot;ks-field-row&quot;&gt;&lt;label&gt;&lt;span class=&quot;ks-note&quot;&gt;开始日期&lt;/span&gt;&lt;input class=&quot;ks-control&quot; type=&quot;date&quot; name=&quot;from&quot; value=&quot;${f.from}&quot; aria-label=&quot;开始日期&quot;&gt;&lt;/label&gt;&lt;label&gt;&lt;span class=&quot;ks-note&quot;&gt;结束日期&lt;/span&gt;&lt;input class=&quot;ks-control&quot; type=&quot;date&quot; name=&quot;to&quot; value=&quot;${f.to}&quot; aria-label=&quot;结束日期&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;span class=&quot;ks-note&quot;&gt;留空可查全部时间&lt;/span&gt;&lt;/fieldset&gt;
+        &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;日期范围&lt;/legend&gt;
+          &lt;div class=&quot;ks-choices&quot;&gt;${choice(&#x27;本月&#x27;,&#x27;month&#x27;,datePreset,&#x27;meal-date-preset&#x27;)}${choice(&#x27;所有时间&#x27;,&#x27;all&#x27;,datePreset,&#x27;meal-date-preset&#x27;)}&lt;/div&gt;
+          &lt;div class=&quot;ks-field-row&quot;&gt;&lt;label&gt;&lt;span class=&quot;ks-note&quot;&gt;开始日期&lt;/span&gt;&lt;input class=&quot;ks-control&quot; type=&quot;date&quot; name=&quot;from&quot; value=&quot;${f.from}&quot; aria-label=&quot;开始日期&quot; min=&quot;0001-01-01&quot; max=&quot;9999-12-31&quot;&gt;&lt;/label&gt;&lt;label&gt;&lt;span class=&quot;ks-note&quot;&gt;结束日期&lt;/span&gt;&lt;input class=&quot;ks-control&quot; type=&quot;date&quot; name=&quot;to&quot; value=&quot;${f.to}&quot; aria-label=&quot;结束日期&quot; min=&quot;0001-01-01&quot; max=&quot;9999-12-31&quot;&gt;&lt;/label&gt;&lt;/div&gt;
+        &lt;/fieldset&gt;
         &lt;div class=&quot;ks-field-row&quot;&gt;${select(&#x27;餐次&#x27;,&#x27;slot&#x27;,[[&#x27;any&#x27;,&#x27;全部餐次&#x27;],...slots.map((s,i)=&gt;[String(i),s])])}${select(&#x27;计划在家吃&#x27;,&#x27;atHome&#x27;,[[&#x27;any&#x27;,&#x27;不限&#x27;],[&#x27;yes&#x27;,&#x27;是&#x27;],[&#x27;no&#x27;,&#x27;否&#x27;]])}&lt;/div&gt;
         ${select(&#x27;用餐方式&#x27;,&#x27;method&#x27;,[[&#x27;any&#x27;,&#x27;全部方式&#x27;],...methods.map(m=&gt;[m,m]),[&#x27;none&#x27;,&#x27;未填写方式&#x27;]])}
         &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;制作分类&lt;span class=&quot;ks-required&quot;&gt;多选，匹配任一项&lt;/span&gt;&lt;/legend&gt;&lt;div class=&quot;ks-preparation-choices&quot;&gt;${preparations.map(c=&gt;`&lt;label class=&quot;ks-preparation-check cursor-interaction&quot;&gt;&lt;input type=&quot;checkbox&quot; name=&quot;preparation&quot; value=&quot;${escapeText(c)}&quot; ${f.preparations.includes(c)?&#x27;checked&#x27;:&#x27;&#x27;}&gt;${escapeText(c)}&lt;/label&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;&lt;/fieldset&gt;
@@ -3008,10 +3038,10 @@ html&gt;body{padding:0}&lt;/style&gt;
     const modalNode=()=&gt;phone.querySelector(&#x27;:scope &gt; .ks-modal-overlay&#x27;);
     const modalKind=()=&gt;state.deletePending?&#x27;dialog&#x27;:state.calcOpen?&#x27;calculator&#x27;:state.walletPickerOpen?&#x27;wallet&#x27;:state.ledgerPeriodDraft?&#x27;ledger-period&#x27;:state.ledgerFiltersOpen?&#x27;ledger-filters&#x27;:state.githubDemo.review?&#x27;github-review&#x27;:state.mealCalendar?&#x27;date-calendar&#x27;:state.addingMealOption?&#x27;meal-option&#x27;:null;
     const primary=page=&gt;navs.some(n=&gt;n[0]===page);
-    const localKey=()=&gt;state.page===&#x27;meals&#x27;?JSON.stringify([state.mealTab,state.date,state.mealMonth,state.mealListMode,state.mealFilters]):state.page===&#x27;ledger&#x27;?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds,state.ledgerFilters]):&#x27;&#x27;;
+    const localKey=()=&gt;state.page===&#x27;meals&#x27;?JSON.stringify([state.mealTab,state.date,state.mealStatsFilters,state.mealListMode,state.mealFilters]):state.page===&#x27;ledger&#x27;?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds,state.ledgerFilters]):&#x27;&#x27;;
     const localNodes=()=&gt;{
       const main=phone.querySelector(&#x27;.ks-main&#x27;);if(!main)return [];
-      const explicit=main.querySelector(&#x27;[data-monthly-meals],[data-monthly-ledger],[data-ledger-statistics],[data-meal-results]&#x27;);
+      const explicit=main.querySelector(&#x27;[data-meal-statistics],[data-monthly-ledger],[data-ledger-statistics],[data-meal-results]&#x27;);
       if(explicit)return [explicit];
       return [...main.children].filter(n=&gt;n.matches(&#x27;.ks-record-list,.ks-currency-group,.ks-wallet-cards&#x27;));
     };
@@ -3269,6 +3299,13 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(cents&gt;maximumEntryMinor)throw Error(&#x27;超出单笔金额上限，请减小金额。&#x27;);
       return cents;
     }
+    function updateMealDatePresets(form){
+      const selected=mealDatePreset({from:form.elements.from.value,to:form.elements.to.value});
+      for(const button of form.querySelectorAll(&#x27;[data-meal-date-preset]&#x27;)){
+        button.setAttribute(&#x27;aria-pressed&#x27;,String(button.dataset.mealDatePreset===selected));
+      }
+      form.querySelector(&#x27;.ks-error&#x27;).textContent=&#x27;&#x27;;
+    }
     phone.addEventListener(&#x27;click&#x27;,event=&gt;{
       if(event.target.matches(&#x27;.ks-wallet-overlay&#x27;)){closeWalletPicker(&#x27;cancel&#x27;);return;}
       if(event.target.matches(&#x27;[data-ledger-filter-overlay]&#x27;)){closeLedgerFilters(false);return;}
@@ -3360,8 +3397,21 @@ html&gt;body{padding:0}&lt;/style&gt;
         state.ledgerPeriodDraft.month=b.dataset.periodMonth;render();
         phone.querySelector(&#x27;[data-period-month][aria-pressed=true]&#x27;).focus({preventScroll:true});return;
       }
-      if(b.dataset.action===&#x27;meal-filter&#x27;){state.mealFilterDraft={...state.mealFilters,preparations:[...state.mealFilters.preparations]};state.page=&#x27;meal-filter&#x27;;render();return;}
-      if(b.dataset.action===&#x27;reset-meal-filter&#x27;){state.mealFilterDraft=blankMealFilters();render();return;}
+      if(b.dataset.action===&#x27;meal-filter&#x27;){
+        state.mealFilterDraft=state.mealTab===&#x27;统计&#x27;?state.mealStatsFilters:state.mealFilters;
+        state.page=&#x27;meal-filter&#x27;;render();return;
+      }
+      if(b.dataset.mealDatePreset){
+        const dates=mealDatePresets[b.dataset.mealDatePreset];
+        b.form.elements.from.value=dates.from;
+        b.form.elements.to.value=dates.to;
+        updateMealDatePresets(b.form);
+        return;
+      }
+      if(b.dataset.action===&#x27;reset-meal-filter&#x27;){
+        state.mealFilterDraft=blankMealFilters(state.mealTab===&#x27;统计&#x27;?mealDatePresets.month:mealDatePresets.all);
+        render();return;
+      }
       if(b.dataset.action===&#x27;meal-daily&#x27;){state.mealListMode=false;render();persist();return;}
       if(b.dataset.action===&#x27;clear-meal-filters&#x27;){state.mealFilters=blankMealFilters();render();persist();return;}
       if(b.dataset.action===&#x27;manage-categories&#x27;){state.categoryReturn=state.page;state.categoryWalletId=b.dataset.categoryWallet||&#x27;GLOBAL&#x27;;state.financialScope=&#x27;EXPENSE&#x27;;state.editingFinancialCategoryId=null;state.page=&#x27;category-manager&#x27;;render();return;}
@@ -3387,7 +3437,6 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(b.dataset.deleteAction){if(b.dataset.deleteAction===&#x27;confirm&#x27;)confirmDelete();else cancelDelete();return;}
       if(b.dataset.action===&#x27;open-calculator&#x27;){state.calcExpression=state.amount;state.calcOpen=true;render();return;}
       if(b.dataset.calcAction){closeCalculator(b.dataset.calcAction===&#x27;apply&#x27;);return;}
-      if(b.dataset.monthStep){const key=b.dataset.monthKey;if(![&#x27;ledgerMonth&#x27;,&#x27;mealMonth&#x27;].includes(key))return;const [year,month]=state[key].split(&#x27;-&#x27;).map(Number),ordinal=year*12+month-1+Number(b.dataset.monthStep);if(ordinal&lt;12||ordinal&gt;=120000)return;state[key]=`${String(Math.floor(ordinal/12)).padStart(4,&#x27;0&#x27;)}-${String(ordinal%12+1).padStart(2,&#x27;0&#x27;)}`;render();persist();return;}
       if(b.dataset.page){if(state.page===b.dataset.page)return;state.page=b.dataset.page;if(state.page===&#x27;settings&#x27;)resetAppearance();render();persist();return;}
       if(b.dataset.date){
         state.date=b.dataset.date;render();
@@ -3457,7 +3506,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         phone.querySelector(`[data-wallet-option=${id}]`).focus({preventScroll:true});return;
       }
       if(e.matches(&#x27;[data-entry-form] [name=wallet]&#x27;)){capture();state.entryDraft.category=chooseFinancialCategory(state.entryDraft.walletId,state.entryType,state.entryDraft.category);render();return;}
-      if(e.matches(&#x27;[data-month-input=mealMonth]&#x27;)){if(/^\d{4}-(0[1-9]|1[0-2])$/.test(e.value)&amp;&amp;e.value.slice(0,4)!==&#x27;0000&#x27;)state.mealMonth=e.value;render();persist();return;}
+      if(e.matches(&#x27;[data-meal-filter-form] input[type=date]&#x27;)){updateMealDatePresets(e.form);return;}
       if(e.matches(&#x27;[data-theme]&#x27;)){state.appearanceDraft.mode=e.value;updateAppearancePreview();return;}
       if(e.matches(&#x27;[data-color-source]&#x27;)){state.appearanceDraft.colorSource=e.value;render();return;}
       if(e.matches(&#x27;[data-palette]&#x27;)){state.appearanceDraft.presetColor=e.value;updateAppearancePreview();return;}
@@ -3530,7 +3579,17 @@ html&gt;body{padding:0}&lt;/style&gt;
       }
       if(f.matches(&#x27;[data-ledger-filters]&#x27;)){closeLedgerFilters(true);return;}
       if(f.matches(&#x27;[data-ledger-period]&#x27;)){closeLedgerPeriod(true);return;}
-      if(f.matches(&#x27;[data-meal-filter-form]&#x27;)){const from=f.elements.from.value,to=f.elements.to.value;if(from&amp;&amp;to&amp;&amp;from&gt;to){error(&#x27;开始日期不能晚于结束日期。&#x27;);return;}state.mealFilters={from,to,slot:f.elements.slot.value,atHome:f.elements.atHome.value,method:f.elements.method.value,preparations:[...f.querySelectorAll(&#x27;[name=preparation]:checked&#x27;)].map(e=&gt;e.value),keyword:f.elements.keyword.value.trim()};state.mealListMode=true;state.mealTab=&#x27;记录&#x27;;state.page=&#x27;meals&#x27;;render();persist();return;}
+      if(f.matches(&#x27;[data-meal-filter-form]&#x27;)){
+        const {from,to,slot,atHome,method,keyword}=f.elements;
+        if(from.value&amp;&amp;to.value&amp;&amp;from.value&gt;to.value){error(&#x27;开始日期不能晚于结束日期。&#x27;);return;}
+        const applied={
+          from:from.value,to:to.value,slot:slot.value,atHome:atHome.value,method:method.value,
+          preparations:[...f.querySelectorAll(&#x27;[name=preparation]:checked&#x27;)].map(e=&gt;e.value),keyword:keyword.value.trim(),
+        };
+        if(state.mealTab===&#x27;统计&#x27;)state.mealStatsFilters=applied;
+        else{state.mealFilters=applied;state.mealListMode=true;}
+        state.page=&#x27;meals&#x27;;render();persist();return;
+      }
       if(f.matches(&#x27;[data-meal-form]&#x27;)){
         if(state.atHome===null){error(&#x27;请先选择是否计划在家吃。&#x27;);return;}
         if(state.atHome&amp;&amp;!state.method){error(&#x27;计划在家吃时，请选择一种用餐方式。&#x27;);return;}

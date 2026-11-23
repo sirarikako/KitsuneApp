@@ -54,7 +54,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.kitsuneapp.R
-import java.time.YearMonth
 import java.util.Locale
 
 @Composable
@@ -339,31 +338,6 @@ fun Tabs(options: List<String>, selected: Int, set: (Int) -> Unit) {
         }
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-}
-
-@Composable
-fun MonthControl(value: String, set: (String) -> Unit) {
-    var open by rememberSaveable { mutableStateOf(false) }
-    val month = YearMonth.parse(value)
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        SquareIcon(designIcon(R.drawable.ks_chevron_left), "上个月") { set(month.minusMonths(1).toString()) }
-        Choice("${month.year} 年 ${month.monthValue} 月", { open = true }, Modifier.weight(1f))
-        SquareIcon(designIcon(R.drawable.ks_chevron_right), "下个月") { set(month.plusMonths(1).toString()) }
-    }
-    if (open) {
-        var year by rememberSaveable { mutableStateOf(month.year.toString()) }
-        var selected by rememberSaveable { mutableIntStateOf(month.monthValue) }
-        val parsed = year.toIntOrNull()?.takeIf { it in 1..9999 }
-        AlertDialog(onDismissRequest = { open = false }, shape = DialogShape, title = { Text("选择月份") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Field("年份", year, { year = it }, keyboard = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number))
-                    Select("月份", selected, (1..12).toList(), { "$it 月" }, { selected = it })
-                }
-            },
-            confirmButton = { Primary("应用", { if (parsed != null) { set(YearMonth.of(parsed, selected).toString()); open = false } }, enabled = parsed != null) },
-            dismissButton = { TextButton({ open = false }) { Text("取消") } })
-    }
 }
 
 @Composable
