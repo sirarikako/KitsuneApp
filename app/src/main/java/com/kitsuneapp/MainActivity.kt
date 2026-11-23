@@ -29,6 +29,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.testTag
@@ -288,7 +293,7 @@ private fun MainNavigation(root: String, active: Boolean, open: (String) -> Unit
 }
 
 @Composable
-private fun Home(records: Records, now: LocalDateTime, open: (String) -> Unit, meal: (String, MealSlot, String?) -> Unit) {
+internal fun Home(records: Records, now: LocalDateTime, open: (String) -> Unit, meal: (String, MealSlot, String?) -> Unit) {
     val today = now.toLocalDate().toString()
     val recorded = records.meals.filter { it.date == today }.associateBy { it.mealSlot }
     val suggested = when (now.hour) {
@@ -349,17 +354,8 @@ private fun Home(records: Records, now: LocalDateTime, open: (String) -> Unit, m
                         verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(total.currency, color = MaterialTheme.colorScheme.primary,
                             style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.Top) {
-                            Column(Modifier.weight(1f)) {
-                                Text("净支出", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(displayMoney(total.expenses, total.scale), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                            }
-                            Column(Modifier.weight(1f)) {
-                                Text("收入", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(displayMoney(total.income, total.scale), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                            }
-                        }
+                        HomeCurrencyAmounts(displayMoney(total.expenses, total.scale),
+                            displayMoney(total.income, total.scale))
                     }
                 }
                 Primary("记一笔", { open(newEntryRoute(ledger)) }, Modifier.fillMaxWidth(),
@@ -370,10 +366,38 @@ private fun Home(records: Records, now: LocalDateTime, open: (String) -> Unit, m
 }
 
 @Composable
+private fun HomeCurrencyAmounts(expense: String, income: String) {
+    val style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.SemiBold)
+    val measurer = rememberTextMeasurer()
+    val amounts = listOf("净支出" to expense, "收入" to income)
+    val gap = 12.dp
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val columnWidth = with(LocalDensity.current) { ((maxWidth - gap) / 2).roundToPx() }
+        if (amounts.any { (_, value) -> measurer.measure(value, style, softWrap = false).size.width > columnWidth }) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                amounts.forEach { (label, value) -> HomeAmount(label, value, style, Modifier.fillMaxWidth()) }
+            }
+        } else {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
+                amounts.forEach { (label, value) -> HomeAmount(label, value, style, Modifier.weight(1f)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeAmount(label: String, value: String, style: TextStyle, modifier: Modifier) {
+    Column(modifier) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = style)
+    }
+}
+
+@Composable
 private fun HomeCardHeading(title: String, actionText: String, onAction: () -> Unit) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically) {
-        Text(title, style = MaterialTheme.typography.titleMedium)
+        Text(title, Modifier.weight(1f).semantics { heading() }, style = MaterialTheme.typography.titleMedium)
         TextAction(actionText, onAction, designIcon(R.drawable.ks_chevron_right))
     }
 }

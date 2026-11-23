@@ -22,8 +22,13 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import androidx.compose.ui.text.TextLayoutResult
+import com.kitsuneapp.data.WalletDraft
+import com.kitsuneapp.data.removeWallet
+import com.kitsuneapp.data.saveWallet
 import java.io.File
 import java.time.LocalDate
+import java.util.UUID
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -36,15 +41,30 @@ class NavigationTest {
     })
 
     @Test
-    fun homeCardsKeepHeadingsAndQuickActions() {
+    fun homeCardActionsOpenMealsLedgerAndEntryForm() {
         compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
-        compose.onNodeWithTag("home-meals-card").assertExists()
-        compose.onNodeWithTag("home-ledger-card").assertExists()
-        compose.onNodeWithText("今日用餐").assertExists()
-        compose.onNodeWithText("本月收支").assertExists()
-        compose.onNodeWithText("全部记录").assertExists()
-        compose.onNodeWithText("查看账本").assertExists()
-        compose.onNodeWithText("记一笔").assertExists()
+        compose.onNodeWithText("全部记录").performClick()
+        compose.onNodeWithText("三餐记录").assertIsDisplayed()
+        compose.onNodeWithText("首页").performClick()
+        compose.onNodeWithText("查看账本").performScrollTo().performClick()
+        compose.onNodeWithText("流水").assertIsDisplayed()
+        compose.onNodeWithText("首页").performClick()
+
+        val repository = runBlocking { (compose.activity.application as KitsuneApplication).repository() }
+        val name = "home-" + UUID.randomUUID()
+        val walletId = runBlocking {
+            repository.saveWallet(WalletDraft(null, name, "JPY", "0", 0, false, false))
+            repository.read().wallets.single { it.name == name }.id
+        }
+        try {
+            compose.waitUntilAtLeastOneExists(hasText("JPY"), 20_000)
+            compose.onNodeWithText("记一笔").performScrollTo().performClick()
+            compose.onNodeWithText("收支类型").assertIsDisplayed()
+            compose.onNodeWithContentDescription("返回").performClick()
+            compose.onNodeWithTag("home-ledger-card").assertExists()
+        } finally {
+            runBlocking { repository.removeWallet(walletId) }
+        }
     }
 
     @Test
