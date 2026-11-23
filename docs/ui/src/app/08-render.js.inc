@@ -34,6 +34,11 @@
         for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
         phone.querySelector('[data-github-action=cancel]').focus({preventScroll:true});
       }
+      if(state.mealCalendar){
+        phone.insertAdjacentHTML('beforeend',mealCalendarDialog());
+        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
+        if(previous?.modal!==kind)phone.querySelector('[data-calendar-action=jump],[data-calendar-text]').focus({preventScroll:true});
+      }
       if(state.page==='appearance')updateAppearancePreview();
       globalThis.lucide?.createIcons({root:phone,attrs:{width:18,height:18}});
       rendering=false;
@@ -87,6 +92,16 @@
         state.walletFilterIds=mode==='MANUAL'?[...state.walletDraftIds]:mode==='ALL'?'ALL':null;
       }else if(action==='default')state.walletFilterIds=null;
       state.walletPickerOpen=false;render();persist();phone.querySelector('[data-action=choose-wallets]')?.focus({preventScroll:true});
+    }
+    function closeMealCalendar(apply){
+      const d=state.mealCalendar;
+      if(apply){
+        const date=d.mode==='text'?d.text:d.selected;
+        if(d.mode==='jump'||!isDate(date))return;
+        state.date=date;
+      }
+      state.mealCalendar=null;render();
+      phone.querySelector('[data-action=open-meal-calendar]').focus({preventScroll:true});
     }
     function closeLedgerPeriod(apply){
       const draft=state.ledgerPeriodDraft;

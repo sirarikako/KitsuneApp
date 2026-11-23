@@ -9,6 +9,20 @@
   #kitsune-preview .ks-period-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ks-space-2)}
   #kitsune-preview .ks-period-months{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--ks-space-2)}
   #kitsune-preview .ks-period-body .ks-error:empty{display:none}
+  #kitsune-preview .ks-date-trigger{display:flex;justify-content:space-between;align-items:center;gap:var(--ks-space-2);text-align:left}
+  #kitsune-preview .ks-calendar-dialog{max-width:360px;gap:var(--ks-space-2)}
+  #kitsune-preview .ks-calendar-dialog h3{font-size:20px}
+  #kitsune-preview .ks-calendar-dialog .ks-period-body{padding:2px}
+  #kitsune-preview .ks-calendar-mode{justify-self:end}
+  #kitsune-preview .ks-calendar-selected{font-size:16px;font-weight:500}
+  #kitsune-preview .ks-calendar-month{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:var(--ks-space-2)}
+  #kitsune-preview .ks-calendar-month .ks-choice{display:flex;align-items:center;justify-content:center;gap:var(--ks-space-2)}
+  #kitsune-preview .ks-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));text-align:center}
+  #kitsune-preview .ks-calendar-day,#kitsune-preview .ks-calendar-grid span[aria-hidden]{min-height:42px}
+  #kitsune-preview .ks-calendar-day{border:1px solid transparent;border-radius:50%;background:transparent;color:var(--ks-ink);font:inherit}
+  #kitsune-preview .ks-calendar-day[aria-current=date]{border-color:var(--ks-accent);color:var(--ks-accent)}
+  #kitsune-preview .ks-calendar-day[aria-pressed=true]{background:var(--ks-action-bg);color:var(--ks-action-text)}
+  #kitsune-preview .ks-calendar-month .ks-icon-btn:disabled{opacity:.4}
   #kitsune-preview .ks-wallet-check{display:flex;align-items:center;gap:var(--ks-space-2);min-height:48px;font-size:var(--ks-font-body)}
   #kitsune-preview .ks-wallet-check input{width:18px;height:18px;accent-color:var(--ks-accent);flex-shrink:0}
   #kitsune-preview .ks-wallet-setting{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--ks-line);font-size:13px}

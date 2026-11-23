@@ -1,8 +1,37 @@
     phone.addEventListener('click',event=>{
       if(event.target.matches('.ks-wallet-overlay')){closeWalletPicker('cancel');return;}
       if(event.target.matches('.ks-period-overlay')){closeLedgerPeriod(false);return;}
+      if(event.target.matches('.ks-calendar-overlay')){closeMealCalendar(false);return;}
       const b=event.target.closest('button');if(!b)return;
       capture();state.notice='';
+      if(b.dataset.action==='open-meal-calendar'){
+        const compact=phone.clientWidth<360;
+        state.mealCalendar={selected:state.date,month:state.date.slice(0,7),text:state.date,year:'',mode:compact?'text':'calendar',compact};
+        render();return;
+      }
+      if(b.closest('.ks-calendar-dialog')){
+        const d=state.mealCalendar,action=b.dataset.calendarAction;
+        if(action==='cancel'||action==='apply'){closeMealCalendar(action==='apply');return;}
+        let focus='[data-calendar-action=jump]';
+        if(action==='jump'){
+          d.mode=d.mode==='jump'?'calendar':'jump';d.year=String(Number(d.month.slice(0,4)));
+        }else if(action==='mode'){
+          if(d.mode==='text'){
+            if(isDate(d.text)){d.selected=d.text;d.month=d.text.slice(0,7);}
+            d.mode='calendar';
+          }else{d.mode='text';d.text=d.selected;}
+          focus='[data-calendar-action=mode]';
+        }else if(b.dataset.calendarMonth){
+          d.month=`${d.year.padStart(4,'0')}-${b.dataset.calendarMonth.padStart(2,'0')}`;d.mode='calendar';
+        }else if(b.dataset.calendarStep){
+          const month=new Date(`${d.month}-01T00:00:00Z`);month.setUTCMonth(month.getUTCMonth()+Number(b.dataset.calendarStep));
+          d.month=month.toISOString().slice(0,7);
+          focus=`[data-calendar-step="${b.dataset.calendarStep}"]:not(:disabled)`;
+        }else if(b.dataset.calendarDay){
+          d.selected=b.dataset.calendarDay;focus=`[data-calendar-day="${d.selected}"]`;
+        }
+        render();(phone.querySelector(focus)??phone.querySelector('[data-calendar-action=jump]'))?.focus({preventScroll:true});return;
+      }
       if(b.dataset.githubAction){
         const action=b.dataset.githubAction;
         if(action==='open')state.page='github';
@@ -91,7 +120,8 @@
         event.preventDefault();
         if(state.githubDemo.review){
           state.githubDemo.review=null;render();phone.querySelector('[data-github-action=review]').focus({preventScroll:true});
-        }else if(state.ledgerPeriodDraft)closeLedgerPeriod(false);
+        }else if(state.mealCalendar)closeMealCalendar(false);
+        else if(state.ledgerPeriodDraft)closeLedgerPeriod(false);
         else if(state.walletPickerOpen)closeWalletPicker('cancel');
         else if(state.deletePending)cancelDelete();
         else closeCalculator(false);
@@ -118,11 +148,25 @@
       if(e.matches('[data-theme]')){state.appearanceDraft.mode=e.value;updateAppearancePreview();return;}
       if(e.matches('[data-color-source]')){state.appearanceDraft.colorSource=e.value;render();return;}
       if(e.matches('[data-palette]')){state.appearanceDraft.presetColor=e.value;updateAppearancePreview();return;}
-      if(e.matches('[data-date-input]')){state.date=isDate(e.value)?e.value:demoToday;render();}
       if(e.matches('[data-meal-form] [name=slot]')){capture();render();}
     });
     phone.addEventListener('input',event=>{
       const e=event.target;
+      if(e.matches('[data-calendar-year],[data-calendar-text]')){
+        const d=state.mealCalendar,dialog=e.closest('.ks-calendar-dialog');
+        if(e.matches('[data-calendar-year]')){
+          d.year=e.value;const valid=validCalendarYear(d.year),[year,month]=d.month.split('-').map(Number);
+          for(const b of dialog.querySelectorAll('[data-calendar-month]')){
+            b.disabled=!valid;b.setAttribute('aria-pressed',valid&&Number(d.year)===year&&Number(b.dataset.calendarMonth)===month);
+          }
+          dialog.querySelector('[data-calendar-error]').textContent=valid?'':'请输入 1 至 9999 的年份';
+        }else{
+          d.text=e.value;const valid=isDate(d.text);
+          dialog.querySelector('[data-calendar-action=apply]').disabled=!valid;
+          dialog.querySelector('[data-calendar-error]').textContent=d.text&&!valid?'请输入有效日期':'';
+        }
+        return;
+      }
       if(e.matches('[data-ledger-period] input')){
         const draft=state.ledgerPeriodDraft,form=e.form;
         draft[e.name]=e.value;

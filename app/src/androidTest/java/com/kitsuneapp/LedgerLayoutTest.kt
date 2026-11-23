@@ -44,6 +44,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.kitsuneapp.data.*
 import com.kitsuneapp.feature.ledger.LedgerPage
 import com.kitsuneapp.feature.ledger.Calculator
+import com.kitsuneapp.ui.DateControl
 import com.kitsuneapp.ui.KitsuneTheme
 import com.kitsuneapp.ui.TimeControl
 import java.io.File
@@ -260,6 +261,42 @@ class LedgerLayoutTest {
         if (inputMode.isDisplayed()) inputMode.performClick()
         compose.onNodeWithContentDescription("日期（YYYY-MM-DD）").performTextReplacement(date.toString())
         compose.onNodeWithText("确定").performClick()
+    }
+
+    @Test
+    fun jumpsDirectlyToYearAndMonthAndCommitsOnlyConfirmedDates() {
+        var date by mutableStateOf("2026-11-17")
+        compose.setContent { KitsuneTheme(ThemePreferences(), forceDark = true) { DateControl("日期", date, { date = it }) } }
+        val trigger = compose.onNodeWithContentDescription("日期")
+        val jump = compose.onNodeWithContentDescription("选择年月")
+        val year = compose.onNodeWithContentDescription("年份")
+        val february = compose.onNodeWithText("2 月", substring = false)
+        val confirm = compose.onNodeWithText("确定")
+        val leapDay = compose.onNodeWithContentDescription("2024-02-29")
+        trigger.performClick()
+        jump.performClick()
+        year.performTextReplacement("0")
+        february.assertIsNotEnabled()
+        confirm.assertIsNotEnabled()
+        year.performTextReplacement("2024")
+        saveScreenshot("kitsune-calendar-year-month")
+        february.performScrollTo().performClick()
+        compose.onNodeWithText("2024 年 2 月").assertIsDisplayed()
+        compose.onNodeWithContentDescription("下个月").performClick()
+        compose.onNodeWithText("2024 年 3 月").assertIsDisplayed()
+        compose.onNodeWithContentDescription("上个月").performClick()
+        leapDay.performScrollTo().performClick().assertIsSelected()
+        saveScreenshot("kitsune-calendar-leap-day")
+        compose.onNodeWithText("取消").performClick()
+        compose.runOnIdle { assertEquals("2026-11-17", date) }
+
+        trigger.performClick()
+        jump.performClick()
+        year.performTextReplacement("2024")
+        february.performScrollTo().performClick()
+        leapDay.performScrollTo().performClick()
+        confirm.performClick()
+        compose.runOnIdle { assertEquals("2024-02-29", date) }
     }
 
     @Test

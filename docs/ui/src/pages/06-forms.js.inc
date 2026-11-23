@@ -17,6 +17,35 @@
       ${formFooter(saveButton(`保存${state.entryType}`),'交互预览 · 仅保存到当前演示')}
     </form>`;}
     function calculatorSheet(){return `<div class="ks-modal-overlay"><section class="ks-calc-sheet" role="dialog" aria-modal="true" aria-label="金额计算器"><div class="ks-calc-body"><div class="ks-row"><h3>金额计算器</h3><button type="button" class="ks-text-btn cursor-interaction" data-calc-action="cancel">关闭</button></div><label><span class="ks-note">${entryWallet()?.code||'未选择钱包'} · 支持加减乘除</span><input class="ks-amount-input" data-calc-expression inputmode="text" aria-label="计算表达式" maxlength="80" placeholder="${(entryWallet()?.scale??2)?'0.00':'0'}" value="${escapeText(state.calcExpression)}"></label><div class="ks-calculator" role="group" aria-label="计算键盘">${['C','⌫','÷','×','7','8','9','−','4','5','6','+','1','2','3','=','0','.'].map(k=>`<button type="button" class="ks-key ${['÷','×','−','+','='].includes(k)?'ks-operator':''} ${k==='0'?'ks-zero':''} ${k==='='?'ks-equal':''} cursor-interaction" data-key="${k}" aria-label="${k==='⌫'?'退格':k==='C'?'清空':k}">${k}</button>`).join('')}</div></div><div class="ks-calc-footer"><p class="ks-calc-error" role="alert"></p><div class="ks-calc-actions"><button type="button" class="ks-choice cursor-interaction" data-calc-action="cancel">取消</button><button type="button" class="ks-primary cursor-interaction" data-calc-action="apply">使用此金额</button></div></div></section></div>`;}
+    function mealCalendarDialog(){
+      const d=state.mealCalendar,[year,month]=d.month.split('-').map(Number);
+      const first=new Date(`${d.month}-01T00:00:00Z`),offset=(first.getUTCDay()+6)%7;
+      const last=new Date(first);last.setUTCMonth(month,0);
+      const days=Array.from({length:42},(_,index)=>{
+        const day=index-offset+1;
+        if(day<1||day>last.getUTCDate())return '<span aria-hidden="true"></span>';
+        const date=`${d.month}-${String(day).padStart(2,'0')}`;
+        return `<button type="button" class="ks-calendar-day cursor-interaction" data-calendar-day="${date}" aria-label="${date}" aria-pressed="${d.selected===date}" ${date===demoToday?'aria-current="date"':''}>${day}</button>`;
+      }).join('');
+      const yearOkay=validCalendarYear(d.year),text=d.mode==='text',jump=d.mode==='jump';
+      const part=text?`<label><span class="ks-label">日期（YYYY-MM-DD）</span><input class="ks-control" data-calendar-text value="${escapeText(d.text)}" placeholder="例如 2026-11-17"></label><p class="ks-error" data-calendar-error role="alert">${d.text&&!isDate(d.text)?'请输入有效日期':''}</p>`:`
+        <span class="ks-calendar-selected">${d.selected}</span>
+        <div class="ks-calendar-month">
+          <button type="button" class="ks-icon-btn" data-calendar-step="-1" aria-label="上个月" ${jump||d.month==='0001-01'?'disabled':''}>${icon('chevron-left')}</button>
+          <button type="button" class="ks-choice" data-calendar-action="jump" aria-label="选择年月" aria-expanded="${jump}">${icon('chevron-down')}${year} 年 ${month} 月</button>
+          <button type="button" class="ks-icon-btn" data-calendar-step="1" aria-label="下个月" ${jump||d.month==='9999-12'?'disabled':''}>${icon('chevron-right')}</button>
+        </div>
+        ${jump?`<label><span class="ks-label">年份</span><input class="ks-control" data-calendar-year inputmode="numeric" value="${escapeText(d.year)}"></label>
+          <p class="ks-error" data-calendar-error role="alert">${yearOkay?'':'请输入 1 至 9999 的年份'}</p>
+          <div class="ks-period-months" role="group" aria-label="月份">${Array.from({length:12},(_,i)=>`<button type="button" class="ks-choice" data-calendar-month="${i+1}" aria-pressed="${Number(d.year)===year&&i+1===month}" ${yearOkay?'':'disabled'}>${i+1} 月</button>`).join('')}</div>`:
+          `<div class="ks-calendar-grid" aria-hidden="true">${[...'一二三四五六日'].map(day=>`<span class="ks-note">${day}</span>`).join('')}</div><div class="ks-calendar-grid" role="group" aria-label="日期">${days}</div>`}`;
+      return `<div class="ks-modal-overlay ks-calendar-overlay"><section class="ks-period-dialog ks-calendar-dialog" role="dialog" aria-modal="true" aria-label="选择用餐日期">
+        <h3>选择用餐日期</h3><div class="ks-period-body">
+          ${d.compact?'':`<button type="button" class="ks-text-btn ks-calendar-mode" data-calendar-action="mode">${text?'使用日历':'输入日期'}</button>`}
+          ${part}
+        </div><div class="ks-period-actions"><button type="button" class="ks-text-btn" data-calendar-action="cancel">取消</button><button type="button" class="ks-text-btn" data-calendar-action="apply" ${jump||(text&&!isDate(d.text))?'disabled':''}>确定</button></div>
+      </section></div>`;
+    }
     function ledgerPeriodDialog(){
       const draft=state.ledgerPeriodDraft;
       return `<div class="ks-modal-overlay ks-period-overlay"><form class="ks-period-dialog" data-ledger-period role="dialog" aria-modal="true" aria-label="日期范围">

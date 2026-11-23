@@ -68,15 +68,7 @@ internal fun LedgerPeriodDialog(applied: LedgerPeriod, dismiss: () -> Unit, appl
                 if (monthly) {
                     Field("年份", year, { year = it }, keyboard = KeyboardOptions(keyboardType = KeyboardType.Number))
                     if (parsedYear == null) Secondary("请输入 1 至 9999 的年份")
-                    Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        for (first in 1..12 step 3) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                for (option in first..first + 2) {
-                                    Choice("$option 月", { month = option }, Modifier.weight(1f), selected = month == option)
-                                }
-                            }
-                        }
-                    }
+                    MonthChoices(month) { month = it }
                 } else {
                     DateControl("开始日期", start, { start = it })
                     DateControl("结束日期", end, { end = it })

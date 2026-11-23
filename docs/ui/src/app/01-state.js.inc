@@ -74,6 +74,7 @@
     state.records['2026-11-17'] = [{atHome:true,method:'下厨',categories:[],dishes:'燕麦粥、煎蛋',note:''},{atHome:false,method:'外卖',categories:[],dishes:'照烧鸡腿饭',note:''},null];
     if(saved){const s=saved;if(['PRESET','CUSTOM','SYSTEM'].includes(s.colorSource))style.colorSource=s.colorSource;if(normalizeHex(s.presetColor))style.presetColor=s.presetColor.toLowerCase();if(normalizeHex(s.customColor))style.customColor=normalizeHex(s.customColor);}
     const isDate=value=>/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(value)&&value.slice(0,4)!=='0000'&&new Date(value).toJSON()?.slice(0,10)===value;
+    const validCalendarYear=value=>/^[0-9]{1,4}$/.test(value)&&Number(value)>=1;
     const savedRange=saved?.ledgerRange;
     if(savedRange&&isDate(savedRange.from)&&isDate(savedRange.to)&&savedRange.from<=savedRange.to)state.ledgerRange={from:savedRange.from,to:savedRange.to};
     const appliedAppearance=()=>({mode:style.mode,colorSource:style.colorSource,presetColor:style.presetColor,customColor:style.customColor});

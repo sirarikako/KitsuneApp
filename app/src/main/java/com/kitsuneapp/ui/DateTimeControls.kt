@@ -2,6 +2,7 @@ package com.kitsuneapp.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -19,10 +20,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.kitsuneapp.R
-import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.ZoneOffset
+import java.time.YearMonth
 import java.util.Locale
 
 @Composable
@@ -45,32 +45,33 @@ fun DateControl(label: String, value: String, set: (String) -> Unit, modifier: M
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DateSelectionDialog(label: String, initial: LocalDate, dismiss: () -> Unit, select: (LocalDate) -> Unit) {
     val windowWidth = LocalWindowInfo.current.containerSize.width
     val canShowCalendar = with(LocalDensity.current) { windowWidth.toDp() >= 360.dp }
-    val state = rememberDatePickerState(initialSelectedDateMillis = initial.utcMillis(), yearRange = 1..9999)
+    val calendar = rememberPagerState(initialPage = YearMonth.from(initial).calendarPage) { CalendarMonthCount }
+    var calendarDate by rememberSaveable { mutableStateOf(initial.toString()) }
+    var choosingMonth by rememberSaveable { mutableStateOf(false) }
     var editingText by rememberSaveable { mutableStateOf(!canShowCalendar) }
     var draft by rememberSaveable { mutableStateOf(initial.toString()) }
     val useText = editingText || !canShowCalendar
-    val calendarDate = state.selectedDateMillis?.let { Instant.ofEpochMilli(it).atOffset(ZoneOffset.UTC).toLocalDate() }
-    val selected = if (useText) readDate(draft) else calendarDate
+    val selected = if (useText) readDate(draft) else LocalDate.parse(calendarDate)
     LaunchedEffect(canShowCalendar) {
         if (!canShowCalendar && !editingText) {
-            draft = calendarDate?.toString().orEmpty()
+            draft = calendarDate
             editingText = true
         }
     }
-    PickerCard("选择$label", dismiss, { selected?.let(select) }, selected != null) {
+    PickerCard("选择$label", dismiss, { selected?.let(select) }, selected != null && (useText || !choosingMonth)) {
         if (canShowCalendar) TextButton({
             if (useText) {
                 selected?.let {
-                    state.selectedDateMillis = it.utcMillis()
-                    state.displayedMonthMillis = it.withDayOfMonth(1).utcMillis()
+                    calendarDate = it.toString()
+                    calendar.requestScrollToPage(YearMonth.from(it).calendarPage)
                 }
             } else {
-                draft = calendarDate?.toString().orEmpty()
+                draft = calendarDate
+                choosingMonth = false
             }
             editingText = !useText
         }, Modifier.align(Alignment.End).padding(horizontal = 12.dp)) { Text(if (useText) "使用日历" else "输入日期") }
@@ -81,8 +82,9 @@ private fun DateSelectionDialog(label: String, initial: LocalDate, dismiss: () -
                 if (draft.isNotBlank() && selected == null) Secondary("请输入有效日期")
             }
         } else {
-            DatePicker(state, title = null, showModeToggle = false,
-                colors = DatePickerDefaults.colors(containerColor = MaterialTheme.colorScheme.surface))
+            DateCalendar(calendar, LocalDate.parse(calendarDate), choosingMonth, { choosingMonth = it }) {
+                calendarDate = it.toString()
+            }
         }
     }
 }
@@ -147,5 +149,4 @@ private fun readDate(value: String): LocalDate? =
 private fun readTime(value: String): LocalTime? =
     runCatching { LocalTime.parse(value) }.getOrNull()?.takeIf { it.hhmm() == value }
 
-private fun LocalDate.utcMillis() = atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
 private fun LocalTime.hhmm() = String.format(Locale.ROOT, "%02d:%02d", hour, minute)
