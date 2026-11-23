@@ -207,7 +207,7 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
                     val pageInsets = if (path in roots) {
                         Modifier.padding(bottom = bottomBarHeight).then(pageBackground)
                     } else {
-                        pageBackground.navigationBarsPadding()
+                        pageBackground.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
                     }
                     CompositionLocalProvider(LocalRecordMotion provides RecordMotion(shared, this@AnimatedContent)) {
                         Box(recordBounds(outgoing, key).fillMaxSize().then(pageInsets)) {
@@ -259,7 +259,8 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
 private fun NavigationFrame(bottomBar: @Composable () -> Unit, pages: @Composable (Dp) -> Unit) {
     // Measure the bar before the pages so only primary routes reserve its actual height.
     // The full-height page layer stays put and covers the stationary bar as a subpage slides in.
-    SubcomposeLayout(Modifier.fillMaxSize().statusBarsPadding().imePadding()) { constraints ->
+    val frameInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+    SubcomposeLayout(Modifier.fillMaxSize().windowInsetsPadding(frameInsets).imePadding()) { constraints ->
         val bar = subcompose("bottomBar", bottomBar).singleOrNull()?.measure(constraints.copy(minHeight = 0))
         val viewport = subcompose("pages") { pages((bar?.height ?: 0).toDp()) }.single().measure(constraints)
         layout(viewport.width, viewport.height) {
@@ -292,7 +293,8 @@ private fun MainNavigation(root: String, active: Boolean, open: (String) -> Unit
     Surface(modifier, color = colors.surface) {
         Column {
             HorizontalDivider(color = colors.outlineVariant)
-            Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 10.dp, top = 10.dp, end = 10.dp, bottom = 8.dp)
+            Row(Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+                .padding(start = 10.dp, top = 10.dp, end = 10.dp, bottom = 8.dp)
                 .selectableGroup(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                 roots.forEachIndexed { index, route ->
                     val selected = root == route

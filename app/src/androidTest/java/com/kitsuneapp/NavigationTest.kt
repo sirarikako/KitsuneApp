@@ -1,6 +1,7 @@
 package com.kitsuneapp
 
 import android.graphics.Bitmap
+import android.os.ParcelFileDescriptor
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.semantics.SemanticsActions
@@ -22,6 +23,9 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.test.platform.app.InstrumentationRegistry
 import com.kitsuneapp.data.Scope
 import com.kitsuneapp.data.WalletDraft
 import com.kitsuneapp.data.removeWallet
@@ -76,6 +80,40 @@ class NavigationTest {
         screenshot("kitsune-settings")
         compose.onNodeWithText("外观与调色板").performClick()
         compose.onNodeWithText("恢复默认").assertIsDisplayed()
+    }
+
+    @Test
+    fun systemBackGestureHidesKeyboardBeforeLeavingMealForm() {
+        compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
+        compose.onNodeWithText("用餐").performClick()
+        compose.onNodeWithText("早餐").performClick()
+        val dish = compose.onNodeWithContentDescription("菜品内容").performScrollTo().performClick()
+        dish.performTextReplacement("键盘测试草稿")
+
+        compose.waitUntil(10_000) { keyboardIsVisible() }
+        compose.onNodeWithText("保存早餐记录").performScrollTo().assertIsDisplayed()
+
+        swipeFromLeftEdge()
+        compose.waitUntil(10_000) { !keyboardIsVisible() }
+        assertSingleLineMealText("菜品内容", "键盘测试草稿")
+
+        swipeFromLeftEdge()
+        compose.waitUntilAtLeastOneExists(hasText("三餐记录"), 10_000)
+        dish.assertDoesNotExist()
+    }
+
+    private fun keyboardIsVisible(): Boolean = compose.runOnUiThread {
+        ViewCompat.getRootWindowInsets(compose.activity.window.decorView)
+            ?.isVisible(WindowInsetsCompat.Type.ime()) == true
+    }
+
+    private fun swipeFromLeftEdge() {
+        val decor = compose.activity.window.decorView
+        val (endX, y) = compose.runOnUiThread { decor.width / 2 to decor.height / 2 }
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        ParcelFileDescriptor.AutoCloseInputStream(
+            automation.executeShellCommand("input swipe 1 $y $endX $y 300"),
+        ).use { it.readBytes() }
     }
 
     @Test
