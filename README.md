@@ -83,9 +83,9 @@ python docs/ui/build_preview.py
 
 ## 环境、构建与安装
 
-- JDK 21，Gradle 8.11.1，AGP 8.9.2，Kotlin 2.1.21，Room 2.7.2；依赖定义集中在 `gradle/libs.versions.toml`。
-- compileSdk／targetSdk 35，minSdk 26，Build Tools 35.0.0。
-- 应用标识 `com.kitsuneapp`，版本 `1.0.0`（versionCode 1）。调试 APK 由 Android 调试密钥签名。
+- JDK 21，Gradle 8.11.1，AGP 8.10.1，Kotlin 2.1.21，Room 2.7.2。依赖定义集中在 `gradle/libs.versions.toml`。
+- compileSdk／targetSdk 36（Android 16），minSdk 26，Build Tools 35.0.0。
+- 应用标识 `com.kitsuneapp`，版本 `1.0.1`（versionCode 2）。本地调试 APK 使用本机调试密钥。
 
 安装 JDK 和 Android SDK 后，在仓库根目录运行。Windows PowerShell 将 `./gradlew` 换为 `.\gradlew.bat`。
 
@@ -99,7 +99,7 @@ python docs/ui/build_preview.py
 
 调试 APK 生成在 `app/build/outputs/apk/debug/app-debug.apk`。安装到设备可使用 `adb install -r app/build/outputs/apk/debug/app-debug.apk`。发布签名需由持有发布密钥的维护者另行配置。测试和 lint 报告位于 `app/build/reports/`。
 
-GitHub Actions 的 `kitsune-debug` 使用固定测试证书，适合连续覆盖安装。固定签名作业在仓库受信任的分支推送或手动运行时生成，本次 GitHub 备份变更的验证分支也包含在其中。需在仓库 Actions Secrets 中配置 `KITSUNE_TEST_KEYSTORE_BASE64`，值为已核对的原工作区调试 keystore 的 Base64。签名作业校验证书 SHA-256 后才上传。各次验证构建还提供使用运行器临时签名的 `kitsune-debug-ci`，供当次测试使用。旧测试包切换证书时，先导出完整 JSON 备份，再安装固定签名包并恢复。
+GitHub Actions 在构建、lint、单元测试及 Android 15／16 设备测试通过后，使用 `KITSUNE_TEST_KEYSTORE_BASE64` 中的现有固定测试密钥签名。在受信任分支上，签名作业核对证书 SHA-256、包名、SDK 和 APK 对齐，再上传 `kitsune-debug`。已安装同证书版本的设备可覆盖安装。旧包使用其他证书时，先导出完整 JSON 备份，再安装固定签名包并恢复。`kitsune-debug-ci` 使用当次运行器的临时签名。迁移差异和验证范围见[开发进度](docs/IMPLEMENTATION_PROGRESS.md#android-16-迁移)。
 
 持有原工作区调试 keystore 且有仓库 Secret 管理权限时，可通过标准输入配置密钥。
 

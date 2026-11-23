@@ -2,6 +2,18 @@
 
 基线为 GitHub `main` 的 `9e0dc53`，开发分支为 `feat/android-full-implementation`。功能规则以 `docs/features/` 为准，数据契约以 `docs/data/` 为准。
 
+## Android 16 迁移
+
+| 平台变化 | 应用影响及处理 |
+| --- | --- |
+| API 36 强制全屏延伸至系统栏 | 现有 Activity 已启用 edge-to-edge。公共导航布局按安全绘制区域处理顶部、侧边和底部，覆盖横屏系统栏和屏幕挖孔，延续键盘及底栏避让。 |
+| 默认预测性返回 | 显式启用平台回调。Compose `BackHandler` 接收已完成的手势，子页继续使用现有返回动画，一级页交还系统处理。设备测试以侧滑验证先收起键盘、再退出表单。 |
+| 大屏方向和窗口大小约束失效 | 主界面支持自由调整窗口，未声明方向锁定或纵横比约束。原有恢复流程继续通过 ViewModel 在 Activity 重建时保留暂存库。 |
+| 后台任务配额调整 | 目录与 GitHub 备份使用 WorkManager 一次性任务与重试，系统待机状态仍可能推迟后台执行。现有备份间隔规则继续适用。 |
+| 局域网权限、媒体选择、广播顺序以及固定速率任务变化 | 网络请求发往 `api.github.com`，文件使用系统文档选择器。应用未使用受影响的局域网访问、媒体权限、跨进程有序广播或固定速率调度。 |
+
+对照 [Android 16 目标版本变化](https://developer.android.com/about/versions/16/behavior-changes-16)、[影响所有应用的变化](https://developer.android.com/about/versions/16/behavior-changes-all)及 [Compose 窗口边距指南](https://developer.android.com/develop/ui/compose/system/insets-ui)。验证范围见 [Android 16 验收](testing/ACCEPTANCE.md#android-16-兼容性验收)。
+
 | 阶段 | 状态 | Git 检查点 |
 | --- | --- | --- |
 | 1 工程、共享界面、Room v1、用餐与外观 | 已实现，设备验收待补齐 | `8002325` |
