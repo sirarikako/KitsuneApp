@@ -141,13 +141,13 @@ internal data class GitHubState(
         copy(paused = message, pauseReason = reason,
             pauseId = if (storedPause() == reason) pauseId else newId(), consent = null, bypassFrequency = false)
 
-    fun status(revision: Long, running: Boolean, wifiAvailable: Boolean): GitHubBackupStatus {
+    fun status(revision: Long, running: Boolean, wifiAvailable: Boolean, retryWaiting: Boolean = false): GitHubBackupStatus {
         val pending = lastRevision != revision || consent != null || attempts.isNotEmpty() || this.pending != null
         return when {
             running -> GitHubBackupStatus.RUNNING
             failedRevision == revision && permanent -> GitHubBackupStatus.FAILED
             pending && wifiOnly && !wifiAvailable -> GitHubBackupStatus.WIFI
-            pending && retry != null -> GitHubBackupStatus.RETRY
+            pending && (retryWaiting || failedRevision == revision && retry != null) -> GitHubBackupStatus.RETRY
             pending -> GitHubBackupStatus.PENDING
             else -> GitHubBackupStatus.NORMAL
         }

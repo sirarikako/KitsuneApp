@@ -24,6 +24,8 @@ class GitHubStateTest {
         assertEquals(GitHubBackupStatus.RETRY, retrying.status(6, false, true))
         assertEquals(GitHubBackupStatus.WIFI, retrying.status(6, false, false))
         assertEquals(GitHubBackupStatus.FAILED, retrying.copy(permanent = true).status(6, false, true))
+        assertEquals(GitHubBackupStatus.RETRY, retrying.status(7, false, true, retryWaiting = true))
+        assertEquals(GitHubBackupStatus.PENDING, retrying.status(7, false, true, retryWaiting = false))
         assertNull(retrying.pause(local.copy(revision = 6)))
     }
 

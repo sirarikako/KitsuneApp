@@ -2209,7 +2209,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     state.ledgerRange=null;state.ledgerPeriodDraft=null;state.previewMode=null;
     const blankLedgerFilters=()=&gt;({type:&#x27;&#x27;,category:&#x27;&#x27;,note:&#x27;&#x27;});
     state.ledgerFilters=blankLedgerFilters();state.ledgerFiltersOpen=false;
-    state.githubDemo={backedUp:false,review:null,scenario:&#x27;normal&#x27;,wifi:false,draftWifi:false,editing:false};
+    state.githubDemo={backedUp:false,review:null,scenario:&#x27;normal&#x27;,wifi:false,draftWifi:false,editing:false,uploading:false};
     const blankMealFilters=()=&gt;({from:&#x27;&#x27;,to:&#x27;&#x27;,slot:&#x27;any&#x27;,atHome:&#x27;any&#x27;,method:&#x27;any&#x27;,preparations:[],keyword:&#x27;&#x27;});
     state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
     const wallets=[{id:&#x27;daily&#x27;,name:&#x27;日常钱包&#x27;,code:&#x27;CNY&#x27;,scale:2,opening:0n,separateAccounting:false},{id:&#x27;pocket&#x27;,name:&#x27;零钱钱包&#x27;,code:&#x27;CNY&#x27;,scale:2,opening:50000n,separateAccounting:false},{id:&#x27;travel&#x27;,name:&#x27;旅行钱包&#x27;,code:&#x27;JPY&#x27;,scale:0,opening:20000n,separateAccounting:true}];
@@ -2751,8 +2751,9 @@ html&gt;body{padding:0}&lt;/style&gt;
       const demo=state.githubDemo,pause=githubPause(),scenario=githubScenarios[demo.scenario];
       return `&lt;section class=&quot;ks-money-card ks-form&quot;&gt;
         &lt;div role=&quot;status&quot;&gt;
-          &lt;h3 class=&quot;ks-backup-status&quot;&gt;${pause?&#x27;自动备份已暂停&#x27;:scenario[0]}&lt;/h3&gt;
+          &lt;h3 class=&quot;ks-backup-status&quot;&gt;${pause?&#x27;自动备份已暂停&#x27;:demo.uploading?&#x27;正在备份&#x27;:scenario[0]}&lt;/h3&gt;
           ${pause?`&lt;p&gt;${pause}&lt;/p&gt;&lt;p class=&quot;ks-note&quot;&gt;${githubLocalSaved}&lt;/p&gt;`:&#x27;&#x27;}
+          ${pause&amp;&amp;demo.uploading?&#x27;&lt;p class=&quot;ks-note&quot;&gt;正在备份&lt;/p&gt;&#x27;:&#x27;&#x27;}
           &lt;p class=&quot;ks-note&quot;&gt;上次成功 · 2026-11-17 ${demo.backedUp?&#x27;09:41&#x27;:&#x27;09:30&#x27;}&lt;/p&gt;
           &lt;p class=&quot;ks-note&quot;&gt;demo/kitsune-backup · main&lt;/p&gt;
         &lt;/div&gt;
@@ -2769,7 +2770,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         ${githubAction(&#x27;取消&#x27;,&#x27;cancel-connection&#x27;,&#x27;choice&#x27;,&#x27;ks-full&#x27;)}
       &lt;/section&gt;`:&#x27;&#x27;}
       &lt;section class=&quot;ks-money-card ks-form&quot;&gt;
-        &lt;button type=&quot;button&quot; class=&quot;ks-primary ks-full&quot; data-github-action=&quot;backup&quot; ${pause||demo.scenario===&#x27;running&#x27;?&#x27;disabled&#x27;:&#x27;&#x27;}&gt;立即备份&lt;/button&gt;
+        &lt;button type=&quot;button&quot; class=&quot;ks-primary ks-full&quot; data-github-action=&quot;backup&quot; ${pause||demo.uploading||demo.scenario===&#x27;running&#x27;?&#x27;disabled&#x27;:&#x27;&#x27;}&gt;立即备份&lt;/button&gt;
         ${githubAction(&#x27;从 GitHub 恢复&#x27;,&#x27;restore-preview&#x27;,&#x27;choice&#x27;,&#x27;ks-full&#x27;)}
       &lt;/section&gt;
       &lt;section class=&quot;ks-money-card ks-form&quot;&gt;
@@ -3278,8 +3279,8 @@ html&gt;body{padding:0}&lt;/style&gt;
         const action=b.dataset.githubAction,demo=state.githubDemo;
         if(action===&#x27;open&#x27;||action===&#x27;handle&#x27;){state.page=&#x27;github&#x27;;demo.review=null;}
         else if(action===&#x27;backup&#x27;||action===&#x27;apply-upload&#x27;){
-          demo.scenario=&#x27;running&#x27;;demo.review=null;
-          setTimeout(()=&gt;{if(demo.scenario===&#x27;running&#x27;){demo.scenario=&#x27;normal&#x27;;demo.backedUp=true;render();}},600);
+          demo.uploading=true;demo.review=null;
+          setTimeout(()=&gt;{if(demo.uploading){demo.uploading=false;demo.scenario=&#x27;normal&#x27;;demo.backedUp=true;render();}},600);
         }
         else if(action===&#x27;apply-restore&#x27;){demo.scenario=&#x27;restored&#x27;;demo.review=&#x27;notice&#x27;;}
         else if(action===&#x27;configure&#x27;){demo.editing=true;demo.draftWifi=demo.wifi;}
@@ -3413,7 +3414,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(e.matches(&#x27;[data-github-wifi]&#x27;)){state.githubDemo.wifi=e.checked;return;}
       if(e.matches(&#x27;[data-github-wifi-draft]&#x27;)){state.githubDemo.draftWifi=e.checked;return;}
       if(e.matches(&#x27;[data-github-scenario]&#x27;)){
-        state.githubDemo.scenario=e.value;state.githubDemo.editing=false;
+        state.githubDemo.scenario=e.value;state.githubDemo.editing=false;state.githubDemo.uploading=false;
         state.githubDemo.review=githubPause()?&#x27;notice&#x27;:null;render();return;
       }
       if(e.matches(&#x27;[data-category-wallet]&#x27;)){state.categoryWalletId=e.value;state.editingFinancialCategoryId=null;render();return;}

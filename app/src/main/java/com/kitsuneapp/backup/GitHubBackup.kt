@@ -78,6 +78,7 @@ internal class GitHubBackup(
     val running = mutableRunning.asStateFlow()
     private val network = requireNotNull(context.getSystemService(ConnectivityManager::class.java))
     fun wifiAvailable() = network.activeWifi() != null
+    fun retryDelay(gate: DelayGate?) = clock.refreshed(gate)?.remaining(clock.now) ?: 0L
 
     val wifiChanges = callbackFlow {
         val callback = object : ConnectivityManager.NetworkCallback() {
@@ -310,7 +311,8 @@ internal class GitHubBackup(
                     return@withLock true
                 }
                 if (config.lastRevision == local.revision && config.consent == null) {
-                    persist(config.copy(status = "已是最新", pending = null))
+                    persist(config.copy(status = "已是最新", pending = null, retry = null,
+                        failures = 0, failedRevision = -1, permanent = false))
                     return@withLock true
                 }
                 if (neededDelay(config, manual) > 0) return@withLock false

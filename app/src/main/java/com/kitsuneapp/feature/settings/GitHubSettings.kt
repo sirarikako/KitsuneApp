@@ -21,6 +21,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kitsuneapp.AppViewModel
 import com.kitsuneapp.RestorePreview
 import com.kitsuneapp.backup.CLOUD_LIMIT
+import com.kitsuneapp.backup.GitHubBackupStatus
 import com.kitsuneapp.backup.GitHubPause
 import com.kitsuneapp.backup.GitHubPauseReason
 import com.kitsuneapp.backup.suggestedBackupFilename
@@ -30,6 +31,7 @@ import com.kitsuneapp.data.backupStatusTime
 import com.kitsuneapp.ui.*
 import java.math.BigDecimal
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 
 internal const val GITHUB_PAUSED = "自动备份已暂停"
 private const val LOCAL_DATA_SAVED = "本机记录仍会正常保存，暂时不会自动上传。"
@@ -49,6 +51,15 @@ fun GitHubPage(records: Records, model: AppViewModel, back: () -> Unit) {
     val owned = config?.takeIf { it.belongsTo(state) }
     val pause = config?.pause(state)
     val wifiAvailable by service.wifiChanges.collectAsStateWithLifecycle(service.wifiAvailable())
+    val retryGate = owned?.retry
+    val retryWaiting by produceState(initialValue = false, retryGate) {
+        val delayMs = service.retryDelay(retryGate)
+        value = delayMs > 0
+        if (value) {
+            delay(delayMs)
+            value = false
+        }
+    }
     val wifiChange by model.githubWifiChange.collectAsState()
     val wifiUpdate = wifiChange?.takeIf { it.binding == owned?.binding }
     val hasFolder = directory?.let { it.installation == state.installationId &&
@@ -98,7 +109,7 @@ fun GitHubPage(records: Records, model: AppViewModel, back: () -> Unit) {
         }
         Form {
             Paper {
-                val status = owned?.status(state.revision, running, wifiAvailable)
+                val status = owned?.status(state.revision, running, wifiAvailable, retryWaiting)
                 Text(if (pause != null) GITHUB_PAUSED else status?.label ?: "未配置",
                     style = MaterialTheme.typography.titleLarge)
                 if (pause != null) {
@@ -111,7 +122,10 @@ fun GitHubPage(records: Records, model: AppViewModel, back: () -> Unit) {
                 }
                 if (owned != null && (pause == null || owned.consent != null)) {
                     if (pause != null && status != null) Secondary(status.label)
-                    owned.status?.takeIf { owned.failedRevision == state.revision && it != "等待连接到 Wi-Fi" }
+                    owned.status?.takeIf {
+                        it == "已是最新" && status == GitHubBackupStatus.NORMAL ||
+                            owned.failedRevision == state.revision && it != "等待连接到 Wi-Fi"
+                    }
                         ?.let { Secondary(it) }
                 }
                 estimated?.takeIf { it >= CLOUD_LIMIT * 8 / 10 }?.let {

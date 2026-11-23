@@ -318,7 +318,7 @@
     state.ledgerRange=null;state.ledgerPeriodDraft=null;state.previewMode=null;
     const blankLedgerFilters=()=>({type:'',category:'',note:''});
     state.ledgerFilters=blankLedgerFilters();state.ledgerFiltersOpen=false;
-    state.githubDemo={backedUp:false,review:null,scenario:'normal',wifi:false,draftWifi:false,editing:false};
+    state.githubDemo={backedUp:false,review:null,scenario:'normal',wifi:false,draftWifi:false,editing:false,uploading:false};
     const blankMealFilters=()=>({from:'',to:'',slot:'any',atHome:'any',method:'any',preparations:[],keyword:''});
     state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
     const wallets=[{id:'daily',name:'日常钱包',code:'CNY',scale:2,opening:0n,separateAccounting:false},{id:'pocket',name:'零钱钱包',code:'CNY',scale:2,opening:50000n,separateAccounting:false},{id:'travel',name:'旅行钱包',code:'JPY',scale:0,opening:20000n,separateAccounting:true}];
@@ -860,8 +860,9 @@
       const demo=state.githubDemo,pause=githubPause(),scenario=githubScenarios[demo.scenario];
       return `<section class="ks-money-card ks-form">
         <div role="status">
-          <h3 class="ks-backup-status">${pause?'自动备份已暂停':scenario[0]}</h3>
+          <h3 class="ks-backup-status">${pause?'自动备份已暂停':demo.uploading?'正在备份':scenario[0]}</h3>
           ${pause?`<p>${pause}</p><p class="ks-note">${githubLocalSaved}</p>`:''}
+          ${pause&&demo.uploading?'<p class="ks-note">正在备份</p>':''}
           <p class="ks-note">上次成功 · 2026-11-17 ${demo.backedUp?'09:41':'09:30'}</p>
           <p class="ks-note">demo/kitsune-backup · main</p>
         </div>
@@ -878,7 +879,7 @@
         ${githubAction('取消','cancel-connection','choice','ks-full')}
       </section>`:''}
       <section class="ks-money-card ks-form">
-        <button type="button" class="ks-primary ks-full" data-github-action="backup" ${pause||demo.scenario==='running'?'disabled':''}>立即备份</button>
+        <button type="button" class="ks-primary ks-full" data-github-action="backup" ${pause||demo.uploading||demo.scenario==='running'?'disabled':''}>立即备份</button>
         ${githubAction('从 GitHub 恢复','restore-preview','choice','ks-full')}
       </section>
       <section class="ks-money-card ks-form">
@@ -1387,8 +1388,8 @@
         const action=b.dataset.githubAction,demo=state.githubDemo;
         if(action==='open'||action==='handle'){state.page='github';demo.review=null;}
         else if(action==='backup'||action==='apply-upload'){
-          demo.scenario='running';demo.review=null;
-          setTimeout(()=>{if(demo.scenario==='running'){demo.scenario='normal';demo.backedUp=true;render();}},600);
+          demo.uploading=true;demo.review=null;
+          setTimeout(()=>{if(demo.uploading){demo.uploading=false;demo.scenario='normal';demo.backedUp=true;render();}},600);
         }
         else if(action==='apply-restore'){demo.scenario='restored';demo.review='notice';}
         else if(action==='configure'){demo.editing=true;demo.draftWifi=demo.wifi;}
@@ -1522,7 +1523,7 @@
       if(e.matches('[data-github-wifi]')){state.githubDemo.wifi=e.checked;return;}
       if(e.matches('[data-github-wifi-draft]')){state.githubDemo.draftWifi=e.checked;return;}
       if(e.matches('[data-github-scenario]')){
-        state.githubDemo.scenario=e.value;state.githubDemo.editing=false;
+        state.githubDemo.scenario=e.value;state.githubDemo.editing=false;state.githubDemo.uploading=false;
         state.githubDemo.review=githubPause()?'notice':null;render();return;
       }
       if(e.matches('[data-category-wallet]')){state.categoryWalletId=e.value;state.editingFinancialCategoryId=null;render();return;}

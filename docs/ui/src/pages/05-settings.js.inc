@@ -106,8 +106,9 @@
       const demo=state.githubDemo,pause=githubPause(),scenario=githubScenarios[demo.scenario];
       return `<section class="ks-money-card ks-form">
         <div role="status">
-          <h3 class="ks-backup-status">${pause?'自动备份已暂停':scenario[0]}</h3>
+          <h3 class="ks-backup-status">${pause?'自动备份已暂停':demo.uploading?'正在备份':scenario[0]}</h3>
           ${pause?`<p>${pause}</p><p class="ks-note">${githubLocalSaved}</p>`:''}
+          ${pause&&demo.uploading?'<p class="ks-note">正在备份</p>':''}
           <p class="ks-note">上次成功 · 2026-11-17 ${demo.backedUp?'09:41':'09:30'}</p>
           <p class="ks-note">demo/kitsune-backup · main</p>
         </div>
@@ -124,7 +125,7 @@
         ${githubAction('取消','cancel-connection','choice','ks-full')}
       </section>`:''}
       <section class="ks-money-card ks-form">
-        <button type="button" class="ks-primary ks-full" data-github-action="backup" ${pause||demo.scenario==='running'?'disabled':''}>立即备份</button>
+        <button type="button" class="ks-primary ks-full" data-github-action="backup" ${pause||demo.uploading||demo.scenario==='running'?'disabled':''}>立即备份</button>
         ${githubAction('从 GitHub 恢复','restore-preview','choice','ks-full')}
       </section>
       <section class="ks-money-card ks-form">

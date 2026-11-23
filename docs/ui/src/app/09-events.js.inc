@@ -37,8 +37,8 @@
         const action=b.dataset.githubAction,demo=state.githubDemo;
         if(action==='open'||action==='handle'){state.page='github';demo.review=null;}
         else if(action==='backup'||action==='apply-upload'){
-          demo.scenario='running';demo.review=null;
-          setTimeout(()=>{if(demo.scenario==='running'){demo.scenario='normal';demo.backedUp=true;render();}},600);
+          demo.uploading=true;demo.review=null;
+          setTimeout(()=>{if(demo.uploading){demo.uploading=false;demo.scenario='normal';demo.backedUp=true;render();}},600);
         }
         else if(action==='apply-restore'){demo.scenario='restored';demo.review='notice';}
         else if(action==='configure'){demo.editing=true;demo.draftWifi=demo.wifi;}
@@ -172,7 +172,7 @@
       if(e.matches('[data-github-wifi]')){state.githubDemo.wifi=e.checked;return;}
       if(e.matches('[data-github-wifi-draft]')){state.githubDemo.draftWifi=e.checked;return;}
       if(e.matches('[data-github-scenario]')){
-        state.githubDemo.scenario=e.value;state.githubDemo.editing=false;
+        state.githubDemo.scenario=e.value;state.githubDemo.editing=false;state.githubDemo.uploading=false;
         state.githubDemo.review=githubPause()?'notice':null;render();return;
       }
       if(e.matches('[data-category-wallet]')){state.categoryWalletId=e.value;state.editingFinancialCategoryId=null;render();return;}
