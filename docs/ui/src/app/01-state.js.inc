@@ -14,7 +14,7 @@
   const systemDark=window.matchMedia('(prefers-color-scheme: dark)');
   const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
   const motion={primary:200,push:240,pop:220,card:280,sheet:250,dialog:180,local:150,appearance:200,theme:250,easing:'cubic-bezier(0.2, 0, 0, 1)'};
-  const themeRoles=['--ks-bg','--ks-paper','--ks-soft','--ks-line','--ks-accent-bg','--ks-accent','--ks-ink','--ks-dim','--ks-good','--ks-danger','--ks-action-bg','--ks-action-text','--ks-on-danger','--ks-card-surface'];
+  const themeRoles=['--ks-bg','--ks-paper','--ks-soft','--ks-line','--ks-accent-bg','--ks-accent','--ks-ink','--ks-dim','--ks-good','--ks-expense','--ks-danger','--ks-action-bg','--ks-action-text','--ks-on-danger','--ks-card-surface'];
   // Registered color roles interpolate on the existing phone rather than rebuilding its theme on each animation frame.
   const typedTheme=typeof CSS!=='undefined'&&typeof CSS.registerProperty==='function';
   if(typedTheme)for(const name of themeRoles){try{CSS.registerProperty({name,syntax:'<color>',inherits:true,initialValue:'#000000'});}catch{}}
@@ -160,14 +160,15 @@
         const selected=mix(seed,light?(source==='SYSTEM'?"#fffcf7":paper):"#211e1a",light?.18:.23);
         const surfaces=[bg,paper,soft,selected];
         const accent=safe(mix(seed,light?"#342c23":"#fff4e6",light?.72:.45),surfaces,light);
-        return {bg,paper,soft,line,selected,accent,ink:safe(light?"#302b26":"#f3eae1",surfaces,light),dim:safe(light?"#76695e":"#baaea2",surfaces,light),good:safe(light?"#46624a":"#b7d0ae",surfaces,light),danger:safe(light?"#a63832":"#ffb4ab",surfaces,light),onAction:paper,onDanger:safe(light?"#fff8f7":"#451714",[safe(light?"#a63832":"#ffb4ab",surfaces,light)],!light)};
+        const expense=safe(light?"#82551f":"#e8b276",[bg,paper],light);
+        return {bg,paper,soft,line,selected,accent,expense,ink:safe(light?"#302b26":"#f3eae1",surfaces,light),dim:safe(light?"#76695e":"#baaea2",surfaces,light),good:safe(light?"#46624a":"#b7d0ae",surfaces,light),danger:safe(light?"#a63832":"#ffb4ab",surfaces,light),onAction:paper,onDanger:safe(light?"#fff8f7":"#451714",[safe(light?"#a63832":"#ffb4ab",surfaces,light)],!light)};
       });
       return modes;
     }
     const paintColors=(target,seed,source)=>{
       const [light,dark]=makePalette(seed,source);
       const value=key=>`light-dark(${light[key]},${dark[key]})`;
-      const roles={'--ks-bg':'bg','--ks-paper':'paper','--ks-soft':'soft','--ks-line':'line','--ks-accent-bg':'selected','--ks-accent':'accent','--ks-ink':'ink','--ks-dim':'dim','--ks-good':'good','--ks-danger':'danger','--ks-action-bg':'accent','--ks-action-text':'onAction','--ks-on-danger':'onDanger','--ks-card-surface':'paper'};
+      const roles={'--ks-bg':'bg','--ks-paper':'paper','--ks-soft':'soft','--ks-line':'line','--ks-accent-bg':'selected','--ks-accent':'accent','--ks-ink':'ink','--ks-dim':'dim','--ks-good':'good','--ks-expense':'expense','--ks-danger':'danger','--ks-action-bg':'accent','--ks-action-text':'onAction','--ks-on-danger':'onDanger','--ks-card-surface':'paper'};
       target.style.setProperty('--ks-seed',seed);
       for(const [key,role] of Object.entries(roles))target.style.setProperty(key,value(role));
       target.style.setProperty('--ks-card-border','1px solid var(--ks-line)');

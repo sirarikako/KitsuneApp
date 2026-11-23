@@ -11,6 +11,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -31,7 +33,9 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.UiController
@@ -58,30 +62,35 @@ class LedgerLayoutTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
     @Test
-    fun showsTrailingSignedAmountAndIndependentWalletOnNarrowDarkLayout() {
+    fun showsExpenseColorAndCompactWalletActionsOnNarrowDarkLayout() {
         val now = "2026-11-17T12:00:00Z"
         val regular = Wallet("regular", "日常钱包", "日常钱包", "CNY", 2, 10_000, 0, false, false,
             CategoryMode.DEFAULT, CategoryMode.DEFAULT, now, now)
         val separate = regular.copy(id = "separate", name = "旅行钱包", currencyCode = "JPY", currencyScale = 0,
-            separateAccounting = true)
+            separateAccounting = true, archived = true)
         val entry = FinancialEntry("expense", LocalDate.now().toString(), "12:00", EntryType.EXPENSE,
             regular.id, 1_250, "expense-category", null, null, null, "", now, now)
         val category = Category("expense-category", Scope.EXPENSE, null, "", "餐饮", "餐饮", 0, false, false, now, now)
         val records = Records(DataState(installationId = "test", datasetId = "test", arrayElements = 0),
             ThemePreferences(), emptyList(), listOf(category), emptyList(), emptyMap(), listOf(regular, separate), listOf(entry))
         var detail: String? = null
+        var route: String? = null
         compose.setContent {
             KitsuneTheme(records.theme, forceDark = true) {
                 Surface(Modifier.width(320.dp).fillMaxHeight(), color = MaterialTheme.colorScheme.background) {
-                    Box { LedgerPage(records, open = {}, openDetails = { detail = it }) }
+                    Box { LedgerPage(records, open = { route = it }, openDetails = { detail = it }) }
                 }
             }
         }
         val title = compose.onNodeWithText("餐饮", useUnmergedTree = true).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-        val value = compose.onNodeWithText("−12.50", useUnmergedTree = true).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val amount = compose.onNodeWithText("−12.50", useUnmergedTree = true).assertIsDisplayed()
+        val value = amount.fetchSemanticsNode().boundsInRoot
         val currency = compose.onNodeWithText("CNY", useUnmergedTree = true).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         assertTrue(value.left > title.right)
         assertTrue(currency.top >= value.bottom)
+        val layouts = mutableListOf<TextLayoutResult>()
+        amount.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        assertEquals(0xFFE8B276.toInt(), layouts.single().layoutInput.style.color.toArgb())
         compose.onNodeWithText("旅行钱包", substring = true).assertDoesNotExist()
         val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
         assertEquals(0xFF271F1A.toInt(), bitmap.getPixel(8, 8))
@@ -92,10 +101,23 @@ class LedgerLayoutTest {
         compose.runOnIdle { assertEquals(entry.id, detail) }
         compose.onNodeWithText("钱包").performClick()
         compose.onNodeWithText("我的钱包").assertIsDisplayed()
-        compose.onNodeWithText("日常钱包 · CNY").assertIsDisplayed()
-        compose.onNodeWithText("87.50").assertIsDisplayed()
+        val name = compose.onNodeWithText("日常钱包 · CNY").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val balance = compose.onNodeWithText("87.50").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val edit = compose.onNodeWithContentDescription("编辑钱包：日常钱包 · CNY").assertIsDisplayed()
+        val categories = compose.onAllNodesWithText("管理本钱包分类")[0].assertIsDisplayed()
+        val editBounds = edit.fetchSemanticsNode().boundsInRoot
+        val categoryBounds = categories.fetchSemanticsNode().boundsInRoot
+        assertTrue(editBounds.left > name.right && editBounds.bottom <= balance.top)
+        assertTrue(categoryBounds.top >= balance.bottom && categoryBounds.right < editBounds.right)
+        edit.performClick()
+        compose.runOnIdle { assertEquals("wallet/regular", route) }
+        categories.performClick()
+        compose.runOnIdle { assertEquals("walletCategories/regular", route) }
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("旅行钱包 · JPY"))
         compose.onNodeWithText("旅行钱包 · JPY").assertIsDisplayed()
+        compose.onNodeWithText("独立核算").assertIsDisplayed()
+        compose.onNodeWithText("已归档").assertIsDisplayed()
+        saveScreenshot("kitsune-wallets-narrow-dark")
     }
 
     @Test

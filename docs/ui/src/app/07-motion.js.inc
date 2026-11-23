@@ -59,7 +59,7 @@
       const main=phone.querySelector('.ks-main');if(!main)return [];
       const explicit=main.querySelector('[data-monthly-meals],[data-monthly-ledger],[data-ledger-statistics],[data-meal-results]');
       if(explicit)return [explicit];
-      return [...main.children].filter(n=>n.matches('.ks-record-list,.ks-currency-group'));
+      return [...main.children].filter(n=>n.matches('.ks-record-list,.ks-currency-group,.ks-wallet-cards'));
     };
     const inFade=[{opacity:0,offset:0},{opacity:0,offset:.3},{opacity:1,offset:1}];
     const outFade=[{opacity:1,offset:0},{opacity:0,offset:.45},{opacity:0,offset:1}];

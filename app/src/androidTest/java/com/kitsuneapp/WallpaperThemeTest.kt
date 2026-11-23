@@ -31,7 +31,9 @@ import com.kitsuneapp.data.ThemeMode
 import com.kitsuneapp.data.ThemePreferences
 import com.kitsuneapp.ui.KitsuneTheme
 import com.kitsuneapp.ui.Paper
+import com.kitsuneapp.ui.expenseColor
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Rule
@@ -49,10 +51,15 @@ class WallpaperThemeTest {
         }
         var mode by mutableStateOf(ThemeMode.LIGHT)
         lateinit var appliedColors: ColorScheme
+        var appliedExpense = Color.Unspecified
         compose.setContent {
             KitsuneTheme(ThemePreferences(themeMode = mode, colorSource = ColorSource.SYSTEM)) {
                 val palette = MaterialTheme.colorScheme
-                SideEffect { appliedColors = palette }
+                val expense = expenseColor
+                SideEffect {
+                    appliedColors = palette
+                    appliedExpense = expense
+                }
                 Surface(Modifier.fillMaxWidth().testTag("wallpaper-page"), color = palette.background) {
                     Box(Modifier.padding(16.dp)) {
                         Paper(Modifier.testTag("wallpaper-card")) { Text("早餐") }
@@ -75,6 +82,10 @@ class WallpaperThemeTest {
                 assertReadable(appliedColors.onBackground, page)
                 assertReadable(appliedColors.onSurface, card)
                 assertReadable(appliedColors.onSurfaceVariant, card)
+                assertReadable(appliedExpense, card)
+                assertReadable(appliedExpense, page)
+                assertNotEquals(appliedColors.tertiary, appliedExpense)
+                assertNotEquals(appliedColors.error, appliedExpense)
             }
         }
     }

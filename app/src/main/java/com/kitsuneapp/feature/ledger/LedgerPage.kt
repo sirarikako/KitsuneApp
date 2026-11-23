@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -106,18 +107,27 @@ fun LedgerPage(records: Records, open: (String) -> Unit, openDetails: (String) -
                             TextAction("新建钱包", { open("wallet/-") }, designIcon(R.drawable.ks_plus))
                         } }
                         items(ledger.wallets, key = { it.id }) { wallet ->
+                            val label = ledger.walletLabel(wallet.id)
                             Paper {
-                                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text(ledger.walletLabel(wallet.id), color = MaterialTheme.colorScheme.primary,
-                                        style = MaterialTheme.typography.bodySmall)
-                                    if (wallet.separateAccounting) Tag("独立核算")
-                                    if (wallet.archived) Tag("已归档")
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically) {
+                                    FlowRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Text(label, color = MaterialTheme.colorScheme.primary,
+                                            style = MaterialTheme.typography.bodySmall)
+                                        if (wallet.separateAccounting) Tag("独立核算")
+                                        if (wallet.archived) Tag("已归档")
+                                    }
+                                    SquareIcon(designIcon(R.drawable.ks_pencil), "编辑钱包：$label") {
+                                        open("wallet/" + wallet.id)
+                                    }
                                 }
-                                MoneyText(displayMoney(balances.getValue(wallet.id), wallet.currencyScale))
-                                Secondary("初始余额 ${displayMoney(wallet.openingBalanceMinor, wallet.currencyScale)} · 全部流水")
-                                Choice("编辑钱包", { open("wallet/" + wallet.id) }, Modifier.fillMaxWidth())
-                                Choice("管理本钱包分类", { open("walletCategories/" + wallet.id) }, Modifier.fillMaxWidth())
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    MoneyText(displayMoney(balances.getValue(wallet.id), wallet.currencyScale))
+                                    Secondary("初始余额 ${displayMoney(wallet.openingBalanceMinor, wallet.currencyScale)} · 全部流水")
+                                }
+                                TextAction("管理本钱包分类", { open("walletCategories/" + wallet.id) },
+                                    designIcon(R.drawable.ks_chevron_right))
                             }
                         }
                     }
@@ -214,9 +224,16 @@ private fun CategoryTotals(title: String, totals: Map<String, java.math.BigInteg
 }
 
 @Composable
-internal fun MoneyText(value: String, modifier: Modifier = Modifier, align: TextAlign? = null) {
+internal fun MoneyText(value: String, modifier: Modifier = Modifier, align: TextAlign? = null, color: Color = Color.Unspecified) {
     Text(value, modifier, fontSize = 30.sp, lineHeight = 39.sp, letterSpacing = (-1).sp,
-        fontWeight = FontWeight.Medium, textAlign = align)
+        fontWeight = FontWeight.Medium, textAlign = align, color = color)
+}
+
+@Composable
+internal fun EntryType.amountColor(): Color = when (this) {
+    EntryType.INCOME, EntryType.REFUND -> incomeColor
+    EntryType.EXPENSE -> expenseColor
+    EntryType.TRANSFER -> MaterialTheme.colorScheme.onSurface
 }
 
 fun Ledger.entryAmount(entry: FinancialEntry, includeCurrency: Boolean = true): String {
@@ -255,9 +272,6 @@ private fun EntryRow(ledger: Ledger, entry: FinancialEntry, includeYear: Boolean
     }
     RecordRow(title, subtitle, icon = designIcon(icon), onClick = onClick,
         amount = if (transfer) ledger.entryAmount(entry) else signedAmount(entry, wallet.currencyScale),
-        currency = wallet.currencyCode.takeUnless { transfer }, amountColor = when (entry.type) {
-            EntryType.INCOME, EntryType.REFUND -> incomeColor
-            EntryType.EXPENSE -> MaterialTheme.colorScheme.error
-            EntryType.TRANSFER -> MaterialTheme.colorScheme.onSurface
-        }, badge = names, sharedId = entry.id)
+        currency = wallet.currencyCode.takeUnless { transfer }, amountColor = entry.type.amountColor(),
+        badge = names, sharedId = entry.id)
 }

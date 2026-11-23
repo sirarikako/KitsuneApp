@@ -14,6 +14,7 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -33,8 +34,11 @@ import com.materialkolor.dynamicColorScheme
 import com.materialkolor.ktx.animateColorScheme
 
 val LocalDarkMode = staticCompositionLocalOf { false }
+private val LocalExpenseColor = compositionLocalOf { Color.Unspecified }
 val incomeColor: Color
     @Composable get() = MaterialTheme.colorScheme.tertiary
+val expenseColor: Color
+    @Composable get() = LocalExpenseColor.current
 val motion = androidx.compose.animation.core.CubicBezierEasing(0.2f, 0f, 0f, 1f)
 internal val CardRadius = 17.dp
 val CardShape = RoundedCornerShape(CardRadius)
@@ -109,7 +113,8 @@ private fun StartupTheme(content: @Composable () -> Unit) {
 
 @Composable
 private fun KitsuneMaterialTheme(colors: ColorScheme, dark: Boolean, content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalDarkMode provides dark) {
+    val expense = remember(colors.background, colors.surface, dark) { designExpenseColor(colors, dark) }
+    CompositionLocalProvider(LocalDarkMode provides dark, LocalExpenseColor provides expense) {
         MaterialTheme(colors, shapes = Shapes(small = ControlShape, medium = CardShape, large = DialogShape),
             typography = type, content = content)
     }

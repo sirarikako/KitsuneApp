@@ -88,8 +88,8 @@
   #kitsune-preview .ks-currency-amount{display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;max-width:46%;text-align:right;font-variant-numeric:tabular-nums}
   #kitsune-preview .ks-currency-amount strong,#kitsune-preview .ks-currency-group strong,#kitsune-preview .ks-amount{overflow-wrap:anywhere}
   #kitsune-preview .ks-currency-amount strong{font-size:14px;font-weight:600}
-  #kitsune-preview .ks-currency-amount.ks-expense strong{color:var(--ks-danger)}
-  #kitsune-preview .ks-currency-amount.ks-income strong{color:var(--ks-good)}
+  #kitsune-preview :is(.ks-currency-amount.ks-expense strong,.ks-amount.ks-expense){color:var(--ks-expense)}
+  #kitsune-preview :is(.ks-currency-amount.ks-income strong,.ks-amount.ks-income){color:var(--ks-good)}
   #kitsune-preview .ks-currency-amount small{font-size:11px;color:var(--ks-dim)}
   #kitsune-preview .ks-currency-group{margin-bottom:19px}
   #kitsune-preview .ks-currency-group .ks-money-card{margin-bottom:10px}

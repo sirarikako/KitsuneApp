@@ -46,6 +46,9 @@ internal fun designColors(seed: Color, dark: Boolean, usePresetTones: Boolean): 
 internal fun designIncomeColor(dark: Boolean) =
     Color(if (dark) 0xFFB7D0AE else 0xFF46624A)
 
+internal fun designExpenseColor(colors: ColorScheme, dark: Boolean): Color =
+    readable(Color(if (dark) 0xFFE8B276 else 0xFF82551F), listOf(colors.background, colors.surface), dark)
+
 private fun mix(first: Color, second: Color, weight: Double): Color {
     val a = first.toArgb()
     val b = second.toArgb()

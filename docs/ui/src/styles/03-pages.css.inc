@@ -16,7 +16,11 @@
   #kitsune-preview .ks-wallet-setting input{width:19px;height:19px;accent-color:var(--ks-accent);flex-shrink:0}
   #kitsune-preview .ks-setting-link{width:100%;font:inherit;color:var(--ks-ink);background:transparent;text-align:left;border:0;cursor:pointer}
   #kitsune-preview .ks-setting-link>svg:last-child{flex-shrink:0}
-  #kitsune-preview .ks-category-shortcut{width:100%;margin-top:12px}
+  #kitsune-preview .ks-wallet-cards{display:grid;gap:var(--ks-space-2)}
+  #kitsune-preview .ks-wallet-card-heading{display:flex;align-items:center;justify-content:space-between;gap:var(--ks-space-2)}
+  #kitsune-preview .ks-wallet-card-label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--ks-space-1) 6px;min-width:0}
+  #kitsune-preview .ks-wallet-cards .ks-amount{margin:var(--ks-space-2) 0 2px}
+  #kitsune-preview .ks-wallet-cards .ks-text-btn{margin-top:var(--ks-space-2)}
   #kitsune-preview .ks-category-manager{display:flex;flex-direction:column;gap:var(--ks-space-3)}
   #kitsune-preview .ks-category-manager .ks-category-rows{background:var(--ks-card-surface);border:var(--ks-card-border);border-radius:var(--ks-radius);padding:0 var(--ks-space-3)}
   #kitsune-preview .ks-category-manager .ks-setting{gap:var(--ks-space-1)}

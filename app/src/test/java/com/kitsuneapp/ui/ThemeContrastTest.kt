@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import com.kitsuneapp.data.presets
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.max
@@ -33,14 +34,14 @@ class ThemeContrastTest {
     @Test
     fun customApricotRolesMatchRenderedDesignInBothModes() {
         val expected = listOf(
-            "f6f3ed fffcf7 eee7dc e5ded4 f4e5d8 8c5a39 302b26 706459 46624a a63832 fff8f7",
-            "201e1b 2a2723 383129 443c34 463325 e4bda0 f3eae1 baaea2 b7d0ae ffb4ab 451714",
+            "f6f3ed fffcf7 eee7dc e5ded4 f4e5d8 8c5a39 302b26 706459 46624a 82551f a63832 fff8f7",
+            "201e1b 2a2723 383129 443c34 463325 e4bda0 f3eae1 baaea2 b7d0ae e8b276 ffb4ab 451714",
         )
         for ((index, dark) in listOf(false, true).withIndex()) {
             val palette = designColors(Color(0xFFC47A4A), dark, usePresetTones = false)
             val roles = listOf(palette.background, palette.surface, palette.surfaceVariant, palette.outlineVariant,
                 palette.primaryContainer, palette.primary, palette.onSurface, palette.onSurfaceVariant,
-                palette.tertiary, palette.error, palette.onError)
+                palette.tertiary, designExpenseColor(palette, dark), palette.error, palette.onError)
             assertEquals(expected[index], roles.joinToString(" ", transform = ::rgb))
         }
     }
@@ -52,6 +53,9 @@ class ThemeContrastTest {
         for ((hex, usePresetTones) in seeds) {
             for (dark in listOf(false, true)) {
                 val roles = designColors(seedColor(hex), dark, usePresetTones)
+                val expense = designExpenseColor(roles, dark)
+                assertNotEquals("$hex dark=$dark expense and error", roles.error, expense)
+                assertNotEquals("$hex dark=$dark expense and income", roles.tertiary, expense)
                 val pairs = listOf(
                     roles.onBackground to roles.background,
                     roles.onSurface to roles.surface,
@@ -63,6 +67,8 @@ class ThemeContrastTest {
                     roles.onError to roles.error,
                     roles.error to roles.surface,
                     roles.tertiary to roles.surface,
+                    expense to roles.surface,
+                    expense to roles.background,
                 )
                 pairs.forEachIndexed { index, (text, background) ->
                     val first = text.luminance()

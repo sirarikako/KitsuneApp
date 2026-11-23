@@ -312,7 +312,7 @@ fun AppearancePage(applied: ThemePreferences, model: AppViewModel, back: () -> U
                                 RecordRow("工资", "收入", icon = Icons.AutoMirrored.Outlined.List, onClick = null,
                                     amount = "+100.00", currency = "CNY", amountColor = incomeColor)
                                 RecordRow("餐饮", "支出", icon = Icons.AutoMirrored.Outlined.List, onClick = null,
-                                    amount = "−28.00", currency = "CNY", amountColor = MaterialTheme.colorScheme.error)
+                                    amount = "−28.00", currency = "CNY", amountColor = expenseColor)
                                 Surface(Modifier.fillMaxWidth().heightIn(min = 46.dp), color = MaterialTheme.colorScheme.primary,
                                     shape = ControlShape) {
                                     Box(Modifier.padding(8.dp), contentAlignment = Alignment.Center) { Text("保存") }

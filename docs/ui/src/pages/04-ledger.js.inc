@@ -1,18 +1,21 @@
     function pageLedger(){
       const allEntries=financialEntries();
       const tabs=`<div class="ks-segments" aria-label="记账视图">${['流水','钱包','统计'].map(tab=>`<button type="button" data-ledger-tab="${tab}" aria-pressed="${state.ledgerTab===tab}" class="cursor-interaction">${tab}</button>`).join('')}</div>`;
-      if(state.ledgerTab==='钱包')return `${tabs}${section('我的钱包','<span class="ks-note">每个钱包余额单独计算</span>')}
+      if(state.ledgerTab==='钱包')return `${tabs}${section('我的钱包','<span class="ks-note">每个钱包余额单独计算</span>')}<div class="ks-wallet-cards">
         ${wallets.map(wallet=>{
           const related=allEntries.filter(entry=>entry.walletId===wallet.id);
           const balance=wallet.opening+total(related,'收入')-netExpense(related);
-          return `<div class="ks-currency-group"><div class="ks-money-card" data-wallet-balance="${wallet.id}">
-            <span class="ks-money-caption">${wallet.name} · ${wallet.code} ${wallet.separateAccounting?'<span class="ks-pill">独立核算</span>':''}</span>
+          const label=escapeText(wallet.name+' · '+wallet.code);
+          return `<div class="ks-money-card" data-wallet-balance="${wallet.id}">
+            <div class="ks-wallet-card-heading">
+              <div class="ks-money-caption ks-wallet-card-label"><span>${label}</span>${wallet.separateAccounting?'<span class="ks-pill">独立核算</span>':''}${wallet.archived?'<span class="ks-pill">已归档</span>':''}</div>
+              <button type="button" class="ks-icon-btn cursor-interaction" data-edit-wallet="${wallet.id}" title="编辑钱包" aria-label="编辑钱包：${label}">${icon('pencil')}</button>
+            </div>
             <div class="ks-amount">${money(balance,wallet.code)}</div>
             <div class="ks-note">初始余额 ${money(wallet.opening,wallet.code)} · 全部流水</div>
-            <button type="button" class="ks-choice ks-full ks-category-shortcut cursor-interaction" data-edit-wallet="${wallet.id}">编辑钱包</button>
-            <button type="button" class="ks-choice ks-full ks-category-shortcut cursor-interaction" data-action="manage-categories" data-category-wallet="${wallet.id}">管理本钱包分类</button>
-          </div></div>`;
-        }).join('')}<p class="ks-footnote">交互预览 · 示例数据</p>`;
+            <button type="button" class="ks-text-btn cursor-interaction" data-action="manage-categories" data-category-wallet="${wallet.id}">管理本钱包分类${icon('chevron-right')}</button>
+          </div>`;
+        }).join('')}</div><p class="ks-footnote">交互预览 · 示例数据</p>`;
       const entries=allEntries.filter(matchesLedgerScope).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
       const picker=ledgerPeriodControl()+walletScope(),groups=currencyGroups(entries,selectedWallets());
       const period=state.ledgerRange?'所选期间':'本月';

@@ -122,7 +122,8 @@ fun EntryDetails(records: Records, id: String, model: AppViewModel, open: (Strin
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Secondary("${entry.type.label} · ${wallet.currencyCode}")
-                    MoneyText(ledger.entryAmount(entry, includeCurrency = entry.type == EntryType.TRANSFER), align = TextAlign.Center)
+                    MoneyText(ledger.entryAmount(entry, includeCurrency = entry.type == EntryType.TRANSFER),
+                        align = TextAlign.Center, color = entry.type.amountColor())
                 }
             }
             Paper(padding = 0) {

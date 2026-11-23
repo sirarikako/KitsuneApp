@@ -119,10 +119,11 @@ jobs:
             adb exec-out run-as com.kitsuneapp cat cache/kitsune-meals.png > captures/meals.png
             adb exec-out run-as com.kitsuneapp cat cache/kitsune-meal-form.png > captures/meal-form.png
             adb exec-out run-as com.kitsuneapp cat cache/kitsune-ledger-narrow-dark.png > captures/ledger-narrow-dark.png
+            adb exec-out run-as com.kitsuneapp cat cache/kitsune-wallets-narrow-dark.png > captures/wallets-narrow-dark.png
             adb exec-out run-as com.kitsuneapp cat cache/kitsune-calculator.png > captures/calculator.png
             adb exec-out run-as com.kitsuneapp cat cache/kitsune-wallet-range-regular.png > captures/wallet-range-regular.png
             adb exec-out run-as com.kitsuneapp cat cache/kitsune-wallet-range-manual.png > captures/wallet-range-manual.png
-            python3 -c 'from pathlib import Path; files = list(Path("captures").glob("*.png")); assert len(files) == 8 and all(f.read_bytes().startswith(bytes.fromhex("89504e470d0a1a0a")) for f in files)'
+            python3 -c 'from pathlib import Path; files = list(Path("captures").glob("*.png")); assert len(files) == 9 and all(f.read_bytes().startswith(bytes.fromhex("89504e470d0a1a0a")) for f in files)'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
