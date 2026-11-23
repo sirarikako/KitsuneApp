@@ -36,6 +36,18 @@ class NavigationTest {
     })
 
     @Test
+    fun homeCardsKeepHeadingsAndQuickActions() {
+        compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
+        compose.onNodeWithTag("home-meals-card").assertExists()
+        compose.onNodeWithTag("home-ledger-card").assertExists()
+        compose.onNodeWithText("今日用餐").assertExists()
+        compose.onNodeWithText("本月收支").assertExists()
+        compose.onNodeWithText("全部记录").assertExists()
+        compose.onNodeWithText("查看账本").assertExists()
+        compose.onNodeWithText("记一笔").assertExists()
+    }
+
+    @Test
     fun opensAppearanceFromSettings() {
         compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
         screenshot("kitsune-home")
