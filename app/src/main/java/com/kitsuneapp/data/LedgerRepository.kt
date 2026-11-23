@@ -11,6 +11,7 @@ data class WalletDraft(
     val sortOrder: Int,
     val archived: Boolean,
     val separateAccounting: Boolean,
+    val setAsDefault: Boolean? = null,
 )
 
 data class EntryDraft(
@@ -32,7 +33,7 @@ val availableCurrencies: List<Currency> by lazy {
     Currency.getAvailableCurrencies().filter { it.defaultFractionDigits in 0..4 }.sortedBy { it.currencyCode }
 }
 
-suspend fun Repository.saveWallet(draft: WalletDraft) = change {
+suspend fun Repository.saveWallet(draft: WalletDraft) = change { state ->
     val previous = draft.id?.let { requireNotNull(dao.wallet(it)) { "钱包已不存在" } }
     val id = previous?.id ?: newId()
     val name = cleanName(draft.name)
@@ -51,15 +52,23 @@ suspend fun Repository.saveWallet(draft: WalletDraft) = change {
     val wallet = Wallet(id, name, normalized, code, scale, decimalMinor(draft.openingBalance, scale, positive = false),
         draft.sortOrder, draft.archived, draft.separateAccounting, previous?.incomeCategoryMode ?: CategoryMode.DEFAULT,
         previous?.expenseCategoryMode ?: CategoryMode.DEFAULT, previous?.createdAt ?: now, now)
-    if (previous != null && wallet.copy(updatedAt = previous.updatedAt) == previous) return@change false
-    dao.put(wallet)
-    true
+    val walletChanged = previous == null || wallet.copy(updatedAt = previous.updatedAt) != previous
+    val defaultWalletId = when {
+        !wallet.archived && draft.setAsDefault == true -> id
+        state.defaultWalletId == id && (wallet.archived || draft.setAsDefault == false) -> null
+        else -> state.defaultWalletId
+    }
+    if (walletChanged) dao.put(wallet)
+    if (defaultWalletId != state.defaultWalletId) dao.setDefaultWallet(defaultWalletId)
+    walletChanged || defaultWalletId != state.defaultWalletId
 }
 
-suspend fun Repository.removeWallet(id: String) = change {
+suspend fun Repository.removeWallet(id: String) = change { state ->
     require(dao.walletUses(id) == 0) { "已有流水的钱包请归档" }
     require(dao.ownedCategories(id) == 0) { "请先删除钱包专属分类，或归档钱包" }
-    dao.deleteWallet(id) > 0
+    val deleted = dao.deleteWallet(id) > 0
+    if (deleted && state.defaultWalletId == id) dao.setDefaultWallet(null)
+    deleted
 }
 
 suspend fun Repository.setCategoryMode(walletId: String, scope: Scope, mode: CategoryMode) = change {

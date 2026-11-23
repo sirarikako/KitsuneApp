@@ -204,26 +204,28 @@ fun LedgerPage(records: Records, open: (String) -> Unit, openDetails: (String) -
                             } }
                             items(ledger.wallets, key = { it.id }) { wallet ->
                                 val label = ledger.walletLabel(wallet.id)
-                                Paper {
-                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically) {
-                                        FlowRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                            verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                            Text(label, color = MaterialTheme.colorScheme.primary,
-                                                style = MaterialTheme.typography.bodySmall)
-                                            if (wallet.separateAccounting) Tag("独立核算")
-                                            if (wallet.archived) Tag("已归档")
-                                        }
-                                        SquareIcon(designIcon(R.drawable.ks_pencil), "编辑钱包：$label") {
-                                            open("wallet/" + wallet.id)
-                                        }
-                                    }
+                                Paper(padding = 12) {
                                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                            verticalAlignment = Alignment.CenterVertically) {
+                                            FlowRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                Text(label, color = MaterialTheme.colorScheme.primary,
+                                                    style = MaterialTheme.typography.bodySmall)
+                                                if (wallet.id == ledger.defaultWallet?.id) Tag("默认钱包")
+                                                if (wallet.separateAccounting) Tag("独立核算")
+                                                if (wallet.archived) Tag("已归档")
+                                            }
+                                            SquareIcon(designIcon(R.drawable.ks_tags), "管理本钱包分类：$label") {
+                                                open("walletCategories/" + wallet.id)
+                                            }
+                                            SquareIcon(designIcon(R.drawable.ks_pencil), "编辑钱包：$label") {
+                                                open("wallet/" + wallet.id)
+                                            }
+                                        }
                                         MoneyText(displayMoney(balances.getValue(wallet.id), wallet.currencyScale))
                                         Secondary("初始余额 ${displayMoney(wallet.openingBalanceMinor, wallet.currencyScale)} · 全部流水")
                                     }
-                                    TextAction("管理本钱包分类", { open("walletCategories/" + wallet.id) },
-                                        designIcon(R.drawable.ks_chevron_right))
                                 }
                             }
                         }

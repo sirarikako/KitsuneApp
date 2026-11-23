@@ -149,4 +149,5 @@ data class DataState(
     val revision: Long = 0,
     val generation: Long = 0,
     val arrayElements: Int,
+    val defaultWalletId: String? = null,
 )

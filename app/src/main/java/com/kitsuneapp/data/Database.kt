@@ -1,5 +1,6 @@
 package com.kitsuneapp.data
 
+import androidx.room.AutoMigration
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Insert
@@ -10,8 +11,9 @@ import androidx.room.Upsert
 @Database(
     entities = [MealMethod::class, Category::class, MealRecord::class, MealPreparationCategory::class,
         Wallet::class, FinancialEntry::class, ThemePreferences::class, ImportReceipt::class, DataState::class],
-    version = 1,
+    version = 2,
     exportSchema = true,
+    autoMigrations = [AutoMigration(from = 1, to = 2)],
 )
 abstract class KitsuneDatabase : RoomDatabase() {
     abstract fun records(): RecordsDao
@@ -21,6 +23,10 @@ abstract class KitsuneDatabase : RoomDatabase() {
 interface RecordsDao {
     @Query("SELECT * FROM DataState WHERE `key` = 0") suspend fun state(): DataState?
     @Upsert suspend fun put(state: DataState)
+    @Query("UPDATE DataState SET revision = :revision, arrayElements = :count WHERE `key` = 0")
+    suspend fun updateRevision(revision: Long, count: Int)
+    @Query("UPDATE DataState SET defaultWalletId = :id WHERE `key` = 0")
+    suspend fun setDefaultWallet(id: String?)
     @Query("SELECT * FROM ThemePreferences WHERE `key` = 0") suspend fun theme(): ThemePreferences?
     @Upsert suspend fun put(theme: ThemePreferences)
 

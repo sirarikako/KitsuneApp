@@ -157,9 +157,12 @@ class SnapshotStore(private val context: Context, private val repository: Reposi
                 walk(source::entryPage, FinancialEntry::id) { target.insertEntry(it) }
                 walkReceipts(source) { target.insert(it) }
                 target.put(checkNotNull(source.theme()))
+                val defaultWalletId = state.defaultWalletId?.takeIf {
+                    state.datasetId == staged.info.datasetId && target.wallet(it)?.archived == false
+                }
                 target.put(state.copy(datasetId = staged.info.datasetId,
                     revision = Math.addExact(state.revision, 1L), generation = Math.addExact(state.generation, 1L),
-                    arrayElements = target.countElements()))
+                    arrayElements = target.countElements(), defaultWalletId = defaultWalletId))
             }
             repository.notifyChanged()
         }

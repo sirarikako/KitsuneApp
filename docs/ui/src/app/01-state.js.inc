@@ -45,7 +45,9 @@
     const wallets=[{id:'daily',name:'日常钱包',code:'CNY',scale:2,opening:0n,separateAccounting:false},{id:'pocket',name:'零钱钱包',code:'CNY',scale:2,opening:50000n,separateAccounting:false},{id:'travel',name:'旅行钱包',code:'JPY',scale:0,opening:20000n,separateAccounting:true}];
     const walletById=id=>wallets.find(w=>w.id===id)||wallets[0];
     const entryWallet=()=>wallets.find(w=>w.id===state.entryDraft.walletId)||null;
-    const defaultEntryWallet=()=>wallets.find(w=>w.id===state.lastWalletId&&!w.separateAccounting)||wallets.find(w=>!w.separateAccounting)||null;
+    const defaultEntryWallet=()=>wallets.find(w=>w.id===state.defaultWalletId&&!w.archived)
+      ||wallets.find(w=>w.id===state.lastWalletId&&!w.archived&&!w.separateAccounting)
+      ||wallets.find(w=>!w.archived&&!w.separateAccounting)||null;
     state.walletFilterIds=null;state.walletPickerOpen=false;state.walletDraftMode='REGULAR';state.walletDraftIds=[];state.lastWalletId='daily';
     // Financial categories are scoped by type and optional wallet; meal preparation categories are separate.
     const sharedFinancialCategories={
@@ -81,6 +83,7 @@
     const savedState=window.openai?.widgetState?.privateContent?.kitsune;
     // Accept only the original primary preview preferences from old saved arrays.
     const saved=Array.isArray(savedState)?savedState[0]:savedState;
+    state.defaultWalletId=wallets.find(w=>w.id===saved?.defaultWalletId&&!w.archived)?.id??null;
     state.deletedEntryIds=new Set();state.nextEntryId=1;state.deletePending=null;
     if(saved){const s=saved;if(['light','dark','system'].includes(s.mode))style.mode=s.mode;if(/^\d{4}-(0[1-9]|1[0-2])$/.test(s.ledgerMonth||'')&&s.ledgerMonth.slice(0,4)!=='0000')state.ledgerMonth=s.ledgerMonth;if(s.walletFilterIds==='ALL')state.walletFilterIds='ALL';else if(Array.isArray(s.walletFilterIds)){const ids=wallets.filter(w=>s.walletFilterIds.includes(w.id)).map(w=>w.id);if(ids.length)state.walletFilterIds=ids;}if(Array.isArray(s.separateWalletIds))wallets.forEach(w=>{w.separateAccounting=s.separateWalletIds.includes(w.id);});const f=s.mealFilters;if(f&&typeof f==='object'){for(const key of ['from','to'])if(typeof f[key]==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(f[key]))state.mealFilters[key]=f[key];if(['any','0','1','2'].includes(f.slot))state.mealFilters.slot=f.slot;if(['any','yes','no'].includes(f.atHome))state.mealFilters.atHome=f.atHome;if(typeof f.method==='string')state.mealFilters.method=f.method.slice(0,80);if(typeof f.keyword==='string')state.mealFilters.keyword=f.keyword.slice(0,100);if(Array.isArray(f.preparations))state.mealFilters.preparations=f.preparations.filter(x=>typeof x==='string').slice(0,30).map(x=>x.slice(0,80));state.mealListMode=s.mealListMode===true;}}
     state.records['2026-11-17'] = [{atHome:true,method:'下厨',categories:[],dishes:'燕麦粥、煎蛋',note:''},{atHome:false,method:'外卖',categories:[],dishes:'照烧鸡腿饭',note:''},null];
@@ -170,7 +173,7 @@
       const snapshot=phone.ksSnapshot();
       window.openai?.setWidgetState?.({modelContent:{当前页面:snapshot.page,用餐筛选:snapshot.mealListMode?snapshot.mealFilters:null},privateContent:{kitsune:snapshot}})?.catch(()=>{});
     };
-    phone.ksSnapshot=()=>({page:navs.some(n=>n[0]===state.page)?state.page:'home',...appliedAppearance(),ledgerMonth:state.ledgerMonth,ledgerRange:state.ledgerRange,walletFilterIds:state.walletFilterIds,separateWalletIds:wallets.filter(w=>w.separateAccounting).map(w=>w.id),mealListMode:state.mealListMode,mealFilters:state.mealFilters});
+    phone.ksSnapshot=()=>({page:navs.some(n=>n[0]===state.page)?state.page:'home',...appliedAppearance(),ledgerMonth:state.ledgerMonth,ledgerRange:state.ledgerRange,walletFilterIds:state.walletFilterIds,defaultWalletId:state.defaultWalletId,separateWalletIds:wallets.filter(w=>w.separateAccounting).map(w=>w.id),mealListMode:state.mealListMode,mealFilters:state.mealFilters});
     // Android applies these same presentation roles for preset and custom seeds.
     function makePalette(seed,source){
       const rgb=h=>h.replace("#","").match(/../g).map(x=>parseInt(x,16));

@@ -43,6 +43,7 @@ fun WalletForm(records: Records, id: String?, model: AppViewModel, back: () -> U
         ?: -1).coerceAtMost(Int.MAX_VALUE - 1) + 1).toString()) }
     var archived by rememberSaveable { mutableStateOf(wallet?.archived ?: false) }
     var separate by rememberSaveable { mutableStateOf(wallet?.separateAccounting ?: false) }
+    var setAsDefault by rememberSaveable { mutableStateOf(wallet != null && wallet.id == records.state.defaultWalletId) }
     var delete by rememberSaveable { mutableStateOf(false) }
     var pickCurrency by rememberSaveable { mutableStateOf(false) }
     val busy by model.busy.collectAsState()
@@ -68,6 +69,8 @@ fun WalletForm(records: Records, id: String?, model: AppViewModel, back: () -> U
             Paper {
                 Toggle("独立核算", separate) { separate = it }
                 Secondary("开启后默认排除本钱包的收支和流水。余额与历史记录保留，可在账本手动选择。")
+                HorizontalDivider()
+                Toggle("设为默认钱包", setAsDefault && !archived, enabled = !archived) { setAsDefault = it }
                 if (wallet != null) {
                     HorizontalDivider()
                     Toggle("归档钱包", archived) { archived = it }
@@ -76,7 +79,8 @@ fun WalletForm(records: Records, id: String?, model: AppViewModel, back: () -> U
             SaveActions(busy, error, {
                 model.save(back) {
                     saveWallet(WalletDraft(id, name, code.orEmpty(), amount,
-                        requireNotNull(order.toIntOrNull()) { "排序必须为非负整数" }, archived, separate))
+                        requireNotNull(order.toIntOrNull()) { "排序必须为非负整数" }, archived, separate,
+                        setAsDefault = setAsDefault && !archived))
                 }
             }, wallet?.takeUnless { locked }?.let { "删除钱包" }, { delete = true })
         }

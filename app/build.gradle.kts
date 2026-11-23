@@ -20,6 +20,7 @@ android {
     }
 
     sourceSets["main"].res.srcDir(rootProject.file("artwork/android/res"))
+    sourceSets["androidTest"].assets.srcDir("$projectDir/schemas")
     buildFeatures.compose = true
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
