@@ -133,4 +133,5 @@ jobs:
           name: connected-test-reports
           path: |
             app/build/reports/androidTests/
+            app/build/outputs/connected_android_test_additional_output/
             captures/
