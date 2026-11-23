@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kitsuneapp.R
 import com.kitsuneapp.data.LedgerPeriod
@@ -20,23 +22,32 @@ import com.kitsuneapp.ui.*
 import java.time.YearMonth
 
 @Composable
-internal fun LedgerPeriodControl(period: LedgerPeriod, open: () -> Unit, set: (LedgerPeriod) -> Unit) {
+internal fun LedgerPeriodControl(period: LedgerPeriod, open: () -> Unit, modifier: Modifier) {
     val month = YearMonth.parse(period.month)
-    val monthly = period.start == null
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically) {
-        if (monthly) {
-            SquareIcon(designIcon(R.drawable.ks_chevron_left), "上个月", month > YearMonth.of(1, 1)) {
-                set(LedgerPeriod(month.minusMonths(1).toString()))
-            }
-        }
-        Choice(period.label, open, Modifier.weight(1f).semantics { contentDescription = "选择日期范围" },
-            icon = designIcon(R.drawable.ks_calendar_days))
-        if (monthly) {
-            SquareIcon(designIcon(R.drawable.ks_chevron_right), "下个月", month < YearMonth.of(9999, 12)) {
-                set(LedgerPeriod(month.plusMonths(1).toString()))
-            }
-        }
+    val start = period.start
+    val end = period.end
+    val value = if (start != null && end != null) {
+        "${start.replace('-', '/')} ～ ${end.replace('-', '/')}"
+    } else {
+        "${month.year}年${month.monthValue}月"
+    }
+    LedgerFilterControl(value, "选择日期范围", open, modifier)
+}
+
+@Composable
+internal fun LedgerFilterControl(
+    value: String,
+    description: String,
+    open: () -> Unit,
+    modifier: Modifier,
+    ellipsize: Boolean = false,
+) {
+    OutlinedAction(open, modifier.semantics { contentDescription = description }, spread = true) {
+        Text(value, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
+            maxLines = if (ellipsize) 1 else Int.MAX_VALUE,
+            overflow = if (ellipsize) TextOverflow.Ellipsis else TextOverflow.Clip)
+        Icon(designIcon(R.drawable.ks_chevron_down), null, Modifier.size(14.dp),
+            tint = MaterialTheme.colorScheme.primary)
     }
 }
 
@@ -50,9 +61,14 @@ internal fun LedgerPeriodDialog(applied: LedgerPeriod, dismiss: () -> Unit, appl
     var end by rememberSaveable { mutableStateOf(applied.end.orEmpty()) }
     val parsedYear = year.takeIf { it.length in 1..4 && it.all { digit -> digit in '0'..'9' } }
         ?.toIntOrNull()?.takeIf { it in 1..9999 }
+    val monthDraft = parsedYear?.let { YearMonth.of(it, month) }
+    fun stepMonth(next: YearMonth) {
+        year = next.year.toString()
+        month = next.monthValue
+    }
     val datesReversed = end.isNotEmpty() && start > end
     val draft = if (monthly) {
-        parsedYear?.let { LedgerPeriod(YearMonth.of(it, month).toString()) }
+        monthDraft?.let { LedgerPeriod(it.toString()) }
     } else {
         applied.copy(start = start, end = end).takeIf { start.isNotEmpty() && end.isNotEmpty() && !datesReversed }
     }
@@ -68,6 +84,19 @@ internal fun LedgerPeriodDialog(applied: LedgerPeriod, dismiss: () -> Unit, appl
                 if (monthly) {
                     Field("年份", year, { year = it }, keyboard = KeyboardOptions(keyboardType = KeyboardType.Number))
                     if (parsedYear == null) Secondary("请输入 1 至 9999 的年份")
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically) {
+                        SquareIcon(designIcon(R.drawable.ks_chevron_left), "上个月",
+                            monthDraft != null && monthDraft > YearMonth.of(1, 1)) {
+                            monthDraft?.minusMonths(1)?.let(::stepMonth)
+                        }
+                        monthDraft?.let { Text("${it.year}年${it.monthValue}月", Modifier.weight(1f).padding(horizontal = 4.dp),
+                            textAlign = TextAlign.Center) }
+                        SquareIcon(designIcon(R.drawable.ks_chevron_right), "下个月",
+                            monthDraft != null && monthDraft < YearMonth.of(9999, 12)) {
+                            monthDraft?.plusMonths(1)?.let(::stepMonth)
+                        }
+                    }
                     MonthChoices(month) { month = it }
                 } else {
                     DateControl("开始日期", start, { start = it })

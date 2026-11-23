@@ -1987,6 +1987,7 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-key{border:var(--ks-card-border);background:var(--ks-card-surface);font-size:20px;min-height:var(--ks-control-height);border-radius:var(--ks-control-radius)}
   #kitsune-preview .ks-key.ks-operator{background:var(--ks-card-surface);color:var(--ks-accent)}
   #kitsune-preview .ks-amount-input{width:100%;font-size:34px!important;line-height:1.5;text-align:right;font-variant-numeric:tabular-nums;border:var(--ks-card-border);border-radius:var(--ks-control-radius);background:var(--ks-card-surface);min-height:var(--ks-control-height);padding:var(--ks-space-2) var(--ks-space-3);min-width:0}
+  #kitsune-preview .ks-amount-trigger{display:block}
   #kitsune-preview .ks-full{width:100%}
   #kitsune-preview .ks-daily{border:var(--ks-card-border);border-radius:var(--ks-radius);padding:var(--ks-space-4);margin-top:var(--ks-space-6);background:var(--ks-card-surface)}
   #kitsune-preview .ks-daily-heading{margin:0;font-size:var(--ks-font-section);font-weight:600}
@@ -1998,13 +1999,9 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-daily-state.ks-pending svg{color:var(--ks-dim)}
   #kitsune-preview .ks-daily .ks-primary{margin-top:var(--ks-space-2)}
 
-  #kitsune-preview .ks-ledger-action{background:var(--ks-bg);padding:var(--ks-space-3) var(--ks-space-4) var(--ks-space-4)}
   #kitsune-preview .ks-month-picker{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:3px 0 19px}
   #kitsune-preview .ks-month-field{flex:1;min-width:0;text-align:center}
   #kitsune-preview .ks-month-field input{display:block;max-width:190px;width:100%;margin:auto;text-align:center;min-height:var(--ks-control-height);border:var(--ks-card-border);border-radius:var(--ks-control-radius);background:var(--ks-card-surface);padding:var(--ks-space-2) var(--ks-space-3);font-size:var(--ks-font-body)}
-  #kitsune-preview .ks-ledger-period{gap:var(--ks-space-2);margin-bottom:var(--ks-space-2)}
-  #kitsune-preview .ks-period-trigger{display:flex;align-items:center;justify-content:center;gap:var(--ks-space-2);flex:1;min-width:0;text-align:center}
-  #kitsune-preview .ks-period-trigger svg{flex-shrink:0}
 
   #kitsune-preview .ks-all-methods{margin-top:var(--ks-space-6);padding-top:0;border-top:0}
   #kitsune-preview .ks-empty-state{text-align:center;padding:24px 8px;color:var(--ks-dim);font-size:13px}
@@ -2018,7 +2015,6 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-home-currency small{display:block;color:var(--ks-dim);font-size:11px;margin-bottom:3px}
   #kitsune-preview .ks-home-currency strong{display:block;font-size:16px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
   #kitsune-preview .ks-home-currency .ks-money-caption{padding-top:2px;font-weight:600}
-  #kitsune-preview .ks-home-money .ks-primary{width:100%;margin-top:8px}
   #kitsune-preview .ks-stat-row{padding:var(--ks-space-3) 0}
   #kitsune-preview .ks-stat-row + .ks-stat-row{border-top:1px solid var(--ks-line)}
   #kitsune-preview .ks-stat-row .ks-row{font-size:13px}
@@ -2028,10 +2024,6 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-plan-visual{display:flex;height:8px;gap:3px;margin-top:12px;border-radius:5px;overflow:hidden;background:var(--ks-soft)}
   #kitsune-preview .ks-plan-yes{background:var(--ks-accent)}
   #kitsune-preview .ks-plan-no{background:var(--ks-dim);opacity:.45}
-  #kitsune-preview .ks-amount-row{display:flex;gap:12px;align-items:center}
-  #kitsune-preview .ks-amount-row .ks-amount-input{flex:1;min-width:0;font-size:30px!important;padding:var(--ks-space-2) var(--ks-space-3)}
-  #kitsune-preview .ks-calc-trigger{display:flex;align-items:center;justify-content:center;gap:5px;flex-shrink:0;color:var(--ks-accent);min-height:var(--ks-control-height);border:var(--ks-card-border);border-radius:var(--ks-control-radius);background:var(--ks-card-surface);padding:var(--ks-space-2) var(--ks-space-3);font-size:var(--ks-font-body)}
-  #kitsune-preview .ks-calc-trigger svg{width:var(--ks-icon-size);height:var(--ks-icon-size)}
   #kitsune-preview .ks-top.ks-subpage{justify-content:flex-start;padding-top:12px;padding-bottom:12px}
   #kitsune-preview .ks-subpage .ks-title{margin:0;font-size:var(--ks-font-title)}
   #kitsune-preview .ks-modal-overlay{position:absolute;inset:0;z-index:20;background:#00000055;border-radius:30px;display:flex;align-items:flex-end;padding:9px}
@@ -2039,7 +2031,7 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-calc-body{min-height:0;overflow-y:auto}
   #kitsune-preview .ks-calc-footer{flex:none}
   #kitsune-preview .ks-calc-sheet h3{font-size:18px;font-weight:600;margin:0 0 var(--ks-space-2)}
-  #kitsune-preview .ks-calc-sheet .ks-amount-input{font-size:27px!important;margin:3px 0 12px}
+  #kitsune-preview .ks-calc-sheet .ks-amount-input{font-size:27px!important;margin:3px 0 12px;white-space:nowrap;overflow-x:auto}
   #kitsune-preview .ks-calc-sheet .ks-calculator{gap:var(--ks-space-2)}
 
   #kitsune-preview .ks-key.ks-zero{grid-column:span 2}
@@ -2065,7 +2057,6 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-toolbar&gt;.ks-control{flex:1;font-size:13px}
   #kitsune-preview .ks-toolbar-action{display:flex;align-items:center;justify-content:center;gap:6px;color:var(--ks-accent);min-height:var(--ks-control-height);padding:var(--ks-space-2) var(--ks-space-3);border:var(--ks-card-border);border-radius:var(--ks-control-radius);background:var(--ks-card-surface);font-size:var(--ks-font-body)}
   #kitsune-preview .ks-toolbar-action svg{flex-shrink:0;width:var(--ks-icon-size);height:var(--ks-icon-size)}
-  #kitsune-preview .ks-toolbar-action.ks-scope{width:100%;justify-content:space-between;text-align:left}
   #kitsune-preview .ks-scope&gt;span{display:flex;align-items:center;gap:6px}
   #kitsune-preview .ks-scope&gt;span:first-child{color:var(--ks-dim);flex-shrink:0}
   #kitsune-preview .ks-scope&gt;span:last-child{text-align:right}
@@ -2126,7 +2117,6 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-category-form .ks-form-actions{align-items:center}
   #kitsune-preview .ks-wallet-check&gt;span{flex:1}
   #kitsune-preview .ks-wallet-check small{font-size:var(--ks-font-note);color:var(--ks-accent)}
-  #kitsune-preview .ks-filter-context{font-size:12px;color:var(--ks-dim);margin:0 0 13px}
   #kitsune-preview .ks-filter-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 15px}
   #kitsune-preview .ks-filter-chip{border:var(--ks-card-border);background:var(--ks-card-surface);font-size:var(--ks-font-tag);padding:2px 6px;border-radius:6px;color:var(--ks-dim)}
   #kitsune-preview .ks-record-ellipsis{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -2149,7 +2139,7 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-bar-fill{height:100%;background:var(--ks-accent);border-radius:4px}
   #kitsune-preview .ks-bar-income .ks-bar-fill{background:var(--ks-good)}
   #kitsune-preview .ks-bar-expense .ks-bar-fill{background:var(--ks-expense)}
-  @media(max-width:400px){#kitsune-preview .ks-stage{padding:12px 0;min-height:855px}#kitsune-preview .ks-main,#kitsune-preview .ks-top{padding-left:var(--ks-space-3);padding-right:var(--ks-space-3)}#kitsune-preview .ks-ledger-action{padding-left:var(--ks-space-3);padding-right:var(--ks-space-3)}#kitsune-preview .ks-choice{padding-left:var(--ks-space-2);padding-right:var(--ks-space-2)}}
+  @media(max-width:400px){#kitsune-preview .ks-stage{padding:12px 0;min-height:855px}#kitsune-preview .ks-main,#kitsune-preview .ks-top{padding-left:var(--ks-space-3);padding-right:var(--ks-space-3)}#kitsune-preview .ks-choice{padding-left:var(--ks-space-2);padding-right:var(--ks-space-2)}}
   @media(pointer:coarse){#kitsune-preview .ks-text-btn{min-height:44px}#kitsune-preview .ks-control{font-size:16px}}
   #kitsune-preview .ks-preparation-check:has(input:checked){background:var(--ks-accent-bg);border-color:var(--ks-accent);color:var(--ks-accent)}
   #kitsune-preview .ks-detail-list&gt;div:last-child{border-bottom:0}
@@ -2162,6 +2152,28 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-motion-copy *{pointer-events:none!important}
   #kitsune-preview .ks-motion-modal-copy{z-index:21}
   #kitsune-preview .ks-motion-appearance-copy{pointer-events:none;overflow:hidden}
+  #kitsune-preview .ks-home-actions{display:flex;align-items:center;gap:4px}
+  #kitsune-preview .ks-home-add{min-width:44px;color:var(--ks-accent)}
+  #kitsune-preview .ks-phone:has(&gt;.ks-ledger-screen){height:clamp(570px,92vh,740px);min-height:0}
+  #kitsune-preview .ks-ledger-screen{position:relative;min-height:0;overflow:hidden}
+  #kitsune-preview .ks-ledger-screen .ks-main{min-height:0;overflow-y:auto;overflow-anchor:none;overscroll-behavior:contain;padding-top:12px}
+  #kitsune-preview .ks-ledger-with-fab .ks-main{padding-bottom:84px}
+  #kitsune-preview .ks-ledger-screen .ks-segments{flex:none;margin:0 var(--ks-space-4);gap:clamp(8px,5vw,20px)}
+  #kitsune-preview .ks-ledger-collapsible{flex:none;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
+  #kitsune-preview .ks-ledger-collapsible&gt;*{flex:none}
+  #kitsune-preview .ks-ledger-filters{padding:8px var(--ks-space-4) 0;display:grid;gap:8px}
+  #kitsune-preview .ks-ledger-filter-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  #kitsune-preview .ks-ledger-filter-row.ks-ledger-custom{grid-template-columns:minmax(0,1fr)}
+  #kitsune-preview .ks-ledger-filter{min-width:0;display:flex;justify-content:space-between;align-items:center;gap:6px;text-align:left}
+  #kitsune-preview .ks-ledger-filter svg{flex:none;width:14px;height:14px;color:var(--ks-accent)}
+  #kitsune-preview .ks-ledger-wallet span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #kitsune-preview .ks-ledger-list-actions{display:flex;align-items:center;gap:8px}
+  #kitsune-preview .ks-ledger-list-actions .ks-choice{display:flex;align-items:center;gap:6px}
+  #kitsune-preview .ks-ledger-list-actions svg{width:18px;height:18px}
+  #kitsune-preview .ks-ledger-fab{position:absolute;z-index:1;inset:auto 16px 16px auto;border-radius:999px;min-height:56px;min-width:56px;justify-content:center;gap:0;padding:8px 16px;box-shadow:0 4px 10px #0003}
+  #kitsune-preview .ks-ledger-fab span{display:block;overflow:hidden;white-space:nowrap;max-width:7em;padding-left:8px;transition:max-width 180ms ease,padding-left 180ms ease,opacity 140ms ease}
+  #kitsune-preview .ks-ledger-fab.ks-fab-compact span{max-width:0;padding-left:0;opacity:0}
+  @media(prefers-reduced-motion:reduce){#kitsune-preview .ks-ledger-fab span{transition:none}}
 &lt;/style&gt;
 &lt;script&gt;
 (() =&gt; {
@@ -2192,6 +2204,8 @@ html&gt;body{padding:0}&lt;/style&gt;
     const style = {accent:&#x27;#c47a4a&#x27;,mealHour:&#x27;auto&#x27;,...defaultAppearance};
     const state = {page:&#x27;home&#x27;, date:&#x27;2026-11-17&#x27;, ledgerMonth:&#x27;2026-11&#x27;,mealMonth:&#x27;2026-11&#x27;,ledgerTab:&#x27;流水&#x27;, mealTab:&#x27;记录&#x27;, slot:2, atHome:null, method:null, categories:[], amount:&#x27;&#x27;,calcOpen:false,calcExpression:&#x27;&#x27;,entryType:&#x27;支出&#x27;,entryDraft:{dateTime:&#x27;2026-11-17T09:41&#x27;,note:&#x27;&#x27;,category:&#x27;ge-food&#x27;,walletId:&#x27;daily&#x27;},notice:&#x27;&#x27;, mealReturn:&#x27;home&#x27;, entries:[], records:{}};
     state.ledgerRange=null;state.ledgerPeriodDraft=null;state.previewMode=null;
+    const blankLedgerFilters=()=&gt;({type:&#x27;&#x27;,category:&#x27;&#x27;,note:&#x27;&#x27;});
+    state.ledgerFilters=blankLedgerFilters();state.ledgerFiltersOpen=false;
     state.githubDemo={backedUp:false,review:null};
     const blankMealFilters=()=&gt;({from:&#x27;&#x27;,to:&#x27;&#x27;,slot:&#x27;any&#x27;,atHome:&#x27;any&#x27;,method:&#x27;any&#x27;,preparations:[],keyword:&#x27;&#x27;});
     state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
@@ -2386,19 +2400,20 @@ html&gt;body{padding:0}&lt;/style&gt;
     const choice = (label,value,current,action) =&gt; `&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-${action}=&quot;${escapeText(value)}&quot; aria-pressed=&quot;${current===value}&quot;&gt;${label}&lt;/button&gt;`;
     const monthPicker = (key,label) =&gt; `&lt;div class=&quot;ks-month-picker&quot; role=&quot;group&quot; aria-label=&quot;${label}月份选择&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-icon-btn cursor-interaction&quot; data-month-step=&quot;-1&quot; data-month-key=&quot;${key}&quot; aria-label=&quot;${label}上个月&quot;&gt;${icon(&#x27;chevron-left&#x27;)}&lt;/button&gt;&lt;label class=&quot;ks-month-field&quot;&gt;&lt;input type=&quot;month&quot; value=&quot;${state[key]}&quot; data-month-input=&quot;${key}&quot; aria-label=&quot;${label}月份&quot; min=&quot;0001-01&quot; max=&quot;9999-12&quot;&gt;&lt;/label&gt;&lt;button type=&quot;button&quot; class=&quot;ks-icon-btn cursor-interaction&quot; data-month-step=&quot;1&quot; data-month-key=&quot;${key}&quot; aria-label=&quot;${label}下个月&quot;&gt;${icon(&#x27;chevron-right&#x27;)}&lt;/button&gt;&lt;/div&gt;`;
     function ledgerPeriodControl(){
-      const range=state.ledgerRange,month=state.ledgerMonth,[year,number]=month.split(&#x27;-&#x27;).map(Number);
-      const display=range?`${range.from} 至 ${range.to}`:`${year} 年 ${number} 月`;
-      return `&lt;div class=&quot;ks-month-picker ks-ledger-period&quot; role=&quot;group&quot; aria-label=&quot;流水与统计期间&quot;&gt;
-        ${range?&#x27;&#x27;:`&lt;button type=&quot;button&quot; class=&quot;ks-icon-btn cursor-interaction&quot; data-month-step=&quot;-1&quot; data-month-key=&quot;ledgerMonth&quot; aria-label=&quot;上个月&quot; ${month===&#x27;0001-01&#x27;?&#x27;disabled&#x27;:&#x27;&#x27;}&gt;${icon(&#x27;chevron-left&#x27;)}&lt;/button&gt;`}
-        &lt;button type=&quot;button&quot; class=&quot;ks-choice ks-period-trigger cursor-interaction&quot; data-action=&quot;choose-ledger-period&quot; aria-haspopup=&quot;dialog&quot; aria-label=&quot;选择日期范围：${display}&quot;&gt;${icon(&#x27;calendar-days&#x27;)}&lt;span&gt;${display}&lt;/span&gt;&lt;/button&gt;
-        ${range?&#x27;&#x27;:`&lt;button type=&quot;button&quot; class=&quot;ks-icon-btn cursor-interaction&quot; data-month-step=&quot;1&quot; data-month-key=&quot;ledgerMonth&quot; aria-label=&quot;下个月&quot; ${month===&#x27;9999-12&#x27;?&#x27;disabled&#x27;:&#x27;&#x27;}&gt;${icon(&#x27;chevron-right&#x27;)}&lt;/button&gt;`}
-      &lt;/div&gt;`;
+      const range=state.ledgerRange,[year,month]=state.ledgerMonth.split(&#x27;-&#x27;).map(Number);
+      const display=range?`${range.from.replaceAll(&#x27;-&#x27;,&#x27;/&#x27;)} ～ ${range.to.replaceAll(&#x27;-&#x27;,&#x27;/&#x27;)}`:`${year}年${month}月`;
+      return `&lt;button type=&quot;button&quot; class=&quot;ks-choice ks-ledger-filter&quot; data-action=&quot;choose-ledger-period&quot; aria-haspopup=&quot;dialog&quot; aria-label=&quot;选择日期范围：${display}&quot;&gt;&lt;span&gt;${display}&lt;/span&gt;${icon(&#x27;chevron-down&#x27;)}&lt;/button&gt;`;
     }
     const canApplyLedgerPeriod=draft=&gt;draft.mode===&#x27;month&#x27;?/^\d{1,4}$/.test(draft.year)&amp;&amp;Number(draft.year)&gt;0:
       isDate(draft.from)&amp;&amp;isDate(draft.to)&amp;&amp;draft.from&lt;=draft.to;
     const ledgerPeriodError=draft=&gt;draft.mode===&#x27;month&#x27;&amp;&amp;!canApplyLedgerPeriod(draft)?&#x27;请输入 1 至 9999 的年份&#x27;:
       draft.mode===&#x27;range&#x27;&amp;&amp;draft.from&amp;&amp;draft.to&amp;&amp;draft.from&gt;draft.to?&#x27;开始日期不能晚于结束日期&#x27;:&#x27;&#x27;;
-    const walletScope=()=&gt;{const chosen=selectedWallets(),label=state.walletFilterIds===null?&#x27;常规钱包&#x27;:state.walletFilterIds===&#x27;ALL&#x27;?&#x27;全部钱包（含独立核算）&#x27;:chosen.length===1?`${chosen[0].name} · ${chosen[0].code}`:`已选 ${chosen.length} 个钱包`;return `&lt;div class=&quot;ks-toolbar&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-toolbar-action ks-scope cursor-interaction&quot; data-action=&quot;choose-wallets&quot; aria-label=&quot;选择统计与流水的钱包范围&quot;&gt;&lt;span&gt;${icon(&#x27;wallet&#x27;)}钱包范围&lt;/span&gt;&lt;span&gt;${escapeText(label)}${icon(&#x27;chevron-down&#x27;)}&lt;/span&gt;&lt;/button&gt;&lt;/div&gt;${state.walletFilterIds&amp;&amp;chosen.length&gt;1?`&lt;p class=&quot;ks-filter-context&quot;&gt;${chosen.map(w=&gt;`${escapeText(w.name)} · ${w.code}`).join(&#x27;、&#x27;)}&lt;/p&gt;`:&#x27;&#x27;}`;};
+    const walletScope=()=&gt;{
+      const chosen=selectedWallets(),single=Array.isArray(state.walletFilterIds)&amp;&amp;chosen.length===1;
+      const label=state.walletFilterIds===null?&#x27;常规钱包&#x27;:state.walletFilterIds===&#x27;ALL&#x27;?&#x27;全部钱包&#x27;:
+        single?`${chosen[0].name} · ${chosen[0].code}`:`已选 ${chosen.length} 个钱包`;
+      return `&lt;button type=&quot;button&quot; class=&quot;ks-choice ks-ledger-filter ${single?&#x27;ks-ledger-wallet&#x27;:&#x27;&#x27;}&quot; data-action=&quot;choose-wallets&quot; aria-haspopup=&quot;dialog&quot; aria-label=&quot;钱包范围：${escapeText(label)}&quot;&gt;&lt;span&gt;${escapeText(label)}&lt;/span&gt;${icon(&#x27;chevron-down&#x27;)}&lt;/button&gt;`;
+    };
     const methodCounts = meals =&gt; [...new Set([&#x27;下厨&#x27;,&#x27;外卖&#x27;,&#x27;未填写&#x27;,...meals.map(m=&gt;m.method||&#x27;未填写&#x27;)])].map(method=&gt;({method,count:meals.filter(m=&gt;(m.method||&#x27;未填写&#x27;)===method).length}));
     const recommendedSlot = () =&gt; {const hour=style.mealHour===&#x27;auto&#x27;?new Date().getHours():Number(style.mealHour);return hour&lt;11?0:hour&lt;17?1:2;};
     const statBar=(label,ratio,tone=&#x27;&#x27;)=&gt;`&lt;div class=&quot;ks-bar-track ${tone}&quot; role=&quot;meter&quot; aria-label=&quot;${escapeText(label)}&quot; aria-valuemin=&quot;0&quot; aria-valuemax=&quot;100&quot; aria-valuenow=&quot;${Math.round(ratio*100)}&quot;&gt;&lt;div class=&quot;ks-bar-fill&quot; style=&quot;width:${ratio*100}%&quot;&gt;&lt;/div&gt;&lt;/div&gt;`;
@@ -2420,14 +2435,13 @@ html&gt;body{padding:0}&lt;/style&gt;
       const today=state.records[demoToday]||[null,null,null],count=today.filter(Boolean).length,current=recommendedSlot();
       const groups=currencyGroups(monthEntries(demoToday.slice(0,7)).filter(e=&gt;regularWallets().some(w=&gt;w.id===e.walletId)),regularWallets());
       return `&lt;section class=&quot;ks-daily&quot; aria-label=&quot;今日用餐进度&quot;&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;h3 class=&quot;ks-daily-heading&quot;&gt;今日用餐 &lt;strong&gt;${count}&lt;/strong&gt;&lt;span class=&quot;ks-note&quot;&gt; / 3&lt;/span&gt;&lt;/h3&gt;&lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-page=&quot;meals&quot;&gt;全部记录 ${icon(&#x27;chevron-right&#x27;)}&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;ks-daily-states&quot;&gt;${slots.map((slot,i)=&gt;`&lt;span class=&quot;ks-daily-state ${today[i]?&#x27;&#x27;:&#x27;ks-pending&#x27;}&quot;&gt;${icon(today[i]?&#x27;circle-check&#x27;:&#x27;circle-dashed&#x27;)}&lt;span&gt;${slot}${today[i]?&#x27;已记&#x27;:&#x27;待记&#x27;}&lt;/span&gt;&lt;/span&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary ks-full cursor-interaction&quot; data-home-meal data-meal=&quot;${current}&quot;&gt;${icon(today[current]?&#x27;pencil&#x27;:&#x27;plus&#x27;)}${today[current]?&#x27;编辑&#x27;:&#x27;记录&#x27;}${slots[current]}&lt;/button&gt;&lt;/section&gt;
-        ${section(&#x27;本月收支&#x27;,`&lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-page=&quot;ledger&quot;&gt;查看账本 ${icon(&#x27;arrow-up-right&#x27;)}&lt;/button&gt;`)}
+        ${section(&#x27;本月收支&#x27;,`&lt;div class=&quot;ks-home-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-page=&quot;ledger&quot;&gt;查看账本 ${icon(&#x27;arrow-up-right&#x27;)}&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-icon-btn ks-home-add&quot; data-action=&quot;add-entry&quot; aria-label=&quot;记一笔&quot; title=&quot;记一笔&quot;&gt;${icon(&#x27;plus&#x27;)}&lt;/button&gt;&lt;/div&gt;`)}
         &lt;div class=&quot;ks-money-card ks-home-money&quot;&gt;
           ${groups.map(({code,entries})=&gt;`&lt;div class=&quot;ks-home-currency&quot; data-currency=&quot;${code}&quot;&gt;
             &lt;span class=&quot;ks-money-caption&quot;&gt;${code}&lt;/span&gt;
             &lt;span&gt;&lt;small&gt;净支出&lt;/small&gt;&lt;strong data-expense&gt;${money(netExpense(entries),code)}&lt;/strong&gt;&lt;/span&gt;
             &lt;span&gt;&lt;small&gt;收入&lt;/small&gt;&lt;strong data-income&gt;${money(total(entries,&#x27;收入&#x27;),code)}&lt;/strong&gt;&lt;/span&gt;
           &lt;/div&gt;`).join(&#x27;&#x27;)}
-          &lt;button class=&quot;ks-primary cursor-interaction&quot; data-action=&quot;add-entry&quot; type=&quot;button&quot;&gt;${icon(&#x27;plus&#x27;)}记一笔&lt;/button&gt;
         &lt;/div&gt;`;
     }
     function pageMeals(){
@@ -2480,10 +2494,79 @@ html&gt;body{padding:0}&lt;/style&gt;
           ${amount!==0n?statBar(name+&#x27;金额占比&#x27;,Number(abs(amount))/Number(magnitude),income?&#x27;ks-bar-income&#x27;:&#x27;ks-bar-expense&#x27;):&#x27;&#x27;}
         &lt;/div&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`;
     }
+    const ledgerTabs=()=&gt;`&lt;div class=&quot;ks-segments&quot; aria-label=&quot;记账视图&quot;&gt;${[&#x27;流水&#x27;,&#x27;钱包&#x27;,&#x27;统计&#x27;].map(tab=&gt;`&lt;button type=&quot;button&quot; data-ledger-tab=&quot;${tab}&quot; aria-pressed=&quot;${state.ledgerTab===tab}&quot; class=&quot;cursor-interaction&quot;&gt;${tab}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`;
+    function ledgerFilters(){
+      if(state.ledgerTab===&#x27;钱包&#x27;)return &#x27;&#x27;;
+      const empty=!selectedWallets().length&amp;&amp;wallets.length;
+      return `&lt;div class=&quot;ks-ledger-collapsible&quot;&gt;&lt;div class=&quot;ks-ledger-filters&quot;&gt;
+        &lt;div class=&quot;ks-ledger-filter-row ${state.ledgerRange?&#x27;ks-ledger-custom&#x27;:&#x27;&#x27;}&quot;&gt;${ledgerPeriodControl()}${walletScope()}&lt;/div&gt;
+        ${empty?&#x27;&lt;span class=&quot;ks-note&quot;&gt;当前范围没有钱包，可手动选择&lt;/span&gt;&#x27;:&#x27;&#x27;}
+      &lt;/div&gt;&lt;/div&gt;`;
+    }
+    function attachLedgerScroll(position, collapsed, compact){
+      const main=phone.querySelector(&#x27;.ks-ledger-screen .ks-main&#x27;);
+      if(!main)return;
+      const parts=[...phone.querySelectorAll(&#x27;.ks-ledger-screen .ks-ledger-collapsible&#x27;)];
+      const fab=phone.querySelector(&#x27;.ks-ledger-fab&#x27;);
+      let sizes=[],height=0,previous=position;
+      const layout=()=&gt;{
+        const visible=height?1-collapsed/height:1;
+        parts.forEach((part,i)=&gt;{
+          part.style.height=`${sizes[i]*visible}px`;
+          part.inert=visible===0;
+        });
+        fab?.classList.toggle(&#x27;ks-fab-compact&#x27;,compact);
+      };
+      const measure=()=&gt;{
+        sizes=parts.map(part=&gt;part.firstElementChild.offsetHeight);
+        height=sizes.reduce((sum,size)=&gt;sum+size,0);
+        collapsed=Math.min(height,collapsed);
+        layout();
+      };
+      measure();
+      main.scrollTop=position;
+      previous=main.scrollTop;
+      main.addEventListener(&#x27;scroll&#x27;,()=&gt;{
+        const current=main.scrollTop,delta=current-previous;
+        if(!delta)return;
+        collapsed=current&lt;=0?0:Math.min(height,Math.max(0,collapsed+delta));
+        compact=current&gt;0;
+        layout();
+        // A taller viewport may clamp the scroll offset at the end.
+        previous=main.scrollTop;
+      },{passive:true});
+      const observer=new ResizeObserver(()=&gt;{
+        if(!main.isConnected){observer.disconnect();return;}
+        measure();
+        previous=main.scrollTop;
+      });
+      parts.forEach(part=&gt;observer.observe(part.firstElementChild));
+    }
+    function ledgerFiltersDialog(){
+      const {type,category,note}=state.ledgerFilters;
+      const select=(label,name,value,options)=&gt;`&lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;${label}&lt;/span&gt;&lt;select class=&quot;ks-control&quot; name=&quot;${name}&quot;&gt;
+        &lt;option value=&quot;&quot;&gt;不限&lt;/option&gt;
+        ${options.map(([id,text])=&gt;`&lt;option value=&quot;${escapeText(id)}&quot; ${value===id?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${escapeText(text)}&lt;/option&gt;`).join(&#x27;&#x27;)}
+      &lt;/select&gt;&lt;/label&gt;`;
+      const categories=allFinancialCategories().map(c=&gt;[c.id,categoryDescriptionForId(c.id)]);
+      return `&lt;div class=&quot;ks-modal-overlay ks-period-overlay&quot; data-ledger-filter-overlay&gt;
+        &lt;form class=&quot;ks-period-dialog&quot; data-ledger-filters role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;流水筛选&quot;&gt;
+          &lt;h3&gt;流水筛选&lt;/h3&gt;
+          &lt;div class=&quot;ks-period-body&quot;&gt;
+            ${select(&#x27;类型&#x27;,&#x27;type&#x27;,type,[&#x27;支出&#x27;,&#x27;收入&#x27;,&#x27;转账&#x27;,&#x27;退款&#x27;].map(value=&gt;[value,value]))}
+            ${select(&#x27;分类&#x27;,&#x27;category&#x27;,category,categories)}
+            &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;备注关键词&lt;/span&gt;&lt;input name=&quot;note&quot; class=&quot;ks-control&quot; value=&quot;${escapeText(note)}&quot;&gt;&lt;/label&gt;
+            &lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-action=&quot;reset-ledger-filters&quot;&gt;重置条件&lt;/button&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;ks-period-actions&quot;&gt;
+            &lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-action=&quot;cancel-ledger-filters&quot;&gt;取消&lt;/button&gt;
+            &lt;button type=&quot;submit&quot; class=&quot;ks-text-btn&quot;&gt;应用&lt;/button&gt;
+          &lt;/div&gt;
+        &lt;/form&gt;&lt;/div&gt;`;
+    }
     function pageLedger(){
       const allEntries=financialEntries();
-      const tabs=`&lt;div class=&quot;ks-segments&quot; aria-label=&quot;记账视图&quot;&gt;${[&#x27;流水&#x27;,&#x27;钱包&#x27;,&#x27;统计&#x27;].map(tab=&gt;`&lt;button type=&quot;button&quot; data-ledger-tab=&quot;${tab}&quot; aria-pressed=&quot;${state.ledgerTab===tab}&quot; class=&quot;cursor-interaction&quot;&gt;${tab}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`;
-      if(state.ledgerTab===&#x27;钱包&#x27;)return `${tabs}${section(&#x27;我的钱包&#x27;,&#x27;&lt;span class=&quot;ks-note&quot;&gt;每个钱包余额单独计算&lt;/span&gt;&#x27;)}&lt;div class=&quot;ks-wallet-cards&quot;&gt;
+      if(state.ledgerTab===&#x27;钱包&#x27;)return `${section(&#x27;我的钱包&#x27;,&#x27;&lt;span class=&quot;ks-note&quot;&gt;每个钱包余额单独计算&lt;/span&gt;&#x27;)}&lt;div class=&quot;ks-wallet-cards&quot;&gt;
         ${wallets.map(wallet=&gt;{
           const related=allEntries.filter(entry=&gt;entry.walletId===wallet.id);
           const balance=wallet.opening+total(related,&#x27;收入&#x27;)-netExpense(related);
@@ -2499,11 +2582,11 @@ html&gt;body{padding:0}&lt;/style&gt;
           &lt;/div&gt;`;
         }).join(&#x27;&#x27;)}&lt;/div&gt;&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 示例数据&lt;/p&gt;`;
       const entries=allEntries.filter(matchesLedgerScope).sort((a,b)=&gt;(b.date+b.time).localeCompare(a.date+a.time));
-      const picker=ledgerPeriodControl()+walletScope(),groups=currencyGroups(entries,selectedWallets());
+      const groups=currencyGroups(entries,selectedWallets());
       const period=state.ledgerRange?&#x27;所选期间&#x27;:&#x27;本月&#x27;;
       const includeYear=state.ledgerRange&amp;&amp;state.ledgerRange.from.slice(0,4)!==state.ledgerRange.to.slice(0,4);
       const empty=&#x27;&lt;p class=&quot;ks-empty-state&quot;&gt;所选日期和钱包范围内没有账目&lt;/p&gt;&#x27;;
-      if(state.ledgerTab===&#x27;统计&#x27;)return `${tabs}${picker}&lt;div data-ledger-statistics aria-live=&quot;polite&quot;&gt;
+      if(state.ledgerTab===&#x27;统计&#x27;)return `&lt;div data-ledger-statistics aria-live=&quot;polite&quot;&gt;
         ${groups.map(({code,entries:group})=&gt;`&lt;section class=&quot;ks-currency-group&quot; data-currency=&quot;${code}&quot;&gt;
             ${section(`${period}收支 · ${code}`)}
             &lt;div class=&quot;ks-summary&quot;&gt;
@@ -2515,11 +2598,18 @@ html&gt;body{padding:0}&lt;/style&gt;
             ${group.length?&#x27;&#x27;:empty}
           &lt;/section&gt;`).join(&#x27;&#x27;)}
       &lt;/div&gt;&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 各币种独立统计&lt;/p&gt;`;
-      return `${tabs}${picker}&lt;section data-monthly-ledger aria-label=&quot;所选日期与钱包的流水&quot; aria-live=&quot;polite&quot;&gt;
+      const {type,category,note}=state.ledgerFilters;
+      const keyword=note.trim().toLocaleLowerCase();
+      const visibleEntries=entries.filter(entry=&gt;(!type||type===entry.type)&amp;&amp;
+        (!category||category===categoryForEntry(entry))&amp;&amp;entry.note.toLocaleLowerCase().includes(keyword));
+      const activeFilters=Boolean(type||category||keyword);
+      const filters=`&lt;div class=&quot;ks-ledger-list-actions&quot;&gt;&lt;span class=&quot;ks-note&quot;&gt;${visibleEntries.length} 笔&lt;/span&gt;
+        &lt;button type=&quot;button&quot; class=&quot;ks-choice ks-date&quot; data-action=&quot;open-ledger-filters&quot; aria-haspopup=&quot;dialog&quot; aria-pressed=&quot;${activeFilters}&quot;&gt;${icon(&#x27;list-filter&#x27;)}筛选&lt;/button&gt;&lt;/div&gt;`;
+      return `&lt;section data-monthly-ledger aria-label=&quot;所选日期与钱包的流水&quot; aria-live=&quot;polite&quot;&gt;
         ${groups.map(({code,entries:group})=&gt;`&lt;div class=&quot;ks-currency-group&quot;&gt;${moneyCard(code,group)}&lt;/div&gt;`).join(&#x27;&#x27;)}
-        ${section(`${period}流水`,`&lt;span class=&quot;ks-note&quot;&gt;${entries.length} 笔&lt;/span&gt;`)}
+        ${section(`${period}流水`,filters)}
         &lt;div class=&quot;ks-record-list&quot;&gt;
-        ${entries.map(entry=&gt;{
+        ${visibleEntries.map(entry=&gt;{
           const wallet=walletById(entry.walletId),category=entryCategory(entry);
           const lineLabel=entry.type===&#x27;退款&#x27;?`退款 · ${category}`:category;
           const glyph=entry.type===&#x27;退款&#x27;?&#x27;undo-2&#x27;:category===&#x27;交通&#x27;?&#x27;train-front&#x27;:category===&#x27;工资&#x27;?&#x27;briefcase-business&#x27;:&#x27;receipt-text&#x27;;
@@ -2530,7 +2620,7 @@ html&gt;body{padding:0}&lt;/style&gt;
           &lt;/button&gt;`;
         }).join(&#x27;&#x27;)}
         &lt;/div&gt;
-        ${entries.length?&#x27;&#x27;:empty}
+        ${visibleEntries.length?&#x27;&#x27;:empty}
       &lt;/section&gt;&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 示例数据&lt;/p&gt;`;
     }
     function pageWalletEdit(){
@@ -2667,14 +2757,17 @@ html&gt;body{padding:0}&lt;/style&gt;
     &lt;/form&gt;`;}
     function pageEntry(){return `&lt;form data-entry-form class=&quot;ks-form&quot;&gt;
       &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;收支类型&lt;/legend&gt;&lt;div class=&quot;ks-choices&quot;&gt;${[&#x27;支出&#x27;,&#x27;收入&#x27;].map(t=&gt;choice(t,t,state.entryType,&#x27;entry-type&#x27;)).join(&#x27;&#x27;)}&lt;/div&gt;&lt;/fieldset&gt;
+      &lt;div&gt;&lt;span class=&quot;ks-label&quot; id=&quot;ks-amount-label&quot;&gt;金额 · ${entryWallet()?.code||&#x27;请选择钱包&#x27;}&lt;/span&gt;
+        &lt;button type=&quot;button&quot; class=&quot;ks-amount-input ks-amount-trigger&quot; data-action=&quot;open-calculator&quot; aria-labelledby=&quot;ks-amount-label ks-amount-value&quot; ${entryWallet()?&#x27;&#x27;:&#x27;disabled&#x27;}&gt;
+          &lt;span id=&quot;ks-amount-value&quot;&gt;${escapeText(state.amount|| (entryWallet()?.scale===0?&#x27;0&#x27;:&#x27;0.00&#x27;))}&lt;/span&gt;&lt;/button&gt;
+      &lt;/div&gt;
       &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;日期时间&lt;/span&gt;&lt;input type=&quot;datetime-local&quot; name=&quot;dateTime&quot; value=&quot;${escapeText(state.entryDraft.dateTime)}&quot; class=&quot;ks-control&quot; required&gt;&lt;/label&gt;
       &lt;div class=&quot;ks-field-row&quot;&gt;&lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;钱包&lt;/span&gt;&lt;select name=&quot;wallet&quot; class=&quot;ks-control&quot; required&gt;&lt;option value=&quot;&quot; ${!entryWallet()?&#x27;selected&#x27;:&#x27;&#x27;} disabled&gt;请选择钱包&lt;/option&gt;${wallets.map(w=&gt;`&lt;option value=&quot;${w.id}&quot; ${entryWallet()?.id===w.id?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${w.name} · ${w.code}${w.separateAccounting?&#x27;（独立核算）&#x27;:&#x27;&#x27;}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;&lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;分类&lt;/span&gt;&lt;select name=&quot;category&quot; class=&quot;ks-control&quot; required&gt;&lt;option value=&quot;&quot; ${!state.entryDraft.category?&#x27;selected&#x27;:&#x27;&#x27;} disabled&gt;请选择分类&lt;/option&gt;${effectiveFinancialCategories(state.entryDraft.walletId,state.entryType).map(c=&gt;`&lt;option value=&quot;${c.id}&quot; ${state.entryDraft.category===c.id?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${escapeText(c.name)}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;&lt;/div&gt;
       &lt;p class=&quot;ks-note&quot;&gt;分类来源：${entryWallet()?scopeMode(entryWallet(),financialScopeOf(state.entryType))===&#x27;CUSTOM&#x27;?&#x27;本钱包专属分类&#x27;:&#x27;通用分类&#x27;:&#x27;请先选择钱包&#x27;}。切换钱包后如无对应分类，请重新选择。&lt;/p&gt;
       &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;备注&lt;/span&gt;&lt;input name=&quot;note&quot; class=&quot;ks-control&quot; placeholder=&quot;这笔钱用在了哪里？&quot; value=&quot;${escapeText(state.entryDraft.note)}&quot;&gt;&lt;/label&gt;
-      &lt;div&gt;&lt;label class=&quot;ks-label&quot; for=&quot;ks-amount&quot;&gt;金额 · ${entryWallet()?.code||&#x27;请选择钱包&#x27;}&lt;/label&gt;&lt;div class=&quot;ks-amount-row&quot;&gt;&lt;input id=&quot;ks-amount&quot; class=&quot;ks-amount-input&quot; name=&quot;amount&quot; inputmode=&quot;decimal&quot; placeholder=&quot;${(entryWallet()?.scale??2)?&#x27;0.00&#x27;:&#x27;0&#x27;}&quot; autocomplete=&quot;off&quot; value=&quot;${escapeText(state.amount)}&quot; aria-label=&quot;金额&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-calc-trigger cursor-interaction&quot; data-action=&quot;open-calculator&quot;&gt;${icon(&#x27;calculator&#x27;)}计算器&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;
       ${formFooter(saveButton(`保存${state.entryType}`),&#x27;交互预览 · 仅保存到当前演示&#x27;)}
     &lt;/form&gt;`;}
-    function calculatorSheet(){return `&lt;div class=&quot;ks-modal-overlay&quot;&gt;&lt;section class=&quot;ks-calc-sheet&quot; role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;金额计算器&quot;&gt;&lt;div class=&quot;ks-calc-body&quot;&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;h3&gt;金额计算器&lt;/h3&gt;&lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-calc-action=&quot;cancel&quot;&gt;关闭&lt;/button&gt;&lt;/div&gt;&lt;label&gt;&lt;span class=&quot;ks-note&quot;&gt;${entryWallet()?.code||&#x27;未选择钱包&#x27;} · 支持加减乘除&lt;/span&gt;&lt;input class=&quot;ks-amount-input&quot; data-calc-expression inputmode=&quot;text&quot; aria-label=&quot;计算表达式&quot; maxlength=&quot;80&quot; placeholder=&quot;${(entryWallet()?.scale??2)?&#x27;0.00&#x27;:&#x27;0&#x27;}&quot; value=&quot;${escapeText(state.calcExpression)}&quot;&gt;&lt;/label&gt;&lt;div class=&quot;ks-calculator&quot; role=&quot;group&quot; aria-label=&quot;计算键盘&quot;&gt;${[&#x27;C&#x27;,&#x27;⌫&#x27;,&#x27;÷&#x27;,&#x27;×&#x27;,&#x27;7&#x27;,&#x27;8&#x27;,&#x27;9&#x27;,&#x27;−&#x27;,&#x27;4&#x27;,&#x27;5&#x27;,&#x27;6&#x27;,&#x27;+&#x27;,&#x27;1&#x27;,&#x27;2&#x27;,&#x27;3&#x27;,&#x27;=&#x27;,&#x27;0&#x27;,&#x27;.&#x27;].map(k=&gt;`&lt;button type=&quot;button&quot; class=&quot;ks-key ${[&#x27;÷&#x27;,&#x27;×&#x27;,&#x27;−&#x27;,&#x27;+&#x27;,&#x27;=&#x27;].includes(k)?&#x27;ks-operator&#x27;:&#x27;&#x27;} ${k===&#x27;0&#x27;?&#x27;ks-zero&#x27;:&#x27;&#x27;} ${k===&#x27;=&#x27;?&#x27;ks-equal&#x27;:&#x27;&#x27;} cursor-interaction&quot; data-key=&quot;${k}&quot; aria-label=&quot;${k===&#x27;⌫&#x27;?&#x27;退格&#x27;:k===&#x27;C&#x27;?&#x27;清空&#x27;:k}&quot;&gt;${k}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;ks-calc-footer&quot;&gt;&lt;p class=&quot;ks-calc-error&quot; role=&quot;alert&quot;&gt;&lt;/p&gt;&lt;div class=&quot;ks-calc-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-calc-action=&quot;cancel&quot;&gt;取消&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary cursor-interaction&quot; data-calc-action=&quot;apply&quot;&gt;使用此金额&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;&lt;/section&gt;&lt;/div&gt;`;}
+    function calculatorSheet(){return `&lt;div class=&quot;ks-modal-overlay&quot;&gt;&lt;section class=&quot;ks-calc-sheet&quot; role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;金额计算器&quot;&gt;&lt;div class=&quot;ks-calc-body&quot;&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;h3&gt;金额计算器&lt;/h3&gt;&lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-calc-action=&quot;cancel&quot;&gt;关闭&lt;/button&gt;&lt;/div&gt;&lt;span class=&quot;ks-note&quot;&gt;${entryWallet()?.code||&#x27;未选择钱包&#x27;} · 支持加减乘除&lt;/span&gt;&lt;div class=&quot;ks-amount-input&quot; data-calc-expression aria-label=&quot;计算表达式&quot; aria-live=&quot;polite&quot;&gt;${escapeText(state.calcExpression||(entryWallet()?.scale===0?&#x27;0&#x27;:&#x27;0.00&#x27;))}&lt;/div&gt;&lt;div class=&quot;ks-calculator&quot; role=&quot;group&quot; aria-label=&quot;计算键盘&quot;&gt;${[&#x27;C&#x27;,&#x27;⌫&#x27;,&#x27;÷&#x27;,&#x27;×&#x27;,&#x27;7&#x27;,&#x27;8&#x27;,&#x27;9&#x27;,&#x27;−&#x27;,&#x27;4&#x27;,&#x27;5&#x27;,&#x27;6&#x27;,&#x27;+&#x27;,&#x27;1&#x27;,&#x27;2&#x27;,&#x27;3&#x27;,&#x27;=&#x27;,&#x27;0&#x27;,&#x27;.&#x27;].map(k=&gt;`&lt;button type=&quot;button&quot; class=&quot;ks-key ${[&#x27;÷&#x27;,&#x27;×&#x27;,&#x27;−&#x27;,&#x27;+&#x27;,&#x27;=&#x27;].includes(k)?&#x27;ks-operator&#x27;:&#x27;&#x27;} ${k===&#x27;0&#x27;?&#x27;ks-zero&#x27;:&#x27;&#x27;} ${k===&#x27;=&#x27;?&#x27;ks-equal&#x27;:&#x27;&#x27;} cursor-interaction&quot; data-key=&quot;${k}&quot; aria-label=&quot;${k===&#x27;⌫&#x27;?&#x27;退格&#x27;:k===&#x27;C&#x27;?&#x27;清空&#x27;:k}&quot;&gt;${k}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;ks-calc-footer&quot;&gt;&lt;p class=&quot;ks-calc-error&quot; role=&quot;alert&quot;&gt;&lt;/p&gt;&lt;div class=&quot;ks-calc-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-calc-action=&quot;cancel&quot;&gt;取消&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary cursor-interaction&quot; data-calc-action=&quot;apply&quot;&gt;使用此金额&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;&lt;/section&gt;&lt;/div&gt;`;}
     function mealCalendarDialog(){
       const d=state.mealCalendar,[year,month]=d.month.split(&#x27;-&#x27;).map(Number);
       const first=new Date(`${d.month}-01T00:00:00Z`),offset=(first.getUTCDay()+6)%7;
@@ -2705,13 +2798,21 @@ html&gt;body{padding:0}&lt;/style&gt;
       &lt;/section&gt;&lt;/div&gt;`;
     }
     function ledgerPeriodDialog(){
-      const draft=state.ledgerPeriodDraft;
+      const draft=state.ledgerPeriodDraft,validYear=/^\d{1,4}$/.test(draft.year)&amp;&amp;Number(draft.year)&gt;0;
+      const ordinal=Number(draft.year)*12+Number(draft.month)-1;
+      const step=(direction,label,iconName,enabled)=&gt;`&lt;button type=&quot;button&quot; class=&quot;ks-icon-btn&quot; data-period-step=&quot;${direction}&quot; aria-label=&quot;${label}&quot; ${enabled?&#x27;&#x27;:&#x27;disabled&#x27;}&gt;${icon(iconName)}&lt;/button&gt;`;
+
       return `&lt;div class=&quot;ks-modal-overlay ks-period-overlay&quot;&gt;&lt;form class=&quot;ks-period-dialog&quot; data-ledger-period role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;日期范围&quot;&gt;
         &lt;h3&gt;日期范围&lt;/h3&gt;
         &lt;div class=&quot;ks-period-body&quot;&gt;
           &lt;div class=&quot;ks-period-modes&quot; role=&quot;group&quot; aria-label=&quot;日期范围模式&quot;&gt;${choice(&#x27;按月&#x27;,&#x27;month&#x27;,draft.mode,&#x27;period-mode&#x27;)}${choice(&#x27;自定义日期&#x27;,&#x27;range&#x27;,draft.mode,&#x27;period-mode&#x27;)}&lt;/div&gt;
           ${draft.mode===&#x27;month&#x27;?`
             &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;年份&lt;/span&gt;&lt;input type=&quot;text&quot; inputmode=&quot;numeric&quot; name=&quot;year&quot; class=&quot;ks-control&quot; value=&quot;${escapeText(draft.year)}&quot;&gt;&lt;/label&gt;
+            &lt;div class=&quot;ks-row&quot;&gt;
+              ${step(-1,&#x27;上个月&#x27;,&#x27;chevron-left&#x27;,validYear&amp;&amp;ordinal&gt;12)}
+              &lt;span data-period-month-label&gt;${validYear?`${Number(draft.year)}年${draft.month}月`:&#x27;&#x27;}&lt;/span&gt;
+              ${step(1,&#x27;下个月&#x27;,&#x27;chevron-right&#x27;,validYear&amp;&amp;ordinal&lt;119999)}
+            &lt;/div&gt;
             &lt;div class=&quot;ks-period-months&quot; role=&quot;group&quot; aria-label=&quot;月份&quot;&gt;${Array.from({length:12},(_,i)=&gt;choice(`${i+1} 月`,String(i+1),draft.month,&#x27;period-month&#x27;)).join(&#x27;&#x27;)}&lt;/div&gt;
           `:`
             &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;开始日期&lt;/span&gt;&lt;input type=&quot;date&quot; name=&quot;from&quot; class=&quot;ks-control&quot; value=&quot;${draft.from}&quot; min=&quot;0001-01-01&quot; max=&quot;9999-12-31&quot;&gt;&lt;/label&gt;
@@ -2800,17 +2901,26 @@ html&gt;body{padding:0}&lt;/style&gt;
         const r=rect(node);if(!r)continue;
         const copy=cloneVisual(node);
         Object.assign(copy.style,{position:&#x27;absolute&#x27;,inset:&#x27;auto&#x27;,left:r.x+&#x27;px&#x27;,top:r.y+&#x27;px&#x27;,width:r.w+&#x27;px&#x27;,height:r.h+&#x27;px&#x27;,margin:&#x27;0&#x27;,boxSizing:&#x27;border-box&#x27;});
+        const ledgerViewport=rect(node.closest(&#x27;.ks-ledger-screen .ks-main&#x27;));
+        if(ledgerViewport)copy.style.clipPath=clip(r,ledgerViewport,0);
+        if(node.matches(&#x27;.ks-ledger-screen&#x27;))group.ledgerPosition=node.querySelector(&#x27;.ks-main&#x27;).scrollTop;
         group.append(copy);
       }
       return group.childElementCount?group:null;
     };
-    const attachGhost=group=&gt;{if(group)phone.append(group);return group;};
+    const attachGhost=group=&gt;{
+      if(group){
+        phone.append(group);
+        if(group.ledgerPosition)group.querySelector(&#x27;.ks-ledger-screen .ks-main&#x27;).scrollTop=group.ledgerPosition;
+      }
+      return group;
+    };
     const discard=group=&gt;()=&gt;group?.remove();
     const pageNode=()=&gt;phone.querySelector(&#x27;:scope &gt; .ks-page-motion&#x27;);
     const modalNode=()=&gt;phone.querySelector(&#x27;:scope &gt; .ks-modal-overlay&#x27;);
-    const modalKind=()=&gt;state.deletePending?&#x27;dialog&#x27;:state.calcOpen?&#x27;calculator&#x27;:state.walletPickerOpen?&#x27;wallet&#x27;:state.ledgerPeriodDraft?&#x27;ledger-period&#x27;:state.githubDemo.review?&#x27;github-review&#x27;:state.mealCalendar?&#x27;date-calendar&#x27;:null;
+    const modalKind=()=&gt;state.deletePending?&#x27;dialog&#x27;:state.calcOpen?&#x27;calculator&#x27;:state.walletPickerOpen?&#x27;wallet&#x27;:state.ledgerPeriodDraft?&#x27;ledger-period&#x27;:state.ledgerFiltersOpen?&#x27;ledger-filters&#x27;:state.githubDemo.review?&#x27;github-review&#x27;:state.mealCalendar?&#x27;date-calendar&#x27;:null;
     const primary=page=&gt;navs.some(n=&gt;n[0]===page);
-    const localKey=()=&gt;state.page===&#x27;meals&#x27;?JSON.stringify([state.mealTab,state.date,state.mealMonth,state.mealListMode,state.mealFilters]):state.page===&#x27;ledger&#x27;?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds]):&#x27;&#x27;;
+    const localKey=()=&gt;state.page===&#x27;meals&#x27;?JSON.stringify([state.mealTab,state.date,state.mealMonth,state.mealListMode,state.mealFilters]):state.page===&#x27;ledger&#x27;?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds,state.ledgerFilters]):&#x27;&#x27;;
     const localNodes=()=&gt;{
       const main=phone.querySelector(&#x27;.ks-main&#x27;);if(!main)return [];
       const explicit=main.querySelector(&#x27;[data-monthly-meals],[data-monthly-ledger],[data-ledger-statistics],[data-meal-results]&#x27;);
@@ -2907,6 +3017,12 @@ html&gt;body{padding:0}&lt;/style&gt;
     }
     function render(){
       const previous=rendered,kind=modalKind(),key=localKey(),changingPage=previous&amp;&amp;previous.page!==state.page;
+      const oldLedger=phone.querySelector(&#x27;.ks-ledger-screen&#x27;);
+      const sameLedger=oldLedger&amp;&amp;state.page===&#x27;ledger&#x27;&amp;&amp;previous.local===key;
+      const ledgerPosition=sameLedger?oldLedger.querySelector(&#x27;.ks-main&#x27;).scrollTop:0;
+      const ledgerCollapse=sameLedger?[...oldLedger.querySelectorAll(&#x27;.ks-ledger-collapsible&#x27;)].reduce(
+        (sum,part)=&gt;sum+part.firstElementChild.offsetHeight-part.offsetHeight,0):0;
+      const ledgerCompact=sameLedger&amp;&amp;!!oldLedger.querySelector(&#x27;.ks-fab-compact&#x27;);
       // Measure before removing old nodes, but first clear any stale visual copies.
       stopMotion();
       const oldEditor=phone.querySelector(&#x27;[data-appearance-editor]&#x27;);
@@ -2927,14 +3043,21 @@ html&gt;body{padding:0}&lt;/style&gt;
       const heading=`&lt;h2 class=&quot;ks-title&quot;&gt;${titles[state.page]}&lt;/h2&gt;`;
       const header=state.page===&#x27;home&#x27;?`&lt;div class=&quot;ks-home-brand&quot;&gt;&lt;span class=&quot;ks-app-mark&quot;&gt;&lt;img src=&quot;data:image/webp;base64,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&quot; alt=&quot;&quot;&gt;&lt;/span&gt;&lt;div&gt;${heading}&lt;p class=&quot;ks-sub&quot;&gt;11 月 17 日 · 星期二&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;`:form?`&lt;button type=&quot;button&quot; class=&quot;ks-icon-btn cursor-interaction&quot; data-action=&quot;back&quot; aria-label=&quot;返回&quot;&gt;${icon(&#x27;arrow-left&#x27;)}&lt;/button&gt;${heading}`:heading;
       const pages={home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,appearance:pageAppearance,&#x27;wallet-edit&#x27;:pageWalletEdit,&#x27;meal-form&#x27;:pageMealForm,&#x27;meal-filter&#x27;:pageMealFilter,entry:pageEntry,&#x27;entry-detail&#x27;:pageEntryDetail,&#x27;category-manager&#x27;:pageCategoryManager,&#x27;category-owned&#x27;:pageOwnedCategories,&#x27;category-detail&#x27;:pageCategoryDetail,github:pageGitHubBackup};
-      phone.innerHTML=`&lt;div class=&quot;ks-status&quot;&gt;&lt;span&gt;9:41&lt;/span&gt;&lt;span class=&quot;ks-signal&quot;&gt;${icon(&#x27;signal&#x27;)}${icon(&#x27;wifi&#x27;)}${icon(&#x27;battery-full&#x27;)}&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-page-motion&quot;&gt;&lt;header class=&quot;ks-top ${form?&#x27;ks-subpage&#x27;:&#x27;&#x27;}&quot;&gt;${header}&lt;/header&gt;&lt;main class=&quot;ks-main&quot;&gt;${pages[state.page]()}${state.notice?`&lt;p class=&quot;ks-success&quot; role=&quot;status&quot;&gt;${escapeText(state.notice)}&lt;/p&gt;`:&#x27;&#x27;}&lt;/main&gt;&lt;/div&gt;${state.page===&#x27;ledger&#x27;?`&lt;div class=&quot;ks-ledger-action&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary ks-full cursor-interaction&quot; data-action=&quot;add-entry&quot;&gt;${icon(&#x27;plus&#x27;)}记一笔&lt;/button&gt;&lt;/div&gt;`:&#x27;&#x27;}${form?&#x27;&#x27;:`&lt;nav class=&quot;ks-nav&quot; aria-label=&quot;主导航&quot;&gt;${navs.map(([id,name,ic])=&gt;`&lt;button type=&quot;button&quot; data-page=&quot;${id}&quot; class=&quot;cursor-interaction&quot; ${state.page===id?&#x27;aria-current=&quot;page&quot;&#x27;:&#x27;&#x27;}&gt;&lt;span&gt;${icon(ic)}&lt;/span&gt;${name}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/nav&gt;`}&lt;div class=&quot;ks-home-indicator&quot; aria-hidden=&quot;true&quot;&gt;&lt;/div&gt;`;
-      if(state.calcOpen){phone.insertAdjacentHTML(&#x27;beforeend&#x27;,calculatorSheet());phone.querySelector(&#x27;.ks-top&#x27;).inert=true;phone.querySelector(&#x27;.ks-main&#x27;).inert=true;phone.querySelector(&#x27;[data-calc-expression]&#x27;).focus({preventScroll:true});}
+      const ledger=state.page===&#x27;ledger&#x27;,fab=ledger&amp;&amp;state.ledgerTab===&#x27;流水&#x27;;
+      const top=`&lt;header class=&quot;ks-top ${form?&#x27;ks-subpage&#x27;:&#x27;&#x27;}&quot;&gt;${header}&lt;/header&gt;`;
+      phone.innerHTML=`&lt;div class=&quot;ks-status&quot;&gt;&lt;span&gt;9:41&lt;/span&gt;&lt;span class=&quot;ks-signal&quot;&gt;${icon(&#x27;signal&#x27;)}${icon(&#x27;wifi&#x27;)}${icon(&#x27;battery-full&#x27;)}&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-page-motion ${ledger?&#x27;ks-ledger-screen&#x27;:&#x27;&#x27;} ${fab?&#x27;ks-ledger-with-fab&#x27;:&#x27;&#x27;}&quot;&gt;${ledger?`&lt;div class=&quot;ks-ledger-collapsible&quot;&gt;${top}&lt;/div&gt;${ledgerTabs()}${ledgerFilters()}`:top}&lt;main class=&quot;ks-main&quot;&gt;${pages[state.page]()}${state.notice?`&lt;p class=&quot;ks-success&quot; role=&quot;status&quot;&gt;${escapeText(state.notice)}&lt;/p&gt;`:&#x27;&#x27;}&lt;/main&gt;${fab?`&lt;button type=&quot;button&quot; class=&quot;ks-primary ks-ledger-fab&quot; data-action=&quot;add-entry&quot; aria-label=&quot;记一笔&quot;&gt;${icon(&#x27;plus&#x27;)}&lt;span&gt;记一笔&lt;/span&gt;&lt;/button&gt;`:&#x27;&#x27;}&lt;/div&gt;${form?&#x27;&#x27;:`&lt;nav class=&quot;ks-nav&quot; aria-label=&quot;主导航&quot;&gt;${navs.map(([id,name,ic])=&gt;`&lt;button type=&quot;button&quot; data-page=&quot;${id}&quot; class=&quot;cursor-interaction&quot; ${state.page===id?&#x27;aria-current=&quot;page&quot;&#x27;:&#x27;&#x27;}&gt;&lt;span&gt;${icon(ic)}&lt;/span&gt;${name}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/nav&gt;`}&lt;div class=&quot;ks-home-indicator&quot; aria-hidden=&quot;true&quot;&gt;&lt;/div&gt;`;
+      if(state.calcOpen){phone.insertAdjacentHTML(&#x27;beforeend&#x27;,calculatorSheet());phone.querySelector(&#x27;.ks-top&#x27;).inert=true;phone.querySelector(&#x27;.ks-main&#x27;).inert=true;phone.querySelector(&#x27;[data-calc-action=cancel]&#x27;).focus({preventScroll:true});}
       if(state.deletePending){phone.insertAdjacentHTML(&#x27;beforeend&#x27;,deleteConfirmation());phone.querySelector(&#x27;.ks-top&#x27;).inert=true;phone.querySelector(&#x27;.ks-main&#x27;).inert=true;phone.querySelector(&#x27;[data-delete-action=cancel]&#x27;).focus({preventScroll:true});}
       if(state.walletPickerOpen){phone.insertAdjacentHTML(&#x27;beforeend&#x27;,walletRangeDialog());for(const child of phone.children)if(!child.classList.contains(&#x27;ks-modal-overlay&#x27;))child.inert=true;phone.querySelector(&#x27;[data-wallet-mode][aria-pressed=true]&#x27;).focus({preventScroll:true});}
       if(state.ledgerPeriodDraft){
         phone.insertAdjacentHTML(&#x27;beforeend&#x27;,ledgerPeriodDialog());
         for(const child of phone.children)if(!child.classList.contains(&#x27;ks-modal-overlay&#x27;))child.inert=true;
         if(previous?.modal!==kind)phone.querySelector(&#x27;[data-period-mode][aria-pressed=true]&#x27;).focus({preventScroll:true});
+      }
+      if(state.ledgerFiltersOpen){
+        phone.insertAdjacentHTML(&#x27;beforeend&#x27;,ledgerFiltersDialog());
+        for(const child of phone.children)if(!child.classList.contains(&#x27;ks-modal-overlay&#x27;))child.inert=true;
+        phone.querySelector(&#x27;[data-ledger-filters] select&#x27;).focus({preventScroll:true});
       }
       if(state.githubDemo.review){
         phone.insertAdjacentHTML(&#x27;beforeend&#x27;,githubDemoDialog());
@@ -2948,6 +3071,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       }
       if(state.page===&#x27;appearance&#x27;)updateAppearancePreview();
       globalThis.lucide?.createIcons({root:phone,attrs:{width:18,height:18}});
+      if(ledger)attachLedgerScroll(ledgerPosition,ledgerCollapse,ledgerCompact);
       rendering=false;
       const previousStack=previous?.stack??[],pageIndex=previousStack.indexOf(state.page);
       const stack=primary(state.page)?[state.page]:pageIndex&lt;0?[...previousStack,state.page]:previousStack.slice(0,pageIndex+1);
@@ -2965,7 +3089,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(changingPage&amp;&amp;primary(state.page))recordOrigin=null;
       if(changingPage&amp;&amp;!kind){const header=phone.querySelector(&#x27;.ks-top&#x27;);header.setAttribute(&#x27;tabindex&#x27;,&#x27;-1&#x27;);header.focus({preventScroll:true});}
     }
-    function capture(){const form=phone.querySelector(&#x27;[data-meal-form]&#x27;);if(form){state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);}const entry=phone.querySelector(&#x27;[data-entry-form]&#x27;);if(entry){state.amount=entry.elements.amount.value;state.entryDraft={dateTime:entry.elements.dateTime.value,note:entry.elements.note.value,category:entry.elements.category.value,walletId:entry.elements.wallet.value};}}
+    function capture(){const form=phone.querySelector(&#x27;[data-meal-form]&#x27;);if(form){state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);}const entry=phone.querySelector(&#x27;[data-entry-form]&#x27;);if(entry){state.entryDraft={dateTime:entry.elements.dateTime.value,note:entry.elements.note.value,category:entry.elements.category.value,walletId:entry.elements.wallet.value};}}
     function error(message){phone.querySelector(&#x27;.ks-error&#x27;).textContent=message;}
     function updateAppearancePreview(){
       const editor=phone.querySelector(&#x27;[data-appearance-editor]&#x27;);
@@ -2991,7 +3115,15 @@ html&gt;body{padding:0}&lt;/style&gt;
     function deleteConfirmation(){const p=state.deletePending;return `&lt;div class=&quot;ks-modal-overlay ks-delete-overlay&quot;&gt;&lt;section class=&quot;ks-delete-sheet&quot; role=&quot;alertdialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;确认删除记录&quot;&gt;&lt;h3&gt;${p.kind===&#x27;meal&#x27;?&#x27;删除这条用餐记录？&#x27;:&#x27;删除这笔账目？&#x27;}&lt;/h3&gt;&lt;p class=&quot;ks-delete-summary&quot;&gt;${escapeText(p.summary)}&lt;/p&gt;&lt;p class=&quot;ks-note&quot;&gt;${p.kind===&#x27;meal&#x27;?&#x27;删除后，将更新今日进度、月度及全部记录统计。&#x27;:&#x27;删除后，将更新流水、收支统计和钱包余额。&#x27;}&lt;/p&gt;&lt;p class=&quot;ks-error&quot; role=&quot;alert&quot; data-delete-error&gt;&lt;/p&gt;&lt;div class=&quot;ks-calc-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-delete-action=&quot;cancel&quot;&gt;取消&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary ks-danger-confirm cursor-interaction&quot; data-delete-action=&quot;confirm&quot;&gt;确认删除&lt;/button&gt;&lt;/div&gt;&lt;/section&gt;&lt;/div&gt;`;}
     function cancelDelete(){const action=state.deletePending.kind===&#x27;meal&#x27;?&#x27;delete-meal&#x27;:&#x27;delete-entry&#x27;;state.deletePending=null;render();phone.querySelector(`[data-action=${action}]`)?.focus({preventScroll:true});}
     function confirmDelete(){const p=state.deletePending;if(p.kind===&#x27;meal&#x27;){if(state.records[p.date])state.records[p.date][p.slot]=null;state.date=p.date;state.page=state.mealReturn;state.editing=false;}else{if(financialEntries().some(e=&gt;e.originalExpenseId===p.id)){phone.querySelector(&#x27;[data-delete-error]&#x27;).textContent=&#x27;请先删除这笔支出关联的退款，再删除原支出。&#x27;;return;}state.deletedEntryIds.add(p.id);state.page=&#x27;ledger&#x27;;state.ledgerTab=&#x27;流水&#x27;;}state.deletePending=null;state.notice=&#x27;已从当前演示删除记录。&#x27;;render();}
-    function closeCalculator(apply){if(apply){try{state.amount=inputAmount(calcCents(phone.querySelector(&#x27;[data-calc-expression]&#x27;).value));}catch(e){phone.querySelector(&#x27;.ks-calc-error&#x27;).textContent=e.message;return;}}state.calcOpen=false;render();phone.querySelector(&#x27;[data-action=open-calculator]&#x27;).focus({preventScroll:true});}
+    function closeCalculator(apply){if(apply){try{state.amount=inputAmount(calcCents(state.calcExpression));}catch(e){phone.querySelector(&#x27;.ks-calc-error&#x27;).textContent=e.message;return;}}state.calcOpen=false;render();phone.querySelector(&#x27;[data-action=open-calculator]&#x27;).focus({preventScroll:true});}
+    function closeLedgerFilters(apply){
+      if(apply){
+        const fields=phone.querySelector(&#x27;[data-ledger-filters]&#x27;).elements;
+        state.ledgerFilters={type:fields.type.value,category:fields.category.value,note:fields.note.value};
+      }
+      state.ledgerFiltersOpen=false;render();
+      phone.querySelector(&#x27;[data-action=open-ledger-filters]&#x27;)?.focus({preventScroll:true});
+    }
     function closeWalletPicker(action){
       if(action===&#x27;apply&#x27;){
         const mode=state.walletDraftMode;
@@ -3038,6 +3170,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     }
     phone.addEventListener(&#x27;click&#x27;,event=&gt;{
       if(event.target.matches(&#x27;.ks-wallet-overlay&#x27;)){closeWalletPicker(&#x27;cancel&#x27;);return;}
+      if(event.target.matches(&#x27;[data-ledger-filter-overlay]&#x27;)){closeLedgerFilters(false);return;}
       if(event.target.matches(&#x27;.ks-period-overlay&#x27;)){closeLedgerPeriod(false);return;}
       if(event.target.matches(&#x27;.ks-calendar-overlay&#x27;)){closeMealCalendar(false);return;}
       const b=event.target.closest(&#x27;button&#x27;);if(!b)return;
@@ -3090,6 +3223,13 @@ html&gt;body{padding:0}&lt;/style&gt;
         if(next.customColor===null){phone.querySelector(&#x27;[data-appearance-error]&#x27;).textContent=&#x27;请输入六位 HEX 颜色，例如 #C47A4A。&#x27;;return;}
         applyAnimatedAppearance(next);state.notice=&#x27;已应用外观。&#x27;;render();persist();return;
       }
+      if(b.dataset.action===&#x27;open-ledger-filters&#x27;){state.ledgerFiltersOpen=true;render();return;}
+      if(b.dataset.action===&#x27;cancel-ledger-filters&#x27;){closeLedgerFilters(false);return;}
+      if(b.dataset.action===&#x27;reset-ledger-filters&#x27;){
+        const fields=b.form.elements;
+        for(const name of Object.keys(blankLedgerFilters()))fields[name].value=&#x27;&#x27;;
+        return;
+      }
       if(b.dataset.action===&#x27;choose-ledger-period&#x27;){
         const range=state.ledgerRange,[year,month]=state.ledgerMonth.split(&#x27;-&#x27;).map(n=&gt;String(Number(n)));
         state.ledgerPeriodDraft={mode:range?&#x27;range&#x27;:&#x27;month&#x27;,year,month,from:range?.from||&#x27;&#x27;,to:range?.to||&#x27;&#x27;};
@@ -3099,6 +3239,14 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(b.dataset.periodMode){
         state.ledgerPeriodDraft.mode=b.dataset.periodMode;render();
         phone.querySelector(&#x27;[data-period-mode][aria-pressed=true]&#x27;).focus({preventScroll:true});return;
+      }
+      if(b.dataset.periodStep){
+        const d=state.ledgerPeriodDraft,ordinal=Number(d.year)*12+Number(d.month)-1+Number(b.dataset.periodStep);
+        d.year=String(Math.floor(ordinal/12));
+        d.month=String(ordinal%12+1);
+        render();
+        (phone.querySelector(`[data-period-step=&quot;${b.dataset.periodStep}&quot;]:not(:disabled)`)??phone.querySelector(&#x27;[name=year]&#x27;)).focus({preventScroll:true});
+        return;
       }
       if(b.dataset.periodMonth){
         state.ledgerPeriodDraft.month=b.dataset.periodMonth;render();
@@ -3146,9 +3294,22 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(b.dataset.mealTab){state.mealTab=b.dataset.mealTab;render();return;}
       if(b.dataset.ledgerTab){state.ledgerTab=b.dataset.ledgerTab;render();return;}
       if(b.dataset.entryType){state.entryType=b.dataset.entryType;state.entryDraft.category=chooseFinancialCategory(state.entryDraft.walletId,state.entryType,financialScopeOf(state.entryType)===&#x27;INCOME&#x27;?&#x27;gi-salary&#x27;:&#x27;ge-food&#x27;);render();return;}
-      if(b.dataset.key!==undefined){const input=phone.querySelector(&#x27;[data-calc-expression]&#x27;),k=b.dataset.key;state.calcExpression=input.value;phone.querySelector(&#x27;.ks-calc-error&#x27;).textContent=&#x27;&#x27;;if(k===&#x27;C&#x27;)state.calcExpression=&#x27;&#x27;;else if(k===&#x27;⌫&#x27;)state.calcExpression=state.calcExpression.slice(0,-1);else if(k===&#x27;=&#x27;){try{state.calcExpression=inputAmount(calcCents(state.calcExpression));input.blur();input.closest(&#x27;.ks-calc-body&#x27;).scrollTop=0;}catch(e){phone.querySelector(&#x27;.ks-calc-error&#x27;).textContent=e.message;return;}}else if(state.calcExpression.length&lt;80)state.calcExpression+=k;input.value=state.calcExpression;return;}
-      if(b.dataset.action===&#x27;add-entry&#x27;){state.page=&#x27;entry&#x27;;state.amount=&#x27;&#x27;;state.entryType=&#x27;支出&#x27;;state.entryDraft={dateTime:`${demoToday}T09:41`,note:&#x27;&#x27;,category:defaultEntryWallet()?&#x27;ge-food&#x27;:&#x27;&#x27;,walletId:defaultEntryWallet()?.id||&#x27;&#x27;};render();return;}
-      if(b.dataset.action===&#x27;back&#x27;){state.page=state.page===&#x27;category-detail&#x27;?state.categoryDetailReturn:state.page===&#x27;category-owned&#x27;?&#x27;category-manager&#x27;:state.page===&#x27;category-manager&#x27;?state.categoryReturn:[&#x27;appearance&#x27;,&#x27;github&#x27;].includes(state.page)?&#x27;settings&#x27;:state.page===&#x27;meal-filter&#x27;?&#x27;meals&#x27;:state.page===&#x27;meal-form&#x27;?state.mealReturn:&#x27;ledger&#x27;;render();return;}
+      if(b.dataset.key!==undefined){
+        const display=phone.querySelector(&#x27;[data-calc-expression]&#x27;),key=b.dataset.key;
+        const error=phone.querySelector(&#x27;.ks-calc-error&#x27;);
+        error.textContent=&#x27;&#x27;;
+        if(key===&#x27;C&#x27;)state.calcExpression=&#x27;&#x27;;
+        else if(key===&#x27;⌫&#x27;)state.calcExpression=state.calcExpression.slice(0,-1);
+        else if(key===&#x27;=&#x27;){
+          try{state.calcExpression=inputAmount(calcCents(state.calcExpression));display.closest(&#x27;.ks-calc-body&#x27;).scrollTop=0;}
+          catch(failure){error.textContent=failure.message;return;}
+        }else if(state.calcExpression.length&lt;80)state.calcExpression+=key;
+        display.textContent=state.calcExpression||(entryWallet()?.scale===0?&#x27;0&#x27;:&#x27;0.00&#x27;);
+        display.scrollLeft=display.scrollWidth;
+        return;
+      }
+      if(b.dataset.action===&#x27;add-entry&#x27;){state.entryReturn=state.page;state.page=&#x27;entry&#x27;;state.amount=&#x27;&#x27;;state.entryType=&#x27;支出&#x27;;state.entryDraft={dateTime:`${demoToday}T09:41`,note:&#x27;&#x27;,category:defaultEntryWallet()?&#x27;ge-food&#x27;:&#x27;&#x27;,walletId:defaultEntryWallet()?.id||&#x27;&#x27;};render();return;}
+      if(b.dataset.action===&#x27;back&#x27;){state.page=state.page===&#x27;entry&#x27;?state.entryReturn:state.page===&#x27;category-detail&#x27;?state.categoryDetailReturn:state.page===&#x27;category-owned&#x27;?&#x27;category-manager&#x27;:state.page===&#x27;category-manager&#x27;?state.categoryReturn:[&#x27;appearance&#x27;,&#x27;github&#x27;].includes(state.page)?&#x27;settings&#x27;:state.page===&#x27;meal-filter&#x27;?&#x27;meals&#x27;:state.page===&#x27;meal-form&#x27;?state.mealReturn:&#x27;ledger&#x27;;render();return;}
       if(b.dataset.action===&#x27;new-category&#x27;){phone.querySelector(&#x27;[data-new-category]&#x27;).hidden=false;phone.querySelector(&#x27;[data-category-name]&#x27;).focus();return;}
       if(b.dataset.action===&#x27;confirm-category&#x27;){const c=phone.querySelector(&#x27;[data-category-name]&#x27;).value.trim();if(c&amp;&amp;!state.categories.includes(c))state.categories.push(c);render();}
     });
@@ -3160,13 +3321,12 @@ html&gt;body{padding:0}&lt;/style&gt;
           state.githubDemo.review=null;render();phone.querySelector(&#x27;[data-github-action=review]&#x27;).focus({preventScroll:true});
         }else if(state.mealCalendar)closeMealCalendar(false);
         else if(state.ledgerPeriodDraft)closeLedgerPeriod(false);
+        else if(state.ledgerFiltersOpen)closeLedgerFilters(false);
         else if(state.walletPickerOpen)closeWalletPicker(&#x27;cancel&#x27;);
         else if(state.deletePending)cancelDelete();
         else closeCalculator(false);
-      }else if(state.calcOpen&amp;&amp;event.key===&#x27;Enter&#x27;&amp;&amp;event.target.matches(&#x27;[data-calc-expression]&#x27;)){
-        event.preventDefault();closeCalculator(true);
       }else if(event.key===&#x27;Tab&#x27;){
-        const dialog=modalNode().firstElementChild,controls=[...dialog.querySelectorAll(&#x27;button:not(:disabled),input:not(:disabled)&#x27;)],first=controls[0],last=controls[controls.length-1];
+        const dialog=modalNode().firstElementChild,controls=[...dialog.querySelectorAll(&#x27;button:not(:disabled),input:not(:disabled),select:not(:disabled)&#x27;)],first=controls[0],last=controls[controls.length-1];
         if(event.shiftKey&amp;&amp;document.activeElement===first){event.preventDefault();last.focus();}
         else if(!event.shiftKey&amp;&amp;document.activeElement===last){event.preventDefault();first.focus();}
       }
@@ -3209,7 +3369,14 @@ html&gt;body{padding:0}&lt;/style&gt;
         const draft=state.ledgerPeriodDraft,form=e.form;
         draft[e.name]=e.value;
         form.querySelector(&#x27;[data-period-error]&#x27;).textContent=ledgerPeriodError(draft);
-        form.querySelector(&#x27;[type=submit]&#x27;).disabled=!canApplyLedgerPeriod(draft);
+        const valid=canApplyLedgerPeriod(draft);
+        form.querySelector(&#x27;[type=submit]&#x27;).disabled=!valid;
+        if(e.name===&#x27;year&#x27;){
+          const ordinal=Number(draft.year)*12+Number(draft.month)-1;
+          form.querySelector(&#x27;[data-period-step=&quot;-1&quot;]&#x27;).disabled=!valid||ordinal&lt;=12;
+          form.querySelector(&#x27;[data-period-step=&quot;1&quot;]&#x27;).disabled=!valid||ordinal&gt;=119999;
+          form.querySelector(&#x27;[data-period-month-label]&#x27;).textContent=valid?`${Number(draft.year)}年${draft.month}月`:&#x27;&#x27;;
+        }
         return;
       }
       if(!e.matches(&#x27;[data-custom-picker],[data-custom-hex]&#x27;))return;
@@ -3232,6 +3399,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         items.sort((a,b)=&gt;a.sortOrder-b.sortOrder||a.name.localeCompare(b.name));
         state.editingFinancialCategoryId=null;state.page=state.categoryDetailReturn;render();return;
       }
+      if(f.matches(&#x27;[data-ledger-filters]&#x27;)){closeLedgerFilters(true);return;}
       if(f.matches(&#x27;[data-ledger-period]&#x27;)){closeLedgerPeriod(true);return;}
       if(f.matches(&#x27;[data-meal-filter-form]&#x27;)){const from=f.elements.from.value,to=f.elements.to.value;if(from&amp;&amp;to&amp;&amp;from&gt;to){error(&#x27;开始日期不能晚于结束日期。&#x27;);return;}state.mealFilters={from,to,slot:f.elements.slot.value,atHome:f.elements.atHome.value,method:f.elements.method.value,preparations:[...f.querySelectorAll(&#x27;[name=preparation]:checked&#x27;)].map(e=&gt;e.value),keyword:f.elements.keyword.value.trim()};state.mealListMode=true;state.mealTab=&#x27;记录&#x27;;state.page=&#x27;meals&#x27;;render();persist();return;}
       if(f.matches(&#x27;[data-meal-form]&#x27;)){
@@ -3243,11 +3411,11 @@ html&gt;body{padding:0}&lt;/style&gt;
       }
       if(f.matches(&#x27;[data-entry-form]&#x27;)){
         try{
-          if(!f.elements.wallet.value){error(&#x27;请先选择钱包。&#x27;);return;}const cents=calcCents(f.elements.amount.value),walletId=f.elements.wallet.value;
+          if(!f.elements.wallet.value){error(&#x27;请先选择钱包。&#x27;);return;}const cents=calcCents(state.amount),walletId=f.elements.wallet.value;
           if(!effectiveFinancialCategories(walletId,state.entryType).some(c=&gt;c.id===f.elements.category.value)){error(&#x27;请选择当前钱包可用的分类。&#x27;);return;}
           const entry={id:`draft-${state.nextEntryId++}`,type:state.entryType,cents,walletId,category:f.elements.category.value,note:f.elements.note.value,date:f.elements.dateTime.value.slice(0,10),time:f.elements.dateTime.value.slice(11,16)};
-          state.entries.push(entry);if(!walletById(walletId).separateAccounting)state.lastWalletId=walletId;state.page=&#x27;ledger&#x27;;state.ledgerTab=&#x27;流水&#x27;;
-          state.notice=matchesLedgerScope(entry)?&#x27;已保存到当前演示。&#x27;:&#x27;已保存到当前演示，该账目不在当前筛选范围内。&#x27;;
+          state.entries.push(entry);if(!walletById(walletId).separateAccounting)state.lastWalletId=walletId;state.page=state.entryReturn;
+          state.notice=state.page===&#x27;ledger&#x27;&amp;&amp;!matchesLedgerScope(entry)?&#x27;已保存到当前演示，该账目不在当前筛选范围内。&#x27;:&#x27;已保存到当前演示。&#x27;;
           render();
         }catch(e){error(e.message);}
       }

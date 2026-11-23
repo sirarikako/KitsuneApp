@@ -4,23 +4,29 @@ import android.graphics.Bitmap
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
@@ -28,6 +34,7 @@ import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isDisplayed
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
@@ -35,13 +42,19 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipe
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModelProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kitsuneapp.data.*
+import com.kitsuneapp.feature.ledger.EntryForm
 import com.kitsuneapp.feature.ledger.LedgerPage
 import com.kitsuneapp.feature.ledger.Calculator
 import com.kitsuneapp.ui.DateControl
@@ -130,7 +143,7 @@ class LedgerLayoutTest {
         compose.setContent { KitsuneTheme(records.theme, forceDark = false) { LedgerPage(records, {}, {}) } }
 
         fun inDialog(label: String) = compose.onNode(hasText(label) and hasAnyAncestor(isDialog()))
-        val range = compose.onNodeWithText("钱包范围")
+        val range = compose.onNodeWithContentDescription("钱包范围")
         val daily = inDialog("日常钱包 · CNY")
         val savings = inDialog("省钱钱包 · JPY")
         val apply = inDialog("应用")
@@ -196,7 +209,7 @@ class LedgerLayoutTest {
             ThemePreferences(), emptyList(), listOf(category), emptyList(), emptyMap(), listOf(wallet), entries)
         compose.setContent { KitsuneTheme(records.theme, forceDark = false) { LedgerPage(records, {}, {}) } }
 
-        fun monthLabel(month: YearMonth) = LedgerPeriod(month.toString()).label
+        fun monthLabel(month: YearMonth) = "${month.year}年${month.monthValue}月"
         fun inDialog(label: String) = compose.onNode(hasText(label) and hasAnyAncestor(isDialog()))
         val picker = compose.onNodeWithContentDescription("选择日期范围")
         val monthly = inDialog("按月")
@@ -204,13 +217,15 @@ class LedgerLayoutTest {
         val apply = inDialog("应用")
 
         compose.onNodeWithText(monthLabel(current)).assertIsDisplayed()
-        compose.onNodeWithContentDescription("上个月").performClick()
-        compose.onNodeWithText(monthLabel(previous)).assertIsDisplayed()
-        compose.onNodeWithContentDescription("下个月").performClick()
-        compose.onNodeWithText(monthLabel(current)).assertIsDisplayed()
+        val walletPicker = compose.onNodeWithContentDescription("钱包范围")
+        assertTrue(picker.fetchSemanticsNode().boundsInRoot.right <= walletPicker.fetchSemanticsNode().boundsInRoot.left)
 
         picker.performClick()
         monthly.assertIsSelected()
+        compose.onNodeWithContentDescription("上个月").performScrollTo().performClick()
+        inDialog("${previous.monthValue} 月").performScrollTo().assertIsSelected()
+        compose.onNodeWithContentDescription("下个月").performScrollTo().performClick()
+        inDialog("${current.monthValue} 月").performScrollTo().assertIsSelected()
         val year = compose.onNodeWithContentDescription("年份")
         year.performTextReplacement("0")
         apply.assertIsNotEnabled()
@@ -233,8 +248,9 @@ class LedgerLayoutTest {
         pickLedgerDate("结束日期", to)
         apply.performClick()
 
-        val range = compose.onNodeWithText("$from 至 $to")
+        val range = compose.onNodeWithText("${from.toString().replace('-', '/')} ～ ${to.toString().replace('-', '/')}")
         range.assertIsDisplayed()
+        assertTrue(picker.fetchSemanticsNode().boundsInRoot.bottom <= walletPicker.fetchSemanticsNode().boundsInRoot.top)
         compose.onNodeWithText("19.00").assertIsDisplayed()
         compose.onNodeWithText("统计").performClick()
         range.assertIsDisplayed()
@@ -369,30 +385,158 @@ class LedgerLayoutTest {
     }
 
     @Test
-    fun calculatorAcceptsExpressionsAndAppliesResultAfterEditing() {
-        var amount: String? = null
+    fun ledgerHeaderTracksScrollAndFabStaysCompactUntilTheTop() {
+        val now = "2026-11-17T12:00:00Z"
+        val wallet = Wallet("regular", "日常钱包", "日常钱包", "CNY", 2, 0, 0, false, false,
+            CategoryMode.DEFAULT, CategoryMode.DEFAULT, now, now)
+        val category = Category("food", Scope.EXPENSE, null, "", "餐饮", "餐饮", 0, false, false, now, now)
+        val entries = (28 downTo 1).map { index ->
+            FinancialEntry("entry-$index", YearMonth.now().atDay(index).toString(), "12:00", EntryType.EXPENSE,
+                wallet.id, 100, category.id, null, null, null, "第 $index 笔", now, now)
+        }
+        val records = Records(DataState(installationId = "test", datasetId = "test", arrayElements = 0),
+            ThemePreferences(), emptyList(), listOf(category), emptyList(), emptyMap(), listOf(wallet), entries)
+        var route: String? = null
         compose.setContent {
+            KitsuneTheme(records.theme) {
+                CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, 1.5f)) {
+                    Box(Modifier.width(320.dp).height(630.dp)) { LedgerPage(records, { route = it }, {}) }
+                }
+            }
+        }
+
+        val title = compose.onNodeWithText("记账")
+        val tabs = compose.onNodeWithText("流水")
+        val date = compose.onNodeWithContentDescription("选择日期范围")
+        val fab = compose.onNodeWithContentDescription("记一笔")
+        val list = compose.onNode(hasScrollToNodeAction())
+        fun fabWidth() = fab.fetchSemanticsNode().boundsInRoot.width
+        fun listPosition() = list.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value()
+        fun drag(from: Float, to: Float) = list.performTouchInput {
+            swipe(Offset(width * 0.2f, height * from), Offset(width * 0.2f, height * to), durationMillis = 900)
+        }
+
+        title.assertIsDisplayed()
+        date.assertIsDisplayed()
+        val expandedWidth = fabWidth()
+        repeat(3) { drag(0.90f, 0.10f) }
+        title.assertIsNotDisplayed()
+        date.assertIsNotDisplayed()
+        tabs.assertIsDisplayed()
+        val compactWidth = fabWidth()
+        assertTrue(compactWidth < expandedWidth)
+        assertTrue(listPosition() > 0f)
+        drag(0.10f, 0.55f)
+        title.assertIsDisplayed()
+        date.assertIsDisplayed()
+        assertTrue(listPosition() > 0f)
+        assertEquals(compactWidth, fabWidth())
+        fab.performClick()
+        compose.runOnIdle { assertEquals("entryForm/-", route) }
+
+        val lastEntry = hasText("第 1 笔", substring = true)
+        list.performScrollToNode(lastEntry)
+        // Scroll to the end so the last record can come fully above the overlay.
+        drag(0.85f, 0.15f)
+        val lastAtEnd = compose.onNode(lastEntry).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertTrue(lastAtEnd.bottom < fab.fetchSemanticsNode().boundsInRoot.top)
+        list.performScrollToIndex(0)
+        assertEquals(0f, listPosition(), 0f)
+        title.assertIsDisplayed()
+        assertEquals(expandedWidth, fabWidth())
+        compose.onNodeWithText("钱包").performClick()
+        fab.assertDoesNotExist()
+        compose.onNodeWithText("新建钱包").assertIsDisplayed()
+        compose.onNodeWithText("统计").performClick()
+        fab.assertDoesNotExist()
+        date.assertIsDisplayed()
+        tabs.performClick()
+        assertEquals(expandedWidth, fabWidth())
+    }
+
+    @Test
+    fun calculatorUsesKeypadAndRestoresExpressionBeforeApplying() {
+        var amount: String? = null
+        var dismissed = false
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
             KitsuneTheme(ThemePreferences(), forceDark = false) {
-                Calculator(2, "CNY", "12.50", dismiss = {}, apply = { amount = it })
+                Calculator(2, "CNY", "12.50", dismiss = { dismissed = true }, apply = { amount = it })
             }
         }
         val expression = compose.onNodeWithContentDescription("计算表达式")
-        val equals = compose.onNodeWithText("=")
+        val clear = compose.onNodeWithContentDescription("清空")
         val apply = compose.onNodeWithText("使用此金额")
-        expression.performTextReplacement("1÷0")
-        equals.performScrollTo().performClick()
+        fun press(vararg keys: String) {
+            keys.forEach { compose.onNodeWithText(it).performScrollTo().performClick() }
+        }
+
+        compose.onNodeWithText("12.50").assertIsDisplayed()
+        assertTrue(!expression.fetchSemanticsNode().config.contains(SemanticsActions.SetText))
+        clear.performClick()
+        press("1", "÷", "0", "=")
         compose.onNodeWithText("除数不能为零").assertIsDisplayed()
-        expression.performScrollTo().performTextReplacement("1÷3×100")
-        equals.performScrollTo().performClick()
+        compose.onNodeWithContentDescription("退格").performScrollTo().performClick()
+        press("3", "×", "1", "0", "0")
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithText("1÷3×100").performScrollTo().assertIsDisplayed()
+        press("=")
         compose.waitUntil(5_000) { compose.onNodeWithText("33.33").isDisplayed() }
         apply.assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals("33.33", amount) }
-
         saveScreenshot("kitsune-calculator")
-        expression.performClick()
-        expression.performTextReplacement("2×25")
-        apply.assertIsDisplayed().performClick()
-        compose.runOnIdle { assertEquals("50.00", amount) }
+
+        clear.performScrollTo().performClick()
+        press("2", "×", "2", "5")
+        compose.onNodeWithText("取消").performClick()
+        compose.runOnIdle {
+            assertTrue(dismissed)
+            assertEquals("33.33", amount)
+        }
+    }
+
+    @Test
+    fun transferFormRestoresDraftAndUsesTheSelectedCurrencyForEachAmount() {
+        val timestamp = "2026-11-17T12:00:00Z"
+        val source = Wallet("source", "日常钱包", "日常钱包", "CNY", 2, 0, 0, false, false,
+            CategoryMode.DEFAULT, CategoryMode.DEFAULT, timestamp, timestamp)
+        val target = source.copy(id = "target", name = "旅行钱包", currencyCode = "JPY", currencyScale = 0)
+        val entry = FinancialEntry("transfer", LocalDate.now().toString(), "12:00", EntryType.TRANSFER,
+            source.id, 1_250, null, target.id, 300, null, "原备注", timestamp, timestamp)
+        val records = Records(DataState(installationId = "test", datasetId = "test", arrayElements = 0),
+            ThemePreferences(), emptyList(), emptyList(), emptyList(), emptyMap(), listOf(source, target), listOf(entry))
+        val model = compose.runOnIdle { ViewModelProvider(compose.activity)[AppViewModel::class.java] }
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            KitsuneTheme(records.theme) { EntryForm(records, entry.id, null, model, back = {}, finished = {}) }
+        }
+
+        val sourceAmount = hasContentDescription("转出金额 · CNY")
+        val targetAmount = hasContentDescription("到账金额 · JPY")
+        val expression = hasContentDescription("计算表达式")
+        val note = compose.onNodeWithContentDescription("备注")
+        val apply = compose.onNodeWithText("使用此金额")
+        note.performScrollTo().performTextReplacement("未保存备注")
+        val initial = compose.onNode(sourceAmount and hasText("12.50"))
+        assertTrue(!initial.fetchSemanticsNode().config.contains(SemanticsActions.SetText))
+        initial.performScrollTo().performClick()
+        compose.onNode(expression and hasText("12.50")).assertIsDisplayed()
+        compose.onNodeWithText("+").performScrollTo().performClick()
+        compose.onNodeWithText("1").performScrollTo().performClick()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNode(expression and hasText("12.50+1")).performScrollTo().assertIsDisplayed()
+        apply.performClick()
+        compose.onNode(sourceAmount and hasText("13.50")).assertExists()
+        note.assertTextEquals("未保存备注")
+
+        compose.onNode(targetAmount and hasText("300")).performScrollTo().performClick()
+        compose.onNodeWithText("JPY · 支持加减乘除").assertIsDisplayed()
+        compose.onNode(expression and hasText("300")).assertIsDisplayed()
+        compose.onNodeWithContentDescription("清空").performScrollTo().performClick()
+        listOf("2", ".", "5").forEach { compose.onNodeWithText(it).performScrollTo().performClick() }
+        apply.performClick()
+        compose.onNode(targetAmount and hasText("3")).assertExists()
+        compose.onNode(sourceAmount and hasText("13.50")).assertExists()
     }
 
     private fun saveScreenshot(name: String) {

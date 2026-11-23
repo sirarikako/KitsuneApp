@@ -46,7 +46,6 @@
   #kitsune-preview .ks-category-form .ks-form-actions{align-items:center}
   #kitsune-preview .ks-wallet-check>span{flex:1}
   #kitsune-preview .ks-wallet-check small{font-size:var(--ks-font-note);color:var(--ks-accent)}
-  #kitsune-preview .ks-filter-context{font-size:12px;color:var(--ks-dim);margin:0 0 13px}
   #kitsune-preview .ks-filter-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 15px}
   #kitsune-preview .ks-filter-chip{border:var(--ks-card-border);background:var(--ks-card-surface);font-size:var(--ks-font-tag);padding:2px 6px;border-radius:6px;color:var(--ks-dim)}
   #kitsune-preview .ks-record-ellipsis{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -69,7 +68,7 @@
   #kitsune-preview .ks-bar-fill{height:100%;background:var(--ks-accent);border-radius:4px}
   #kitsune-preview .ks-bar-income .ks-bar-fill{background:var(--ks-good)}
   #kitsune-preview .ks-bar-expense .ks-bar-fill{background:var(--ks-expense)}
-  @media(max-width:400px){#kitsune-preview .ks-stage{padding:12px 0;min-height:855px}#kitsune-preview .ks-main,#kitsune-preview .ks-top{padding-left:var(--ks-space-3);padding-right:var(--ks-space-3)}#kitsune-preview .ks-ledger-action{padding-left:var(--ks-space-3);padding-right:var(--ks-space-3)}#kitsune-preview .ks-choice{padding-left:var(--ks-space-2);padding-right:var(--ks-space-2)}}
+  @media(max-width:400px){#kitsune-preview .ks-stage{padding:12px 0;min-height:855px}#kitsune-preview .ks-main,#kitsune-preview .ks-top{padding-left:var(--ks-space-3);padding-right:var(--ks-space-3)}#kitsune-preview .ks-choice{padding-left:var(--ks-space-2);padding-right:var(--ks-space-2)}}
   @media(pointer:coarse){#kitsune-preview .ks-text-btn{min-height:44px}#kitsune-preview .ks-control{font-size:16px}}
   #kitsune-preview .ks-preparation-check:has(input:checked){background:var(--ks-accent-bg);border-color:var(--ks-accent);color:var(--ks-accent)}
   #kitsune-preview .ks-detail-list>div:last-child{border-bottom:0}
@@ -82,4 +81,26 @@
   #kitsune-preview .ks-motion-copy *{pointer-events:none!important}
   #kitsune-preview .ks-motion-modal-copy{z-index:21}
   #kitsune-preview .ks-motion-appearance-copy{pointer-events:none;overflow:hidden}
+  #kitsune-preview .ks-home-actions{display:flex;align-items:center;gap:4px}
+  #kitsune-preview .ks-home-add{min-width:44px;color:var(--ks-accent)}
+  #kitsune-preview .ks-phone:has(>.ks-ledger-screen){height:clamp(570px,92vh,740px);min-height:0}
+  #kitsune-preview .ks-ledger-screen{position:relative;min-height:0;overflow:hidden}
+  #kitsune-preview .ks-ledger-screen .ks-main{min-height:0;overflow-y:auto;overflow-anchor:none;overscroll-behavior:contain;padding-top:12px}
+  #kitsune-preview .ks-ledger-with-fab .ks-main{padding-bottom:84px}
+  #kitsune-preview .ks-ledger-screen .ks-segments{flex:none;margin:0 var(--ks-space-4);gap:clamp(8px,5vw,20px)}
+  #kitsune-preview .ks-ledger-collapsible{flex:none;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
+  #kitsune-preview .ks-ledger-collapsible>*{flex:none}
+  #kitsune-preview .ks-ledger-filters{padding:8px var(--ks-space-4) 0;display:grid;gap:8px}
+  #kitsune-preview .ks-ledger-filter-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  #kitsune-preview .ks-ledger-filter-row.ks-ledger-custom{grid-template-columns:minmax(0,1fr)}
+  #kitsune-preview .ks-ledger-filter{min-width:0;display:flex;justify-content:space-between;align-items:center;gap:6px;text-align:left}
+  #kitsune-preview .ks-ledger-filter svg{flex:none;width:14px;height:14px;color:var(--ks-accent)}
+  #kitsune-preview .ks-ledger-wallet span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #kitsune-preview .ks-ledger-list-actions{display:flex;align-items:center;gap:8px}
+  #kitsune-preview .ks-ledger-list-actions .ks-choice{display:flex;align-items:center;gap:6px}
+  #kitsune-preview .ks-ledger-list-actions svg{width:18px;height:18px}
+  #kitsune-preview .ks-ledger-fab{position:absolute;z-index:1;inset:auto 16px 16px auto;border-radius:999px;min-height:56px;min-width:56px;justify-content:center;gap:0;padding:8px 16px;box-shadow:0 4px 10px #0003}
+  #kitsune-preview .ks-ledger-fab span{display:block;overflow:hidden;white-space:nowrap;max-width:7em;padding-left:8px;transition:max-width 180ms ease,padding-left 180ms ease,opacity 140ms ease}
+  #kitsune-preview .ks-ledger-fab.ks-fab-compact span{max-width:0;padding-left:0;opacity:0}
+  @media(prefers-reduced-motion:reduce){#kitsune-preview .ks-ledger-fab span{transition:none}}
 </style>

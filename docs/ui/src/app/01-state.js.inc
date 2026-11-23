@@ -27,6 +27,8 @@
     const style = {accent:'#c47a4a',mealHour:'auto',...defaultAppearance};
     const state = {page:'home', date:'2026-11-17', ledgerMonth:'2026-11',mealMonth:'2026-11',ledgerTab:'流水', mealTab:'记录', slot:2, atHome:null, method:null, categories:[], amount:'',calcOpen:false,calcExpression:'',entryType:'支出',entryDraft:{dateTime:'2026-11-17T09:41',note:'',category:'ge-food',walletId:'daily'},notice:'', mealReturn:'home', entries:[], records:{}};
     state.ledgerRange=null;state.ledgerPeriodDraft=null;state.previewMode=null;
+    const blankLedgerFilters=()=>({type:'',category:'',note:''});
+    state.ledgerFilters=blankLedgerFilters();state.ledgerFiltersOpen=false;
     state.githubDemo={backedUp:false,review:null};
     const blankMealFilters=()=>({from:'',to:'',slot:'any',atHome:'any',method:'any',preparations:[],keyword:''});
     state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
@@ -221,19 +223,20 @@
     const choice = (label,value,current,action) => `<button type="button" class="ks-choice cursor-interaction" data-${action}="${escapeText(value)}" aria-pressed="${current===value}">${label}</button>`;
     const monthPicker = (key,label) => `<div class="ks-month-picker" role="group" aria-label="${label}月份选择"><button type="button" class="ks-icon-btn cursor-interaction" data-month-step="-1" data-month-key="${key}" aria-label="${label}上个月">${icon('chevron-left')}</button><label class="ks-month-field"><input type="month" value="${state[key]}" data-month-input="${key}" aria-label="${label}月份" min="0001-01" max="9999-12"></label><button type="button" class="ks-icon-btn cursor-interaction" data-month-step="1" data-month-key="${key}" aria-label="${label}下个月">${icon('chevron-right')}</button></div>`;
     function ledgerPeriodControl(){
-      const range=state.ledgerRange,month=state.ledgerMonth,[year,number]=month.split('-').map(Number);
-      const display=range?`${range.from} 至 ${range.to}`:`${year} 年 ${number} 月`;
-      return `<div class="ks-month-picker ks-ledger-period" role="group" aria-label="流水与统计期间">
-        ${range?'':`<button type="button" class="ks-icon-btn cursor-interaction" data-month-step="-1" data-month-key="ledgerMonth" aria-label="上个月" ${month==='0001-01'?'disabled':''}>${icon('chevron-left')}</button>`}
-        <button type="button" class="ks-choice ks-period-trigger cursor-interaction" data-action="choose-ledger-period" aria-haspopup="dialog" aria-label="选择日期范围：${display}">${icon('calendar-days')}<span>${display}</span></button>
-        ${range?'':`<button type="button" class="ks-icon-btn cursor-interaction" data-month-step="1" data-month-key="ledgerMonth" aria-label="下个月" ${month==='9999-12'?'disabled':''}>${icon('chevron-right')}</button>`}
-      </div>`;
+      const range=state.ledgerRange,[year,month]=state.ledgerMonth.split('-').map(Number);
+      const display=range?`${range.from.replaceAll('-','/')} ～ ${range.to.replaceAll('-','/')}`:`${year}年${month}月`;
+      return `<button type="button" class="ks-choice ks-ledger-filter" data-action="choose-ledger-period" aria-haspopup="dialog" aria-label="选择日期范围：${display}"><span>${display}</span>${icon('chevron-down')}</button>`;
     }
     const canApplyLedgerPeriod=draft=>draft.mode==='month'?/^\d{1,4}$/.test(draft.year)&&Number(draft.year)>0:
       isDate(draft.from)&&isDate(draft.to)&&draft.from<=draft.to;
     const ledgerPeriodError=draft=>draft.mode==='month'&&!canApplyLedgerPeriod(draft)?'请输入 1 至 9999 的年份':
       draft.mode==='range'&&draft.from&&draft.to&&draft.from>draft.to?'开始日期不能晚于结束日期':'';
-    const walletScope=()=>{const chosen=selectedWallets(),label=state.walletFilterIds===null?'常规钱包':state.walletFilterIds==='ALL'?'全部钱包（含独立核算）':chosen.length===1?`${chosen[0].name} · ${chosen[0].code}`:`已选 ${chosen.length} 个钱包`;return `<div class="ks-toolbar"><button type="button" class="ks-toolbar-action ks-scope cursor-interaction" data-action="choose-wallets" aria-label="选择统计与流水的钱包范围"><span>${icon('wallet')}钱包范围</span><span>${escapeText(label)}${icon('chevron-down')}</span></button></div>${state.walletFilterIds&&chosen.length>1?`<p class="ks-filter-context">${chosen.map(w=>`${escapeText(w.name)} · ${w.code}`).join('、')}</p>`:''}`;};
+    const walletScope=()=>{
+      const chosen=selectedWallets(),single=Array.isArray(state.walletFilterIds)&&chosen.length===1;
+      const label=state.walletFilterIds===null?'常规钱包':state.walletFilterIds==='ALL'?'全部钱包':
+        single?`${chosen[0].name} · ${chosen[0].code}`:`已选 ${chosen.length} 个钱包`;
+      return `<button type="button" class="ks-choice ks-ledger-filter ${single?'ks-ledger-wallet':''}" data-action="choose-wallets" aria-haspopup="dialog" aria-label="钱包范围：${escapeText(label)}"><span>${escapeText(label)}</span>${icon('chevron-down')}</button>`;
+    };
     const methodCounts = meals => [...new Set(['下厨','外卖','未填写',...meals.map(m=>m.method||'未填写')])].map(method=>({method,count:meals.filter(m=>(m.method||'未填写')===method).length}));
     const recommendedSlot = () => {const hour=style.mealHour==='auto'?new Date().getHours():Number(style.mealHour);return hour<11?0:hour<17?1:2;};
     const statBar=(label,ratio,tone='')=>`<div class="ks-bar-track ${tone}" role="meter" aria-label="${escapeText(label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(ratio*100)}"><div class="ks-bar-fill" style="width:${ratio*100}%"></div></div>`;

@@ -1,5 +1,8 @@
 package com.kitsuneapp.feature.ledger
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,7 +13,11 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -191,6 +198,13 @@ fun EntryForm(records: Records, id: String?, expenseId: String?, model: AppViewM
     var targetAmount by rememberSaveable { mutableStateOf(original?.toAmountMinor?.let { money(it, target?.currencyScale ?: 0) }.orEmpty()) }
     var note by rememberSaveable { mutableStateOf(original?.note.orEmpty()) }
     var calculator by rememberSaveable { mutableIntStateOf(0) }
+    val focus = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    fun openCalculator(field: Int) {
+        focus.clearFocus()
+        keyboard?.hide()
+        calculator = field
+    }
     var walletSheet by rememberSaveable { mutableIntStateOf(0) }
     val busy by model.busy.collectAsState()
     val error by model.error.collectAsState()
@@ -227,6 +241,11 @@ fun EntryForm(records: Records, id: String?, expenseId: String?, model: AppViewM
                         }
                     }
                 }
+            }
+            AmountField(if (type == EntryType.TRANSFER) "转出金额" else "金额", amount, wallet) { openCalculator(1) }
+            if (type == EntryType.TRANSFER && wallet != null && target != null) {
+                if (wallet.currencyCode == target.currencyCode) Secondary("到账金额与转出金额相同")
+                else AmountField("到账金额", targetAmount, target) { openCalculator(2) }
             }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 FieldLabel("日期时间")
@@ -272,11 +291,6 @@ fun EntryForm(records: Records, id: String?, expenseId: String?, model: AppViewM
                 }
             }
             Field("备注", note, { note = it }, multiline = true, minLines = 1, placeholder = "这笔钱用在了哪里？")
-            AmountField(if (type == EntryType.TRANSFER) "转出金额" else "金额", amount, { amount = it }, wallet) { calculator = 1 }
-            if (type == EntryType.TRANSFER && wallet != null && target != null) {
-                if (wallet.currencyCode == target.currencyCode) Secondary("到账金额与转出金额相同")
-                else AmountField("到账金额", targetAmount, { targetAmount = it }, target) { calculator = 2 }
-            }
             SaveActions(busy, error, {
                 val draft = EntryDraft(id, date, time, type, walletId, amount, categoryId, newCategory,
                     targetId, targetAmount, expense?.id, note)
@@ -333,17 +347,16 @@ private fun WalletControl(title: String, value: String, modifier: Modifier, sele
 }
 
 @Composable
-private fun AmountField(label: String, value: String, set: (String) -> Unit, wallet: Wallet?, calculator: () -> Unit) {
+private fun AmountField(label: String, value: String, wallet: Wallet?, calculator: () -> Unit) {
+    val title = "$label · ${wallet?.currencyCode ?: "请选择钱包"}"
+    val colors = MaterialTheme.colorScheme
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        FieldLabel("$label · ${wallet?.currencyCode ?: "请选择钱包"}")
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Field(label, value, set, Modifier.weight(1f), keyboard = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                textStyle = MaterialTheme.typography.headlineSmall.copy(fontSize = 30.sp, lineHeight = 40.sp, textAlign = TextAlign.End),
-                placeholder = if (wallet?.currencyScale == 0) "0" else "0.00", showLabel = false)
-            OutlinedAction(calculator, enabled = wallet != null, contentColor = MaterialTheme.colorScheme.primary) {
-                Icon(designIcon(R.drawable.ks_calculator), null, Modifier.size(18.dp))
-                Text("计算器")
-            }
+        FieldLabel(title)
+        OutlinedAction(calculator, Modifier.fillMaxWidth().semantics { contentDescription = title }, enabled = wallet != null) {
+            Text(value.ifEmpty { money(0L, wallet?.currencyScale ?: 2) }, Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.headlineSmall.copy(fontSize = 30.sp, lineHeight = 40.sp),
+                color = if (value.isEmpty()) colors.onSurfaceVariant else colors.onSurface,
+                textAlign = TextAlign.End)
         }
     }
 }
@@ -380,14 +393,20 @@ internal fun Calculator(scale: Int, currency: String, initial: String, dismiss: 
             Primary("使用此金额", { evaluate()?.let(apply) }, Modifier.weight(1f))
         }
     }) {
-        val focus = LocalFocusManager.current
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("金额计算器", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
             TextAction("关闭", dismiss)
         }
         Secondary("$currency · 支持加减乘除")
-        Field("计算表达式", text, ::update, textStyle = MaterialTheme.typography.headlineSmall.copy(textAlign = TextAlign.End),
-            placeholder = if (scale == 0) "0" else "0.00", showLabel = false)
+        val colors = MaterialTheme.colorScheme
+        BoxWithConstraints(Modifier.fillMaxWidth().clip(ControlShape).background(colors.surface)
+            .border(1.dp, colors.outlineVariant, ControlShape).padding(horizontal = 12.dp, vertical = 8.dp)) {
+            Text(text.ifEmpty { money(0L, scale) },
+                Modifier.horizontalScroll(rememberScrollState(), reverseScrolling = true)
+                    .widthIn(min = maxWidth).semantics { contentDescription = "计算表达式" },
+                style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.End,
+                color = if (text.isEmpty()) colors.onSurfaceVariant else colors.onSurface, softWrap = false)
+        }
         listOf(listOf("C", "⌫", "÷", "×"), listOf("7", "8", "9", "−"), listOf("4", "5", "6", "+")).forEach { keys ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 keys.forEach { key -> CalculatorKey(key, Modifier.weight(1f)) { press(key) } }
@@ -408,7 +427,6 @@ internal fun Calculator(scale: Int, currency: String, initial: String, dismiss: 
                 Primary("=", {
                     evaluate()?.let {
                         update(it)
-                        focus.clearFocus()
                         scope.launch { scroll.scrollTo(0) }
                     }
                 }, Modifier.width(keyWidth).fillMaxHeight())
@@ -420,7 +438,12 @@ internal fun Calculator(scale: Int, currency: String, initial: String, dismiss: 
 @Composable
 private fun CalculatorKey(key: String, modifier: Modifier, press: () -> Unit) {
     val colors = MaterialTheme.colorScheme
-    OutlinedAction(press, modifier, contentColor = if (key in listOf("÷", "×", "−", "+")) colors.primary else colors.onSurface) {
+    val keyModifier = when (key) {
+        "C" -> modifier.semantics { contentDescription = "清空" }
+        "⌫" -> modifier.semantics { contentDescription = "退格" }
+        else -> modifier
+    }
+    OutlinedAction(press, keyModifier, contentColor = if (key in listOf("÷", "×", "−", "+")) colors.primary else colors.onSurface) {
         Text(key, fontSize = 20.sp, lineHeight = 24.sp)
     }
 }

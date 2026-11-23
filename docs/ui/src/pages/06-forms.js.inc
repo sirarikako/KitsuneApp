@@ -9,14 +9,17 @@
     </form>`;}
     function pageEntry(){return `<form data-entry-form class="ks-form">
       <fieldset><legend class="ks-label">收支类型</legend><div class="ks-choices">${['支出','收入'].map(t=>choice(t,t,state.entryType,'entry-type')).join('')}</div></fieldset>
+      <div><span class="ks-label" id="ks-amount-label">金额 · ${entryWallet()?.code||'请选择钱包'}</span>
+        <button type="button" class="ks-amount-input ks-amount-trigger" data-action="open-calculator" aria-labelledby="ks-amount-label ks-amount-value" ${entryWallet()?'':'disabled'}>
+          <span id="ks-amount-value">${escapeText(state.amount|| (entryWallet()?.scale===0?'0':'0.00'))}</span></button>
+      </div>
       <label><span class="ks-label">日期时间</span><input type="datetime-local" name="dateTime" value="${escapeText(state.entryDraft.dateTime)}" class="ks-control" required></label>
       <div class="ks-field-row"><label><span class="ks-label">钱包</span><select name="wallet" class="ks-control" required><option value="" ${!entryWallet()?'selected':''} disabled>请选择钱包</option>${wallets.map(w=>`<option value="${w.id}" ${entryWallet()?.id===w.id?'selected':''}>${w.name} · ${w.code}${w.separateAccounting?'（独立核算）':''}</option>`).join('')}</select></label><label><span class="ks-label">分类</span><select name="category" class="ks-control" required><option value="" ${!state.entryDraft.category?'selected':''} disabled>请选择分类</option>${effectiveFinancialCategories(state.entryDraft.walletId,state.entryType).map(c=>`<option value="${c.id}" ${state.entryDraft.category===c.id?'selected':''}>${escapeText(c.name)}</option>`).join('')}</select></label></div>
       <p class="ks-note">分类来源：${entryWallet()?scopeMode(entryWallet(),financialScopeOf(state.entryType))==='CUSTOM'?'本钱包专属分类':'通用分类':'请先选择钱包'}。切换钱包后如无对应分类，请重新选择。</p>
       <label><span class="ks-label">备注</span><input name="note" class="ks-control" placeholder="这笔钱用在了哪里？" value="${escapeText(state.entryDraft.note)}"></label>
-      <div><label class="ks-label" for="ks-amount">金额 · ${entryWallet()?.code||'请选择钱包'}</label><div class="ks-amount-row"><input id="ks-amount" class="ks-amount-input" name="amount" inputmode="decimal" placeholder="${(entryWallet()?.scale??2)?'0.00':'0'}" autocomplete="off" value="${escapeText(state.amount)}" aria-label="金额"><button type="button" class="ks-calc-trigger cursor-interaction" data-action="open-calculator">${icon('calculator')}计算器</button></div></div>
       ${formFooter(saveButton(`保存${state.entryType}`),'交互预览 · 仅保存到当前演示')}
     </form>`;}
-    function calculatorSheet(){return `<div class="ks-modal-overlay"><section class="ks-calc-sheet" role="dialog" aria-modal="true" aria-label="金额计算器"><div class="ks-calc-body"><div class="ks-row"><h3>金额计算器</h3><button type="button" class="ks-text-btn cursor-interaction" data-calc-action="cancel">关闭</button></div><label><span class="ks-note">${entryWallet()?.code||'未选择钱包'} · 支持加减乘除</span><input class="ks-amount-input" data-calc-expression inputmode="text" aria-label="计算表达式" maxlength="80" placeholder="${(entryWallet()?.scale??2)?'0.00':'0'}" value="${escapeText(state.calcExpression)}"></label><div class="ks-calculator" role="group" aria-label="计算键盘">${['C','⌫','÷','×','7','8','9','−','4','5','6','+','1','2','3','=','0','.'].map(k=>`<button type="button" class="ks-key ${['÷','×','−','+','='].includes(k)?'ks-operator':''} ${k==='0'?'ks-zero':''} ${k==='='?'ks-equal':''} cursor-interaction" data-key="${k}" aria-label="${k==='⌫'?'退格':k==='C'?'清空':k}">${k}</button>`).join('')}</div></div><div class="ks-calc-footer"><p class="ks-calc-error" role="alert"></p><div class="ks-calc-actions"><button type="button" class="ks-choice cursor-interaction" data-calc-action="cancel">取消</button><button type="button" class="ks-primary cursor-interaction" data-calc-action="apply">使用此金额</button></div></div></section></div>`;}
+    function calculatorSheet(){return `<div class="ks-modal-overlay"><section class="ks-calc-sheet" role="dialog" aria-modal="true" aria-label="金额计算器"><div class="ks-calc-body"><div class="ks-row"><h3>金额计算器</h3><button type="button" class="ks-text-btn cursor-interaction" data-calc-action="cancel">关闭</button></div><span class="ks-note">${entryWallet()?.code||'未选择钱包'} · 支持加减乘除</span><div class="ks-amount-input" data-calc-expression aria-label="计算表达式" aria-live="polite">${escapeText(state.calcExpression||(entryWallet()?.scale===0?'0':'0.00'))}</div><div class="ks-calculator" role="group" aria-label="计算键盘">${['C','⌫','÷','×','7','8','9','−','4','5','6','+','1','2','3','=','0','.'].map(k=>`<button type="button" class="ks-key ${['÷','×','−','+','='].includes(k)?'ks-operator':''} ${k==='0'?'ks-zero':''} ${k==='='?'ks-equal':''} cursor-interaction" data-key="${k}" aria-label="${k==='⌫'?'退格':k==='C'?'清空':k}">${k}</button>`).join('')}</div></div><div class="ks-calc-footer"><p class="ks-calc-error" role="alert"></p><div class="ks-calc-actions"><button type="button" class="ks-choice cursor-interaction" data-calc-action="cancel">取消</button><button type="button" class="ks-primary cursor-interaction" data-calc-action="apply">使用此金额</button></div></div></section></div>`;}
     function mealCalendarDialog(){
       const d=state.mealCalendar,[year,month]=d.month.split('-').map(Number);
       const first=new Date(`${d.month}-01T00:00:00Z`),offset=(first.getUTCDay()+6)%7;
@@ -47,13 +50,21 @@
       </section></div>`;
     }
     function ledgerPeriodDialog(){
-      const draft=state.ledgerPeriodDraft;
+      const draft=state.ledgerPeriodDraft,validYear=/^\d{1,4}$/.test(draft.year)&&Number(draft.year)>0;
+      const ordinal=Number(draft.year)*12+Number(draft.month)-1;
+      const step=(direction,label,iconName,enabled)=>`<button type="button" class="ks-icon-btn" data-period-step="${direction}" aria-label="${label}" ${enabled?'':'disabled'}>${icon(iconName)}</button>`;
+
       return `<div class="ks-modal-overlay ks-period-overlay"><form class="ks-period-dialog" data-ledger-period role="dialog" aria-modal="true" aria-label="日期范围">
         <h3>日期范围</h3>
         <div class="ks-period-body">
           <div class="ks-period-modes" role="group" aria-label="日期范围模式">${choice('按月','month',draft.mode,'period-mode')}${choice('自定义日期','range',draft.mode,'period-mode')}</div>
           ${draft.mode==='month'?`
             <label><span class="ks-label">年份</span><input type="text" inputmode="numeric" name="year" class="ks-control" value="${escapeText(draft.year)}"></label>
+            <div class="ks-row">
+              ${step(-1,'上个月','chevron-left',validYear&&ordinal>12)}
+              <span data-period-month-label>${validYear?`${Number(draft.year)}年${draft.month}月`:''}</span>
+              ${step(1,'下个月','chevron-right',validYear&&ordinal<119999)}
+            </div>
             <div class="ks-period-months" role="group" aria-label="月份">${Array.from({length:12},(_,i)=>choice(`${i+1} 月`,String(i+1),draft.month,'period-month')).join('')}</div>
           `:`
             <label><span class="ks-label">开始日期</span><input type="date" name="from" class="ks-control" value="${draft.from}" min="0001-01-01" max="9999-12-31"></label>

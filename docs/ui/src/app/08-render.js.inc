@@ -1,5 +1,11 @@
     function render(){
       const previous=rendered,kind=modalKind(),key=localKey(),changingPage=previous&&previous.page!==state.page;
+      const oldLedger=phone.querySelector('.ks-ledger-screen');
+      const sameLedger=oldLedger&&state.page==='ledger'&&previous.local===key;
+      const ledgerPosition=sameLedger?oldLedger.querySelector('.ks-main').scrollTop:0;
+      const ledgerCollapse=sameLedger?[...oldLedger.querySelectorAll('.ks-ledger-collapsible')].reduce(
+        (sum,part)=>sum+part.firstElementChild.offsetHeight-part.offsetHeight,0):0;
+      const ledgerCompact=sameLedger&&!!oldLedger.querySelector('.ks-fab-compact');
       // Measure before removing old nodes, but first clear any stale visual copies.
       stopMotion();
       const oldEditor=phone.querySelector('[data-appearance-editor]');
@@ -20,14 +26,21 @@
       const heading=`<h2 class="ks-title">${titles[state.page]}</h2>`;
       const header=state.page==='home'?`<div class="ks-home-brand"><span class="ks-app-mark"><img src="__KITSUNE_FOX_MARK__" alt=""></span><div>${heading}<p class="ks-sub">11 月 17 日 · 星期二</p></div></div>`:form?`<button type="button" class="ks-icon-btn cursor-interaction" data-action="back" aria-label="返回">${icon('arrow-left')}</button>${heading}`:heading;
       const pages={home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,appearance:pageAppearance,'wallet-edit':pageWalletEdit,'meal-form':pageMealForm,'meal-filter':pageMealFilter,entry:pageEntry,'entry-detail':pageEntryDetail,'category-manager':pageCategoryManager,'category-owned':pageOwnedCategories,'category-detail':pageCategoryDetail,github:pageGitHubBackup};
-      phone.innerHTML=`<div class="ks-status"><span>9:41</span><span class="ks-signal">${icon('signal')}${icon('wifi')}${icon('battery-full')}</span></div><div class="ks-page-motion"><header class="ks-top ${form?'ks-subpage':''}">${header}</header><main class="ks-main">${pages[state.page]()}${state.notice?`<p class="ks-success" role="status">${escapeText(state.notice)}</p>`:''}</main></div>${state.page==='ledger'?`<div class="ks-ledger-action"><button type="button" class="ks-primary ks-full cursor-interaction" data-action="add-entry">${icon('plus')}记一笔</button></div>`:''}${form?'':`<nav class="ks-nav" aria-label="主导航">${navs.map(([id,name,ic])=>`<button type="button" data-page="${id}" class="cursor-interaction" ${state.page===id?'aria-current="page"':''}><span>${icon(ic)}</span>${name}</button>`).join('')}</nav>`}<div class="ks-home-indicator" aria-hidden="true"></div>`;
-      if(state.calcOpen){phone.insertAdjacentHTML('beforeend',calculatorSheet());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-calc-expression]').focus({preventScroll:true});}
+      const ledger=state.page==='ledger',fab=ledger&&state.ledgerTab==='流水';
+      const top=`<header class="ks-top ${form?'ks-subpage':''}">${header}</header>`;
+      phone.innerHTML=`<div class="ks-status"><span>9:41</span><span class="ks-signal">${icon('signal')}${icon('wifi')}${icon('battery-full')}</span></div><div class="ks-page-motion ${ledger?'ks-ledger-screen':''} ${fab?'ks-ledger-with-fab':''}">${ledger?`<div class="ks-ledger-collapsible">${top}</div>${ledgerTabs()}${ledgerFilters()}`:top}<main class="ks-main">${pages[state.page]()}${state.notice?`<p class="ks-success" role="status">${escapeText(state.notice)}</p>`:''}</main>${fab?`<button type="button" class="ks-primary ks-ledger-fab" data-action="add-entry" aria-label="记一笔">${icon('plus')}<span>记一笔</span></button>`:''}</div>${form?'':`<nav class="ks-nav" aria-label="主导航">${navs.map(([id,name,ic])=>`<button type="button" data-page="${id}" class="cursor-interaction" ${state.page===id?'aria-current="page"':''}><span>${icon(ic)}</span>${name}</button>`).join('')}</nav>`}<div class="ks-home-indicator" aria-hidden="true"></div>`;
+      if(state.calcOpen){phone.insertAdjacentHTML('beforeend',calculatorSheet());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-calc-action=cancel]').focus({preventScroll:true});}
       if(state.deletePending){phone.insertAdjacentHTML('beforeend',deleteConfirmation());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-delete-action=cancel]').focus({preventScroll:true});}
       if(state.walletPickerOpen){phone.insertAdjacentHTML('beforeend',walletRangeDialog());for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;phone.querySelector('[data-wallet-mode][aria-pressed=true]').focus({preventScroll:true});}
       if(state.ledgerPeriodDraft){
         phone.insertAdjacentHTML('beforeend',ledgerPeriodDialog());
         for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
         if(previous?.modal!==kind)phone.querySelector('[data-period-mode][aria-pressed=true]').focus({preventScroll:true});
+      }
+      if(state.ledgerFiltersOpen){
+        phone.insertAdjacentHTML('beforeend',ledgerFiltersDialog());
+        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
+        phone.querySelector('[data-ledger-filters] select').focus({preventScroll:true});
       }
       if(state.githubDemo.review){
         phone.insertAdjacentHTML('beforeend',githubDemoDialog());
@@ -41,6 +54,7 @@
       }
       if(state.page==='appearance')updateAppearancePreview();
       globalThis.lucide?.createIcons({root:phone,attrs:{width:18,height:18}});
+      if(ledger)attachLedgerScroll(ledgerPosition,ledgerCollapse,ledgerCompact);
       rendering=false;
       const previousStack=previous?.stack??[],pageIndex=previousStack.indexOf(state.page);
       const stack=primary(state.page)?[state.page]:pageIndex<0?[...previousStack,state.page]:previousStack.slice(0,pageIndex+1);
@@ -58,7 +72,7 @@
       if(changingPage&&primary(state.page))recordOrigin=null;
       if(changingPage&&!kind){const header=phone.querySelector('.ks-top');header.setAttribute('tabindex','-1');header.focus({preventScroll:true});}
     }
-    function capture(){const form=phone.querySelector('[data-meal-form]');if(form){state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);}const entry=phone.querySelector('[data-entry-form]');if(entry){state.amount=entry.elements.amount.value;state.entryDraft={dateTime:entry.elements.dateTime.value,note:entry.elements.note.value,category:entry.elements.category.value,walletId:entry.elements.wallet.value};}}
+    function capture(){const form=phone.querySelector('[data-meal-form]');if(form){state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);}const entry=phone.querySelector('[data-entry-form]');if(entry){state.entryDraft={dateTime:entry.elements.dateTime.value,note:entry.elements.note.value,category:entry.elements.category.value,walletId:entry.elements.wallet.value};}}
     function error(message){phone.querySelector('.ks-error').textContent=message;}
     function updateAppearancePreview(){
       const editor=phone.querySelector('[data-appearance-editor]');
@@ -84,7 +98,15 @@
     function deleteConfirmation(){const p=state.deletePending;return `<div class="ks-modal-overlay ks-delete-overlay"><section class="ks-delete-sheet" role="alertdialog" aria-modal="true" aria-label="确认删除记录"><h3>${p.kind==='meal'?'删除这条用餐记录？':'删除这笔账目？'}</h3><p class="ks-delete-summary">${escapeText(p.summary)}</p><p class="ks-note">${p.kind==='meal'?'删除后，将更新今日进度、月度及全部记录统计。':'删除后，将更新流水、收支统计和钱包余额。'}</p><p class="ks-error" role="alert" data-delete-error></p><div class="ks-calc-actions"><button type="button" class="ks-choice cursor-interaction" data-delete-action="cancel">取消</button><button type="button" class="ks-primary ks-danger-confirm cursor-interaction" data-delete-action="confirm">确认删除</button></div></section></div>`;}
     function cancelDelete(){const action=state.deletePending.kind==='meal'?'delete-meal':'delete-entry';state.deletePending=null;render();phone.querySelector(`[data-action=${action}]`)?.focus({preventScroll:true});}
     function confirmDelete(){const p=state.deletePending;if(p.kind==='meal'){if(state.records[p.date])state.records[p.date][p.slot]=null;state.date=p.date;state.page=state.mealReturn;state.editing=false;}else{if(financialEntries().some(e=>e.originalExpenseId===p.id)){phone.querySelector('[data-delete-error]').textContent='请先删除这笔支出关联的退款，再删除原支出。';return;}state.deletedEntryIds.add(p.id);state.page='ledger';state.ledgerTab='流水';}state.deletePending=null;state.notice='已从当前演示删除记录。';render();}
-    function closeCalculator(apply){if(apply){try{state.amount=inputAmount(calcCents(phone.querySelector('[data-calc-expression]').value));}catch(e){phone.querySelector('.ks-calc-error').textContent=e.message;return;}}state.calcOpen=false;render();phone.querySelector('[data-action=open-calculator]').focus({preventScroll:true});}
+    function closeCalculator(apply){if(apply){try{state.amount=inputAmount(calcCents(state.calcExpression));}catch(e){phone.querySelector('.ks-calc-error').textContent=e.message;return;}}state.calcOpen=false;render();phone.querySelector('[data-action=open-calculator]').focus({preventScroll:true});}
+    function closeLedgerFilters(apply){
+      if(apply){
+        const fields=phone.querySelector('[data-ledger-filters]').elements;
+        state.ledgerFilters={type:fields.type.value,category:fields.category.value,note:fields.note.value};
+      }
+      state.ledgerFiltersOpen=false;render();
+      phone.querySelector('[data-action=open-ledger-filters]')?.focus({preventScroll:true});
+    }
     function closeWalletPicker(action){
       if(action==='apply'){
         const mode=state.walletDraftMode;

@@ -44,17 +44,26 @@
         const r=rect(node);if(!r)continue;
         const copy=cloneVisual(node);
         Object.assign(copy.style,{position:'absolute',inset:'auto',left:r.x+'px',top:r.y+'px',width:r.w+'px',height:r.h+'px',margin:'0',boxSizing:'border-box'});
+        const ledgerViewport=rect(node.closest('.ks-ledger-screen .ks-main'));
+        if(ledgerViewport)copy.style.clipPath=clip(r,ledgerViewport,0);
+        if(node.matches('.ks-ledger-screen'))group.ledgerPosition=node.querySelector('.ks-main').scrollTop;
         group.append(copy);
       }
       return group.childElementCount?group:null;
     };
-    const attachGhost=group=>{if(group)phone.append(group);return group;};
+    const attachGhost=group=>{
+      if(group){
+        phone.append(group);
+        if(group.ledgerPosition)group.querySelector('.ks-ledger-screen .ks-main').scrollTop=group.ledgerPosition;
+      }
+      return group;
+    };
     const discard=group=>()=>group?.remove();
     const pageNode=()=>phone.querySelector(':scope > .ks-page-motion');
     const modalNode=()=>phone.querySelector(':scope > .ks-modal-overlay');
-    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.walletPickerOpen?'wallet':state.ledgerPeriodDraft?'ledger-period':state.githubDemo.review?'github-review':state.mealCalendar?'date-calendar':null;
+    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.walletPickerOpen?'wallet':state.ledgerPeriodDraft?'ledger-period':state.ledgerFiltersOpen?'ledger-filters':state.githubDemo.review?'github-review':state.mealCalendar?'date-calendar':null;
     const primary=page=>navs.some(n=>n[0]===page);
-    const localKey=()=>state.page==='meals'?JSON.stringify([state.mealTab,state.date,state.mealMonth,state.mealListMode,state.mealFilters]):state.page==='ledger'?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds]):'';
+    const localKey=()=>state.page==='meals'?JSON.stringify([state.mealTab,state.date,state.mealMonth,state.mealListMode,state.mealFilters]):state.page==='ledger'?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds,state.ledgerFilters]):'';
     const localNodes=()=>{
       const main=phone.querySelector('.ks-main');if(!main)return [];
       const explicit=main.querySelector('[data-monthly-meals],[data-monthly-ledger],[data-ledger-statistics],[data-meal-results]');

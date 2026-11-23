@@ -3,6 +3,7 @@
   #kitsune-preview .ks-key{border:var(--ks-card-border);background:var(--ks-card-surface);font-size:20px;min-height:var(--ks-control-height);border-radius:var(--ks-control-radius)}
   #kitsune-preview .ks-key.ks-operator{background:var(--ks-card-surface);color:var(--ks-accent)}
   #kitsune-preview .ks-amount-input{width:100%;font-size:34px!important;line-height:1.5;text-align:right;font-variant-numeric:tabular-nums;border:var(--ks-card-border);border-radius:var(--ks-control-radius);background:var(--ks-card-surface);min-height:var(--ks-control-height);padding:var(--ks-space-2) var(--ks-space-3);min-width:0}
+  #kitsune-preview .ks-amount-trigger{display:block}
   #kitsune-preview .ks-full{width:100%}
   #kitsune-preview .ks-daily{border:var(--ks-card-border);border-radius:var(--ks-radius);padding:var(--ks-space-4);margin-top:var(--ks-space-6);background:var(--ks-card-surface)}
   #kitsune-preview .ks-daily-heading{margin:0;font-size:var(--ks-font-section);font-weight:600}
@@ -14,13 +15,9 @@
   #kitsune-preview .ks-daily-state.ks-pending svg{color:var(--ks-dim)}
   #kitsune-preview .ks-daily .ks-primary{margin-top:var(--ks-space-2)}
 
-  #kitsune-preview .ks-ledger-action{background:var(--ks-bg);padding:var(--ks-space-3) var(--ks-space-4) var(--ks-space-4)}
   #kitsune-preview .ks-month-picker{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:3px 0 19px}
   #kitsune-preview .ks-month-field{flex:1;min-width:0;text-align:center}
   #kitsune-preview .ks-month-field input{display:block;max-width:190px;width:100%;margin:auto;text-align:center;min-height:var(--ks-control-height);border:var(--ks-card-border);border-radius:var(--ks-control-radius);background:var(--ks-card-surface);padding:var(--ks-space-2) var(--ks-space-3);font-size:var(--ks-font-body)}
-  #kitsune-preview .ks-ledger-period{gap:var(--ks-space-2);margin-bottom:var(--ks-space-2)}
-  #kitsune-preview .ks-period-trigger{display:flex;align-items:center;justify-content:center;gap:var(--ks-space-2);flex:1;min-width:0;text-align:center}
-  #kitsune-preview .ks-period-trigger svg{flex-shrink:0}
 
   #kitsune-preview .ks-all-methods{margin-top:var(--ks-space-6);padding-top:0;border-top:0}
   #kitsune-preview .ks-empty-state{text-align:center;padding:24px 8px;color:var(--ks-dim);font-size:13px}
@@ -34,7 +31,6 @@
   #kitsune-preview .ks-home-currency small{display:block;color:var(--ks-dim);font-size:11px;margin-bottom:3px}
   #kitsune-preview .ks-home-currency strong{display:block;font-size:16px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
   #kitsune-preview .ks-home-currency .ks-money-caption{padding-top:2px;font-weight:600}
-  #kitsune-preview .ks-home-money .ks-primary{width:100%;margin-top:8px}
   #kitsune-preview .ks-stat-row{padding:var(--ks-space-3) 0}
   #kitsune-preview .ks-stat-row + .ks-stat-row{border-top:1px solid var(--ks-line)}
   #kitsune-preview .ks-stat-row .ks-row{font-size:13px}
@@ -44,10 +40,6 @@
   #kitsune-preview .ks-plan-visual{display:flex;height:8px;gap:3px;margin-top:12px;border-radius:5px;overflow:hidden;background:var(--ks-soft)}
   #kitsune-preview .ks-plan-yes{background:var(--ks-accent)}
   #kitsune-preview .ks-plan-no{background:var(--ks-dim);opacity:.45}
-  #kitsune-preview .ks-amount-row{display:flex;gap:12px;align-items:center}
-  #kitsune-preview .ks-amount-row .ks-amount-input{flex:1;min-width:0;font-size:30px!important;padding:var(--ks-space-2) var(--ks-space-3)}
-  #kitsune-preview .ks-calc-trigger{display:flex;align-items:center;justify-content:center;gap:5px;flex-shrink:0;color:var(--ks-accent);min-height:var(--ks-control-height);border:var(--ks-card-border);border-radius:var(--ks-control-radius);background:var(--ks-card-surface);padding:var(--ks-space-2) var(--ks-space-3);font-size:var(--ks-font-body)}
-  #kitsune-preview .ks-calc-trigger svg{width:var(--ks-icon-size);height:var(--ks-icon-size)}
   #kitsune-preview .ks-top.ks-subpage{justify-content:flex-start;padding-top:12px;padding-bottom:12px}
   #kitsune-preview .ks-subpage .ks-title{margin:0;font-size:var(--ks-font-title)}
   #kitsune-preview .ks-modal-overlay{position:absolute;inset:0;z-index:20;background:#00000055;border-radius:30px;display:flex;align-items:flex-end;padding:9px}
@@ -55,7 +47,7 @@
   #kitsune-preview .ks-calc-body{min-height:0;overflow-y:auto}
   #kitsune-preview .ks-calc-footer{flex:none}
   #kitsune-preview .ks-calc-sheet h3{font-size:18px;font-weight:600;margin:0 0 var(--ks-space-2)}
-  #kitsune-preview .ks-calc-sheet .ks-amount-input{font-size:27px!important;margin:3px 0 12px}
+  #kitsune-preview .ks-calc-sheet .ks-amount-input{font-size:27px!important;margin:3px 0 12px;white-space:nowrap;overflow-x:auto}
   #kitsune-preview .ks-calc-sheet .ks-calculator{gap:var(--ks-space-2)}
 
   #kitsune-preview .ks-key.ks-zero{grid-column:span 2}
@@ -81,7 +73,6 @@
   #kitsune-preview .ks-toolbar>.ks-control{flex:1;font-size:13px}
   #kitsune-preview .ks-toolbar-action{display:flex;align-items:center;justify-content:center;gap:6px;color:var(--ks-accent);min-height:var(--ks-control-height);padding:var(--ks-space-2) var(--ks-space-3);border:var(--ks-card-border);border-radius:var(--ks-control-radius);background:var(--ks-card-surface);font-size:var(--ks-font-body)}
   #kitsune-preview .ks-toolbar-action svg{flex-shrink:0;width:var(--ks-icon-size);height:var(--ks-icon-size)}
-  #kitsune-preview .ks-toolbar-action.ks-scope{width:100%;justify-content:space-between;text-align:left}
   #kitsune-preview .ks-scope>span{display:flex;align-items:center;gap:6px}
   #kitsune-preview .ks-scope>span:first-child{color:var(--ks-dim);flex-shrink:0}
   #kitsune-preview .ks-scope>span:last-child{text-align:right}

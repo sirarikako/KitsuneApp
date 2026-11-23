@@ -227,7 +227,8 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
                                 "data" -> DataManagementPage(records, model, goBack)
                                 "folder" -> FolderPage(records, model, ::open, goBack)
                                 "github" -> GitHubPage(records, model, goBack)
-                                "ledger" -> LedgerPage(records, ::open) { id -> openRecord("entry/$id", id) }
+                                "ledger" -> LedgerPage(records, ::open,
+                                    openDetails = { id -> openRecord("entry/$id", id) }, active = active)
                                 "wallet" -> WalletForm(records, parts[1].takeUnless { it == "-" }, model, goBack)
                                 "entry" -> EntryDetails(records, parts[1], model, ::open, goBack)
                                 "entryForm" -> EntryForm(records, parts[1].takeUnless { it == "-" }, null, model, goBack, ::back)
@@ -338,9 +339,13 @@ private fun Home(records: Records, now: LocalDateTime, open: (String) -> Unit, m
                     { meal(today, suggested, current?.id) }, Modifier.fillMaxWidth(),
                     icon = designIcon(if (current == null) R.drawable.ks_plus else R.drawable.ks_pencil))
             }
-            Section("本月收支") { TextAction("查看账本", { open("ledger") }, designIcon(R.drawable.ks_arrow_up_right)) }
+            val ledger = remember(records) { Ledger(records) }
+            Section("本月收支") {
+                TextAction("查看账本", { open("ledger") }, designIcon(R.drawable.ks_arrow_up_right))
+                Spacer(Modifier.width(4.dp))
+                SquareIcon(designIcon(R.drawable.ks_plus), "记一笔") { open(newEntryRoute(ledger)) }
+            }
             Paper {
-                val ledger = remember(records) { Ledger(records) }
                 val month = java.time.YearMonth.from(now).toString()
                 val totals = remember(ledger, month) { ledger.statistics(LedgerPeriod(month), WalletRange()) }
                 if (totals.isEmpty()) Secondary("暂无常规钱包的收支")
@@ -360,9 +365,6 @@ private fun Home(records: Records, now: LocalDateTime, open: (String) -> Unit, m
                         }
                     }
                 }
-                Primary("记一笔", {
-                    open(if (ledger.availableWallets().isEmpty()) "wallet/-" else "entryForm/-")
-                }, Modifier.fillMaxWidth(), icon = designIcon(R.drawable.ks_plus))
             }
         }
     }

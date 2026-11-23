@@ -8,6 +8,8 @@
 
 Android 工程、Room v1、首页、用餐、钱包、记账、分类管理和外观设置已接入。JSON、CSV、文件夹及 GitHub 私有库备份已接入。开发与验证证据见 [开发进度](docs/IMPLEMENTATION_PROGRESS.md)。
 
+记账页已支持滚动折叠标题和筛选，通过流水右下角或首页收支标题行快捷记账。点击账目金额即可在应用内计算器输入并回填。详见 [记账交互](docs/ui/README.md#记账交互)。
+
 ## 保留的狐狸图标
 
 - [artwork/fox-foreground.png](artwork/fox-foreground.png)：原创透明源图。

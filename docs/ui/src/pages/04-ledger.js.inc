@@ -18,10 +18,79 @@
           ${amount!==0n?statBar(name+'金额占比',Number(abs(amount))/Number(magnitude),income?'ks-bar-income':'ks-bar-expense'):''}
         </div>`).join('')}</div>`;
     }
+    const ledgerTabs=()=>`<div class="ks-segments" aria-label="记账视图">${['流水','钱包','统计'].map(tab=>`<button type="button" data-ledger-tab="${tab}" aria-pressed="${state.ledgerTab===tab}" class="cursor-interaction">${tab}</button>`).join('')}</div>`;
+    function ledgerFilters(){
+      if(state.ledgerTab==='钱包')return '';
+      const empty=!selectedWallets().length&&wallets.length;
+      return `<div class="ks-ledger-collapsible"><div class="ks-ledger-filters">
+        <div class="ks-ledger-filter-row ${state.ledgerRange?'ks-ledger-custom':''}">${ledgerPeriodControl()}${walletScope()}</div>
+        ${empty?'<span class="ks-note">当前范围没有钱包，可手动选择</span>':''}
+      </div></div>`;
+    }
+    function attachLedgerScroll(position, collapsed, compact){
+      const main=phone.querySelector('.ks-ledger-screen .ks-main');
+      if(!main)return;
+      const parts=[...phone.querySelectorAll('.ks-ledger-screen .ks-ledger-collapsible')];
+      const fab=phone.querySelector('.ks-ledger-fab');
+      let sizes=[],height=0,previous=position;
+      const layout=()=>{
+        const visible=height?1-collapsed/height:1;
+        parts.forEach((part,i)=>{
+          part.style.height=`${sizes[i]*visible}px`;
+          part.inert=visible===0;
+        });
+        fab?.classList.toggle('ks-fab-compact',compact);
+      };
+      const measure=()=>{
+        sizes=parts.map(part=>part.firstElementChild.offsetHeight);
+        height=sizes.reduce((sum,size)=>sum+size,0);
+        collapsed=Math.min(height,collapsed);
+        layout();
+      };
+      measure();
+      main.scrollTop=position;
+      previous=main.scrollTop;
+      main.addEventListener('scroll',()=>{
+        const current=main.scrollTop,delta=current-previous;
+        if(!delta)return;
+        collapsed=current<=0?0:Math.min(height,Math.max(0,collapsed+delta));
+        compact=current>0;
+        layout();
+        // A taller viewport may clamp the scroll offset at the end.
+        previous=main.scrollTop;
+      },{passive:true});
+      const observer=new ResizeObserver(()=>{
+        if(!main.isConnected){observer.disconnect();return;}
+        measure();
+        previous=main.scrollTop;
+      });
+      parts.forEach(part=>observer.observe(part.firstElementChild));
+    }
+    function ledgerFiltersDialog(){
+      const {type,category,note}=state.ledgerFilters;
+      const select=(label,name,value,options)=>`<label><span class="ks-label">${label}</span><select class="ks-control" name="${name}">
+        <option value="">不限</option>
+        ${options.map(([id,text])=>`<option value="${escapeText(id)}" ${value===id?'selected':''}>${escapeText(text)}</option>`).join('')}
+      </select></label>`;
+      const categories=allFinancialCategories().map(c=>[c.id,categoryDescriptionForId(c.id)]);
+      return `<div class="ks-modal-overlay ks-period-overlay" data-ledger-filter-overlay>
+        <form class="ks-period-dialog" data-ledger-filters role="dialog" aria-modal="true" aria-label="流水筛选">
+          <h3>流水筛选</h3>
+          <div class="ks-period-body">
+            ${select('类型','type',type,['支出','收入','转账','退款'].map(value=>[value,value]))}
+            ${select('分类','category',category,categories)}
+            <label><span class="ks-label">备注关键词</span><input name="note" class="ks-control" value="${escapeText(note)}"></label>
+            <button type="button" class="ks-text-btn" data-action="reset-ledger-filters">重置条件</button>
+          </div>
+          <div class="ks-period-actions">
+            <button type="button" class="ks-text-btn" data-action="cancel-ledger-filters">取消</button>
+            <button type="submit" class="ks-text-btn">应用</button>
+          </div>
+        </form></div>`;
+    }
     function pageLedger(){
       const allEntries=financialEntries();
-      const tabs=`<div class="ks-segments" aria-label="记账视图">${['流水','钱包','统计'].map(tab=>`<button type="button" data-ledger-tab="${tab}" aria-pressed="${state.ledgerTab===tab}" class="cursor-interaction">${tab}</button>`).join('')}</div>`;
-      if(state.ledgerTab==='钱包')return `${tabs}${section('我的钱包','<span class="ks-note">每个钱包余额单独计算</span>')}<div class="ks-wallet-cards">
+      if(state.ledgerTab==='钱包')return `${section('我的钱包','<span class="ks-note">每个钱包余额单独计算</span>')}<div class="ks-wallet-cards">
         ${wallets.map(wallet=>{
           const related=allEntries.filter(entry=>entry.walletId===wallet.id);
           const balance=wallet.opening+total(related,'收入')-netExpense(related);
@@ -37,11 +106,11 @@
           </div>`;
         }).join('')}</div><p class="ks-footnote">交互预览 · 示例数据</p>`;
       const entries=allEntries.filter(matchesLedgerScope).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
-      const picker=ledgerPeriodControl()+walletScope(),groups=currencyGroups(entries,selectedWallets());
+      const groups=currencyGroups(entries,selectedWallets());
       const period=state.ledgerRange?'所选期间':'本月';
       const includeYear=state.ledgerRange&&state.ledgerRange.from.slice(0,4)!==state.ledgerRange.to.slice(0,4);
       const empty='<p class="ks-empty-state">所选日期和钱包范围内没有账目</p>';
-      if(state.ledgerTab==='统计')return `${tabs}${picker}<div data-ledger-statistics aria-live="polite">
+      if(state.ledgerTab==='统计')return `<div data-ledger-statistics aria-live="polite">
         ${groups.map(({code,entries:group})=>`<section class="ks-currency-group" data-currency="${code}">
             ${section(`${period}收支 · ${code}`)}
             <div class="ks-summary">
@@ -53,11 +122,18 @@
             ${group.length?'':empty}
           </section>`).join('')}
       </div><p class="ks-footnote">交互预览 · 各币种独立统计</p>`;
-      return `${tabs}${picker}<section data-monthly-ledger aria-label="所选日期与钱包的流水" aria-live="polite">
+      const {type,category,note}=state.ledgerFilters;
+      const keyword=note.trim().toLocaleLowerCase();
+      const visibleEntries=entries.filter(entry=>(!type||type===entry.type)&&
+        (!category||category===categoryForEntry(entry))&&entry.note.toLocaleLowerCase().includes(keyword));
+      const activeFilters=Boolean(type||category||keyword);
+      const filters=`<div class="ks-ledger-list-actions"><span class="ks-note">${visibleEntries.length} 笔</span>
+        <button type="button" class="ks-choice ks-date" data-action="open-ledger-filters" aria-haspopup="dialog" aria-pressed="${activeFilters}">${icon('list-filter')}筛选</button></div>`;
+      return `<section data-monthly-ledger aria-label="所选日期与钱包的流水" aria-live="polite">
         ${groups.map(({code,entries:group})=>`<div class="ks-currency-group">${moneyCard(code,group)}</div>`).join('')}
-        ${section(`${period}流水`,`<span class="ks-note">${entries.length} 笔</span>`)}
+        ${section(`${period}流水`,filters)}
         <div class="ks-record-list">
-        ${entries.map(entry=>{
+        ${visibleEntries.map(entry=>{
           const wallet=walletById(entry.walletId),category=entryCategory(entry);
           const lineLabel=entry.type==='退款'?`退款 · ${category}`:category;
           const glyph=entry.type==='退款'?'undo-2':category==='交通'?'train-front':category==='工资'?'briefcase-business':'receipt-text';
@@ -68,7 +144,7 @@
           </button>`;
         }).join('')}
         </div>
-        ${entries.length?'':empty}
+        ${visibleEntries.length?'':empty}
       </section><p class="ks-footnote">交互预览 · 示例数据</p>`;
     }
     function pageWalletEdit(){
