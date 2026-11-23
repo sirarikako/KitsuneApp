@@ -1,10 +1,3 @@
-    function updateMealDatePresets(form){
-      const selected=mealDatePreset({from:form.elements.from.value,to:form.elements.to.value});
-      for(const button of form.querySelectorAll('[data-meal-date-preset]')){
-        button.setAttribute('aria-pressed',String(button.dataset.mealDatePreset===selected));
-      }
-      error('');
-    }
     phone.addEventListener('click',event=>{
       const b=event.target.closest('button');if(!b)return;
       capture();state.notice='';
@@ -25,18 +18,8 @@
       }
       if(b.dataset.action==='cancel-ledger-range'){state.ledgerRangeOpen=false;render();phone.querySelector('[data-action=edit-ledger-range]').focus();return;}
       if(b.dataset.action==='ledger-month-mode'){state.ledgerRange=null;state.ledgerRangeOpen=false;render();phone.querySelector('[data-month-input=ledgerMonth]').focus();persist();return;}
-      if(b.dataset.action==='meal-filter'){
-        state.mealFilterDraft=state.mealTab==='统计'?state.mealStatsFilters:state.mealFilters;
-        state.page='meal-filter';render();return;
-      }
-      if(b.dataset.mealDatePreset){
-        const {from,to}=mealDatePresets[b.dataset.mealDatePreset];
-        b.form.elements.from.value=from;
-        b.form.elements.to.value=to;
-        updateMealDatePresets(b.form);
-        return;
-      }
-      if(b.dataset.action==='reset-meal-filter'){state.mealFilterDraft=defaultMealFilters();render();return;}
+      if(b.dataset.action==='meal-filter'){state.mealFilterDraft={...state.mealFilters,preparations:[...state.mealFilters.preparations]};state.page='meal-filter';render();return;}
+      if(b.dataset.action==='reset-meal-filter'){state.mealFilterDraft=blankMealFilters();render();return;}
       if(b.dataset.action==='meal-daily'){state.mealListMode=false;render();persist();return;}
       if(b.dataset.action==='clear-meal-filters'){state.mealFilters=blankMealFilters();render();persist();return;}
       if(b.dataset.action==='manage-categories'){state.categoryReturn=state.page;state.categoryWalletId=b.dataset.categoryWallet||'GLOBAL';state.financialScope='EXPENSE';state.editingFinancialCategoryId=null;state.page='category-manager';render();return;}
@@ -55,7 +38,7 @@
       if(b.dataset.deleteAction){if(b.dataset.deleteAction==='confirm')confirmDelete();else cancelDelete();return;}
       if(b.dataset.action==='open-calculator'){state.calcExpression=state.amount;state.calcOpen=true;render();return;}
       if(b.dataset.calcAction){closeCalculator(b.dataset.calcAction==='apply');return;}
-      if(b.dataset.monthStep){const key=b.dataset.monthKey;if(key!=='ledgerMonth')return;const [year,month]=state[key].split('-').map(Number),ordinal=year*12+month-1+Number(b.dataset.monthStep);if(ordinal<12||ordinal>=120000)return;state[key]=`${String(Math.floor(ordinal/12)).padStart(4,'0')}-${String(ordinal%12+1).padStart(2,'0')}`;state.ledgerRangeOpen=false;render();persist();return;}
+      if(b.dataset.monthStep){const key=b.dataset.monthKey;if(!['ledgerMonth','mealMonth'].includes(key))return;const [year,month]=state[key].split('-').map(Number),ordinal=year*12+month-1+Number(b.dataset.monthStep);if(ordinal<12||ordinal>=120000)return;state[key]=`${String(Math.floor(ordinal/12)).padStart(4,'0')}-${String(ordinal%12+1).padStart(2,'0')}`;if(key==='ledgerMonth')state.ledgerRangeOpen=false;render();persist();return;}
       if(b.dataset.page){if(state.page===b.dataset.page)return;state.page=b.dataset.page;state.ledgerRangeOpen=false;if(state.page==='settings')resetAppearance();render();persist();return;}
       if(b.dataset.date){state.date=b.dataset.date;render();return;}
       if(b.dataset.meal!==undefined){if(state.page==='home')state.date='2026-11-17';else if(b.dataset.mealDate)state.date=b.dataset.mealDate;state.slot=Number(b.dataset.meal);state.mealReturn=state.page;const m=records()[state.slot];state.editing=!!m;if(m&&b.classList.contains('ks-record')){recordOrigin={page:state.page,date:state.date,slot:b.dataset.meal};entrance=visible(b)?rect(b):null;}else recordOrigin=null;state.editingDate=state.date;state.editingSlot=state.slot;state.atHome=m?.atHome??null;state.method=m?.method??null;state.categories=[...(m?.categories||[])];state.dishes=m?.dishes||'';state.note=m?.note||'';state.page='meal-form';render();return;}
@@ -79,8 +62,7 @@
       if(e.matches('[data-wallet-all]')){state.walletDraftIds=e.checked?wallets.map(w=>w.id):[];render();return;}
       if(e.matches('[data-wallet-option]')){const id=e.dataset.walletOption;state.walletDraftIds=e.checked?[...new Set([...state.walletDraftIds,id])]:state.walletDraftIds.filter(x=>x!==id);render();phone.querySelector(`[data-wallet-option=${id}]`).focus({preventScroll:true});return;}
       if(e.matches('[data-entry-form] [name=wallet]')){capture();state.entryDraft.category=chooseFinancialCategory(state.entryDraft.walletId,state.entryType,state.entryDraft.category);render();return;}
-      if(e.matches('[data-month-input=ledgerMonth]')){if(/^\d{4}-(0[1-9]|1[0-2])$/.test(e.value)&&e.value.slice(0,4)!=='0000'){state.ledgerMonth=e.value;state.ledgerRangeOpen=false;}render();persist();return;}
-      if(e.matches('[data-meal-filter-form] input[type=date]')){updateMealDatePresets(e.form);return;}
+      if(e.matches('[data-month-input]')){const key=e.dataset.monthInput;if(['ledgerMonth','mealMonth'].includes(key)&&/^\d{4}-(0[1-9]|1[0-2])$/.test(e.value)&&e.value.slice(0,4)!=='0000'){state[key]=e.value;if(key==='ledgerMonth')state.ledgerRangeOpen=false;}render();persist();return;}
       if(e.matches('[data-theme]')){state.appearanceDraft.mode=e.value;updateAppearancePreview();return;}
       if(e.matches('[data-color-source]')){state.appearanceDraft.colorSource=e.value;render();return;}
       if(e.matches('[data-palette]')){state.appearanceDraft.presetColor=e.value;updateAppearancePreview();return;}
@@ -113,17 +95,7 @@
         state.ledgerRange={from,to};state.ledgerRangeOpen=false;render();
         phone.querySelector('[data-action=edit-ledger-range]').focus();persist();return;
       }
-      if(f.matches('[data-meal-filter-form]')){
-        const {from,to,slot,atHome,method,keyword}=f.elements;
-        if(from.value&&to.value&&from.value>to.value){error('开始日期不能晚于结束日期。');return;}
-        const applied={
-          from:from.value,to:to.value,slot:slot.value,atHome:atHome.value,method:method.value,
-          preparations:[...f.querySelectorAll('[name=preparation]:checked')].map(e=>e.value),keyword:keyword.value.trim(),
-        };
-        if(state.mealTab==='统计')state.mealStatsFilters=applied;
-        else{state.mealFilters=applied;state.mealListMode=true;}
-        state.page='meals';render();persist();return;
-      }
+      if(f.matches('[data-meal-filter-form]')){const from=f.elements.from.value,to=f.elements.to.value;if(from&&to&&from>to){error('开始日期不能晚于结束日期。');return;}state.mealFilters={from,to,slot:f.elements.slot.value,atHome:f.elements.atHome.value,method:f.elements.method.value,preparations:[...f.querySelectorAll('[name=preparation]:checked')].map(e=>e.value),keyword:f.elements.keyword.value.trim()};state.mealListMode=true;state.mealTab='记录';state.page='meals';render();persist();return;}
       if(f.matches('[data-meal-form]')){
         if(state.atHome===null){error('请先选择是否计划在家吃。');return;}
         if(state.atHome&&!state.method){error('计划在家吃时，请选择一种用餐方式。');return;}

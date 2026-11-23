@@ -19,6 +19,7 @@
   #kitsune-preview .ks-month-field{flex:1;min-width:0;text-align:center}
   #kitsune-preview .ks-month-field input{display:block;max-width:190px;width:100%;margin:auto;text-align:center;min-height:var(--ks-control-height);border:var(--ks-card-border);border-radius:var(--ks-control-radius);background:var(--ks-card-surface);padding:var(--ks-space-2) var(--ks-space-3);font-size:var(--ks-font-body)}
 
+  #kitsune-preview .ks-all-methods{margin-top:var(--ks-space-6);padding-top:0;border-top:0}
   #kitsune-preview .ks-empty-state{text-align:center;padding:24px 8px;color:var(--ks-dim);font-size:13px}
   #kitsune-preview .ks-home-brand{display:flex;align-items:center;gap:12px}
   #kitsune-preview .ks-app-mark{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:48px;height:48px;border-radius:15px;background:light-dark(#f7dfc6,#59402e);font-size:30px;line-height:1}

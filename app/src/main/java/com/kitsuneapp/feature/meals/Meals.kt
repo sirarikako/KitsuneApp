@@ -46,42 +46,25 @@ data class MealFilter(
             (categories.isEmpty() || records.preparation[meal.id].orEmpty().any { it in categories }) &&
             (meal.dishes.contains(query.trim(), true) || meal.note.contains(query.trim(), true))
 
-    fun labels(records: Records, includeDates: Boolean = true) = listOfNotNull(
-        start.takeIf { includeDates && it.isNotEmpty() }?.let { "从 $it" },
-        end.takeIf { includeDates && it.isNotEmpty() }?.let { "至 $it" },
+    fun labels(records: Records) = listOfNotNull(
+        start.takeIf(String::isNotEmpty)?.let { "从 $it" },
+        end.takeIf(String::isNotEmpty)?.let { "至 $it" },
         slot?.label, atHome?.let { if (it) "计划在家吃" else "计划不在家吃" },
         method.takeIf(String::isNotEmpty)?.let(records::methodName),
         categories.takeIf(List<String>::isNotEmpty)?.joinToString("、") { records.categoryNames[it].orEmpty() },
         query.takeIf(String::isNotBlank),
     )
-
-    fun dateLabel(currentMonth: MealFilter): String = when {
-        start == currentMonth.start && end == currentMonth.end -> "本月"
-        start.isEmpty() && end.isEmpty() -> "所有时间"
-        start.isEmpty() -> "截至 $end"
-        end.isEmpty() -> "从 $start 起"
-        else -> "$start 至 $end"
-    }
-
-    companion object {
-        fun forMonth(month: YearMonth) =
-            MealFilter(start = month.atDay(1).toString(), end = month.atEndOfMonth().toString())
-    }
 }
 
-private data class MealsContent(
-    val date: String? = null,
-    val filter: MealFilter? = null,
-    val statistics: MealFilter? = null,
-)
+private data class MealsContent(val date: String? = null, val month: String? = null, val filter: MealFilter? = null)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun MealsPage(records: Records, filter: MealFilter?, statistics: MealFilter, currentMonth: MealFilter,
-              daily: () -> Unit, clearConditions: () -> Unit, openFilter: () -> Unit, openStatsFilter: () -> Unit,
+fun MealsPage(records: Records, filter: MealFilter?, daily: () -> Unit, clearConditions: () -> Unit, openFilter: () -> Unit,
               openMeal: (String, MealSlot, String?) -> Unit, openExisting: (MealRecord) -> Unit) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var date by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
+    var month by rememberSaveable { mutableStateOf(YearMonth.now().toString()) }
     val labels = filter?.labels(records).orEmpty()
     Column {
         Header("用餐")
@@ -95,21 +78,15 @@ fun MealsPage(records: Records, filter: MealFilter?, statistics: MealFilter, cur
                         selected = labels.isNotEmpty())
                 }
                 if (filter == null) WeekStrip(LocalDate.parse(date)) { date = it.toString() }
-            } else {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(statistics.dateLabel(currentMonth), Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodyMedium)
-                    Choice("筛选", openStatsFilter, selected = statistics != currentMonth)
-                }
-            }
+            } else MonthControl(month) { month = it }
         }
         val content = when {
-            tab == 1 -> MealsContent(statistics = statistics)
+            tab == 1 -> MealsContent(month = month)
             filter != null -> MealsContent(filter = filter)
             else -> MealsContent(date = date)
         }
         ContentFade(content, Modifier.weight(1f)) { shown ->
-            if (shown.statistics != null) MealStats(records, shown.statistics)
+            if (shown.month != null) MealStats(records, shown.month)
             else if (shown.date != null) {
                 val today = records.meals.filter { it.date == shown.date }.associateBy { it.mealSlot }
                 LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -190,74 +167,63 @@ private fun MealRow(records: Records, meal: MealRecord, daily: Boolean = false, 
         badge = method.takeIf { daily && meal.mealMethodId != null }, sharedId = meal.id)
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun MealStats(records: Records, filter: MealFilter) {
-    val matches = remember(records, filter) { records.meals.filter { filter.matches(it, records) } }
-    val total = matches.size
-    val home = matches.count { it.plannedAtHome }
-    val methodGroups = matches.groupingBy { it.mealMethodId }.eachCount()
-    val prep = matches.flatMap { records.preparation[it.id].orEmpty() }.groupingBy { it }.eachCount()
-    val labels = filter.labels(records, includeDates = false)
+private fun MealStats(records: Records, month: String) {
+    val all = records.meals
+    val monthly = remember(all, month) { all.filter { it.date.startsWith(month) } }
+    val home = monthly.count { it.plannedAtHome }
+    val methodGroups = monthly.groupingBy { it.mealMethodId }.eachCount()
+    val prep = monthly.flatMap { records.preparation[it.id].orEmpty() }.groupingBy { it }.eachCount()
+    val allGroups = all.groupingBy { it.mealMethodId }.eachCount()
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (labels.isNotEmpty()) item {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                labels.forEach { Tag(it) }
-            }
-        }
         item {
-            Section("用餐概览")
-            Summary("已记录" to "$total 餐", "计划在家吃" to "$home 餐")
+            Section("本月概览")
+            Summary("已记录" to "${monthly.size} 餐", "计划在家吃" to "$home 餐")
         }
         item {
             Paper {
                 Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                     Text("计划在家 · 是 $home 餐")
-                    Text("否 ${total - home} 餐")
+                    Text("否 ${monthly.size - home} 餐")
                 }
-                if (total > 0) LinearProgressIndicator(
-                    progress = { home.toFloat() / total }, modifier = Modifier.fillMaxWidth(),
+                if (monthly.isNotEmpty()) LinearProgressIndicator(
+                    progress = { home.toFloat() / monthly.size }, modifier = Modifier.fillMaxWidth(),
                     trackColor = MaterialTheme.colorScheme.secondaryContainer)
             }
         }
-        item { Section("用餐方式") }
-        if (methodGroups.isEmpty()) item { Paper { Text("没有符合条件的用餐记录") } }
+        item { Section("本月 · 用餐方式") }
+        if (methodGroups.isEmpty()) item { Paper { Text("这个月还没有用餐记录") } }
         else item {
             Paper {
-                methodGroups.forEach { (id, count) -> CountBar(records.methodName(id), count, total) }
+                methodGroups.forEach { (id, count) -> CountBar(records.methodName(id), count, monthly.size) }
             }
         }
-        item { Section("制作分类") }
+        item { Section("本月 · 制作分类") }
         item {
             Paper {
                 if (prep.isEmpty()) Text("暂无制作分类记录")
-                prep.forEach { (id, count) -> CountBar(records.categoryNames[id].orEmpty(), count, total, "次") }
+                prep.forEach { (id, count) -> CountBar(records.categoryNames[id].orEmpty(), count, monthly.size, "次") }
+            }
+        }
+        item { Section("全部记录 · 用餐方式") { Secondary("共 ${all.size} 餐") } }
+        item {
+            Paper {
+                if (allGroups.isEmpty()) Text("暂无用餐记录")
+                allGroups.forEach { (id, count) -> CountBar(records.methodName(id), count, all.size) }
             }
         }
     }
 }
 
 @Composable
-fun MealFilterPage(records: Records, initial: MealFilter, defaults: MealFilter, currentMonth: MealFilter,
-                   back: () -> Unit, apply: (MealFilter) -> Unit) {
+fun MealFilterPage(records: Records, initial: MealFilter, back: () -> Unit, apply: (MealFilter) -> Unit) {
     var draft by rememberSaveable { mutableStateOf(initial) }
     var error by rememberSaveable { mutableStateOf(false) }
     Column {
         Header("用餐筛选", back = back)
         Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Section("日期范围")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Choice("本月", {
-                    draft = draft.copy(start = currentMonth.start, end = currentMonth.end)
-                    error = false
-                }, Modifier.weight(1f), selected = draft.start == currentMonth.start && draft.end == currentMonth.end)
-                Choice("所有时间", {
-                    draft = draft.copy(start = "", end = "")
-                    error = false
-                }, Modifier.weight(1f), selected = draft.start.isEmpty() && draft.end.isEmpty())
-            }
-            DateControl("开始日期", draft.start, { draft = draft.copy(start = it); error = false }, allowEmpty = true)
-            DateControl("结束日期", draft.end, { draft = draft.copy(end = it); error = false }, allowEmpty = true)
+            DateControl("开始日期", draft.start, { draft = draft.copy(start = it) }, allowEmpty = true)
+            DateControl("结束日期", draft.end, { draft = draft.copy(end = it) }, allowEmpty = true)
             Select("餐次", draft.slot?.name ?: "", listOf("") + MealSlot.entries.map { it.name },
                 { if (it.isEmpty()) "不限" else MealSlot.valueOf(it).label },
                 { draft = draft.copy(slot = if (it.isEmpty()) null else MealSlot.valueOf(it)) })
@@ -276,7 +242,7 @@ fun MealFilterPage(records: Records, initial: MealFilter, defaults: MealFilter, 
                 error = draft.start.isNotEmpty() && draft.end.isNotEmpty() && draft.start > draft.end
                 if (!error) apply(draft)
             }, Modifier.fillMaxWidth())
-            Choice("重置条件", { draft = defaults; error = false }, Modifier.fillMaxWidth())
+            Choice("重置条件", { draft = MealFilter(); error = false }, Modifier.fillMaxWidth())
         }
     }
 }

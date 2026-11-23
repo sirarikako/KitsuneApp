@@ -53,10 +53,10 @@
     const modalNode=()=>phone.querySelector(':scope > .ks-modal-overlay');
     const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.walletPickerOpen?'wallet':null;
     const primary=page=>navs.some(n=>n[0]===page);
-    const localKey=()=>state.page==='meals'?JSON.stringify([state.mealTab,state.date,state.mealStatsFilters,state.mealListMode,state.mealFilters]):state.page==='ledger'?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds]):'';
+    const localKey=()=>state.page==='meals'?JSON.stringify([state.mealTab,state.date,state.mealMonth,state.mealListMode,state.mealFilters]):state.page==='ledger'?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds]):'';
     const localNodes=()=>{
       const main=phone.querySelector('.ks-main');if(!main)return [];
-      const explicit=main.querySelector('[data-meal-statistics],[data-monthly-ledger],[data-ledger-statistics],[data-meal-results]');
+      const explicit=main.querySelector('[data-monthly-meals],[data-monthly-ledger],[data-ledger-statistics],[data-meal-results]');
       if(explicit)return [explicit];
       return [...main.children].filter(n=>n.matches('.ks-record-list,.ks-currency-group'));
     };

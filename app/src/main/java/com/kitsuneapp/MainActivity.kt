@@ -111,7 +111,6 @@ private data class RecordNavigation(val id: String, val source: String, val deta
 private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
     var stack by rememberSaveable { mutableStateOf<List<String>>(listOf("home")) }
     var filter by rememberSaveable { mutableStateOf<MealFilter?>(null) }
-    var statsFilter by rememberSaveable { mutableStateOf<MealFilter?>(null) }
     val holder = rememberSaveableStateHolder()
     var recordNavigation by remember { mutableStateOf<RecordNavigation?>(null) }
     val top = stack.last()
@@ -156,8 +155,6 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
             delay((60 - now.second) * 1000L)
         }
     }
-    val month = java.time.YearMonth.from(now)
-    val currentMealMonth = remember(month) { MealFilter.forMonth(month) }
 
     Column(Modifier.fillMaxSize().statusBarsPadding().imePadding()) {
         SharedTransitionLayout(Modifier.weight(1f).fillMaxWidth()) {
@@ -196,22 +193,12 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
                         Box(recordBounds(outgoing, key).fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                             when (parts[0]) {
                                 "home" -> Home(records, now, ::open, ::openMeal)
-                                "meals" -> MealsPage(records, filter, statsFilter ?: currentMealMonth, currentMealMonth,
-                                    { filter = null }, { filter = MealFilter() },
-                                    { open("mealFilter") }, { open("mealStatsFilter") }, ::openMeal) { meal ->
+                                "meals" -> MealsPage(records, filter, { filter = null }, { filter = MealFilter() },
+                                    { open("mealFilter") }, ::openMeal) { meal ->
                                     openRecord("meal/${meal.date}/${meal.mealSlot.name}/${meal.id}", meal.id)
                                 }
                                 "meal" -> MealForm(records, parts[3].takeUnless { it == "-" }, parts[1], MealSlot.valueOf(parts[2]), model, goBack)
-                                "mealFilter", "mealStatsFilter" -> {
-                                    val statistics = path == "mealStatsFilter"
-                                    val defaults = if (statistics) currentMealMonth else MealFilter()
-                                    val applied = if (statistics) statsFilter else filter
-                                    MealFilterPage(records, applied ?: defaults, defaults, currentMealMonth, goBack) {
-                                        if (statistics) statsFilter = it.takeUnless { it == currentMealMonth }
-                                        else filter = it
-                                        back()
-                                    }
-                                }
+                                "mealFilter" -> MealFilterPage(records, filter ?: MealFilter(), goBack) { filter = it; back() }
                                 "settings" -> SettingsPage(::open)
                                 "methods" -> VocabularyPage(records, null, null, ::open, goBack)
                                 "method" -> VocabularyForm(records, parts[1].takeUnless { it == "-" }, null, null, model, goBack)
