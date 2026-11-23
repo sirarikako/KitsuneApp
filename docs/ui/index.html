@@ -2211,6 +2211,8 @@ html&gt;body{padding:0}&lt;/style&gt;
     state.githubDemo={backedUp:false,review:null};
     const blankMealFilters=()=&gt;({from:&#x27;&#x27;,to:&#x27;&#x27;,slot:&#x27;any&#x27;,atHome:&#x27;any&#x27;,method:&#x27;any&#x27;,preparations:[],keyword:&#x27;&#x27;});
     state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
+    const mealMethods=[&#x27;下厨&#x27;,&#x27;外卖&#x27;],mealPreparations=[&#x27;炒菜&#x27;,&#x27;预制菜&#x27;];
+    const mealOptionLabels={method:&#x27;用餐方式&#x27;,preparation:&#x27;制作分类&#x27;};
     const wallets=[{id:&#x27;daily&#x27;,name:&#x27;日常钱包&#x27;,code:&#x27;CNY&#x27;,scale:2,opening:0n,separateAccounting:false},{id:&#x27;pocket&#x27;,name:&#x27;零钱钱包&#x27;,code:&#x27;CNY&#x27;,scale:2,opening:50000n,separateAccounting:false},{id:&#x27;travel&#x27;,name:&#x27;旅行钱包&#x27;,code:&#x27;JPY&#x27;,scale:0,opening:20000n,separateAccounting:true}];
     const walletById=id=&gt;wallets.find(w=&gt;w.id===id)||wallets[0];
     const entryWallet=()=&gt;wallets.find(w=&gt;w.id===state.entryDraft.walletId)||null;
@@ -2416,7 +2418,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         single?`${chosen[0].name} · ${chosen[0].code}`:`已选 ${chosen.length} 个钱包`;
       return `&lt;button type=&quot;button&quot; class=&quot;ks-choice ks-ledger-filter ${single?&#x27;ks-ledger-wallet&#x27;:&#x27;&#x27;}&quot; data-action=&quot;choose-wallets&quot; aria-haspopup=&quot;dialog&quot; aria-label=&quot;钱包范围：${escapeText(label)}&quot;&gt;&lt;span&gt;${escapeText(label)}&lt;/span&gt;${icon(&#x27;chevron-down&#x27;)}&lt;/button&gt;`;
     };
-    const methodCounts = meals =&gt; [...new Set([&#x27;下厨&#x27;,&#x27;外卖&#x27;,&#x27;未填写&#x27;,...meals.map(m=&gt;m.method||&#x27;未填写&#x27;)])].map(method=&gt;({method,count:meals.filter(m=&gt;(m.method||&#x27;未填写&#x27;)===method).length}));
+    const methodCounts = meals =&gt; [...new Set([...mealMethods,&#x27;未填写&#x27;,...meals.map(m=&gt;m.method||&#x27;未填写&#x27;)])].map(method=&gt;({method,count:meals.filter(m=&gt;(m.method||&#x27;未填写&#x27;)===method).length}));
     const recommendedSlot = () =&gt; {const hour=style.mealHour===&#x27;auto&#x27;?new Date().getHours():Number(style.mealHour);return hour&lt;11?0:hour&lt;17?1:2;};
     const statBar=(label,ratio,tone=&#x27;&#x27;)=&gt;`&lt;div class=&quot;ks-bar-track ${tone}&quot; role=&quot;meter&quot; aria-label=&quot;${escapeText(label)}&quot; aria-valuemin=&quot;0&quot; aria-valuemax=&quot;100&quot; aria-valuenow=&quot;${Math.round(ratio*100)}&quot;&gt;&lt;div class=&quot;ks-bar-fill&quot; style=&quot;width:${ratio*100}%&quot;&gt;&lt;/div&gt;&lt;/div&gt;`;
     const countBar = (label,count,denominator,unit=&#x27;餐&#x27;) =&gt; {
@@ -2757,15 +2759,29 @@ html&gt;body{padding:0}&lt;/style&gt;
         &lt;/div&gt;
       &lt;/section&gt;&lt;/div&gt;`;
     }
+    const addMealOption = kind =&gt; `&lt;button type=&quot;button&quot; class=&quot;ks-icon-btn cursor-interaction&quot; data-add-meal-option=&quot;${kind}&quot; aria-label=&quot;新增${mealOptionLabels[kind]}&quot;&gt;${icon(&#x27;plus&#x27;)}&lt;/button&gt;`;
     function pageMealForm(){return `&lt;form class=&quot;ks-form&quot; data-meal-form&gt;
       &lt;div class=&quot;ks-field-row&quot;&gt;&lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;日期&lt;/span&gt;&lt;input type=&quot;date&quot; name=&quot;date&quot; class=&quot;ks-control&quot; value=&quot;${state.date}&quot; required&gt;&lt;/label&gt;&lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;餐次&lt;/span&gt;&lt;select name=&quot;slot&quot; class=&quot;ks-control&quot;&gt;${slots.map((s,i)=&gt;`&lt;option value=&quot;${i}&quot; ${i===state.slot?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${s}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;&lt;/div&gt;
       &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;是否计划在家吃&lt;span class=&quot;ks-required&quot;&gt;必选&lt;/span&gt;&lt;/legend&gt;&lt;div class=&quot;ks-choices&quot;&gt;${choice(&#x27;是&#x27;,true,state.atHome,&#x27;home-choice&#x27;)}${choice(&#x27;否&#x27;,false,state.atHome,&#x27;home-choice&#x27;)}&lt;/div&gt;&lt;/fieldset&gt;
-      &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;用餐方式&lt;span class=&quot;ks-required&quot;&gt;${state.atHome===true?&#x27;必选&#x27;:&#x27;单选 · 可不填&#x27;}&lt;/span&gt;&lt;/legend&gt;&lt;div class=&quot;ks-choices&quot;&gt;${[&#x27;下厨&#x27;,&#x27;外卖&#x27;].map(m=&gt;choice(m,m,state.method,&#x27;method&#x27;)).join(&#x27;&#x27;)}&lt;/div&gt;&lt;/fieldset&gt;
-      ${state.method===&#x27;下厨&#x27;?`&lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;制作分类&lt;span class=&quot;ks-required&quot;&gt;多选 · 选填&lt;/span&gt;&lt;/legend&gt;&lt;div class=&quot;ks-choices&quot;&gt;${[&#x27;炒菜&#x27;,&#x27;预制菜&#x27;,...state.categories.filter(c=&gt;![&#x27;炒菜&#x27;,&#x27;预制菜&#x27;].includes(c))].map(c=&gt;choice(escapeText(c),c,state.categories.includes(c)?c:null,&#x27;category&#x27;)).join(&#x27;&#x27;)}&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-action=&quot;new-category&quot;&gt;＋ 新建&lt;/button&gt;&lt;/div&gt;&lt;div data-new-category hidden&gt;&lt;label class=&quot;ks-label&quot; style=&quot;margin-top:10px&quot;&gt;新分类名称&lt;input class=&quot;ks-control&quot; data-category-name placeholder=&quot;例如：蒸煮&quot; maxlength=&quot;20&quot;&gt;&lt;/label&gt;&lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-action=&quot;confirm-category&quot;&gt;添加到草稿&lt;/button&gt;&lt;/div&gt;&lt;/fieldset&gt;`:&#x27;&#x27;}
+      &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;用餐方式&lt;span class=&quot;ks-required&quot;&gt;${state.atHome?&#x27;必选&#x27;:&#x27;单选 · 可不填&#x27;}&lt;/span&gt;&lt;/legend&gt;&lt;div class=&quot;ks-choices&quot;&gt;${mealMethods.map(m=&gt;choice(escapeText(m),m,state.method,&#x27;method&#x27;)).join(&#x27;&#x27;)}${addMealOption(&#x27;method&#x27;)}&lt;/div&gt;&lt;/fieldset&gt;
+      ${state.method===&#x27;下厨&#x27;?`&lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;制作分类&lt;span class=&quot;ks-required&quot;&gt;多选 · 选填&lt;/span&gt;&lt;/legend&gt;&lt;div class=&quot;ks-choices&quot;&gt;${mealPreparations.map(c=&gt;choice(escapeText(c),c,state.categories.includes(c)?c:null,&#x27;category&#x27;)).join(&#x27;&#x27;)}${addMealOption(&#x27;preparation&#x27;)}&lt;/div&gt;&lt;/fieldset&gt;`:&#x27;&#x27;}
       &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;菜品内容&lt;/span&gt;&lt;input type=&quot;text&quot; name=&quot;dishes&quot; class=&quot;ks-control&quot; placeholder=&quot;今天吃了什么？&quot; value=&quot;${escapeText(state.dishes||&#x27;&#x27;)}&quot;&gt;&lt;/label&gt;
       &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;备注&lt;/span&gt;&lt;input type=&quot;text&quot; name=&quot;note&quot; class=&quot;ks-control&quot; placeholder=&quot;还有什么想记下的？&quot; value=&quot;${escapeText(state.note||&#x27;&#x27;)}&quot;&gt;&lt;/label&gt;
       ${formFooter(saveButton(`保存${slots[state.slot]}记录`)+(state.editing?deleteButton(&#x27;meal&#x27;,&#x27;删除这条用餐记录&#x27;):&#x27;&#x27;),&#x27;交互预览 · 仅保存到当前演示&#x27;)}
     &lt;/form&gt;`;}
+    function mealOptionDialog(){
+      const title=&#x27;新增&#x27;+mealOptionLabels[state.addingMealOption];
+      return `&lt;div class=&quot;ks-modal-overlay&quot; data-meal-option-overlay&gt;
+        &lt;form class=&quot;ks-period-dialog ks-form&quot; data-meal-option-form role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;${title}&quot;&gt;
+          &lt;h3&gt;${title}&lt;/h3&gt;
+          &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;名称&lt;/span&gt;&lt;input class=&quot;ks-control&quot; name=&quot;optionName&quot; required&gt;&lt;/label&gt;
+          &lt;p class=&quot;ks-error&quot; data-meal-option-error role=&quot;alert&quot;&gt;&lt;/p&gt;
+          &lt;div class=&quot;ks-period-actions&quot;&gt;
+            &lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-action=&quot;cancel-meal-option&quot;&gt;取消&lt;/button&gt;
+            &lt;button type=&quot;submit&quot; class=&quot;ks-primary&quot; disabled&gt;确定&lt;/button&gt;
+          &lt;/div&gt;
+        &lt;/form&gt;&lt;/div&gt;`;
+    }
     function pageEntry(){return `&lt;form data-entry-form class=&quot;ks-form&quot;&gt;
       &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;收支类型&lt;/legend&gt;&lt;div class=&quot;ks-choices&quot;&gt;${[&#x27;支出&#x27;,&#x27;收入&#x27;].map(t=&gt;choice(t,t,state.entryType,&#x27;entry-type&#x27;)).join(&#x27;&#x27;)}&lt;/div&gt;&lt;/fieldset&gt;
       &lt;div&gt;&lt;span class=&quot;ks-label&quot; id=&quot;ks-amount-label&quot;&gt;金额 · ${entryWallet()?.code||&#x27;请选择钱包&#x27;}&lt;/span&gt;
@@ -2854,7 +2870,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         &lt;/div&gt;&lt;/section&gt;&lt;/div&gt;`;
     }
         function pageMealFilter(){
-      const f=state.mealFilterDraft,methods=[...new Set([&#x27;下厨&#x27;,&#x27;外卖&#x27;,...allMeals().map(m=&gt;m.method).filter(Boolean)])],preparations=[...new Set([&#x27;炒菜&#x27;,&#x27;预制菜&#x27;,...allMeals().flatMap(m=&gt;m.categories)])];
+      const f=state.mealFilterDraft,methods=[...new Set([...mealMethods,...allMeals().map(m=&gt;m.method).filter(Boolean)])],preparations=[...new Set([...mealPreparations,...allMeals().flatMap(m=&gt;m.categories)])];
       const select=(label,name,choices)=&gt;`&lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;${label}&lt;/span&gt;&lt;select class=&quot;ks-control&quot; name=&quot;${name}&quot;&gt;${choices.map(([value,label])=&gt;`&lt;option value=&quot;${escapeText(value)}&quot; ${f[name]===value?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${escapeText(label)}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;`;
       return `&lt;form class=&quot;ks-form&quot; data-meal-filter-form&gt;
         &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;日期范围&lt;/legend&gt;&lt;div class=&quot;ks-field-row&quot;&gt;&lt;label&gt;&lt;span class=&quot;ks-note&quot;&gt;开始日期&lt;/span&gt;&lt;input class=&quot;ks-control&quot; type=&quot;date&quot; name=&quot;from&quot; value=&quot;${f.from}&quot; aria-label=&quot;开始日期&quot;&gt;&lt;/label&gt;&lt;label&gt;&lt;span class=&quot;ks-note&quot;&gt;结束日期&lt;/span&gt;&lt;input class=&quot;ks-control&quot; type=&quot;date&quot; name=&quot;to&quot; value=&quot;${f.to}&quot; aria-label=&quot;结束日期&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;span class=&quot;ks-note&quot;&gt;留空可查全部时间&lt;/span&gt;&lt;/fieldset&gt;
@@ -2929,7 +2945,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     const discard=group=&gt;()=&gt;group?.remove();
     const pageNode=()=&gt;phone.querySelector(&#x27;:scope &gt; .ks-page-motion&#x27;);
     const modalNode=()=&gt;phone.querySelector(&#x27;:scope &gt; .ks-modal-overlay&#x27;);
-    const modalKind=()=&gt;state.deletePending?&#x27;dialog&#x27;:state.calcOpen?&#x27;calculator&#x27;:state.walletPickerOpen?&#x27;wallet&#x27;:state.ledgerPeriodDraft?&#x27;ledger-period&#x27;:state.ledgerFiltersOpen?&#x27;ledger-filters&#x27;:state.githubDemo.review?&#x27;github-review&#x27;:state.mealCalendar?&#x27;date-calendar&#x27;:null;
+    const modalKind=()=&gt;state.deletePending?&#x27;dialog&#x27;:state.calcOpen?&#x27;calculator&#x27;:state.walletPickerOpen?&#x27;wallet&#x27;:state.ledgerPeriodDraft?&#x27;ledger-period&#x27;:state.ledgerFiltersOpen?&#x27;ledger-filters&#x27;:state.githubDemo.review?&#x27;github-review&#x27;:state.mealCalendar?&#x27;date-calendar&#x27;:state.addingMealOption?&#x27;meal-option&#x27;:null;
     const primary=page=&gt;navs.some(n=&gt;n[0]===page);
     const localKey=()=&gt;state.page===&#x27;meals&#x27;?JSON.stringify([state.mealTab,state.date,state.mealMonth,state.mealListMode,state.mealFilters]):state.page===&#x27;ledger&#x27;?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds,state.ledgerFilters]):&#x27;&#x27;;
     const localNodes=()=&gt;{
@@ -3028,6 +3044,8 @@ html&gt;body{padding:0}&lt;/style&gt;
     }
     function render(){
       const previous=rendered,kind=modalKind(),key=localKey(),changingPage=previous&amp;&amp;previous.page!==state.page;
+      const keepingMealForm=previous?.page===&#x27;meal-form&#x27;&amp;&amp;state.page===&#x27;meal-form&#x27;;
+      const mealPosition=keepingMealForm?phone.querySelector(&#x27;.ks-main&#x27;).scrollTop:0;
       const oldLedger=phone.querySelector(&#x27;.ks-ledger-screen&#x27;);
       const sameLedger=oldLedger&amp;&amp;state.page===&#x27;ledger&#x27;&amp;&amp;previous.local===key;
       const ledgerPosition=sameLedger?oldLedger.querySelector(&#x27;.ks-main&#x27;).scrollTop:0;
@@ -3079,6 +3097,12 @@ html&gt;body{padding:0}&lt;/style&gt;
         phone.insertAdjacentHTML(&#x27;beforeend&#x27;,mealCalendarDialog());
         for(const child of phone.children)if(!child.classList.contains(&#x27;ks-modal-overlay&#x27;))child.inert=true;
         if(previous?.modal!==kind)phone.querySelector(&#x27;[data-calendar-action=jump],[data-calendar-text]&#x27;).focus({preventScroll:true});
+      }
+      if(keepingMealForm)phone.querySelector(&#x27;.ks-main&#x27;).scrollTop=mealPosition;
+      if(state.addingMealOption){
+        phone.insertAdjacentHTML(&#x27;beforeend&#x27;,mealOptionDialog());
+        for(const child of phone.children)if(!child.classList.contains(&#x27;ks-modal-overlay&#x27;))child.inert=true;
+        phone.querySelector(&#x27;[data-meal-option-form] input&#x27;).focus({preventScroll:true});
       }
       if(state.page===&#x27;appearance&#x27;)updateAppearancePreview();
       globalThis.lucide?.createIcons({root:phone,attrs:{width:18,height:18}});
@@ -3143,6 +3167,11 @@ html&gt;body{padding:0}&lt;/style&gt;
       }else if(action===&#x27;default&#x27;)state.walletFilterIds=null;
       state.walletPickerOpen=false;render();persist();phone.querySelector(&#x27;[data-action=choose-wallets]&#x27;)?.focus({preventScroll:true});
     }
+    function closeMealOption(){
+      const kind=state.addingMealOption;
+      state.addingMealOption=null;render();
+      phone.querySelector(`[data-add-meal-option=&quot;${kind}&quot;]`)?.focus({preventScroll:true});
+    }
     function closeMealCalendar(apply){
       const d=state.mealCalendar;
       if(apply){
@@ -3184,6 +3213,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(event.target.matches(&#x27;[data-ledger-filter-overlay]&#x27;)){closeLedgerFilters(false);return;}
       if(event.target.matches(&#x27;.ks-period-overlay&#x27;)){closeLedgerPeriod(false);return;}
       if(event.target.matches(&#x27;.ks-calendar-overlay&#x27;)){closeMealCalendar(false);return;}
+      if(event.target.matches(&#x27;[data-meal-option-overlay]&#x27;)){closeMealOption();return;}
       const b=event.target.closest(&#x27;button&#x27;);if(!b)return;
       capture();state.notice=&#x27;&#x27;;
       if(b.dataset.action===&#x27;open-meal-calendar&#x27;){
@@ -3298,7 +3328,7 @@ html&gt;body{padding:0}&lt;/style&gt;
           phone.querySelector(&#x27;.ks-day[aria-pressed=true]&#x27;))?.focus({preventScroll:true});
         return;
       }
-      if(b.dataset.meal!==undefined){if(state.page===&#x27;home&#x27;)state.date=&#x27;2026-11-17&#x27;;else if(b.dataset.mealDate)state.date=b.dataset.mealDate;state.slot=Number(b.dataset.meal);state.mealReturn=state.page;const m=records()[state.slot];state.editing=!!m;if(m&amp;&amp;b.classList.contains(&#x27;ks-record&#x27;)){recordOrigin={page:state.page,date:state.date,slot:b.dataset.meal};entrance=visible(b)?rect(b):null;}else recordOrigin=null;state.editingDate=state.date;state.editingSlot=state.slot;state.atHome=m?.atHome??null;state.method=m?.method??null;state.categories=[...(m?.categories||[])];state.dishes=m?.dishes||&#x27;&#x27;;state.note=m?.note||&#x27;&#x27;;state.page=&#x27;meal-form&#x27;;render();return;}
+      if(b.dataset.meal!==undefined){if(state.page===&#x27;home&#x27;)state.date=&#x27;2026-11-17&#x27;;else if(b.dataset.mealDate)state.date=b.dataset.mealDate;state.slot=Number(b.dataset.meal);state.mealReturn=state.page;const m=records()[state.slot];state.editing=!!m;if(m&amp;&amp;b.classList.contains(&#x27;ks-record&#x27;)){recordOrigin={page:state.page,date:state.date,slot:b.dataset.meal};entrance=visible(b)?rect(b):null;}else recordOrigin=null;state.editingDate=state.date;state.editingSlot=state.slot;state.atHome=m?m.atHome:true;state.method=m?m.method:&#x27;下厨&#x27;;state.categories=[...(m?.categories||[])];state.dishes=m?.dishes||&#x27;&#x27;;state.note=m?.note||&#x27;&#x27;;state.page=&#x27;meal-form&#x27;;render();return;}
       if(b.dataset.homeChoice!==undefined){state.atHome=b.dataset.homeChoice===&#x27;true&#x27;;render();return;}
       if(b.dataset.method){const m=b.dataset.method;state.method=state.method===m?null:m;if(state.method!==&#x27;下厨&#x27;)state.categories=[];render();return;}
       if(b.dataset.category){const c=b.dataset.category;state.categories=state.categories.includes(c)?state.categories.filter(x=&gt;x!==c):[...state.categories,c];render();return;}
@@ -3321,8 +3351,8 @@ html&gt;body{padding:0}&lt;/style&gt;
       }
       if(b.dataset.action===&#x27;add-entry&#x27;){state.entryReturn=state.page;state.page=&#x27;entry&#x27;;state.amount=&#x27;&#x27;;state.entryType=&#x27;支出&#x27;;state.entryDraft={dateTime:`${demoToday}T09:41`,note:&#x27;&#x27;,category:defaultEntryWallet()?&#x27;ge-food&#x27;:&#x27;&#x27;,walletId:defaultEntryWallet()?.id||&#x27;&#x27;};render();return;}
       if(b.dataset.action===&#x27;back&#x27;){state.page=state.page===&#x27;entry&#x27;?state.entryReturn:state.page===&#x27;category-detail&#x27;?state.categoryDetailReturn:state.page===&#x27;category-owned&#x27;?&#x27;category-manager&#x27;:state.page===&#x27;category-manager&#x27;?state.categoryReturn:[&#x27;appearance&#x27;,&#x27;github&#x27;].includes(state.page)?&#x27;settings&#x27;:state.page===&#x27;meal-filter&#x27;?&#x27;meals&#x27;:state.page===&#x27;meal-form&#x27;?state.mealReturn:&#x27;ledger&#x27;;render();return;}
-      if(b.dataset.action===&#x27;new-category&#x27;){phone.querySelector(&#x27;[data-new-category]&#x27;).hidden=false;phone.querySelector(&#x27;[data-category-name]&#x27;).focus();return;}
-      if(b.dataset.action===&#x27;confirm-category&#x27;){const c=phone.querySelector(&#x27;[data-category-name]&#x27;).value.trim();if(c&amp;&amp;!state.categories.includes(c))state.categories.push(c);render();}
+      if(b.dataset.addMealOption){state.addingMealOption=b.dataset.addMealOption;render();return;}
+      if(b.dataset.action===&#x27;cancel-meal-option&#x27;){closeMealOption();return;}
     });
     phone.addEventListener(&#x27;keydown&#x27;,event=&gt;{
       if(!modalKind())return;
@@ -3330,7 +3360,8 @@ html&gt;body{padding:0}&lt;/style&gt;
         event.preventDefault();
         if(state.githubDemo.review){
           state.githubDemo.review=null;render();phone.querySelector(&#x27;[data-github-action=review]&#x27;).focus({preventScroll:true});
-        }else if(state.mealCalendar)closeMealCalendar(false);
+        }else if(state.addingMealOption)closeMealOption();
+        else if(state.mealCalendar)closeMealCalendar(false);
         else if(state.ledgerPeriodDraft)closeLedgerPeriod(false);
         else if(state.ledgerFiltersOpen)closeLedgerFilters(false);
         else if(state.walletPickerOpen)closeWalletPicker(&#x27;cancel&#x27;);
@@ -3361,6 +3392,11 @@ html&gt;body{padding:0}&lt;/style&gt;
     });
     phone.addEventListener(&#x27;input&#x27;,event=&gt;{
       const e=event.target;
+      if(e.matches(&#x27;[data-meal-option-form] input&#x27;)){
+        e.form.querySelector(&#x27;[type=submit]&#x27;).disabled=!e.value.trim();
+        e.form.querySelector(&#x27;[data-meal-option-error]&#x27;).textContent=&#x27;&#x27;;
+        return;
+      }
       if(e.matches(&#x27;[data-calendar-year],[data-calendar-text]&#x27;)){
         const d=state.mealCalendar,dialog=e.closest(&#x27;.ks-calendar-dialog&#x27;);
         if(e.matches(&#x27;[data-calendar-year]&#x27;)){
@@ -3399,6 +3435,15 @@ html&gt;body{padding:0}&lt;/style&gt;
     });
     phone.addEventListener(&#x27;submit&#x27;,event=&gt;{
       event.preventDefault();const f=event.target;capture();
+      if(f.matches(&#x27;[data-meal-option-form]&#x27;)){
+        const name=f.elements.optionName.value.trim(),method=state.addingMealOption===&#x27;method&#x27;;
+        const list=method?mealMethods:mealPreparations;
+        const normalize=text=&gt;text.normalize(&#x27;NFC&#x27;).toLowerCase();
+        const message=!name?&#x27;请填写名称&#x27;:list.some(item=&gt;normalize(item)===normalize(name))
+          ?method?&#x27;已有同名用餐方式&#x27;:&#x27;此范围已有同名分类&#x27;:&#x27;&#x27;;
+        if(message){f.querySelector(&#x27;[data-meal-option-error]&#x27;).textContent=message;return;}
+        list.push(name);closeMealOption();return;
+      }
       if(f.matches(&#x27;[data-financial-category-form]&#x27;)){
         const name=f.elements.categoryName.value.trim(),scope=state.financialScope,owner=state.categoryWalletId;
         const items=owner===&#x27;GLOBAL&#x27;?sharedFinancialCategories[scope]:walletFinancialCategories[owner][scope];

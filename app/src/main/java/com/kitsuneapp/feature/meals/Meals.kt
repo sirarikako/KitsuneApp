@@ -288,7 +288,12 @@ fun MealFilterPage(records: Records, initial: MealFilter, back: () -> Unit, appl
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun MultiCategories(categories: List<Category>, selected: List<String>, set: (List<String>) -> Unit) {
+private fun MultiCategories(
+    categories: List<Category>,
+    selected: List<String>,
+    trailing: @Composable () -> Unit = {},
+    set: (List<String>) -> Unit,
+) {
     var menu by rememberSaveable { mutableStateOf(false) }
     var search by rememberSaveable { mutableStateOf("") }
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -299,6 +304,7 @@ private fun MultiCategories(categories: List<Category>, selected: List<String>, 
                 icon = if (checked) designIcon(R.drawable.ks_check) else null)
         }
         if (categories.size > 8) Choice("更多分类", { menu = true }, icon = designIcon(R.drawable.ks_list_filter))
+        trailing()
     }
     val extra = categories.drop(8).filter { it.id in selected }
     if (extra.isNotEmpty()) Secondary("已选更多分类 · " + extra.joinToString("、") { it.name })
@@ -327,18 +333,24 @@ private val singleLineMealText = VisualTransformation { text ->
     TransformedText(AnnotatedString(mealLineBreaks.replace(text.text, " ")), OffsetMapping.Identity)
 }
 
+private enum class MealOption(val label: String) {
+    METHOD("用餐方式"), PREPARATION("制作分类")
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot, model: AppViewModel, back: () -> Unit) {
     val original = records.meals.find { it.id == id }
     var date by rememberSaveable { mutableStateOf(original?.date ?: initialDate) }
     var selectedSlot by rememberSaveable { mutableStateOf(original?.mealSlot ?: slot) }
-    var atHome by rememberSaveable { mutableStateOf(original?.plannedAtHome) }
-    var methodId by rememberSaveable { mutableStateOf(original?.mealMethodId) }
+    var atHome by rememberSaveable { mutableStateOf(original?.plannedAtHome ?: true) }
+    var methodId by rememberSaveable {
+        mutableStateOf(if (original != null) original.mealMethodId
+            else records.methods.firstOrNull { it.id == DEFAULT_COOKING_METHOD_ID && !it.archived }?.id)
+    }
     var selected by rememberSaveable { mutableStateOf<List<String>>(ArrayList(records.preparation[id].orEmpty())) }
-    var added by rememberSaveable { mutableStateOf<List<String>>(emptyList()) }
     var newName by rememberSaveable { mutableStateOf("") }
-    var addingCategory by rememberSaveable { mutableStateOf(false) }
+    var adding by rememberSaveable { mutableStateOf<MealOption?>(null) }
     var clearHistorical by rememberSaveable { mutableStateOf(false) }
     var dishes by rememberSaveable { mutableStateOf(original?.dishes.orEmpty()) }
     var note by rememberSaveable { mutableStateOf(original?.note.orEmpty()) }
@@ -350,6 +362,17 @@ fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot,
         it.id != original?.id && (it.date < date || (it.date == date && it.mealSlot.ordinal < selectedSlot.ordinal))
     }.maxWithOrNull(compareBy<MealRecord> { it.date }.thenBy { it.mealSlot.ordinal })
 
+    fun openAdd(option: MealOption) {
+        model.clearError()
+        newName = ""
+        adding = option
+    }
+
+    fun closeAdd() {
+        adding = null
+        model.clearError()
+    }
+
     Column {
         Header((if (original == null) "记录" else "编辑") + selectedSlot.label, back = back)
         Form {
@@ -360,12 +383,12 @@ fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot,
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 FieldLabel("是否计划在家吃", "必选")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Choice("是", { atHome = true }, selected = atHome == true)
-                    Choice("否", { atHome = false }, selected = atHome == false)
+                    Choice("是", { atHome = true }, selected = atHome)
+                    Choice("否", { atHome = false }, selected = !atHome)
                 }
             }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                FieldLabel("用餐方式", if (atHome == true) "必选" else "单选 · 可不填")
+                FieldLabel("用餐方式", if (atHome) "必选" else "单选 · 可不填")
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     records.methods.filter { !it.archived || it.id == methodId }.forEach { option ->
                         Choice(option.name, {
@@ -374,11 +397,11 @@ fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot,
                             if (records.methods.find { it.id == next }?.showPreparationCategories != true) {
                                 clearHistorical = true
                                 selected = arrayListOf()
-                                added = arrayListOf()
-                                newName = ""
-                                addingCategory = false
                             }
                         }, selected = methodId == option.id)
+                    }
+                    SquareIcon(designIcon(R.drawable.ks_plus), "新增用餐方式", enabled = !busy) {
+                        openAdd(MealOption.METHOD)
                     }
                 }
             }
@@ -386,21 +409,12 @@ fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot,
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     FieldLabel("制作分类", "多选 · 选填")
                     MultiCategories(records.categories.filter { it.scope == Scope.PREPARATION && (!it.archived || it.id in selected) },
-                        selected, { selected = ArrayList(it) })
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        added.forEach { name -> Choice("$name · 移除", { added = ArrayList(added - name) }, selected = true) }
-                        if (!addingCategory) Choice("新增分类", { addingCategory = true }, icon = designIcon(R.drawable.ks_plus))
-                    }
-                    if (addingCategory) Row(verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Field("新制作分类", newName, { newName = it }, Modifier.weight(1f), showLabel = false)
-                        Choice("添加", {
-                            val name = newName.trim()
-                            if (added.none { normalizedName(it) == normalizedName(name) }) added = ArrayList(added + name)
-                            newName = ""
-                            addingCategory = false
-                        }, enabled = newName.isNotBlank())
-                    }
+                        selected, trailing = {
+                            SquareIcon(designIcon(R.drawable.ks_plus), "新增制作分类", enabled = !busy) {
+                                openAdd(MealOption.PREPARATION)
+                            }
+                        },
+                    ) { selected = ArrayList(it) }
                 }
             } else if (!clearHistorical && method != null && method.id == original?.mealMethodId && records.preparationNames(original.id).isNotEmpty()) {
                 Secondary("历史制作分类 · " + records.preparationNames(original.id).joinToString("、"))
@@ -412,17 +426,41 @@ fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot,
                     val valid = records.categories.filter { !it.archived || it.id in records.preparation[id].orEmpty() }
                         .map { it.id }.toSet()
                     selected = ArrayList(records.preparation[earlier.id].orEmpty().filter { it in valid })
-                    added = arrayListOf()
                 }
             }) { Text("复制上一餐内容") }
             Field("菜品内容", dishes, { dishes = it }, transformation = singleLineMealText, placeholder = "今天吃了什么？")
             Field("备注", note, { note = it }, transformation = singleLineMealText, placeholder = "还有什么想记下的？")
-            SaveActions(busy, error, {
+            SaveActions(busy, error.takeIf { adding == null }, {
                 val draft = MealDraft(id, date, selectedSlot, atHome, methodId, selected,
-                    if (newName.isBlank()) added else added + newName, dishes, note, clearHistorical)
+                    emptyList(), dishes, note, clearHistorical)
                 model.save(back) { saveMeal(draft) }
             }, original?.let { "删除这条用餐记录" }, { delete = true }, "保存${selectedSlot.label}记录")
         }
+    }
+    adding?.let { option ->
+        AlertDialog(
+            onDismissRequest = { if (!busy) closeAdd() },
+            shape = DialogShape,
+            title = { Text("新增${option.label}") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Field("名称", newName, { newName = it })
+                    error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                }
+            },
+            confirmButton = {
+                Primary("确定", {
+                    val name = newName
+                    model.save(::closeAdd) {
+                        when (option) {
+                            MealOption.METHOD -> saveMethod(null, name, order = null, archived = false, show = false)
+                            MealOption.PREPARATION -> saveCategory(null, Scope.PREPARATION, null, name, order = null, archived = false)
+                        }
+                    }
+                }, enabled = !busy && newName.isNotBlank())
+            },
+            dismissButton = { TextButton(::closeAdd, enabled = !busy) { Text("取消") } },
+        )
     }
     if (delete && original != null) ConfirmDelete(
         "${original.date} · ${original.mealSlot.label}\n" + original.dishes.take(140),

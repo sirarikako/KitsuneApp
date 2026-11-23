@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
+internal const val DEFAULT_COOKING_METHOD_ID = "10000000-0000-4000-8000-000000000001"
+
 data class Records(
     val state: DataState,
     val theme: ThemePreferences,
@@ -55,7 +57,7 @@ class Repository internal constructor(
         if (!newDatabase) throw OwnershipException()
         val now = utcNow()
         dao.insert(listOf(
-            MealMethod("10000000-0000-4000-8000-000000000001", "下厨", "下厨", 0, false, true, now, now),
+            MealMethod(DEFAULT_COOKING_METHOD_ID, "下厨", "下厨", 0, false, true, now, now),
             MealMethod("10000000-0000-4000-8000-000000000002", "外卖", "外卖", 1, false, false, now, now),
         ))
         dao.insertCategories(listOf(
@@ -135,14 +137,15 @@ class Repository internal constructor(
 
     suspend fun deleteMeal(id: String) = change { dao.deleteMeal(id) > 0 }
 
-    suspend fun saveMethod(id: String?, name: String, order: Int, archived: Boolean, show: Boolean) = change {
-        require(order >= 0) { "排序必须为非负整数" }
+    suspend fun saveMethod(id: String?, name: String, order: Int?, archived: Boolean, show: Boolean) = change {
+        val original = id?.let { requireNotNull(dao.method(it)) { "用餐方式已不存在" } }
+        val sortOrder = order ?: original?.sortOrder ?: nextSortOrder(dao.maxMethodOrder())
+        require(sortOrder >= 0) { "排序必须为非负整数" }
         val clean = cleanName(name)
         val normalized = normalizedName(clean)
-        val original = id?.let { requireNotNull(dao.method(it)) { "用餐方式已不存在" } }
         require(dao.methodByName(normalized)?.id.let { it == null || it == id }) { "已有同名用餐方式" }
         val now = utcNow()
-        val method = MealMethod(id ?: newId(), clean, normalized, order, archived, show, original?.createdAt ?: now, now)
+        val method = MealMethod(id ?: newId(), clean, normalized, sortOrder, archived, show, original?.createdAt ?: now, now)
         if (original != null && method.copy(updatedAt = original.updatedAt) == original) return@change false
         dao.put(method)
         true
@@ -163,14 +166,14 @@ class Repository internal constructor(
             require(!existing.archived || allowArchived) { "分类已停用，请在设置中启用" }
             return existing
         }
-        val nextOrder = dao.maxCategoryOrder(scope, walletId ?: GLOBAL_OWNER)
-            ?.let { if (it == Int.MAX_VALUE) it else it + 1 } ?: 0
+        val nextOrder = nextSortOrder(dao.maxCategoryOrder(scope, walletId ?: GLOBAL_OWNER))
         return buildCategory(null, scope, walletId, clean, nextOrder, false).also { dao.put(it) }
     }
 
-    suspend fun saveCategory(id: String?, scope: Scope, walletId: String?, name: String, order: Int, archived: Boolean) = change {
+    suspend fun saveCategory(id: String?, scope: Scope, walletId: String?, name: String, order: Int?, archived: Boolean) = change {
         val original = id?.let { requireNotNull(dao.category(it)) { "分类已不存在" } }
-        val category = buildCategory(original, scope, walletId, name, order, archived)
+        val sortOrder = order ?: original?.sortOrder ?: nextSortOrder(dao.maxCategoryOrder(scope, walletId ?: GLOBAL_OWNER))
+        val category = buildCategory(original, scope, walletId, name, sortOrder, archived)
         if (original != null && category.copy(updatedAt = original.updatedAt) == original) return@change false
         dao.put(category)
         true
@@ -207,3 +210,5 @@ class Repository internal constructor(
         true
     }
 }
+
+private fun nextSortOrder(lastOrder: Int?): Int = lastOrder?.let { if (it == Int.MAX_VALUE) it else it + 1 } ?: 0

@@ -1,5 +1,7 @@
     function render(){
       const previous=rendered,kind=modalKind(),key=localKey(),changingPage=previous&&previous.page!==state.page;
+      const keepingMealForm=previous?.page==='meal-form'&&state.page==='meal-form';
+      const mealPosition=keepingMealForm?phone.querySelector('.ks-main').scrollTop:0;
       const oldLedger=phone.querySelector('.ks-ledger-screen');
       const sameLedger=oldLedger&&state.page==='ledger'&&previous.local===key;
       const ledgerPosition=sameLedger?oldLedger.querySelector('.ks-main').scrollTop:0;
@@ -51,6 +53,12 @@
         phone.insertAdjacentHTML('beforeend',mealCalendarDialog());
         for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
         if(previous?.modal!==kind)phone.querySelector('[data-calendar-action=jump],[data-calendar-text]').focus({preventScroll:true});
+      }
+      if(keepingMealForm)phone.querySelector('.ks-main').scrollTop=mealPosition;
+      if(state.addingMealOption){
+        phone.insertAdjacentHTML('beforeend',mealOptionDialog());
+        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
+        phone.querySelector('[data-meal-option-form] input').focus({preventScroll:true});
       }
       if(state.page==='appearance')updateAppearancePreview();
       globalThis.lucide?.createIcons({root:phone,attrs:{width:18,height:18}});
@@ -114,6 +122,11 @@
         state.walletFilterIds=mode==='MANUAL'?[...state.walletDraftIds]:mode==='ALL'?'ALL':null;
       }else if(action==='default')state.walletFilterIds=null;
       state.walletPickerOpen=false;render();persist();phone.querySelector('[data-action=choose-wallets]')?.focus({preventScroll:true});
+    }
+    function closeMealOption(){
+      const kind=state.addingMealOption;
+      state.addingMealOption=null;render();
+      phone.querySelector(`[data-add-meal-option="${kind}"]`)?.focus({preventScroll:true});
     }
     function closeMealCalendar(apply){
       const d=state.mealCalendar;

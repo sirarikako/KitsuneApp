@@ -3,6 +3,7 @@
       if(event.target.matches('[data-ledger-filter-overlay]')){closeLedgerFilters(false);return;}
       if(event.target.matches('.ks-period-overlay')){closeLedgerPeriod(false);return;}
       if(event.target.matches('.ks-calendar-overlay')){closeMealCalendar(false);return;}
+      if(event.target.matches('[data-meal-option-overlay]')){closeMealOption();return;}
       const b=event.target.closest('button');if(!b)return;
       capture();state.notice='';
       if(b.dataset.action==='open-meal-calendar'){
@@ -117,7 +118,7 @@
           phone.querySelector('.ks-day[aria-pressed=true]'))?.focus({preventScroll:true});
         return;
       }
-      if(b.dataset.meal!==undefined){if(state.page==='home')state.date='2026-11-17';else if(b.dataset.mealDate)state.date=b.dataset.mealDate;state.slot=Number(b.dataset.meal);state.mealReturn=state.page;const m=records()[state.slot];state.editing=!!m;if(m&&b.classList.contains('ks-record')){recordOrigin={page:state.page,date:state.date,slot:b.dataset.meal};entrance=visible(b)?rect(b):null;}else recordOrigin=null;state.editingDate=state.date;state.editingSlot=state.slot;state.atHome=m?.atHome??null;state.method=m?.method??null;state.categories=[...(m?.categories||[])];state.dishes=m?.dishes||'';state.note=m?.note||'';state.page='meal-form';render();return;}
+      if(b.dataset.meal!==undefined){if(state.page==='home')state.date='2026-11-17';else if(b.dataset.mealDate)state.date=b.dataset.mealDate;state.slot=Number(b.dataset.meal);state.mealReturn=state.page;const m=records()[state.slot];state.editing=!!m;if(m&&b.classList.contains('ks-record')){recordOrigin={page:state.page,date:state.date,slot:b.dataset.meal};entrance=visible(b)?rect(b):null;}else recordOrigin=null;state.editingDate=state.date;state.editingSlot=state.slot;state.atHome=m?m.atHome:true;state.method=m?m.method:'下厨';state.categories=[...(m?.categories||[])];state.dishes=m?.dishes||'';state.note=m?.note||'';state.page='meal-form';render();return;}
       if(b.dataset.homeChoice!==undefined){state.atHome=b.dataset.homeChoice==='true';render();return;}
       if(b.dataset.method){const m=b.dataset.method;state.method=state.method===m?null:m;if(state.method!=='下厨')state.categories=[];render();return;}
       if(b.dataset.category){const c=b.dataset.category;state.categories=state.categories.includes(c)?state.categories.filter(x=>x!==c):[...state.categories,c];render();return;}
@@ -140,8 +141,8 @@
       }
       if(b.dataset.action==='add-entry'){state.entryReturn=state.page;state.page='entry';state.amount='';state.entryType='支出';state.entryDraft={dateTime:`${demoToday}T09:41`,note:'',category:defaultEntryWallet()?'ge-food':'',walletId:defaultEntryWallet()?.id||''};render();return;}
       if(b.dataset.action==='back'){state.page=state.page==='entry'?state.entryReturn:state.page==='category-detail'?state.categoryDetailReturn:state.page==='category-owned'?'category-manager':state.page==='category-manager'?state.categoryReturn:['appearance','github'].includes(state.page)?'settings':state.page==='meal-filter'?'meals':state.page==='meal-form'?state.mealReturn:'ledger';render();return;}
-      if(b.dataset.action==='new-category'){phone.querySelector('[data-new-category]').hidden=false;phone.querySelector('[data-category-name]').focus();return;}
-      if(b.dataset.action==='confirm-category'){const c=phone.querySelector('[data-category-name]').value.trim();if(c&&!state.categories.includes(c))state.categories.push(c);render();}
+      if(b.dataset.addMealOption){state.addingMealOption=b.dataset.addMealOption;render();return;}
+      if(b.dataset.action==='cancel-meal-option'){closeMealOption();return;}
     });
     phone.addEventListener('keydown',event=>{
       if(!modalKind())return;
@@ -149,7 +150,8 @@
         event.preventDefault();
         if(state.githubDemo.review){
           state.githubDemo.review=null;render();phone.querySelector('[data-github-action=review]').focus({preventScroll:true});
-        }else if(state.mealCalendar)closeMealCalendar(false);
+        }else if(state.addingMealOption)closeMealOption();
+        else if(state.mealCalendar)closeMealCalendar(false);
         else if(state.ledgerPeriodDraft)closeLedgerPeriod(false);
         else if(state.ledgerFiltersOpen)closeLedgerFilters(false);
         else if(state.walletPickerOpen)closeWalletPicker('cancel');
@@ -180,6 +182,11 @@
     });
     phone.addEventListener('input',event=>{
       const e=event.target;
+      if(e.matches('[data-meal-option-form] input')){
+        e.form.querySelector('[type=submit]').disabled=!e.value.trim();
+        e.form.querySelector('[data-meal-option-error]').textContent='';
+        return;
+      }
       if(e.matches('[data-calendar-year],[data-calendar-text]')){
         const d=state.mealCalendar,dialog=e.closest('.ks-calendar-dialog');
         if(e.matches('[data-calendar-year]')){
@@ -218,6 +225,15 @@
     });
     phone.addEventListener('submit',event=>{
       event.preventDefault();const f=event.target;capture();
+      if(f.matches('[data-meal-option-form]')){
+        const name=f.elements.optionName.value.trim(),method=state.addingMealOption==='method';
+        const list=method?mealMethods:mealPreparations;
+        const normalize=text=>text.normalize('NFC').toLowerCase();
+        const message=!name?'请填写名称':list.some(item=>normalize(item)===normalize(name))
+          ?method?'已有同名用餐方式':'此范围已有同名分类':'';
+        if(message){f.querySelector('[data-meal-option-error]').textContent=message;return;}
+        list.push(name);closeMealOption();return;
+      }
       if(f.matches('[data-financial-category-form]')){
         const name=f.elements.categoryName.value.trim(),scope=state.financialScope,owner=state.categoryWalletId;
         const items=owner==='GLOBAL'?sharedFinancialCategories[scope]:walletFinancialCategories[owner][scope];
