@@ -114,7 +114,7 @@ class NavigationTest {
             compose.onNodeWithContentDescription("返回").performClick()
             compose.onNodeWithText("记账").performClick()
             compose.onNodeWithText("流水").performClick()
-            compose.onNodeWithText("记一笔").performClick()
+            compose.onNodeWithContentDescription("记一笔").performClick()
             compose.onNodeWithText("收入").assertIsSelected()
         } finally {
             runBlocking { walletIds.forEach { repository.removeWallet(it) } }
