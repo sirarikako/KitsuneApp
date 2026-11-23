@@ -58,7 +58,7 @@ class LedgerRepositoryTest {
             migration.createDatabase(name, 1).use { old ->
                 old.execSQL(
                     "INSERT INTO DataState (`key`, installationId, datasetId, revision, generation, arrayElements) VALUES (0, ?, ?, ?, ?, ?)",
-                    arrayOf(state.installationId, state.datasetId, state.revision, state.generation, state.arrayElements),
+                    arrayOf<Any>(state.installationId, state.datasetId, state.revision, state.generation, state.arrayElements),
                 )
             }
             val upgraded = Room.databaseBuilder(context, KitsuneDatabase::class.java, name).build()
