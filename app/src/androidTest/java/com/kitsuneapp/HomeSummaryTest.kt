@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -14,6 +15,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
@@ -33,7 +35,6 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kitsuneapp.data.CategoryMode
 import com.kitsuneapp.data.ColorSource
@@ -130,8 +131,8 @@ class HomeSummaryTest {
             assertFalse(layout.single().hasVisualOverflow)
         }
         assertTrue(expenseNode.fetchSemanticsNode().boundsInRoot.bottom <= revenueNode.fetchSemanticsNode().boundsInRoot.top)
-        capture("home-android-dark-320-amounts")
         compose.onNodeWithText("记一笔").performScrollTo().assertIsDisplayed()
+        capture("home-android-dark-320-summary")
     }
 
     @Test
@@ -170,7 +171,7 @@ class HomeSummaryTest {
         content: @Composable () -> Unit,
     ) {
         KitsuneTheme(theme, forceDark = dark) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+            Box(Modifier.fillMaxSize().systemBarsPadding(), contentAlignment = Alignment.TopCenter) {
                 CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale)) {
                     Surface(Modifier.widthIn(max = width.dp).fillMaxWidth().fillMaxHeight().testTag("home-viewport"),
                         color = MaterialTheme.colorScheme.background, content = content)
