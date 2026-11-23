@@ -78,23 +78,28 @@ fun GitHubPage(records: Records, model: AppViewModel, back: () -> Unit) {
                     owned.status != null && owned.failedRevision == state.revision -> owned.status
                     owned.lastRevision == state.revision -> "最新修订已备份"
                     else -> "最新修订等待备份"
-                })
-                backupStatusTime(owned?.succeededAt)?.let { Secondary("上次成功 · $it") }
+                }, style = MaterialTheme.typography.titleLarge)
                 if (owned != null) {
+                    Secondary("上次成功 · ${backupStatusTime(owned.succeededAt) ?: "尚无成功记录"}")
                     Secondary("${owned.target.owner}/${owned.target.repository} · ${owned.target.branch}")
                 }
                 estimated?.takeIf { it >= CLOUD_LIMIT * 8 / 10 }?.let {
                     Text(if (it > CLOUD_LIMIT) "当前快照超过 GitHub 的 32 MiB 上限，请使用本地备份。"
                         else "当前快照接近 GitHub 的 32 MiB 上限。", color = MaterialTheme.colorScheme.error)
                 }
+                if (owned != null && owned.paused == null && owned.generation == state.generation) {
+                    Primary("立即备份", { model.backup { service.schedule(manual = true) } }, Modifier.fillMaxWidth(),
+                        enabled = !busy && !running)
+                }
+                if (busy || running) LinearProgressIndicator(Modifier.fillMaxWidth())
             }
             if (owned != null) {
-                Primary("核对远端备份", {
-                    restoring = false
-                    model.previewCloudRestore()
-                }, Modifier.fillMaxWidth(), !busy)
-                if (owned.paused == null && owned.generation == state.generation) {
-                    Choice("立即备份", { model.backup { service.schedule(manual = true) } }, Modifier.fillMaxWidth(), enabled = !busy && !running)
+                Section("远端核对与恢复")
+                Paper {
+                    Choice("核对远端备份", {
+                        restoring = false
+                        model.previewCloudRestore()
+                    }, Modifier.fillMaxWidth(), enabled = !busy)
                 }
                 Paper {
                     Toggle("仅使用 Wi-Fi", owned.wifiOnly) { selected ->
@@ -134,7 +139,6 @@ fun GitHubPage(records: Records, model: AppViewModel, back: () -> Unit) {
                 }
             }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            if (busy || running) LinearProgressIndicator(Modifier.fillMaxWidth())
         }
     }
 
@@ -160,7 +164,7 @@ fun GitHubPage(records: Records, model: AppViewModel, back: () -> Unit) {
                     }
                 }, confirmButton = {
                     val action = if (staged != null) "保留本机并覆盖" else if (owned?.accepted?.isNotEmpty() == true) "确认重建" else "确认创建"
-                    Primary(action, { model.confirmCloudBackup(preview) }, enabled = !busy)
+                    Primary(action, { model.confirmCloudBackup(preview) }, enabled = !busy, danger = staged != null)
                 }, dismissButton = { TextButton({ model.discardRestorePreview(preview) }, enabled = !busy) { Text("取消") } })
         }
     }

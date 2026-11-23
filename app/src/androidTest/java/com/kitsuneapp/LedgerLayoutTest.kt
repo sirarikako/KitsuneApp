@@ -1,14 +1,15 @@
 package com.kitsuneapp
 
 import android.graphics.Bitmap
-import android.view.View
-import android.widget.DatePicker
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.toArgb
@@ -39,21 +40,15 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
-import androidx.test.espresso.Espresso.onView
-import androidx.test.espresso.UiController
-import androidx.test.espresso.ViewAction
-import androidx.test.espresso.action.ViewActions.click
-import androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom
-import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kitsuneapp.data.*
 import com.kitsuneapp.feature.ledger.LedgerPage
 import com.kitsuneapp.feature.ledger.Calculator
 import com.kitsuneapp.ui.KitsuneTheme
+import com.kitsuneapp.ui.TimeControl
 import java.io.File
 import java.time.LocalDate
 import java.time.YearMonth
-import org.hamcrest.Matcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -261,14 +256,31 @@ class LedgerLayoutTest {
 
     private fun pickLedgerDate(label: String, date: LocalDate) {
         compose.onNodeWithContentDescription(label).performClick()
-        onView(isAssignableFrom(DatePicker::class.java)).perform(object : ViewAction {
-            override fun getConstraints(): Matcher<View> = isAssignableFrom(DatePicker::class.java)
-            override fun getDescription() = "Select a date in the platform calendar"
-            override fun perform(uiController: UiController, view: View) {
-                (view as DatePicker).updateDate(date.year, date.monthValue - 1, date.dayOfMonth)
-            }
-        })
-        onView(withId(android.R.id.button1)).perform(click())
+        val inputMode = compose.onNodeWithText("输入日期")
+        if (inputMode.isDisplayed()) inputMode.performClick()
+        compose.onNodeWithContentDescription("日期（YYYY-MM-DD）").performTextReplacement(date.toString())
+        compose.onNodeWithText("确定").performClick()
+    }
+
+    @Test
+    fun validatesTwentyFourHourTimeAndKeepsCanceledValue() {
+        var time by mutableStateOf("09:41")
+        compose.setContent { KitsuneTheme(ThemePreferences(), forceDark = true) { TimeControl(time, { time = it }) } }
+        val trigger = compose.onNodeWithContentDescription("时间")
+        val input = compose.onNodeWithContentDescription("时间（HH:mm）")
+        val confirm = compose.onNodeWithText("确定")
+        trigger.performClick()
+        compose.onNodeWithText("输入时间").performClick()
+        input.performTextReplacement("24:00")
+        confirm.assertIsNotEnabled()
+        input.performTextReplacement("23:59")
+        compose.onNodeWithText("取消").performClick()
+        compose.runOnIdle { assertEquals("09:41", time) }
+        trigger.performClick()
+        compose.onNodeWithText("输入时间").performClick()
+        input.performTextReplacement("00:00")
+        confirm.performClick()
+        compose.runOnIdle { assertEquals("00:00", time) }
     }
 
     @Test

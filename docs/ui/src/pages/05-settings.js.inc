@@ -10,7 +10,7 @@
       ${section('数据与备份')}<div class="ks-settings">
         ${item('files','导入与导出')}
         ${item('hard-drive','本地文件夹备份')}
-        ${item('cloud','GitHub 备份')}
+        ${item('cloud','GitHub 备份','data-github-action="open"')}
       </div>`;
     }
     function pageAppearance(){
@@ -37,7 +37,6 @@
       const own=wallet?walletFinancialCategories[wallet.id][scope]:sharedFinancialCategories[scope];
       const editable=!wallet||mode==='CUSTOM';
       const shown=editable?own:sharedFinancialCategories[scope];
-      const current=own.find(c=>c.id===state.editingFinancialCategoryId);
       const name=wallet?wallet.name:'通用收支分类';
       return `<div class="ks-category-manager">
         <p class="ks-note">钱包没有设置专属分类时，自动使用通用分类；收入与支出分别设置。</p>
@@ -53,16 +52,64 @@
         </label>`:''}
         <p class="ks-note">${wallet?(mode==='DEFAULT'?'使用通用分类。切为专属后，不会与通用列表混合。':'使用本钱包专属分类；即使没有自定义项，也只保留“未分类”。'):'通用类别供未开启专属分类的钱包使用。'}</p>
         ${section((wallet?escapeText(name)+' · ':'')+(scope==='EXPENSE'?'支出':'收入')+'分类')}
-        <div class="ks-settings ks-category-rows">
-          ${shown.map(c=>`<div class="ks-setting"><span>${escapeText(c.name)}${c.archived?'<small class="ks-note"> · 已停用</small>':''}</span>
-          ${editable?`<button type="button" class="ks-choice cursor-interaction" data-edit-financial-category="${c.id}">改名</button><button type="button" class="ks-choice cursor-interaction" data-archive-financial-category="${c.id}">${c.archived?'启用':'停用'}</button>`:'<small>通用</small>'}</div>`).join('')}
-          <div class="ks-setting"><span>未分类 <small class="ks-note">· 固定兜底</small></span><small>所有钱包可用</small></div>
-        </div>
-        ${editable?`<form class="ks-form ks-category-form" data-financial-category-form>
-          <label><span class="ks-label">${current?'修改分类名称':'添加'+(wallet?'本钱包专属':'通用')+'分类'}</span><input name="categoryName" class="ks-control" value="${escapeText(current?.name||'')}" placeholder="输入分类名称" maxlength="30" required></label>
-          <p class="ks-error" role="alert"></p>
-          <div class="ks-form-actions">${current?'<button type="button" class="ks-choice" data-action="cancel-category-edit">取消修改</button>':'<span class="ks-note">不会更改旧账目</span>'}<button type="submit" class="ks-primary">${current?'保存修改':'新增分类'}</button></div>
-        </form>`:`<button type="button" class="ks-choice ks-full cursor-interaction" data-action="edit-general-categories">编辑通用分类</button>`}
-        <p class="ks-footnote">交互预览 · 可新增、改名、停用；正式排序及数据备份由 Android 实现。</p>
+        ${financialCategoryRows(shown,editable,true)}
+        ${editable?newFinancialCategoryButton():`<button type="button" class="ks-choice ks-full" data-action="edit-owned-categories">管理本钱包专属分类</button>`}
       </div>`;
+    }
+    function financialCategoryRows(categories,editable,showFallback){
+      return `<div class="ks-settings ks-category-rows">
+        ${categories.map(c=>{
+          const label=`<span>${escapeText(c.name)}${c.archived?'<small class="ks-note"> · 已停用</small>':''}</span>`;
+          return editable?`<button type="button" class="ks-setting ks-setting-link cursor-interaction" data-edit-financial-category="${c.id}">${label}${icon('chevron-right')}</button>`:
+            `<div class="ks-setting">${label}<small>通用</small></div>`;
+        }).join('')}
+        ${showFallback?'<div class="ks-setting"><span>未分类 <small class="ks-note">· 固定兜底</small></span><small>所有钱包可用</small></div>':''}
+      </div>`;
+    }
+    function newFinancialCategoryButton(){
+      return `<button type="button" class="ks-primary ks-full" data-edit-financial-category="new">${icon('plus')}新增分类</button>`;
+    }
+    function pageOwnedCategories(){
+      const categories=walletFinancialCategories[state.categoryWalletId][state.financialScope];
+      return `<div class="ks-category-manager">${categories.length?financialCategoryRows(categories,true,false):'<p class="ks-note">暂无专属分类</p>'}${newFinancialCategoryButton()}</div>`;
+    }
+    function pageCategoryDetail(){
+      const current=state.editingFinancialCategoryId?categoryById(state.editingFinancialCategoryId):null;
+      const owner=state.categoryWalletId,scope=state.financialScope;
+      const categories=owner==='GLOBAL'?sharedFinancialCategories[scope]:walletFinancialCategories[owner][scope];
+      const nextOrder=Math.min(2147483647,Math.max(-1,...categories.map(c=>c.sortOrder))+1);
+      return `<form class="ks-form ks-category-form" data-financial-category-form>
+        <label><span class="ks-label">名称</span><input name="categoryName" class="ks-control" value="${escapeText(current?.name||'')}" placeholder="输入名称" maxlength="30" required></label>
+        <label><span class="ks-label">排序（数字越小越靠前）</span><input name="sortOrder" class="ks-control" type="number" min="0" max="2147483647" step="1" required value="${current?.sortOrder??nextOrder}"></label>
+        <label class="ks-wallet-check"><input name="archived" type="checkbox" ${current?.archived?'checked':''}>停用</label>
+        ${formFooter(saveButton('保存'),'交互预览 · 使用示例分类')}
+      </form>`;
+    }
+    function pageGitHubBackup(){
+      const done=state.githubDemo.backedUp;
+      return `<section class="ks-money-card ks-form">
+        <div role="status">
+          <h3 class="ks-backup-status">${done?'最新修订已备份':'最新修订等待备份'}</h3>
+          <p class="ks-note">上次成功 · 2026-11-17T${done?'09:41':'09:30'}:00.000+08:00</p>
+          <p class="ks-note">demo/kitsune-backup · main</p>
+        </div>
+        <button type="button" class="ks-primary ks-full" data-github-action="backup">立即备份</button>
+      </section>
+      ${section('远端核对与恢复')}
+      <section class="ks-money-card">
+        <button type="button" class="ks-choice ks-full" data-github-action="review">核对远端备份</button>
+      </section>
+      <p class="ks-footnote">交互预览 · 使用示例备份状态</p>`;
+    }
+    function githubDemoDialog(){
+      const restoring=state.githubDemo.review==='restore',title=restoring?'确认完整恢复':'核对远端备份';
+      return `<div class="ks-modal-overlay ks-delete-overlay"><section class="ks-delete-sheet" role="alertdialog" aria-modal="true" aria-label="${title}">
+        <h3>${title}</h3>
+        <p class="ks-delete-summary">${restoring?'恢复会替换本机数据。已有记录时，先保存恢复前保护备份。':'本机 · 用餐 2 条 · 钱包 3 个 · 账目 11 笔\\n远端 · 2026-11-17T09:30:00.000+08:00'}</p>
+        ${restoring?'':'<button type="button" class="ks-choice ks-full" data-github-action="restore">恢复云端</button>'}
+        <div class="ks-period-actions">
+          <button type="button" class="ks-text-btn" data-github-action="cancel">取消</button>
+          <button type="button" class="ks-primary ks-danger-confirm" data-github-action="confirm">${restoring?'确认恢复':'保留本机并覆盖'}</button>
+        </div>
+      </section></div>`;
     }

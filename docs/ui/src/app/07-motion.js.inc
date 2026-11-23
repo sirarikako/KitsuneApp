@@ -52,7 +52,7 @@
     const discard=group=>()=>group?.remove();
     const pageNode=()=>phone.querySelector(':scope > .ks-page-motion');
     const modalNode=()=>phone.querySelector(':scope > .ks-modal-overlay');
-    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.walletPickerOpen?'wallet':state.ledgerPeriodDraft?'ledger-period':null;
+    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.walletPickerOpen?'wallet':state.ledgerPeriodDraft?'ledger-period':state.githubDemo.review?'github-review':null;
     const primary=page=>navs.some(n=>n[0]===page);
     const localKey=()=>state.page==='meals'?JSON.stringify([state.mealTab,state.date,state.mealMonth,state.mealListMode,state.mealFilters]):state.page==='ledger'?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds]):'';
     const localNodes=()=>{

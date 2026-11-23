@@ -27,6 +27,7 @@
     const style = {accent:'#c47a4a',mealHour:'auto',...defaultAppearance};
     const state = {page:'home', date:'2026-11-17', ledgerMonth:'2026-11',mealMonth:'2026-11',ledgerTab:'流水', mealTab:'记录', slot:2, atHome:null, method:null, categories:[], amount:'',calcOpen:false,calcExpression:'',entryType:'支出',entryDraft:{dateTime:'2026-11-17T09:41',note:'',category:'ge-food',walletId:'daily'},notice:'', mealReturn:'home', entries:[], records:{}};
     state.ledgerRange=null;state.ledgerPeriodDraft=null;state.previewMode=null;
+    state.githubDemo={backedUp:false,review:null};
     const blankMealFilters=()=>({from:'',to:'',slot:'any',atHome:'any',method:'any',preparations:[],keyword:''});
     state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
     const wallets=[{id:'daily',name:'日常钱包',code:'CNY',scale:2,opening:0n,separateAccounting:false},{id:'pocket',name:'零钱钱包',code:'CNY',scale:2,opening:50000n,separateAccounting:false},{id:'travel',name:'旅行钱包',code:'JPY',scale:0,opening:20000n,separateAccounting:true}];
@@ -36,8 +37,8 @@
     state.walletFilterIds=null;state.walletPickerOpen=false;state.walletDraftMode='REGULAR';state.walletDraftIds=[];state.lastWalletId='daily';
     // Financial categories are scoped by type and optional wallet; meal preparation categories are separate.
     const sharedFinancialCategories={
-      EXPENSE:[{id:'ge-food',name:'餐饮',archived:false},{id:'ge-transport',name:'交通',archived:false},{id:'ge-daily',name:'日用',archived:false}],
-      INCOME:[{id:'gi-salary',name:'工资',archived:false}]
+      EXPENSE:[{id:'ge-food',name:'餐饮',archived:false,sortOrder:0},{id:'ge-transport',name:'交通',archived:false,sortOrder:1},{id:'ge-daily',name:'日用',archived:false,sortOrder:2}],
+      INCOME:[{id:'gi-salary',name:'工资',archived:false,sortOrder:0}]
     };
     const fallbackFinancialCategories={
       EXPENSE:{id:'ge-none',name:'未分类',archived:false,isDefault:true},
@@ -45,7 +46,8 @@
     };
     const walletFinancialCategories=Object.fromEntries(wallets.map(w=>[w.id,{EXPENSE:[],INCOME:[]}]));
     wallets.forEach(w=>{w.incomeCategoryMode='DEFAULT';w.expenseCategoryMode='DEFAULT';});
-    state.categoryWalletId='GLOBAL';state.financialScope='EXPENSE';state.editingFinancialCategoryId=null;state.categoryReturn='settings';state.nextFinancialCategoryId=1;
+    state.categoryWalletId='GLOBAL';state.financialScope='EXPENSE';state.editingFinancialCategoryId=null;
+    state.categoryReturn='settings';state.categoryDetailReturn='category-manager';state.nextFinancialCategoryId=1;
     const financialScopeOf=type=>type==='收入'?'INCOME':'EXPENSE';
     const scopeMode=(wallet,scope)=>wallet?.[scope==='INCOME'?'incomeCategoryMode':'expenseCategoryMode']||'DEFAULT';
     const allFinancialCategories=()=>[...sharedFinancialCategories.EXPENSE,...sharedFinancialCategories.INCOME,...Object.values(walletFinancialCategories).flatMap(v=>[...v.EXPENSE,...v.INCOME]),...Object.values(fallbackFinancialCategories)];

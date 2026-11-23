@@ -73,10 +73,10 @@ fun SettingsPage(navigate: (String) -> Unit) {
 }
 
 @Composable
-fun Setting(label: String, icon: ImageVector? = null, hint: String? = null, action: () -> Unit) {
+fun Setting(label: String, icon: ImageVector? = null, hint: String? = null, enabled: Boolean = true, action: () -> Unit) {
     val tint = MaterialTheme.colorScheme.onSurfaceVariant
     Row(Modifier.fillMaxWidth().heightIn(min = if (icon == null) 44.dp else 55.dp)
-        .clickable(role = Role.Button, onClick = action).padding(vertical = 8.dp),
+        .clickable(enabled = enabled, role = Role.Button, onClick = action).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         if (icon != null) Icon(icon, null, Modifier.size(18.dp), tint = tint)
         Column(Modifier.weight(1f)) {
@@ -122,8 +122,7 @@ fun VocabularyPage(
                         categories.forEachIndexed { i, category ->
                             if (i > 0) HorizontalDivider()
                             if (category.isDefault) FixedCategory(category.name)
-                            else Setting(category.name, designIcon(glyph),
-                                "排序 ${category.sortOrder}" + if (category.archived) " · 已停用" else "") {
+                            else Setting(category.name, hint = if (category.archived) "已停用" else null) {
                                 navigate("$path/" + category.id)
                             }
                         }
@@ -201,8 +200,7 @@ fun CategorySettings(records: Records, model: AppViewModel, specific: Boolean, w
             }
             if (!specific || current != null) {
                 val owner = current?.id.takeIf { editable }
-                val path = "categories/${scope.name}/${current?.id ?: "-"}"
-                val draft = "category/${scope.name}/${current?.id ?: "-"}"
+                val draft = "category/${scope.name}/${owner ?: "-"}"
                 val choices = records.categories.filter { it.scope == scope && it.walletId == owner && !it.isDefault }
                 Secondary(when {
                     current == null -> "通用类别供未开启专属分类的钱包使用。"
@@ -214,18 +212,18 @@ fun CategorySettings(records: Records, model: AppViewModel, specific: Boolean, w
                     Paper(padding = 0) {
                         Column(Modifier.padding(horizontal = 12.dp)) {
                             choices.forEach { category ->
-                                Row(Modifier.fillMaxWidth().heightIn(min = 55.dp).padding(vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Column(Modifier.weight(1f)) {
-                                        Text(category.name)
-                                        if (category.archived) Secondary("已停用")
+                                val status = if (category.archived) "已停用" else null
+                                if (editable) {
+                                    Setting(category.name, hint = status, enabled = !busy) { open("$draft/${category.id}") }
+                                } else {
+                                    Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).padding(vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Column(Modifier.weight(1f)) {
+                                            Text(category.name)
+                                            if (status != null) Secondary(status)
+                                        }
+                                        Secondary("通用")
                                     }
-                                    if (editable) {
-                                        Choice("改名", { open("$draft/${category.id}") }, enabled = !busy)
-                                        Choice(if (category.archived) "启用" else "停用", {
-                                            model.save { saveCategory(category.id, scope, owner, category.name, category.sortOrder, !category.archived) }
-                                        }, enabled = !busy)
-                                    } else Secondary("通用")
                                 }
                                 HorizontalDivider()
                             }
@@ -236,7 +234,10 @@ fun CategorySettings(records: Records, model: AppViewModel, specific: Boolean, w
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 if (editable) Primary("新增分类", { open("$draft/-") }, Modifier.fillMaxWidth(), enabled = !busy,
                     icon = designIcon(R.drawable.ks_plus))
-                Choice(if (editable) "管理排序与分类" else "管理本钱包专属分类", { open(path) }, Modifier.fillMaxWidth(), enabled = !busy)
+                if (!editable && current != null) {
+                    Choice("管理本钱包专属分类", { open("categories/${scope.name}/${current.id}") },
+                        Modifier.fillMaxWidth(), enabled = !busy)
+                }
             } else Secondary("请选择钱包")
         }
     }

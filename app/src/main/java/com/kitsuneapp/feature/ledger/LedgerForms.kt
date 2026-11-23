@@ -1,6 +1,5 @@
 package com.kitsuneapp.feature.ledger
 
-import android.app.TimePickerDialog
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,7 +10,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -24,7 +22,6 @@ import com.kitsuneapp.data.*
 import com.kitsuneapp.ui.*
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -177,8 +174,6 @@ fun EntryForm(records: Records, id: String?, expenseId: String?, model: AppViewM
     val original = ledger.entry(id)
     val expense = ledger.entry(expenseId ?: original?.originalExpenseId)
     val now = remember { LocalDateTime.now() }
-    val context = LocalContext.current
-    val pickerTheme = platformPickerTheme()
     var type by rememberSaveable { mutableStateOf(original?.type ?: if (expenseId != null) EntryType.REFUND else EntryType.EXPENSE) }
     var date by rememberSaveable { mutableStateOf(original?.date ?: now.toLocalDate().toString()) }
     var time by rememberSaveable { mutableStateOf(original?.time ?: now.format(DateTimeFormatter.ofPattern("HH:mm", Locale.ROOT))) }
@@ -237,12 +232,7 @@ fun EntryForm(records: Records, id: String?, expenseId: String?, model: AppViewM
                 FieldLabel("日期时间")
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     DateControl("日期", date, { date = it }, Modifier.weight(1.6f), showLabel = false)
-                    Choice(time, {
-                        val value = LocalTime.parse(time)
-                        TimePickerDialog(context, pickerTheme, { _, hour, minute ->
-                            time = String.format(Locale.ROOT, "%02d:%02d", hour, minute)
-                        }, value.hour, value.minute, true).show()
-                    }, Modifier.weight(1f))
+                    TimeControl(time, { time = it }, Modifier.weight(1f))
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

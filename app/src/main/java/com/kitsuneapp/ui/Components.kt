@@ -38,7 +38,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -55,7 +54,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.kitsuneapp.R
-import java.time.LocalDate
 import java.time.YearMonth
 import java.util.Locale
 
@@ -341,30 +339,6 @@ fun Tabs(options: List<String>, selected: Int, set: (Int) -> Unit) {
         }
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-}
-
-@Composable
-internal fun platformPickerTheme() = if (LocalDarkMode.current) android.R.style.Theme_Material_Dialog_Alert
-else android.R.style.Theme_Material_Light_Dialog_Alert
-
-@Composable
-fun DateControl(label: String, value: String, set: (String) -> Unit, modifier: Modifier = Modifier,
-                allowEmpty: Boolean = false, showLabel: Boolean = true) {
-    val context = LocalContext.current
-    val pickerTheme = platformPickerTheme()
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        if (showLabel) FieldLabel(label)
-        OutlinedAction({
-                val date = runCatching { LocalDate.parse(value) }.getOrElse { LocalDate.now() }
-                android.app.DatePickerDialog(context, pickerTheme,
-                    { _, y, m, d -> set(LocalDate.of(y, m + 1, d).toString()) },
-                    date.year, date.monthValue - 1, date.dayOfMonth).show()
-            }, Modifier.fillMaxWidth().semantics { contentDescription = label }, spread = true) {
-            Text(value.ifEmpty { if (allowEmpty) "不限" else "请选择" }, Modifier.weight(1f))
-            Icon(designIcon(R.drawable.ks_calendar_days), null, Modifier.size(16.dp))
-        }
-        if (allowEmpty && value.isNotEmpty()) TextAction("清空", { set("") })
-    }
 }
 
 @Composable

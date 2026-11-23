@@ -24,7 +24,10 @@
   #kitsune-preview .ks-category-manager{display:flex;flex-direction:column;gap:var(--ks-space-3)}
   #kitsune-preview .ks-category-manager .ks-category-rows{background:var(--ks-card-surface);border:var(--ks-card-border);border-radius:var(--ks-radius);padding:0 var(--ks-space-3)}
   #kitsune-preview .ks-category-manager .ks-setting{gap:var(--ks-space-1)}
-  #kitsune-preview .ks-category-manager .ks-setting .ks-choice{min-height:36px;padding:6px 8px;flex-shrink:0}
+  #kitsune-preview .ks-category-rows .ks-setting-link{border-bottom:var(--ks-card-border)}
+  #kitsune-preview .ks-category-rows .ks-setting-link svg{margin-left:auto}
+  #kitsune-preview .ks-backup-status{font-size:20px;font-weight:500;margin:0}
+  #kitsune-preview .ks-backup-status~p{margin:var(--ks-space-1) 0 0}
   #kitsune-preview .ks-category-form{margin-top:4px}
   #kitsune-preview .ks-category-form .ks-form-actions{align-items:center}
   #kitsune-preview .ks-wallet-check>span{flex:1}

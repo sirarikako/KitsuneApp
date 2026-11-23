@@ -213,7 +213,10 @@
   #kitsune-preview .ks-category-manager{display:flex;flex-direction:column;gap:var(--ks-space-3)}
   #kitsune-preview .ks-category-manager .ks-category-rows{background:var(--ks-card-surface);border:var(--ks-card-border);border-radius:var(--ks-radius);padding:0 var(--ks-space-3)}
   #kitsune-preview .ks-category-manager .ks-setting{gap:var(--ks-space-1)}
-  #kitsune-preview .ks-category-manager .ks-setting .ks-choice{min-height:36px;padding:6px 8px;flex-shrink:0}
+  #kitsune-preview .ks-category-rows .ks-setting-link{border-bottom:var(--ks-card-border)}
+  #kitsune-preview .ks-category-rows .ks-setting-link svg{margin-left:auto}
+  #kitsune-preview .ks-backup-status{font-size:20px;font-weight:500;margin:0}
+  #kitsune-preview .ks-backup-status~p{margin:var(--ks-space-1) 0 0}
   #kitsune-preview .ks-category-form{margin-top:4px}
   #kitsune-preview .ks-category-form .ks-form-actions{align-items:center}
   #kitsune-preview .ks-wallet-check>span{flex:1}
@@ -284,6 +287,7 @@
     const style = {accent:'#c47a4a',mealHour:'auto',...defaultAppearance};
     const state = {page:'home', date:'2026-11-17', ledgerMonth:'2026-11',mealMonth:'2026-11',ledgerTab:'流水', mealTab:'记录', slot:2, atHome:null, method:null, categories:[], amount:'',calcOpen:false,calcExpression:'',entryType:'支出',entryDraft:{dateTime:'2026-11-17T09:41',note:'',category:'ge-food',walletId:'daily'},notice:'', mealReturn:'home', entries:[], records:{}};
     state.ledgerRange=null;state.ledgerPeriodDraft=null;state.previewMode=null;
+    state.githubDemo={backedUp:false,review:null};
     const blankMealFilters=()=>({from:'',to:'',slot:'any',atHome:'any',method:'any',preparations:[],keyword:''});
     state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
     const wallets=[{id:'daily',name:'日常钱包',code:'CNY',scale:2,opening:0n,separateAccounting:false},{id:'pocket',name:'零钱钱包',code:'CNY',scale:2,opening:50000n,separateAccounting:false},{id:'travel',name:'旅行钱包',code:'JPY',scale:0,opening:20000n,separateAccounting:true}];
@@ -293,8 +297,8 @@
     state.walletFilterIds=null;state.walletPickerOpen=false;state.walletDraftMode='REGULAR';state.walletDraftIds=[];state.lastWalletId='daily';
     // Financial categories are scoped by type and optional wallet; meal preparation categories are separate.
     const sharedFinancialCategories={
-      EXPENSE:[{id:'ge-food',name:'餐饮',archived:false},{id:'ge-transport',name:'交通',archived:false},{id:'ge-daily',name:'日用',archived:false}],
-      INCOME:[{id:'gi-salary',name:'工资',archived:false}]
+      EXPENSE:[{id:'ge-food',name:'餐饮',archived:false,sortOrder:0},{id:'ge-transport',name:'交通',archived:false,sortOrder:1},{id:'ge-daily',name:'日用',archived:false,sortOrder:2}],
+      INCOME:[{id:'gi-salary',name:'工资',archived:false,sortOrder:0}]
     };
     const fallbackFinancialCategories={
       EXPENSE:{id:'ge-none',name:'未分类',archived:false,isDefault:true},
@@ -302,7 +306,8 @@
     };
     const walletFinancialCategories=Object.fromEntries(wallets.map(w=>[w.id,{EXPENSE:[],INCOME:[]}]));
     wallets.forEach(w=>{w.incomeCategoryMode='DEFAULT';w.expenseCategoryMode='DEFAULT';});
-    state.categoryWalletId='GLOBAL';state.financialScope='EXPENSE';state.editingFinancialCategoryId=null;state.categoryReturn='settings';state.nextFinancialCategoryId=1;
+    state.categoryWalletId='GLOBAL';state.financialScope='EXPENSE';state.editingFinancialCategoryId=null;
+    state.categoryReturn='settings';state.categoryDetailReturn='category-manager';state.nextFinancialCategoryId=1;
     const financialScopeOf=type=>type==='收入'?'INCOME':'EXPENSE';
     const scopeMode=(wallet,scope)=>wallet?.[scope==='INCOME'?'incomeCategoryMode':'expenseCategoryMode']||'DEFAULT';
     const allFinancialCategories=()=>[...sharedFinancialCategories.EXPENSE,...sharedFinancialCategories.INCOME,...Object.values(walletFinancialCategories).flatMap(v=>[...v.EXPENSE,...v.INCOME]),...Object.values(fallbackFinancialCategories)];
@@ -642,7 +647,7 @@
       ${section('数据与备份')}<div class="ks-settings">
         ${item('files','导入与导出')}
         ${item('hard-drive','本地文件夹备份')}
-        ${item('cloud','GitHub 备份')}
+        ${item('cloud','GitHub 备份','data-github-action="open"')}
       </div>`;
     }
     function pageAppearance(){
@@ -669,7 +674,6 @@
       const own=wallet?walletFinancialCategories[wallet.id][scope]:sharedFinancialCategories[scope];
       const editable=!wallet||mode==='CUSTOM';
       const shown=editable?own:sharedFinancialCategories[scope];
-      const current=own.find(c=>c.id===state.editingFinancialCategoryId);
       const name=wallet?wallet.name:'通用收支分类';
       return `<div class="ks-category-manager">
         <p class="ks-note">钱包没有设置专属分类时，自动使用通用分类；收入与支出分别设置。</p>
@@ -685,18 +689,66 @@
         </label>`:''}
         <p class="ks-note">${wallet?(mode==='DEFAULT'?'使用通用分类。切为专属后，不会与通用列表混合。':'使用本钱包专属分类；即使没有自定义项，也只保留“未分类”。'):'通用类别供未开启专属分类的钱包使用。'}</p>
         ${section((wallet?escapeText(name)+' · ':'')+(scope==='EXPENSE'?'支出':'收入')+'分类')}
-        <div class="ks-settings ks-category-rows">
-          ${shown.map(c=>`<div class="ks-setting"><span>${escapeText(c.name)}${c.archived?'<small class="ks-note"> · 已停用</small>':''}</span>
-          ${editable?`<button type="button" class="ks-choice cursor-interaction" data-edit-financial-category="${c.id}">改名</button><button type="button" class="ks-choice cursor-interaction" data-archive-financial-category="${c.id}">${c.archived?'启用':'停用'}</button>`:'<small>通用</small>'}</div>`).join('')}
-          <div class="ks-setting"><span>未分类 <small class="ks-note">· 固定兜底</small></span><small>所有钱包可用</small></div>
-        </div>
-        ${editable?`<form class="ks-form ks-category-form" data-financial-category-form>
-          <label><span class="ks-label">${current?'修改分类名称':'添加'+(wallet?'本钱包专属':'通用')+'分类'}</span><input name="categoryName" class="ks-control" value="${escapeText(current?.name||'')}" placeholder="输入分类名称" maxlength="30" required></label>
-          <p class="ks-error" role="alert"></p>
-          <div class="ks-form-actions">${current?'<button type="button" class="ks-choice" data-action="cancel-category-edit">取消修改</button>':'<span class="ks-note">不会更改旧账目</span>'}<button type="submit" class="ks-primary">${current?'保存修改':'新增分类'}</button></div>
-        </form>`:`<button type="button" class="ks-choice ks-full cursor-interaction" data-action="edit-general-categories">编辑通用分类</button>`}
-        <p class="ks-footnote">交互预览 · 可新增、改名、停用；正式排序及数据备份由 Android 实现。</p>
+        ${financialCategoryRows(shown,editable,true)}
+        ${editable?newFinancialCategoryButton():`<button type="button" class="ks-choice ks-full" data-action="edit-owned-categories">管理本钱包专属分类</button>`}
       </div>`;
+    }
+    function financialCategoryRows(categories,editable,showFallback){
+      return `<div class="ks-settings ks-category-rows">
+        ${categories.map(c=>{
+          const label=`<span>${escapeText(c.name)}${c.archived?'<small class="ks-note"> · 已停用</small>':''}</span>`;
+          return editable?`<button type="button" class="ks-setting ks-setting-link cursor-interaction" data-edit-financial-category="${c.id}">${label}${icon('chevron-right')}</button>`:
+            `<div class="ks-setting">${label}<small>通用</small></div>`;
+        }).join('')}
+        ${showFallback?'<div class="ks-setting"><span>未分类 <small class="ks-note">· 固定兜底</small></span><small>所有钱包可用</small></div>':''}
+      </div>`;
+    }
+    function newFinancialCategoryButton(){
+      return `<button type="button" class="ks-primary ks-full" data-edit-financial-category="new">${icon('plus')}新增分类</button>`;
+    }
+    function pageOwnedCategories(){
+      const categories=walletFinancialCategories[state.categoryWalletId][state.financialScope];
+      return `<div class="ks-category-manager">${categories.length?financialCategoryRows(categories,true,false):'<p class="ks-note">暂无专属分类</p>'}${newFinancialCategoryButton()}</div>`;
+    }
+    function pageCategoryDetail(){
+      const current=state.editingFinancialCategoryId?categoryById(state.editingFinancialCategoryId):null;
+      const owner=state.categoryWalletId,scope=state.financialScope;
+      const categories=owner==='GLOBAL'?sharedFinancialCategories[scope]:walletFinancialCategories[owner][scope];
+      const nextOrder=Math.min(2147483647,Math.max(-1,...categories.map(c=>c.sortOrder))+1);
+      return `<form class="ks-form ks-category-form" data-financial-category-form>
+        <label><span class="ks-label">名称</span><input name="categoryName" class="ks-control" value="${escapeText(current?.name||'')}" placeholder="输入名称" maxlength="30" required></label>
+        <label><span class="ks-label">排序（数字越小越靠前）</span><input name="sortOrder" class="ks-control" type="number" min="0" max="2147483647" step="1" required value="${current?.sortOrder??nextOrder}"></label>
+        <label class="ks-wallet-check"><input name="archived" type="checkbox" ${current?.archived?'checked':''}>停用</label>
+        ${formFooter(saveButton('保存'),'交互预览 · 使用示例分类')}
+      </form>`;
+    }
+    function pageGitHubBackup(){
+      const done=state.githubDemo.backedUp;
+      return `<section class="ks-money-card ks-form">
+        <div role="status">
+          <h3 class="ks-backup-status">${done?'最新修订已备份':'最新修订等待备份'}</h3>
+          <p class="ks-note">上次成功 · 2026-11-17T${done?'09:41':'09:30'}:00.000+08:00</p>
+          <p class="ks-note">demo/kitsune-backup · main</p>
+        </div>
+        <button type="button" class="ks-primary ks-full" data-github-action="backup">立即备份</button>
+      </section>
+      ${section('远端核对与恢复')}
+      <section class="ks-money-card">
+        <button type="button" class="ks-choice ks-full" data-github-action="review">核对远端备份</button>
+      </section>
+      <p class="ks-footnote">交互预览 · 使用示例备份状态</p>`;
+    }
+    function githubDemoDialog(){
+      const restoring=state.githubDemo.review==='restore',title=restoring?'确认完整恢复':'核对远端备份';
+      return `<div class="ks-modal-overlay ks-delete-overlay"><section class="ks-delete-sheet" role="alertdialog" aria-modal="true" aria-label="${title}">
+        <h3>${title}</h3>
+        <p class="ks-delete-summary">${restoring?'恢复会替换本机数据。已有记录时，先保存恢复前保护备份。':'本机 · 用餐 2 条 · 钱包 3 个 · 账目 11 笔\\n远端 · 2026-11-17T09:30:00.000+08:00'}</p>
+        ${restoring?'':'<button type="button" class="ks-choice ks-full" data-github-action="restore">恢复云端</button>'}
+        <div class="ks-period-actions">
+          <button type="button" class="ks-text-btn" data-github-action="cancel">取消</button>
+          <button type="button" class="ks-primary ks-danger-confirm" data-github-action="confirm">${restoring?'确认恢复':'保留本机并覆盖'}</button>
+        </div>
+      </section></div>`;
     }
     function pageMealForm(){return `<form class="ks-form" data-meal-form>
       <div class="ks-field-row"><label><span class="ks-label">日期</span><input type="date" name="date" class="ks-control" value="${state.date}" required></label><label><span class="ks-label">餐次</span><select name="slot" class="ks-control">${slots.map((s,i)=>`<option value="${i}" ${i===state.slot?'selected':''}>${s}</option>`).join('')}</select></label></div>
@@ -821,7 +873,7 @@
     const discard=group=>()=>group?.remove();
     const pageNode=()=>phone.querySelector(':scope > .ks-page-motion');
     const modalNode=()=>phone.querySelector(':scope > .ks-modal-overlay');
-    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.walletPickerOpen?'wallet':state.ledgerPeriodDraft?'ledger-period':null;
+    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.walletPickerOpen?'wallet':state.ledgerPeriodDraft?'ledger-period':state.githubDemo.review?'github-review':null;
     const primary=page=>navs.some(n=>n[0]===page);
     const localKey=()=>state.page==='meals'?JSON.stringify([state.mealTab,state.date,state.mealMonth,state.mealListMode,state.mealFilters]):state.page==='ledger'?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds]):'';
     const localNodes=()=>{
@@ -936,10 +988,11 @@
       const sourceRect=entrance;entrance=null;if(leavingPrimary&&!sourceRect)recordOrigin=null;
       rendering=true;
       const form=!primary(state.page);
-      const titles={home:'日常记录',meals:'用餐',ledger:'记账',settings:'设置',appearance:'外观与调色板','wallet-edit':'编辑钱包', 'meal-form':`${state.editing?'编辑':'记录'}${slots[state.slot]}`,'meal-filter':'筛选用餐',entry:'记一笔','entry-detail':'账目详情','category-manager':'分类管理'};
+      const titles={home:'日常记录',meals:'用餐',ledger:'记账',settings:'设置',appearance:'外观与调色板','wallet-edit':'编辑钱包', 'meal-form':`${state.editing?'编辑':'记录'}${slots[state.slot]}`,'meal-filter':'筛选用餐',entry:'记一笔','entry-detail':'账目详情','category-manager':'分类管理','category-owned':'钱包专属分类','category-detail':state.editingFinancialCategoryId?'编辑分类':'新增分类',github:'GitHub 备份'};
       const heading=`<h2 class="ks-title">${titles[state.page]}</h2>`;
       const header=state.page==='home'?`<div class="ks-home-brand"><span class="ks-app-mark"><img src="data:image/webp;base64,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" alt=""></span><div>${heading}<p class="ks-sub">11 月 17 日 · 星期二</p></div></div>`:form?`<button type="button" class="ks-icon-btn cursor-interaction" data-action="back" aria-label="返回">${icon('arrow-left')}</button>${heading}`:heading;
-      phone.innerHTML=`<div class="ks-status"><span>9:41</span><span class="ks-signal">${icon('signal')}${icon('wifi')}${icon('battery-full')}</span></div><div class="ks-page-motion"><header class="ks-top ${form?'ks-subpage':''}">${header}</header><main class="ks-main">${({home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,appearance:pageAppearance,'wallet-edit':pageWalletEdit,'meal-form':pageMealForm,'meal-filter':pageMealFilter,entry:pageEntry,'entry-detail':pageEntryDetail,'category-manager':pageCategoryManager})[state.page]()}${state.notice?`<p class="ks-success" role="status">${escapeText(state.notice)}</p>`:''}</main></div>${state.page==='ledger'?`<div class="ks-ledger-action"><button type="button" class="ks-primary ks-full cursor-interaction" data-action="add-entry">${icon('plus')}记一笔</button></div>`:''}${form?'':`<nav class="ks-nav" aria-label="主导航">${navs.map(([id,name,ic])=>`<button type="button" data-page="${id}" class="cursor-interaction" ${state.page===id?'aria-current="page"':''}><span>${icon(ic)}</span>${name}</button>`).join('')}</nav>`}<div class="ks-home-indicator" aria-hidden="true"></div>`;
+      const pages={home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,appearance:pageAppearance,'wallet-edit':pageWalletEdit,'meal-form':pageMealForm,'meal-filter':pageMealFilter,entry:pageEntry,'entry-detail':pageEntryDetail,'category-manager':pageCategoryManager,'category-owned':pageOwnedCategories,'category-detail':pageCategoryDetail,github:pageGitHubBackup};
+      phone.innerHTML=`<div class="ks-status"><span>9:41</span><span class="ks-signal">${icon('signal')}${icon('wifi')}${icon('battery-full')}</span></div><div class="ks-page-motion"><header class="ks-top ${form?'ks-subpage':''}">${header}</header><main class="ks-main">${pages[state.page]()}${state.notice?`<p class="ks-success" role="status">${escapeText(state.notice)}</p>`:''}</main></div>${state.page==='ledger'?`<div class="ks-ledger-action"><button type="button" class="ks-primary ks-full cursor-interaction" data-action="add-entry">${icon('plus')}记一笔</button></div>`:''}${form?'':`<nav class="ks-nav" aria-label="主导航">${navs.map(([id,name,ic])=>`<button type="button" data-page="${id}" class="cursor-interaction" ${state.page===id?'aria-current="page"':''}><span>${icon(ic)}</span>${name}</button>`).join('')}</nav>`}<div class="ks-home-indicator" aria-hidden="true"></div>`;
       if(state.calcOpen){phone.insertAdjacentHTML('beforeend',calculatorSheet());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-calc-expression]').focus({preventScroll:true});}
       if(state.deletePending){phone.insertAdjacentHTML('beforeend',deleteConfirmation());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-delete-action=cancel]').focus({preventScroll:true});}
       if(state.walletPickerOpen){phone.insertAdjacentHTML('beforeend',walletRangeDialog());for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;phone.querySelector('[data-wallet-mode][aria-pressed=true]').focus({preventScroll:true});}
@@ -947,6 +1000,11 @@
         phone.insertAdjacentHTML('beforeend',ledgerPeriodDialog());
         for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
         if(previous?.modal!==kind)phone.querySelector('[data-period-mode][aria-pressed=true]').focus({preventScroll:true});
+      }
+      if(state.githubDemo.review){
+        phone.insertAdjacentHTML('beforeend',githubDemoDialog());
+        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
+        phone.querySelector('[data-github-action=cancel]').focus({preventScroll:true});
       }
       if(state.page==='appearance')updateAppearancePreview();
       globalThis.lucide?.createIcons({root:phone,attrs:{width:18,height:18}});
@@ -1033,6 +1091,16 @@
       if(event.target.matches('.ks-period-overlay')){closeLedgerPeriod(false);return;}
       const b=event.target.closest('button');if(!b)return;
       capture();state.notice='';
+      if(b.dataset.githubAction){
+        const action=b.dataset.githubAction;
+        if(action==='open')state.page='github';
+        else if(action==='backup')state.githubDemo.backedUp=true;
+        else if(action==='review'||action==='restore')state.githubDemo.review=action;
+        else state.githubDemo.review=null;
+        render();
+        if(action==='cancel'||action==='confirm')phone.querySelector('[data-github-action=review]').focus({preventScroll:true});
+        return;
+      }
       if(b.dataset.previewMode){state.previewMode=b.dataset.previewMode;updateAppearancePreview();return;}
       if(b.dataset.action==='open-appearance'){resetAppearance();state.page='appearance';render();return;}
       if(b.dataset.action==='reset-appearance'){state.appearanceDraft={...defaultAppearance};render();return;}
@@ -1063,10 +1131,11 @@
       if(b.dataset.action==='clear-meal-filters'){state.mealFilters=blankMealFilters();render();persist();return;}
       if(b.dataset.action==='manage-categories'){state.categoryReturn=state.page;state.categoryWalletId=b.dataset.categoryWallet||'GLOBAL';state.financialScope='EXPENSE';state.editingFinancialCategoryId=null;state.page='category-manager';render();return;}
       if(b.dataset.financialScope){state.financialScope=b.dataset.financialScope;state.editingFinancialCategoryId=null;render();return;}
-      if(b.dataset.editFinancialCategory){state.editingFinancialCategoryId=b.dataset.editFinancialCategory;render();phone.querySelector('[data-financial-category-form] [name=categoryName]')?.focus({preventScroll:true});return;}
-      if(b.dataset.archiveFinancialCategory){const c=categoryById(b.dataset.archiveFinancialCategory);if(c&&!c.isDefault){c.archived=!c.archived;state.editingFinancialCategoryId=null;render();}return;}
-      if(b.dataset.action==='cancel-category-edit'){state.editingFinancialCategoryId=null;render();return;}
-      if(b.dataset.action==='edit-general-categories'){state.categoryWalletId='GLOBAL';state.editingFinancialCategoryId=null;render();return;}
+      if(b.dataset.editFinancialCategory){
+        state.editingFinancialCategoryId=b.dataset.editFinancialCategory==='new'?null:b.dataset.editFinancialCategory;
+        state.categoryDetailReturn=state.page;state.page='category-detail';render();return;
+      }
+      if(b.dataset.action==='edit-owned-categories'){state.page='category-owned';render();return;}
       if(b.dataset.action==='choose-wallets'){
         const scope=state.walletFilterIds;
         state.walletDraftMode=Array.isArray(scope)?'MANUAL':scope==='ALL'?'ALL':'REGULAR';
@@ -1100,7 +1169,7 @@
       if(b.dataset.entryType){state.entryType=b.dataset.entryType;state.entryDraft.category=chooseFinancialCategory(state.entryDraft.walletId,state.entryType,financialScopeOf(state.entryType)==='INCOME'?'gi-salary':'ge-food');render();return;}
       if(b.dataset.key!==undefined){const input=phone.querySelector('[data-calc-expression]'),k=b.dataset.key;state.calcExpression=input.value;phone.querySelector('.ks-calc-error').textContent='';if(k==='C')state.calcExpression='';else if(k==='⌫')state.calcExpression=state.calcExpression.slice(0,-1);else if(k==='='){try{state.calcExpression=inputAmount(calcCents(state.calcExpression));input.blur();input.closest('.ks-calc-body').scrollTop=0;}catch(e){phone.querySelector('.ks-calc-error').textContent=e.message;return;}}else if(state.calcExpression.length<80)state.calcExpression+=k;input.value=state.calcExpression;return;}
       if(b.dataset.action==='add-entry'){state.page='entry';state.amount='';state.entryType='支出';state.entryDraft={dateTime:`${demoToday}T09:41`,note:'',category:defaultEntryWallet()?'ge-food':'',walletId:defaultEntryWallet()?.id||''};render();return;}
-      if(b.dataset.action==='back'){state.page=state.page==='category-manager'?state.categoryReturn:state.page==='appearance'?'settings':state.page==='meal-filter'?'meals':state.page==='meal-form'?state.mealReturn:'ledger';render();return;}
+      if(b.dataset.action==='back'){state.page=state.page==='category-detail'?state.categoryDetailReturn:state.page==='category-owned'?'category-manager':state.page==='category-manager'?state.categoryReturn:['appearance','github'].includes(state.page)?'settings':state.page==='meal-filter'?'meals':state.page==='meal-form'?state.mealReturn:'ledger';render();return;}
       if(b.dataset.action==='new-category'){phone.querySelector('[data-new-category]').hidden=false;phone.querySelector('[data-category-name]').focus();return;}
       if(b.dataset.action==='confirm-category'){const c=phone.querySelector('[data-category-name]').value.trim();if(c&&!state.categories.includes(c))state.categories.push(c);render();}
     });
@@ -1108,7 +1177,9 @@
       if(!modalKind())return;
       if(event.key==='Escape'){
         event.preventDefault();
-        if(state.ledgerPeriodDraft)closeLedgerPeriod(false);
+        if(state.githubDemo.review){
+          state.githubDemo.review=null;render();phone.querySelector('[data-github-action=review]').focus({preventScroll:true});
+        }else if(state.ledgerPeriodDraft)closeLedgerPeriod(false);
         else if(state.walletPickerOpen)closeWalletPicker('cancel');
         else if(state.deletePending)cancelDelete();
         else closeCalculator(false);
@@ -1162,8 +1233,10 @@
         const edited=items.find(c=>c.id===state.editingFinancialCategoryId);
         const normalized=name.toLocaleLowerCase();
         if(!name||normalized==='未分类'||items.some(c=>c.id!==edited?.id&&c.name.trim().toLocaleLowerCase()===normalized)){error('分类名不能为空、不能使用“未分类”，且不能与本范围已有名称重复。');return;}
-        if(edited)edited.name=name;else items.push({id:'user-cat-'+state.nextFinancialCategoryId++,name,archived:false});
-        state.editingFinancialCategoryId=null;state.notice='演示分类已更新。';render();return;
+        const archived=f.elements.archived.checked,sortOrder=f.elements.sortOrder.valueAsNumber;
+        if(edited)Object.assign(edited,{name,archived,sortOrder});else items.push({id:'user-cat-'+state.nextFinancialCategoryId++,name,archived,sortOrder});
+        items.sort((a,b)=>a.sortOrder-b.sortOrder||a.name.localeCompare(b.name));
+        state.editingFinancialCategoryId=null;state.page=state.categoryDetailReturn;render();return;
       }
       if(f.matches('[data-ledger-period]')){closeLedgerPeriod(true);return;}
       if(f.matches('[data-meal-filter-form]')){const from=f.elements.from.value,to=f.elements.to.value;if(from&&to&&from>to){error('开始日期不能晚于结束日期。');return;}state.mealFilters={from,to,slot:f.elements.slot.value,atHome:f.elements.atHome.value,method:f.elements.method.value,preparations:[...f.querySelectorAll('[name=preparation]:checked')].map(e=>e.value),keyword:f.elements.keyword.value.trim()};state.mealListMode=true;state.mealTab='记录';state.page='meals';render();persist();return;}
