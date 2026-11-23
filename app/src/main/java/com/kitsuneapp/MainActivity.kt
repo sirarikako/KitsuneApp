@@ -306,16 +306,12 @@ private fun Home(records: Records, now: LocalDateTime, open: (String) -> Unit, m
             }
         })
         Column(Modifier.padding(start = 16.dp, top = 24.dp, end = 16.dp, bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Paper {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("今日用餐", style = MaterialTheme.typography.titleMedium)
-                        Text(recorded.size.toString(), fontSize = 26.sp, lineHeight = 33.sp, fontWeight = FontWeight.Medium)
-                        Secondary("/ 3")
-                    }
-                    TextAction("全部记录", { open("meals") }, designIcon(R.drawable.ks_chevron_right))
+            verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Paper(Modifier.testTag("home-meals-card")) {
+                HomeCardHeading("今日用餐", "全部记录") { open("meals") }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(recorded.size.toString(), fontSize = 26.sp, lineHeight = 33.sp, fontWeight = FontWeight.Medium)
+                    Secondary("/ 3 餐已记录")
                 }
                 Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     val pendingColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -340,10 +336,8 @@ private fun Home(records: Records, now: LocalDateTime, open: (String) -> Unit, m
                     icon = designIcon(if (current == null) R.drawable.ks_plus else R.drawable.ks_pencil))
             }
             val ledger = remember(records) { Ledger(records) }
-            Section("本月收支") {
-                TextAction("查看账本", { open("ledger") }, designIcon(R.drawable.ks_arrow_up_right))
-            }
-            Paper {
+            Paper(Modifier.testTag("home-ledger-card")) {
+                HomeCardHeading("本月收支", "查看账本") { open("ledger") }
                 val month = java.time.YearMonth.from(now).toString()
                 val totals = remember(ledger, month) {
                     ledger.statistics(LedgerPeriod(month), WalletRange()).sortedBy { it.currency != "CNY" }
@@ -351,17 +345,20 @@ private fun Home(records: Records, now: LocalDateTime, open: (String) -> Unit, m
                 if (totals.isEmpty()) Secondary("暂无常规钱包的收支")
                 totals.forEachIndexed { index, total ->
                     if (index > 0) HorizontalDivider()
-                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
-                        Text(total.currency, Modifier.width(36.dp), color = MaterialTheme.colorScheme.primary,
+                    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(total.currency, color = MaterialTheme.colorScheme.primary,
                             style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                        Column(Modifier.weight(1f)) {
-                            Text("净支出", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(displayMoney(total.expenses, total.scale), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                        }
-                        Column(Modifier.weight(1f)) {
-                            Text("收入", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(displayMoney(total.income, total.scale), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.Top) {
+                            Column(Modifier.weight(1f)) {
+                                Text("净支出", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(displayMoney(total.expenses, total.scale), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                            Column(Modifier.weight(1f)) {
+                                Text("收入", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(displayMoney(total.income, total.scale), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                            }
                         }
                     }
                 }
@@ -369,5 +366,14 @@ private fun Home(records: Records, now: LocalDateTime, open: (String) -> Unit, m
                     icon = designIcon(R.drawable.ks_plus))
             }
         }
+    }
+}
+
+@Composable
+private fun HomeCardHeading(title: String, actionText: String, onAction: () -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically) {
+        Text(title, style = MaterialTheme.typography.titleMedium)
+        TextAction(actionText, onAction, designIcon(R.drawable.ks_chevron_right))
     }
 }
