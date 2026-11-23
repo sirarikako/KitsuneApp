@@ -25,10 +25,17 @@
     const cardRadius=17;
     const defaultAppearance={mode:'system',colorSource:'PRESET',presetColor:'#c47a4a',customColor:'#C47A4A'};
     const style = {accent:'#c47a4a',mealHour:'auto',...defaultAppearance};
-    const state = {page:'home', date:'2026-11-17', ledgerMonth:'2026-11',mealMonth:'2026-11',ledgerTab:'流水', mealTab:'记录', slot:2, atHome:null, method:null, categories:[], amount:'',calcOpen:false,calcExpression:'',entryType:'支出',entryDraft:{dateTime:'2026-11-17T09:41',note:'',category:'ge-food',walletId:'daily'},notice:'', mealReturn:'home', entries:[], records:{}};
+    const state = {page:'home', date:'2026-11-17', ledgerMonth:'2026-11',ledgerTab:'流水', mealTab:'记录', slot:2, atHome:null, method:null, categories:[], amount:'',calcOpen:false,calcExpression:'',entryType:'支出',entryDraft:{dateTime:'2026-11-17T09:41',note:'',category:'ge-food',walletId:'daily'},notice:'', mealReturn:'home', entries:[], records:{}};
     state.ledgerRange=null;state.ledgerRangeOpen=false;state.previewMode=null;
     const blankMealFilters=()=>({from:'',to:'',slot:'any',atHome:'any',method:'any',preparations:[],keyword:''});
-    state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
+    const demoMealMonth=demoToday.slice(0,7);
+    const lastDayOfDemoMealMonth=new Date(Date.UTC(Number(demoMealMonth.slice(0,4)),Number(demoMealMonth.slice(5)),0));
+    const mealDatePresets={month:{from:demoMealMonth+'-01',to:lastDayOfDemoMealMonth.toISOString().slice(0,10)},all:{from:'',to:''}};
+    const mealDatePreset=({from,to})=>Object.keys(mealDatePresets).find(key=>from===mealDatePresets[key].from&&to===mealDatePresets[key].to);
+    const defaultMealFilters=()=>state.mealTab==='统计'?{...blankMealFilters(),...mealDatePresets.month}:blankMealFilters();
+    state.mealFilters=blankMealFilters();
+    state.mealStatsFilters={...blankMealFilters(),...mealDatePresets.month};
+    state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
     const wallets=[{id:'daily',name:'日常钱包',code:'CNY',scale:2,opening:0n,separateAccounting:false},{id:'pocket',name:'零钱钱包',code:'CNY',scale:2,opening:50000n,separateAccounting:false},{id:'travel',name:'旅行钱包',code:'JPY',scale:0,opening:20000n,separateAccounting:true}];
     const walletById=id=>wallets.find(w=>w.id===id)||wallets[0];
     const entryWallet=()=>wallets.find(w=>w.id===state.entryDraft.walletId)||null;
@@ -68,7 +75,7 @@
     // Accept only the original primary preview preferences from old saved arrays.
     const saved=Array.isArray(savedState)?savedState[0]:savedState;
     state.deletedEntryIds=new Set();state.nextEntryId=1;state.deletePending=null;
-    if(saved){const s=saved;if(['light','dark','system'].includes(s.mode))style.mode=s.mode;for(const key of ['ledgerMonth','mealMonth'])if(/^\d{4}-(0[1-9]|1[0-2])$/.test(s[key]||'')&&s[key].slice(0,4)!=='0000')state[key]=s[key];if(s.walletFilterIds==='ALL')state.walletFilterIds='ALL';else if(Array.isArray(s.walletFilterIds)){const ids=wallets.filter(w=>s.walletFilterIds.includes(w.id)).map(w=>w.id);if(ids.length)state.walletFilterIds=ids;}if(Array.isArray(s.separateWalletIds))wallets.forEach(w=>{w.separateAccounting=s.separateWalletIds.includes(w.id);});const f=s.mealFilters;if(f&&typeof f==='object'){for(const key of ['from','to'])if(typeof f[key]==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(f[key]))state.mealFilters[key]=f[key];if(['any','0','1','2'].includes(f.slot))state.mealFilters.slot=f.slot;if(['any','yes','no'].includes(f.atHome))state.mealFilters.atHome=f.atHome;if(typeof f.method==='string')state.mealFilters.method=f.method.slice(0,80);if(typeof f.keyword==='string')state.mealFilters.keyword=f.keyword.slice(0,100);if(Array.isArray(f.preparations))state.mealFilters.preparations=f.preparations.filter(x=>typeof x==='string').slice(0,30).map(x=>x.slice(0,80));state.mealListMode=s.mealListMode===true;}}
+    if(saved){const s=saved;if(['light','dark','system'].includes(s.mode))style.mode=s.mode;if(/^\d{4}-(0[1-9]|1[0-2])$/.test(s.ledgerMonth||'')&&s.ledgerMonth.slice(0,4)!=='0000')state.ledgerMonth=s.ledgerMonth;if(s.walletFilterIds==='ALL')state.walletFilterIds='ALL';else if(Array.isArray(s.walletFilterIds)){const ids=wallets.filter(w=>s.walletFilterIds.includes(w.id)).map(w=>w.id);if(ids.length)state.walletFilterIds=ids;}if(Array.isArray(s.separateWalletIds))wallets.forEach(w=>{w.separateAccounting=s.separateWalletIds.includes(w.id);});const f=s.mealFilters;if(f&&typeof f==='object'){for(const key of ['from','to'])if(typeof f[key]==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(f[key]))state.mealFilters[key]=f[key];if(['any','0','1','2'].includes(f.slot))state.mealFilters.slot=f.slot;if(['any','yes','no'].includes(f.atHome))state.mealFilters.atHome=f.atHome;if(typeof f.method==='string')state.mealFilters.method=f.method.slice(0,80);if(typeof f.keyword==='string')state.mealFilters.keyword=f.keyword.slice(0,100);if(Array.isArray(f.preparations))state.mealFilters.preparations=f.preparations.filter(x=>typeof x==='string').slice(0,30).map(x=>x.slice(0,80));state.mealListMode=s.mealListMode===true;}}
     state.records['2026-11-17'] = [{atHome:true,method:'下厨',categories:[],dishes:'燕麦粥、煎蛋',note:''},{atHome:false,method:'外卖',categories:[],dishes:'照烧鸡腿饭',note:''},null];
     if(saved){const s=saved;if(['PRESET','CUSTOM','SYSTEM'].includes(s.colorSource))style.colorSource=s.colorSource;if(normalizeHex(s.presetColor))style.presetColor=s.presetColor.toLowerCase();if(normalizeHex(s.customColor))style.customColor=normalizeHex(s.customColor);}
     const isDate=value=>/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(value)&&value.slice(0,4)!=='0000'&&new Date(value).toJSON()?.slice(0,10)===value;
@@ -124,14 +131,38 @@
     };
     const currencyGroups=(entries,scope)=>[...new Set(scope.map(w=>w.code))].map(code=>({code,entries:entries.filter(e=>walletById(e.walletId).code===code)}));
     const allMeals = () => Object.entries(state.records).flatMap(([date,records])=>records.flatMap((record,slot)=>record?[{...record,date,slot}]:[]));
-    const mealFilterLabels=()=>{const f=state.mealFilters,labels=[];if(f.from||f.to)labels.push(`${f.from||'最早'} ～ ${f.to||'至今'}`);if(f.slot!=='any')labels.push(slots[Number(f.slot)]);if(f.atHome!=='any')labels.push(`计划在家：${f.atHome==='yes'?'是':'否'}`);if(f.method!=='any')labels.push(f.method==='none'?'方式未填写':f.method);labels.push(...f.preparations);if(f.keyword)labels.push(`关键词：${f.keyword}`);return labels;};
-    const filteredMeals=()=>{const f=state.mealFilters,keyword=f.keyword.toLocaleLowerCase();return allMeals().filter(m=>(!f.from||m.date>=f.from)&&(!f.to||m.date<=f.to)&&(f.slot==='any'||m.slot===Number(f.slot))&&(f.atHome==='any'||m.atHome===(f.atHome==='yes'))&&(f.method==='any'||(f.method==='none'?!m.method:m.method===f.method))&&(!f.preparations.length||f.preparations.some(c=>m.categories.includes(c)))&&(!keyword||`${m.dishes}\n${m.note}`.toLocaleLowerCase().includes(keyword))).sort((a,b)=>b.date.localeCompare(a.date)||a.slot-b.slot);};
+    function mealDateLabel(f){
+      const preset=mealDatePreset(f);
+      if(preset==='month')return '本月';
+      if(preset==='all')return '所有时间';
+      if(!f.from)return '截至 '+f.to;
+      if(!f.to)return '从 '+f.from+' 起';
+      return f.from+' 至 '+f.to;
+    }
+    function mealFilterLabels(f,includeDates=true){
+      const labels=[];
+      if(includeDates&&(f.from||f.to))labels.push(mealDateLabel(f));
+      if(f.slot!=='any')labels.push(slots[Number(f.slot)]);
+      if(f.atHome!=='any')labels.push('计划在家：'+(f.atHome==='yes'?'是':'否'));
+      if(f.method!=='any')labels.push(f.method==='none'?'方式未填写':f.method);
+      labels.push(...f.preparations);
+      if(f.keyword)labels.push('关键词：'+f.keyword);
+      return labels;
+    }
+    function filteredMeals(f){
+      const keyword=f.keyword.toLocaleLowerCase();
+      return allMeals().filter(m=>(!f.from||m.date>=f.from)&&(!f.to||m.date<=f.to)&&
+        (f.slot==='any'||m.slot===Number(f.slot))&&(f.atHome==='any'||m.atHome===(f.atHome==='yes'))&&
+        (f.method==='any'||(f.method==='none'?!m.method:m.method===f.method))&&
+        (!f.preparations.length||f.preparations.some(c=>m.categories.includes(c)))&&
+        (!keyword||m.dishes.toLocaleLowerCase().includes(keyword)||m.note.toLocaleLowerCase().includes(keyword)));
+    }
     const records = () => state.records[state.date] || [null,null,null];
     const persist = () => {
       const snapshot=phone.ksSnapshot();
       window.openai?.setWidgetState?.({modelContent:{当前页面:snapshot.page,用餐筛选:snapshot.mealListMode?snapshot.mealFilters:null},privateContent:{kitsune:snapshot}})?.catch(()=>{});
     };
-    phone.ksSnapshot=()=>({page:navs.some(n=>n[0]===state.page)?state.page:'home',...appliedAppearance(),ledgerMonth:state.ledgerMonth,ledgerRange:state.ledgerRange,mealMonth:state.mealMonth,walletFilterIds:state.walletFilterIds,separateWalletIds:wallets.filter(w=>w.separateAccounting).map(w=>w.id),mealListMode:state.mealListMode,mealFilters:state.mealFilters});
+    phone.ksSnapshot=()=>({page:navs.some(n=>n[0]===state.page)?state.page:'home',...appliedAppearance(),ledgerMonth:state.ledgerMonth,ledgerRange:state.ledgerRange,walletFilterIds:state.walletFilterIds,separateWalletIds:wallets.filter(w=>w.separateAccounting).map(w=>w.id),mealListMode:state.mealListMode,mealFilters:state.mealFilters});
     function makePalette(seed,system){
       const rgb=h=>h.replace("#","").match(/../g).map(x=>parseInt(x,16));
       const mix=(a,b,t)=>"#"+rgb(a).map((v,i)=>Math.round(v*t+rgb(b)[i]*(1-t)).toString(16).padStart(2,"0")).join("");

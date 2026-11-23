@@ -7,12 +7,14 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import java.io.File
 import java.time.LocalDate
@@ -63,6 +65,26 @@ class NavigationTest {
         compose.onNodeWithContentDescription(dayLabel(other)).assertIsNotSelected().performClick().assertIsSelected()
         compose.onNodeWithContentDescription(dayLabel(today)).assertIsNotSelected()
         compose.onNodeWithText("三餐记录").assertIsDisplayed()
+    }
+
+    @Test
+    fun appliesAllTimeOnMealStatisticsWithoutChangingRecordBrowsing() {
+        compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
+        compose.onNodeWithText("用餐").performClick()
+        compose.onNodeWithText("统计").performClick()
+        compose.onNodeWithText("本月").assertIsDisplayed()
+
+        compose.onNodeWithText("筛选").performClick()
+        compose.onNodeWithText("所有时间").performClick()
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("应用筛选"))
+        compose.onNodeWithText("应用筛选").performClick()
+        compose.onNodeWithText("所有时间").assertIsDisplayed()
+        compose.onNodeWithText("用餐概览").assertIsDisplayed()
+
+        compose.onNodeWithText("记录").performClick()
+        compose.onNodeWithText("三餐记录").assertIsDisplayed()
+        compose.onNodeWithText("统计").performClick()
+        compose.onNodeWithText("所有时间").assertIsDisplayed()
     }
 
     private fun screenshot(name: String) {
