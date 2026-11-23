@@ -7,14 +7,13 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.captureToImage
-import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import java.io.File
 import java.time.LocalDate
@@ -76,8 +75,7 @@ class NavigationTest {
 
         compose.onNodeWithText("筛选").performClick()
         compose.onNodeWithText("所有时间").performClick()
-        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("应用筛选"))
-        compose.onNodeWithText("应用筛选").performClick()
+        compose.onNodeWithText("应用筛选").performScrollTo().performClick()
         compose.onNodeWithText("所有时间").assertIsDisplayed()
         compose.onNodeWithText("用餐概览").assertIsDisplayed()
 
