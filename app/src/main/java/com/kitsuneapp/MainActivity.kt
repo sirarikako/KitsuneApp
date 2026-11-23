@@ -45,8 +45,10 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.kitsuneapp.backup.GitHubPauseReason
 import com.kitsuneapp.data.*
 import com.kitsuneapp.feature.meals.*
 import com.kitsuneapp.feature.ledger.*
@@ -77,10 +79,7 @@ class MainActivity : ComponentActivity() {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     val records = state.records
                     when {
-                        records != null -> {
-                            KitsuneApp(records, model, refresh)
-                            CapacityAlert(records, model)
-                        }
+                        records != null -> KitsuneApp(records, model, refresh)
                         state.openingError != null -> OpenError(state, model)
                         else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                     }
@@ -220,7 +219,10 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
                                 }
                                 "meal" -> MealForm(records, parts[3].takeUnless { it == "-" }, parts[1], MealSlot.valueOf(parts[2]), model, goBack)
                                 "mealFilter" -> MealFilterPage(records, filter ?: MealFilter(), goBack) { filter = it; back() }
-                                "settings" -> SettingsPage(::open)
+                                "settings" -> {
+                                    val config by model.backupServices.github.state.collectAsState()
+                                    SettingsPage(config?.pause(records.state) != null, ::open)
+                                }
                                 "methods" -> VocabularyPage(records, null, null, ::open, goBack)
                                 "method" -> VocabularyForm(records, parts[1].takeUnless { it == "-" }, null, null, model, goBack)
                                 "categories" -> VocabularyPage(records, Scope.valueOf(parts[1]), parts.getOrNull(2)?.takeUnless { it == "-" }, ::open, goBack)
@@ -245,6 +247,12 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
             }
         }
     }
+    BackupAlerts(records, model) {
+        if (stack.last() != "github") {
+            model.clearError()
+            stack = arrayListOf("settings", "github")
+        }
+    }
 }
 
 @Composable
@@ -258,6 +266,21 @@ private fun NavigationFrame(bottomBar: @Composable () -> Unit, pages: @Composabl
             bar?.placeRelative(0, viewport.height - bar.height)
             viewport.placeRelative(0, 0)
         }
+    }
+}
+
+@Composable
+internal fun BackupAlerts(records: Records, model: AppViewModel, handlePause: () -> Unit) {
+    val lifecycle by LocalLifecycleOwner.current.lifecycle.currentStateFlow.collectAsState()
+    val config by model.backupServices.github.state.collectAsState()
+    val busy by model.busy.collectAsState()
+    val preview by model.restorePreview.collectAsState()
+    if (lifecycle != Lifecycle.State.RESUMED || busy || preview != null) return
+    val pause = config?.pause(records.state)
+    if (pause != null && pause.reason != GitHubPauseReason.REVIEW && pause.id != config?.acknowledgedPause) {
+        GitHubPauseAlert(pause, model, handlePause)
+    } else {
+        CapacityAlert(records, model)
     }
 }
 

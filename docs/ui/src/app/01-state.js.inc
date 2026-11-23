@@ -29,7 +29,7 @@
     state.ledgerRange=null;state.ledgerPeriodDraft=null;state.previewMode=null;
     const blankLedgerFilters=()=>({type:'',category:'',note:''});
     state.ledgerFilters=blankLedgerFilters();state.ledgerFiltersOpen=false;
-    state.githubDemo={backedUp:false,review:null};
+    state.githubDemo={backedUp:false,review:null,scenario:'normal',wifi:false,draftWifi:false,editing:false,uploading:false};
     const blankMealFilters=()=>({from:'',to:'',slot:'any',atHome:'any',method:'any',preparations:[],keyword:''});
     state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
     const wallets=[{id:'daily',name:'日常钱包',code:'CNY',scale:2,opening:0n,separateAccounting:false},{id:'pocket',name:'零钱钱包',code:'CNY',scale:2,opening:50000n,separateAccounting:false},{id:'travel',name:'旅行钱包',code:'JPY',scale:0,opening:20000n,separateAccounting:true}];

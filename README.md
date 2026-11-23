@@ -99,7 +99,7 @@ python docs/ui/build_preview.py
 
 调试 APK 生成在 `app/build/outputs/apk/debug/app-debug.apk`。安装到设备可使用 `adb install -r app/build/outputs/apk/debug/app-debug.apk`。发布签名需由持有发布密钥的维护者另行配置。测试和 lint 报告位于 `app/build/reports/`。
 
-GitHub Actions 的 `kitsune-debug` 使用固定测试证书，适合连续覆盖安装。它由 `main` 或 `feat/android-full-implementation` 的推送构建或手动运行生成，需在仓库 Actions Secrets 中配置 `KITSUNE_TEST_KEYSTORE_BASE64`，值为已核对的原工作区调试 keystore 的 Base64。签名作业校验证书 SHA-256 后才上传。各次验证构建还提供使用运行器临时签名的 `kitsune-debug-ci`，供当次测试使用。旧测试包切换证书时，先导出完整 JSON 备份，再安装固定签名包并恢复。
+GitHub Actions 的 `kitsune-debug` 使用固定测试证书，适合连续覆盖安装。固定签名作业在仓库受信任的分支推送或手动运行时生成，本次 GitHub 备份变更的验证分支也包含在其中。需在仓库 Actions Secrets 中配置 `KITSUNE_TEST_KEYSTORE_BASE64`，值为已核对的原工作区调试 keystore 的 Base64。签名作业校验证书 SHA-256 后才上传。各次验证构建还提供使用运行器临时签名的 `kitsune-debug-ci`，供当次测试使用。旧测试包切换证书时，先导出完整 JSON 备份，再安装固定签名包并恢复。
 
 持有原工作区调试 keystore 且有仓库 Secret 管理权限时，可通过标准输入配置密钥。
 
@@ -111,7 +111,7 @@ base64 -w0 /path/to/debug.keystore | gh secret set KITSUNE_TEST_KEYSTORE_BASE64 
 
 - **本地记录**：没有网络、没有配置 GitHub，也能记录和查询。
 - **文件夹备份**可在设置中通过系统选择器授权目录。目录暂时不可用时可继续录入，恢复访问后备份最新数据。备份按 UTC 日期时间加序号命名，校验并发布后才替换上一份。
-- **GitHub** 使用单独配置的私有仓库、分支和限定仓库权限的 Token。自动上传合并连续修改，后台写入至少间隔 30 分钟。需要时可点“立即备份”。发现远端备份有变化会暂停上传，用户可选择恢复云端、确认以本机数据覆盖，或取消并保持暂停。详见 [GitHub 备份规则](docs/features/09-backup.md#94-github-私有库)。
+- **GitHub** 使用单独配置的私有仓库、分支和限定仓库权限的 Token。自动上传合并连续修改，后台写入至少间隔 30 分钟。设置中可分别选择「立即备份」与「从 GitHub 恢复」。自动备份暂停时，设置行会提示，并可从 GitHub 备份页按原因处理；远端版本变化时，覆盖须二次确认。详见 [GitHub 备份规则](docs/features/09-backup.md#94-github-私有库)。
 - **完整恢复**会在校验后整体替换业务数据。新装空库可直接恢复；已有用户数据时，先把保护文件保存到授权目录或通过系统选择器单次导出。已绑定 GitHub 时，恢复后由用户单独确认是否更新云端备份。
 - **CSV**：用于批量记录和表格查看，导入前预览与校验；钱包、完整设置和全量迁移使用 JSON。
 - **备份形式**：JSON 内容本身不加密；Token 不包含在其中。不要把个人备份作为源码提交。

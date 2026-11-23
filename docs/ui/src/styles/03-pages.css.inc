@@ -29,6 +29,7 @@
   #kitsune-preview .ks-wallet-setting small{display:block;color:var(--ks-dim);font-size:11px;margin-top:3px}
   #kitsune-preview .ks-wallet-setting input{width:19px;height:19px;accent-color:var(--ks-accent);flex-shrink:0}
   #kitsune-preview .ks-setting-link{width:100%;font:inherit;color:var(--ks-ink);background:transparent;text-align:left;border:0;cursor:pointer}
+  #kitsune-preview .ks-setting>.ks-backup-warning{color:var(--ks-danger);white-space:normal}
   #kitsune-preview .ks-setting-link>svg:last-child{flex-shrink:0}
   #kitsune-preview .ks-wallet-cards{display:grid;gap:var(--ks-space-2)}
   #kitsune-preview .ks-wallet-card-heading{display:flex;align-items:center;justify-content:space-between;gap:var(--ks-space-2)}

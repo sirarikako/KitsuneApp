@@ -442,10 +442,10 @@ internal fun DesignSheet(
 }
 
 @Composable
-fun Toggle(label: String, checked: Boolean, set: (Boolean) -> Unit) {
+fun Toggle(label: String, checked: Boolean, enabled: Boolean = true, set: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth().heightIn(min = 46.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(label, Modifier.weight(1f))
-        Switch(checked, set)
+        Switch(checked, set, enabled = enabled)
     }
 }
 

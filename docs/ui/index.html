@@ -2104,6 +2104,7 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-wallet-setting small{display:block;color:var(--ks-dim);font-size:11px;margin-top:3px}
   #kitsune-preview .ks-wallet-setting input{width:19px;height:19px;accent-color:var(--ks-accent);flex-shrink:0}
   #kitsune-preview .ks-setting-link{width:100%;font:inherit;color:var(--ks-ink);background:transparent;text-align:left;border:0;cursor:pointer}
+  #kitsune-preview .ks-setting&gt;.ks-backup-warning{color:var(--ks-danger);white-space:normal}
   #kitsune-preview .ks-setting-link&gt;svg:last-child{flex-shrink:0}
   #kitsune-preview .ks-wallet-cards{display:grid;gap:var(--ks-space-2)}
   #kitsune-preview .ks-wallet-card-heading{display:flex;align-items:center;justify-content:space-between;gap:var(--ks-space-2)}
@@ -2208,7 +2209,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     state.ledgerRange=null;state.ledgerPeriodDraft=null;state.previewMode=null;
     const blankLedgerFilters=()=&gt;({type:&#x27;&#x27;,category:&#x27;&#x27;,note:&#x27;&#x27;});
     state.ledgerFilters=blankLedgerFilters();state.ledgerFiltersOpen=false;
-    state.githubDemo={backedUp:false,review:null};
+    state.githubDemo={backedUp:false,review:null,scenario:&#x27;normal&#x27;,wifi:false,draftWifi:false,editing:false,uploading:false};
     const blankMealFilters=()=&gt;({from:&#x27;&#x27;,to:&#x27;&#x27;,slot:&#x27;any&#x27;,atHome:&#x27;any&#x27;,method:&#x27;any&#x27;,preparations:[],keyword:&#x27;&#x27;});
     state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
     const wallets=[{id:&#x27;daily&#x27;,name:&#x27;日常钱包&#x27;,code:&#x27;CNY&#x27;,scale:2,opening:0n,separateAccounting:false},{id:&#x27;pocket&#x27;,name:&#x27;零钱钱包&#x27;,code:&#x27;CNY&#x27;,scale:2,opening:50000n,separateAccounting:false},{id:&#x27;travel&#x27;,name:&#x27;旅行钱包&#x27;,code:&#x27;JPY&#x27;,scale:0,opening:20000n,separateAccounting:true}];
@@ -2643,7 +2644,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       &lt;/section&gt;&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 仅演示独立核算&lt;/p&gt;`;
     }
     function pageSettings(){
-      const item=(glyph,label,attrs=&#x27;&#x27;)=&gt;`&lt;${attrs?&#x27;button type=&quot;button&quot;&#x27;:&#x27;div&#x27;} class=&quot;ks-setting ${attrs?&#x27;ks-setting-link cursor-interaction&#x27;:&#x27;&#x27;}&quot; ${attrs}&gt;${icon(glyph)}&lt;span&gt;${label}&lt;/span&gt;${icon(&#x27;chevron-right&#x27;)}&lt;/${attrs?&#x27;button&#x27;:&#x27;div&#x27;}&gt;`;
+      const item=(glyph,label,attrs=&#x27;&#x27;,detail=&#x27;&#x27;)=&gt;`&lt;${attrs?&#x27;button type=&quot;button&quot;&#x27;:&#x27;div&#x27;} class=&quot;ks-setting ${attrs?&#x27;ks-setting-link cursor-interaction&#x27;:&#x27;&#x27;}&quot; ${attrs}&gt;${icon(glyph)}&lt;span&gt;${label}&lt;/span&gt;${detail}${icon(&#x27;chevron-right&#x27;)}&lt;/${attrs?&#x27;button&#x27;:&#x27;div&#x27;}&gt;`;
       return `${section(&#x27;分类管理&#x27;)}&lt;div class=&quot;ks-settings&quot;&gt;
         ${item(&#x27;utensils&#x27;,&#x27;用餐方式&#x27;)}
         ${item(&#x27;cooking-pot&#x27;,&#x27;制作分类&#x27;)}
@@ -2654,7 +2655,8 @@ html&gt;body{padding:0}&lt;/style&gt;
       ${section(&#x27;数据与备份&#x27;)}&lt;div class=&quot;ks-settings&quot;&gt;
         ${item(&#x27;files&#x27;,&#x27;导入与导出&#x27;)}
         ${item(&#x27;hard-drive&#x27;,&#x27;本地文件夹备份&#x27;)}
-        ${item(&#x27;cloud&#x27;,&#x27;GitHub 备份&#x27;,&#x27;data-github-action=&quot;open&quot;&#x27;)}
+        ${item(&#x27;cloud&#x27;,&#x27;GitHub 备份&#x27;,&#x27;data-github-action=&quot;open&quot;&#x27;,githubPause()
+          ? &#x27;&lt;small class=&quot;ks-backup-warning&quot;&gt;&lt;span aria-hidden=&quot;true&quot;&gt;⚠&lt;/span&gt; 自动备份已暂停&lt;/small&gt;&#x27; : &#x27;&#x27;)}
       &lt;/div&gt;`;
     }
     function pageAppearance(){
@@ -2729,32 +2731,91 @@ html&gt;body{padding:0}&lt;/style&gt;
         ${formFooter(saveButton(&#x27;保存&#x27;),&#x27;交互预览 · 使用示例分类&#x27;)}
       &lt;/form&gt;`;
     }
+    const githubScenarios = {
+      normal: [&#x27;自动备份正常&#x27;],
+      wifi: [&#x27;等待 Wi-Fi&#x27;],
+      pending: [&#x27;等待自动备份&#x27;],
+      retry: [&#x27;等待重试&#x27;],
+      running: [&#x27;正在备份&#x27;],
+      review: [&#x27;新连接待核对&#x27;,&#x27;需要确认当前远端版本后才能开始自动备份。&#x27;,&#x27;确认 GitHub 备份&#x27;],
+      conflict: [&#x27;远端版本变化&#x27;,&#x27;GitHub 备份发生变化，需要确认后才能继续自动备份。&#x27;,&#x27;处理备份冲突&#x27;],
+      missing: [&#x27;远端文件已删除&#x27;,&#x27;GitHub 备份发生变化，需要确认后才能继续自动备份。&#x27;,&#x27;处理备份冲突&#x27;],
+      connection: [&#x27;连接异常&#x27;,&#x27;GitHub Token 已失效，请重新配置。&#x27;,&#x27;重新配置连接&#x27;],
+      restored: [&#x27;完整恢复待授权&#x27;,&#x27;完整恢复已完成，需要授权后才能更新 GitHub 备份。&#x27;,&#x27;确认更新 GitHub 备份&#x27;],
+    };
+    const githubPause = () =&gt; githubScenarios[state.githubDemo.scenario][1];
+    const githubLocalSaved = &#x27;本机记录仍会正常保存，暂时不会自动上传。&#x27;;
+    const githubAction = (label,action,kind=&#x27;choice&#x27;,extra=&#x27;&#x27;) =&gt;
+      `&lt;button type=&quot;button&quot; class=&quot;ks-${kind} ${extra}&quot; data-github-action=&quot;${action}&quot;&gt;${label}&lt;/button&gt;`;
     function pageGitHubBackup(){
-      const done=state.githubDemo.backedUp;
+      const demo=state.githubDemo,pause=githubPause(),scenario=githubScenarios[demo.scenario];
       return `&lt;section class=&quot;ks-money-card ks-form&quot;&gt;
         &lt;div role=&quot;status&quot;&gt;
-          &lt;h3 class=&quot;ks-backup-status&quot;&gt;${done?&#x27;最新修订已备份&#x27;:&#x27;最新修订等待备份&#x27;}&lt;/h3&gt;
-          &lt;p class=&quot;ks-note&quot;&gt;上次成功 · 2026-11-17T${done?&#x27;09:41&#x27;:&#x27;09:30&#x27;}:00.000+08:00&lt;/p&gt;
+          &lt;h3 class=&quot;ks-backup-status&quot;&gt;${pause?&#x27;自动备份已暂停&#x27;:demo.uploading?&#x27;正在备份&#x27;:scenario[0]}&lt;/h3&gt;
+          ${pause?`&lt;p&gt;${pause}&lt;/p&gt;&lt;p class=&quot;ks-note&quot;&gt;${githubLocalSaved}&lt;/p&gt;`:&#x27;&#x27;}
+          ${pause&amp;&amp;demo.uploading?&#x27;&lt;p class=&quot;ks-note&quot;&gt;正在备份&lt;/p&gt;&#x27;:&#x27;&#x27;}
+          &lt;p class=&quot;ks-note&quot;&gt;上次成功 · 2026-11-17 ${demo.backedUp?&#x27;09:41&#x27;:&#x27;09:30&#x27;}&lt;/p&gt;
           &lt;p class=&quot;ks-note&quot;&gt;demo/kitsune-backup · main&lt;/p&gt;
         &lt;/div&gt;
-        &lt;button type=&quot;button&quot; class=&quot;ks-primary ks-full&quot; data-github-action=&quot;backup&quot;&gt;立即备份&lt;/button&gt;
+        ${pause?githubAction(scenario[2],demo.scenario===&#x27;connection&#x27;?&#x27;configure&#x27;:&#x27;resolve&#x27;,&#x27;primary&#x27;,&#x27;ks-full&#x27;):&#x27;&#x27;}
       &lt;/section&gt;
-      ${section(&#x27;远端核对与恢复&#x27;)}
-      &lt;section class=&quot;ks-money-card&quot;&gt;
-        &lt;button type=&quot;button&quot; class=&quot;ks-choice ks-full&quot; data-github-action=&quot;review&quot;&gt;核对远端备份&lt;/button&gt;
+      ${demo.editing?`&lt;section class=&quot;ks-money-card ks-form&quot;&gt;
+        &lt;h3 class=&quot;ks-backup-status&quot;&gt;连接私有仓库&lt;/h3&gt;
+        &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;仓库（owner/repository）&lt;/span&gt;&lt;input class=&quot;ks-control&quot; value=&quot;demo/kitsune-backup&quot;&gt;&lt;/label&gt;
+        &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;分支&lt;/span&gt;&lt;input class=&quot;ks-control&quot; value=&quot;main&quot;&gt;&lt;/label&gt;
+        &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;细粒度访问令牌&lt;/span&gt;&lt;input class=&quot;ks-control&quot; type=&quot;password&quot; disabled&gt;&lt;/label&gt;
+        &lt;label class=&quot;ks-setting&quot;&gt;&lt;span&gt;仅使用 Wi-Fi&lt;/span&gt;&lt;input type=&quot;checkbox&quot; role=&quot;switch&quot; data-github-wifi-draft ${demo.draftWifi?&#x27;checked&#x27;:&#x27;&#x27;}&gt;&lt;/label&gt;
+        &lt;p class=&quot;ks-note&quot;&gt;请将令牌限定为数据仓库的 Contents 读写权限。完整 JSON 会保存在 backups/latest.json。&lt;/p&gt;
+        ${githubAction(&#x27;测试并保存连接&#x27;,&#x27;save-connection&#x27;,&#x27;primary&#x27;,&#x27;ks-full&#x27;)}
+        ${githubAction(&#x27;取消&#x27;,&#x27;cancel-connection&#x27;,&#x27;choice&#x27;,&#x27;ks-full&#x27;)}
+      &lt;/section&gt;`:&#x27;&#x27;}
+      &lt;section class=&quot;ks-money-card ks-form&quot;&gt;
+        &lt;button type=&quot;button&quot; class=&quot;ks-primary ks-full&quot; data-github-action=&quot;backup&quot; ${pause||demo.uploading||demo.scenario===&#x27;running&#x27;?&#x27;disabled&#x27;:&#x27;&#x27;}&gt;立即备份&lt;/button&gt;
+        ${githubAction(&#x27;从 GitHub 恢复&#x27;,&#x27;restore-preview&#x27;,&#x27;choice&#x27;,&#x27;ks-full&#x27;)}
       &lt;/section&gt;
-      &lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 使用示例备份状态&lt;/p&gt;`;
+      &lt;section class=&quot;ks-money-card ks-form&quot;&gt;
+        &lt;label class=&quot;ks-setting&quot;&gt;&lt;span&gt;仅使用 Wi-Fi&lt;/span&gt;&lt;input type=&quot;checkbox&quot; role=&quot;switch&quot; data-github-wifi ${demo.wifi?&#x27;checked&#x27;:&#x27;&#x27;} ${demo.editing?&#x27;disabled&#x27;:&#x27;&#x27;}&gt;&lt;/label&gt;
+        ${demo.scenario!==&#x27;connection&#x27;?githubAction(&#x27;重新配置连接&#x27;,&#x27;configure&#x27;,&#x27;choice&#x27;,&#x27;ks-full&#x27;):&#x27;&#x27;}
+      &lt;/section&gt;
+      &lt;label class=&quot;ks-footnote&quot;&gt;交互预览 · 示例状态
+        &lt;select data-github-scenario aria-label=&quot;GitHub 示例状态&quot;&gt;
+          ${Object.entries(githubScenarios).map(([value,[label]])=&gt;`&lt;option value=&quot;${value}&quot; ${demo.scenario===value?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${label}&lt;/option&gt;`).join(&#x27;&#x27;)}
+        &lt;/select&gt;
+      &lt;/label&gt;`;
     }
     function githubDemoDialog(){
-      const restoring=state.githubDemo.review===&#x27;restore&#x27;,title=restoring?&#x27;确认完整恢复&#x27;:&#x27;核对远端备份&#x27;;
+      const demo=state.githubDemo, step=demo.review, missing=demo.scenario===&#x27;missing&#x27;;
+      const title={
+        &#x27;restore-preview&#x27;:&#x27;从 GitHub 恢复&#x27;, resolve:githubScenarios[demo.scenario][2],
+        restore:&#x27;确认完整恢复&#x27;, upload:missing?&#x27;重新创建 GitHub 备份&#x27;:&#x27;保留本机数据并覆盖 GitHub&#x27;,
+        notice:&#x27;GitHub 自动备份已暂停&#x27;,
+      }[step];
+      const summary = `&lt;p class=&quot;ks-delete-summary&quot;&gt;本机 · 用餐 2 条 · 钱包 3 个 · 账目 11 笔&lt;/p&gt;
+        ${missing?&#x27;&lt;p&gt;GitHub 尚无备份&lt;/p&gt;&#x27;:`&lt;p class=&quot;ks-delete-summary&quot;&gt;GitHub 备份时间 · 2026-11-17 09:30
+用餐 2 条 · 钱包 3 个 · 账目 10 笔&lt;/p&gt;
+          ${step===&#x27;resolve&#x27;&amp;&amp;demo.scenario===&#x27;restored&#x27;?&#x27;&#x27;:&#x27;&lt;p class=&quot;ks-note&quot;&gt;恢复会替换本机全部业务数据与外观。继续恢复前需写入并校验本机保护文件。&lt;/p&gt;&#x27;}`}`;
+      let body=summary, primary=&#x27;&#x27;, cancel=&#x27;取消&#x27;;
+      if(step===&#x27;notice&#x27;){
+        body=`&lt;p&gt;${githubPause()}&lt;/p&gt;&lt;p class=&quot;ks-note&quot;&gt;${githubLocalSaved}&lt;/p&gt;`;
+        primary=githubAction(&#x27;前往处理&#x27;,&#x27;handle&#x27;,&#x27;primary&#x27;);cancel=&#x27;稍后处理&#x27;;
+      }else if(step===&#x27;restore-preview&#x27;){
+        if(missing)cancel=&#x27;返回&#x27;;
+        else primary=githubAction(&#x27;继续恢复&#x27;,&#x27;restore&#x27;,&#x27;primary&#x27;);
+      }else if(step===&#x27;resolve&#x27;){
+        body+=`&lt;div class=&quot;ks-form&quot;&gt;${!missing&amp;&amp;demo.scenario!==&#x27;restored&#x27;
+          ?githubAction(&#x27;使用 GitHub 数据恢复本机&#x27;,&#x27;restore&#x27;,&#x27;choice&#x27;,&#x27;ks-full&#x27;):&#x27;&#x27;}
+          ${githubAction(missing?&#x27;重新创建 GitHub 备份&#x27;:&#x27;保留本机数据并覆盖 GitHub&#x27;,&#x27;upload&#x27;,&#x27;choice&#x27;,&#x27;ks-full&#x27;)}&lt;/div&gt;`;
+      }else if(step===&#x27;restore&#x27;){
+        body=&#x27;&lt;p&gt;恢复会替换本机全部业务数据与外观。&lt;/p&gt;&lt;p class=&quot;ks-note&quot;&gt;恢复前需写入并校验本机保护文件。&lt;/p&gt;&#x27;;
+        primary=githubAction(&#x27;导出保护文件并恢复&#x27;,&#x27;apply-restore&#x27;,&#x27;primary&#x27;);
+      }else if(step===&#x27;upload&#x27;){
+        body=`&lt;p&gt;${missing?&#x27;这会将本机完整数据写入 GitHub，建立新的备份文件。&#x27;:&#x27;这会用本机完整数据覆盖当前 GitHub 备份。&#x27;}&lt;/p&gt;
+          &lt;p class=&quot;ks-note&quot;&gt;确认仅适用于本次核对的仓库、分支和远端版本。&lt;/p&gt;`;
+        primary=githubAction(missing?&#x27;确认备份&#x27;:&#x27;确认覆盖 GitHub&#x27;,&#x27;apply-upload&#x27;,&#x27;primary&#x27;,missing?&#x27;&#x27;:&#x27;ks-danger-confirm&#x27;);
+      }
       return `&lt;div class=&quot;ks-modal-overlay ks-delete-overlay&quot;&gt;&lt;section class=&quot;ks-delete-sheet&quot; role=&quot;alertdialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;${title}&quot;&gt;
-        &lt;h3&gt;${title}&lt;/h3&gt;
-        &lt;p class=&quot;ks-delete-summary&quot;&gt;${restoring?&#x27;恢复会替换本机数据。已有记录时，先保存恢复前保护备份。&#x27;:&#x27;本机 · 用餐 2 条 · 钱包 3 个 · 账目 11 笔\\n远端 · 2026-11-17T09:30:00.000+08:00&#x27;}&lt;/p&gt;
-        ${restoring?&#x27;&#x27;:&#x27;&lt;button type=&quot;button&quot; class=&quot;ks-choice ks-full&quot; data-github-action=&quot;restore&quot;&gt;恢复云端&lt;/button&gt;&#x27;}
-        &lt;div class=&quot;ks-period-actions&quot;&gt;
-          &lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-github-action=&quot;cancel&quot;&gt;取消&lt;/button&gt;
-          &lt;button type=&quot;button&quot; class=&quot;ks-primary ks-danger-confirm&quot; data-github-action=&quot;confirm&quot;&gt;${restoring?&#x27;确认恢复&#x27;:&#x27;保留本机并覆盖&#x27;}&lt;/button&gt;
-        &lt;/div&gt;
+        &lt;h3&gt;${title}&lt;/h3&gt;${body}
+        &lt;div class=&quot;ks-period-actions&quot;&gt;${githubAction(cancel,&#x27;cancel&#x27;,&#x27;text-btn&#x27;)}${primary}&lt;/div&gt;
       &lt;/section&gt;&lt;/div&gt;`;
     }
     function pageMealForm(){return `&lt;form class=&quot;ks-form&quot; data-meal-form&gt;
@@ -3215,13 +3276,19 @@ html&gt;body{padding:0}&lt;/style&gt;
         render();(phone.querySelector(focus)??phone.querySelector(&#x27;[data-calendar-action=jump]&#x27;))?.focus({preventScroll:true});return;
       }
       if(b.dataset.githubAction){
-        const action=b.dataset.githubAction;
-        if(action===&#x27;open&#x27;)state.page=&#x27;github&#x27;;
-        else if(action===&#x27;backup&#x27;)state.githubDemo.backedUp=true;
-        else if(action===&#x27;review&#x27;||action===&#x27;restore&#x27;)state.githubDemo.review=action;
-        else state.githubDemo.review=null;
+        const action=b.dataset.githubAction,demo=state.githubDemo;
+        if(action===&#x27;open&#x27;||action===&#x27;handle&#x27;){state.page=&#x27;github&#x27;;demo.review=null;}
+        else if(action===&#x27;backup&#x27;||action===&#x27;apply-upload&#x27;){
+          demo.uploading=true;demo.review=null;
+          setTimeout(()=&gt;{if(demo.uploading){demo.uploading=false;demo.scenario=&#x27;normal&#x27;;demo.backedUp=true;render();}},600);
+        }
+        else if(action===&#x27;apply-restore&#x27;){demo.scenario=&#x27;restored&#x27;;demo.review=&#x27;notice&#x27;;}
+        else if(action===&#x27;configure&#x27;){demo.editing=true;demo.draftWifi=demo.wifi;}
+        else if(action===&#x27;save-connection&#x27;){demo.wifi=demo.draftWifi;demo.editing=false;demo.scenario=&#x27;review&#x27;;}
+        else if(action===&#x27;cancel-connection&#x27;)demo.editing=false;
+        else demo.review=action===&#x27;cancel&#x27;?null:action;
         render();
-        if(action===&#x27;cancel&#x27;||action===&#x27;confirm&#x27;)phone.querySelector(&#x27;[data-github-action=review]&#x27;).focus({preventScroll:true});
+        if(!demo.review)phone.querySelector(&#x27;[data-github-action=restore-preview]&#x27;)?.focus({preventScroll:true});
         return;
       }
       if(b.dataset.previewMode){state.previewMode=b.dataset.previewMode;updateAppearancePreview();return;}
@@ -3329,7 +3396,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(event.key===&#x27;Escape&#x27;){
         event.preventDefault();
         if(state.githubDemo.review){
-          state.githubDemo.review=null;render();phone.querySelector(&#x27;[data-github-action=review]&#x27;).focus({preventScroll:true});
+          state.githubDemo.review=null;render();phone.querySelector(&#x27;[data-github-action=restore-preview]&#x27;)?.focus({preventScroll:true});
         }else if(state.mealCalendar)closeMealCalendar(false);
         else if(state.ledgerPeriodDraft)closeLedgerPeriod(false);
         else if(state.ledgerFiltersOpen)closeLedgerFilters(false);
@@ -3344,6 +3411,12 @@ html&gt;body{padding:0}&lt;/style&gt;
     });
     phone.addEventListener(&#x27;change&#x27;,event=&gt;{
       const e=event.target;
+      if(e.matches(&#x27;[data-github-wifi]&#x27;)){state.githubDemo.wifi=e.checked;return;}
+      if(e.matches(&#x27;[data-github-wifi-draft]&#x27;)){state.githubDemo.draftWifi=e.checked;return;}
+      if(e.matches(&#x27;[data-github-scenario]&#x27;)){
+        state.githubDemo.scenario=e.value;state.githubDemo.editing=false;state.githubDemo.uploading=false;
+        state.githubDemo.review=githubPause()?&#x27;notice&#x27;:null;render();return;
+      }
       if(e.matches(&#x27;[data-category-wallet]&#x27;)){state.categoryWalletId=e.value;state.editingFinancialCategoryId=null;render();return;}
       if(e.matches(&#x27;[data-category-mode]&#x27;)){const wallet=wallets.find(w=&gt;w.id===state.categoryWalletId);if(wallet){wallet[state.financialScope===&#x27;INCOME&#x27;?&#x27;incomeCategoryMode&#x27;:&#x27;expenseCategoryMode&#x27;]=e.value;state.editingFinancialCategoryId=null;render();}return;}
       if(e.matches(&#x27;[data-wallet-option]&#x27;)){

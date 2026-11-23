@@ -35,7 +35,8 @@ jobs:
     if: >-
       github.repository == 'sirarikako/KitsuneApp' &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/android-full-implementation')
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/android-full-implementation' ||
+      github.ref == 'refs/heads/feat/github-backup-ui-pauses')
     needs: verify
     runs-on: ubuntu-latest
     steps:
