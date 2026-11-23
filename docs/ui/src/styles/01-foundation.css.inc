@@ -22,7 +22,9 @@
   #kitsune-preview .ks-note{color:var(--ks-dim);font-size:var(--ks-font-note)}
   #kitsune-preview .ks-text-btn{border:0;background:transparent;color:var(--ks-accent);padding:8px 0;display:inline-flex;align-items:center;gap:4px;font-size:12px;min-height:44px}
   #kitsune-preview .ks-text-btn svg{width:14px;height:14px}
-  #kitsune-preview .ks-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;margin:10px 0 19px;padding:4px;border:var(--ks-card-border);border-radius:var(--ks-radius);background:var(--ks-card-surface)}
+  #kitsune-preview .ks-week{display:grid;gap:var(--ks-space-2);margin:10px 0 19px;padding:4px;border:var(--ks-card-border);border-radius:var(--ks-radius);background:var(--ks-card-surface)}
+  #kitsune-preview .ks-week-nav{display:flex;justify-content:space-between;padding-inline:var(--ks-space-2)}
+  #kitsune-preview .ks-week-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px}
   #kitsune-preview .ks-day{display:flex;flex-direction:column;align-items:center;background:transparent;min-width:0;border:1px solid transparent;border-radius:var(--ks-control-radius);gap:var(--ks-space-1);min-height:44px;padding:var(--ks-space-2) 0;font-size:var(--ks-font-body)}
   #kitsune-preview .ks-day small{font-size:11px;color:var(--ks-dim)}
   #kitsune-preview .ks-day[aria-pressed=true]{background:var(--ks-accent-bg);border-color:var(--ks-accent);color:var(--ks-accent)}

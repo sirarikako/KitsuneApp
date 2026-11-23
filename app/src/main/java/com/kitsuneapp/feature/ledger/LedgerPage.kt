@@ -9,6 +9,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -16,6 +20,8 @@ import androidx.compose.ui.unit.sp
 import com.kitsuneapp.R
 import com.kitsuneapp.data.*
 import com.kitsuneapp.ui.*
+import java.math.BigInteger
+import java.math.MathContext
 import java.time.YearMonth
 
 private data class LedgerContent(
@@ -138,8 +144,8 @@ fun LedgerPage(records: Records, open: (String) -> Unit, openDetails: (String) -
                                 Section("${periodLabel}收支 · ${total.currency}")
                                 Summary("收入 · ${total.currency}" to displayMoney(total.income, total.scale),
                                     "净支出 · ${total.currency}" to displayMoney(total.expenses, total.scale))
-                                CategoryTotals("收入分类 · ${total.currency}", total.incomeCategories, total.scale, ledger)
-                                CategoryTotals("净支出分类 · ${total.currency}", total.expenseCategories, total.scale, ledger)
+                                CategoryTotals("收入分类 · ${total.currency}", total.incomeCategories, total.scale, ledger, incomeColor)
+                                CategoryTotals("净支出分类 · ${total.currency}", total.expenseCategories, total.scale, ledger, expenseColor)
                                 if (total.incomeCategories.isEmpty() && total.expenseCategories.isEmpty()) {
                                     EmptyState("所选日期和钱包范围内没有账目")
                                 }
@@ -207,16 +213,32 @@ private fun ScopeControl(label: String, value: String, icon: Int, onClick: () ->
 }
 
 @Composable
-private fun CategoryTotals(title: String, totals: Map<String, java.math.BigInteger>, scale: Int, ledger: Ledger) {
+private fun CategoryTotals(title: String, totals: Map<String, BigInteger>, scale: Int, ledger: Ledger, color: Color) {
     if (totals.isEmpty()) return
-    Section(title)
+    val magnitude = remember(totals) { totals.values.sumOf(BigInteger::abs).toBigDecimal() }
+    val sorted = remember(totals) { totals.entries.sortedByDescending { it.value } }
+    Section(title) {
+        if (magnitude.signum() > 0) {
+            Secondary(if (sorted.last().value.signum() < 0) "条长按绝对值占比" else "金额占比")
+        }
+    }
     Paper(padding = 0) {
         Column(Modifier.padding(horizontal = 16.dp)) {
-            totals.entries.sortedByDescending { it.value }.forEachIndexed { index, (id, amount) ->
+            sorted.forEachIndexed { index, (id, amount) ->
                 if (index > 0) HorizontalDivider()
-                Row(Modifier.padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(ledger.categoryLabel(id), Modifier.weight(1f), fontSize = 13.sp)
-                    Text(displayMoney(amount, scale), fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                val label = ledger.categoryLabel(id)
+                Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(label, Modifier.weight(1f), fontSize = 13.sp)
+                        Text(displayMoney(amount, scale), fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    }
+                    if (amount.signum() != 0) {
+                        val ratio = amount.abs().toBigDecimal().divide(magnitude, MathContext.DECIMAL64).toFloat()
+                        StatBar(ratio, color = color, modifier = Modifier.semantics {
+                            contentDescription = "${label}金额占比"
+                            progressBarRangeInfo = ProgressBarRangeInfo(ratio, 0f..1f)
+                        })
+                    }
                 }
             }
         }

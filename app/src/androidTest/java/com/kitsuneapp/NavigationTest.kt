@@ -146,7 +146,7 @@ class NavigationTest {
     }
 
     @Test
-    fun selectsAnotherDayWithinVisibleWeek() {
+    fun selectsDaysAndBrowsesWeeksBeforeOpeningMeal() {
         compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
         compose.onNodeWithText("用餐").performClick()
         val today = LocalDate.now()
@@ -158,7 +158,16 @@ class NavigationTest {
         compose.onNodeWithContentDescription(dayLabel(today)).assertIsSelected()
         compose.onNodeWithContentDescription(dayLabel(other)).assertIsNotSelected().performClick().assertIsSelected()
         compose.onNodeWithContentDescription(dayLabel(today)).assertIsNotSelected()
+        val previous = compose.onNodeWithText("上一周")
+        previous.performClick().performClick()
+        compose.onNodeWithContentDescription(dayLabel(other.minusWeeks(2))).assertIsSelected()
+        compose.onNodeWithText("下一周").performClick()
+        val selected = other.minusWeeks(1)
+        compose.onNodeWithContentDescription(dayLabel(selected)).assertIsSelected()
+        compose.onNodeWithText(selected.toString(), useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithText("三餐记录").assertIsDisplayed()
+        compose.onNodeWithText("早餐").performClick()
+        compose.onNodeWithText(selected.toString(), useUnmergedTree = true).assertIsDisplayed()
     }
 
     private fun assertSingleLineMealText(label: String, value: String) {

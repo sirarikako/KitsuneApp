@@ -55,7 +55,12 @@
       if(b.dataset.calcAction){closeCalculator(b.dataset.calcAction==='apply');return;}
       if(b.dataset.monthStep){const key=b.dataset.monthKey;if(!['ledgerMonth','mealMonth'].includes(key))return;const [year,month]=state[key].split('-').map(Number),ordinal=year*12+month-1+Number(b.dataset.monthStep);if(ordinal<12||ordinal>=120000)return;state[key]=`${String(Math.floor(ordinal/12)).padStart(4,'0')}-${String(ordinal%12+1).padStart(2,'0')}`;render();persist();return;}
       if(b.dataset.page){if(state.page===b.dataset.page)return;state.page=b.dataset.page;if(state.page==='settings')resetAppearance();render();persist();return;}
-      if(b.dataset.date){state.date=b.dataset.date;render();return;}
+      if(b.dataset.date){
+        state.date=b.dataset.date;render();
+        if(b.dataset.weekStep)(phone.querySelector(`[data-week-step="${b.dataset.weekStep}"]:not(:disabled)`)||
+          phone.querySelector('.ks-day[aria-pressed=true]'))?.focus({preventScroll:true});
+        return;
+      }
       if(b.dataset.meal!==undefined){if(state.page==='home')state.date='2026-11-17';else if(b.dataset.mealDate)state.date=b.dataset.mealDate;state.slot=Number(b.dataset.meal);state.mealReturn=state.page;const m=records()[state.slot];state.editing=!!m;if(m&&b.classList.contains('ks-record')){recordOrigin={page:state.page,date:state.date,slot:b.dataset.meal};entrance=visible(b)?rect(b):null;}else recordOrigin=null;state.editingDate=state.date;state.editingSlot=state.slot;state.atHome=m?.atHome??null;state.method=m?.method??null;state.categories=[...(m?.categories||[])];state.dishes=m?.dishes||'';state.note=m?.note||'';state.page='meal-form';render();return;}
       if(b.dataset.homeChoice!==undefined){state.atHome=b.dataset.homeChoice==='true';render();return;}
       if(b.dataset.method){const m=b.dataset.method;state.method=state.method===m?null:m;if(state.method!=='下厨')state.categories=[];render();return;}

@@ -139,22 +139,39 @@ fun MealsPage(records: Records, filter: MealFilter?, daily: () -> Unit, clearCon
 private fun WeekStrip(day: LocalDate, select: (LocalDate) -> Unit) {
     val colors = MaterialTheme.colorScheme
     val monday = day.minusDays((day.dayOfWeek.value - 1).toLong())
+    val previous = day.minusWeeks(1)
+    val next = day.plusWeeks(1)
     Paper(padding = 4) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            TextAction("上一周", { select(previous) }, leading = designIcon(R.drawable.ks_chevron_left),
+                enabled = previous.year >= 1)
+            TextAction("下一周", { select(next) }, trailing = designIcon(R.drawable.ks_chevron_right),
+                enabled = next.year <= 9999)
+        }
         Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(1.dp)) {
             listOf("一", "二", "三", "四", "五", "六", "日").forEachIndexed { index, label ->
                 val date = monday.plusDays(index.toLong())
                 val selected = date == day
+                val available = date.year in 1..9999
                 val style = if (selected) Modifier.background(colors.primaryContainer)
                     .border(1.dp, colors.primary, ControlShape) else Modifier
                 Column(Modifier.weight(1f).heightIn(min = 48.dp).clip(ControlShape).then(style)
-                    .selectable(selected, role = Role.RadioButton, onClick = { select(date) })
+                    .selectable(selected, enabled = available, role = Role.RadioButton, onClick = { select(date) })
                     .semantics { contentDescription = "${date.monthValue} 月 ${date.dayOfMonth} 日，星期$label" }
                     .padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center) {
                     Text(label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center,
-                        color = if (selected) colors.onPrimaryContainer else colors.onSurfaceVariant)
+                        color = when {
+                            selected -> colors.onPrimaryContainer
+                            available -> colors.onSurfaceVariant
+                            else -> colors.onSurfaceVariant.copy(alpha = 0.6f)
+                        })
                     Text(date.dayOfMonth.toString(), textAlign = TextAlign.Center,
-                        color = if (selected) colors.onPrimaryContainer else colors.onSurface)
+                        color = when {
+                            selected -> colors.onPrimaryContainer
+                            available -> colors.onSurface
+                            else -> colors.onSurfaceVariant.copy(alpha = 0.6f)
+                        })
                 }
             }
         }

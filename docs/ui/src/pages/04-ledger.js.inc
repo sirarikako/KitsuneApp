@@ -1,3 +1,23 @@
+    function ledgerCategoryPanel(type,code,entries){
+      const income=type==='收入',totals=new Map();
+      for(const entry of entries){
+        if(entry.type!==type&&(income||entry.type!=='退款'))continue;
+        const category=categoryForEntry(entry),amount=entry.type==='退款'?-entry.cents:entry.cents;
+        totals.set(category,(totals.get(category)??0n)+amount);
+      }
+      if(!totals.size)return '';
+      const abs=amount=>amount<0n?-amount:amount;
+      const rows=[...totals].map(([id,amount])=>({name:categoryDescriptionForId(id),amount}))
+        .sort((a,b)=>a.amount===b.amount?a.name.localeCompare(b.name,'zh-CN'):a.amount>b.amount?-1:1);
+      const magnitude=rows.reduce((sum,row)=>sum+abs(row.amount),0n);
+      const title=`${income?'收入':'净支出'}分类 · ${code}`;
+      const note=rows.at(-1).amount<0n?'条长按绝对值占比':'金额占比';
+      return `${section(title,magnitude>0n?`<span class="ks-note">${note}</span>`:'')}
+        <div class="ks-stats-panel">${rows.map(({name,amount})=>`<div class="ks-stat-row">
+          <div class="ks-row"><span>${escapeText(name)}</span><strong>${money(amount,code)}</strong></div>
+          ${amount!==0n?statBar(name+'金额占比',Number(abs(amount))/Number(magnitude),income?'ks-bar-income':'ks-bar-expense'):''}
+        </div>`).join('')}</div>`;
+    }
     function pageLedger(){
       const allEntries=financialEntries();
       const tabs=`<div class="ks-segments" aria-label="记账视图">${['流水','钱包','统计'].map(tab=>`<button type="button" data-ledger-tab="${tab}" aria-pressed="${state.ledgerTab===tab}" class="cursor-interaction">${tab}</button>`).join('')}</div>`;
@@ -22,21 +42,16 @@
       const includeYear=state.ledgerRange&&state.ledgerRange.from.slice(0,4)!==state.ledgerRange.to.slice(0,4);
       const empty='<p class="ks-empty-state">所选日期和钱包范围内没有账目</p>';
       if(state.ledgerTab==='统计')return `${tabs}${picker}<div data-ledger-statistics aria-live="polite">
-        ${groups.map(({code,entries:group})=>{
-          const expenses=group.filter(entry=>entry.type==='支出'||entry.type==='退款');
-          const categories=[...new Set(expenses.map(categoryForEntry))]
-            .map(id=>({id,name:categoryDescriptionForId(id),amount:netExpense(expenses.filter(entry=>categoryForEntry(entry)===id))}))
-            .sort((a,b)=>a.amount===b.amount?a.name.localeCompare(b.name,'zh-CN'):a.amount>b.amount?-1:1);
-          return `<section class="ks-currency-group" data-currency="${code}">
+        ${groups.map(({code,entries:group})=>`<section class="ks-currency-group" data-currency="${code}">
             ${section(`${period}收支 · ${code}`)}
             <div class="ks-summary">
               <div><span class="ks-note">收入 · ${code}</span><strong data-income>${money(total(group,'收入'),code)}</strong></div>
               <div><span class="ks-note">净支出 · ${code}</span><strong data-expense>${money(netExpense(group),code)}</strong></div>
             </div>
-            ${categories.length?section(`净支出分类 · ${code}`)+`<div class="ks-stats-panel">${categories.map(({name,amount})=>`<div class="ks-stat-row"><div class="ks-row"><span>${escapeText(name)}</span><strong>${money(amount,code)}</strong></div></div>`).join('')}</div>`:''}
+            ${ledgerCategoryPanel('收入',code,group)}
+            ${ledgerCategoryPanel('支出',code,group)}
             ${group.length?'':empty}
-          </section>`;
-        }).join('')}
+          </section>`).join('')}
       </div><p class="ks-footnote">交互预览 · 各币种独立统计</p>`;
       return `${tabs}${picker}<section data-monthly-ledger aria-label="所选日期与钱包的流水" aria-live="polite">
         ${groups.map(({code,entries:group})=>`<div class="ks-currency-group">${moneyCard(code,group)}</div>`).join('')}

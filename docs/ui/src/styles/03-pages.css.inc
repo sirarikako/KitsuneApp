@@ -50,6 +50,8 @@
   #kitsune-preview .ks-footnote{text-align:center;font-size:11px;color:var(--ks-dim);margin:18px 0 0}
   #kitsune-preview .ks-bar-track{height:8px;background:var(--ks-soft);border-radius:4px;margin-top:8px}
   #kitsune-preview .ks-bar-fill{height:100%;background:var(--ks-accent);border-radius:4px}
+  #kitsune-preview .ks-bar-income .ks-bar-fill{background:var(--ks-good)}
+  #kitsune-preview .ks-bar-expense .ks-bar-fill{background:var(--ks-expense)}
   @media(max-width:400px){#kitsune-preview .ks-stage{padding:12px 0;min-height:855px}#kitsune-preview .ks-main,#kitsune-preview .ks-top{padding-left:var(--ks-space-3);padding-right:var(--ks-space-3)}#kitsune-preview .ks-ledger-action{padding-left:var(--ks-space-3);padding-right:var(--ks-space-3)}#kitsune-preview .ks-choice{padding-left:var(--ks-space-2);padding-right:var(--ks-space-2)}}
   @media(pointer:coarse){#kitsune-preview .ks-text-btn{min-height:44px}#kitsune-preview .ks-control{font-size:16px}}
   #kitsune-preview .ks-preparation-check:has(input:checked){background:var(--ks-accent-bg);border-color:var(--ks-accent);color:var(--ks-accent)}

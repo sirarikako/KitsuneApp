@@ -1916,7 +1916,9 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-note{color:var(--ks-dim);font-size:var(--ks-font-note)}
   #kitsune-preview .ks-text-btn{border:0;background:transparent;color:var(--ks-accent);padding:8px 0;display:inline-flex;align-items:center;gap:4px;font-size:12px;min-height:44px}
   #kitsune-preview .ks-text-btn svg{width:14px;height:14px}
-  #kitsune-preview .ks-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;margin:10px 0 19px;padding:4px;border:var(--ks-card-border);border-radius:var(--ks-radius);background:var(--ks-card-surface)}
+  #kitsune-preview .ks-week{display:grid;gap:var(--ks-space-2);margin:10px 0 19px;padding:4px;border:var(--ks-card-border);border-radius:var(--ks-radius);background:var(--ks-card-surface)}
+  #kitsune-preview .ks-week-nav{display:flex;justify-content:space-between;padding-inline:var(--ks-space-2)}
+  #kitsune-preview .ks-week-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px}
   #kitsune-preview .ks-day{display:flex;flex-direction:column;align-items:center;background:transparent;min-width:0;border:1px solid transparent;border-radius:var(--ks-control-radius);gap:var(--ks-space-1);min-height:44px;padding:var(--ks-space-2) 0;font-size:var(--ks-font-body)}
   #kitsune-preview .ks-day small{font-size:11px;color:var(--ks-dim)}
   #kitsune-preview .ks-day[aria-pressed=true]{background:var(--ks-accent-bg);border-color:var(--ks-accent);color:var(--ks-accent)}
@@ -2128,6 +2130,8 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-footnote{text-align:center;font-size:11px;color:var(--ks-dim);margin:18px 0 0}
   #kitsune-preview .ks-bar-track{height:8px;background:var(--ks-soft);border-radius:4px;margin-top:8px}
   #kitsune-preview .ks-bar-fill{height:100%;background:var(--ks-accent);border-radius:4px}
+  #kitsune-preview .ks-bar-income .ks-bar-fill{background:var(--ks-good)}
+  #kitsune-preview .ks-bar-expense .ks-bar-fill{background:var(--ks-expense)}
   @media(max-width:400px){#kitsune-preview .ks-stage{padding:12px 0;min-height:855px}#kitsune-preview .ks-main,#kitsune-preview .ks-top{padding-left:var(--ks-space-3);padding-right:var(--ks-space-3)}#kitsune-preview .ks-ledger-action{padding-left:var(--ks-space-3);padding-right:var(--ks-space-3)}#kitsune-preview .ks-choice{padding-left:var(--ks-space-2);padding-right:var(--ks-space-2)}}
   @media(pointer:coarse){#kitsune-preview .ks-text-btn{min-height:44px}#kitsune-preview .ks-control{font-size:16px}}
   #kitsune-preview .ks-preparation-check:has(input:checked){background:var(--ks-accent-bg);border-color:var(--ks-accent);color:var(--ks-accent)}
@@ -2342,13 +2346,21 @@ html&gt;body{padding:0}&lt;/style&gt;
     function week(){
       const selected=new Date(state.date+&#x27;T00:00:00Z&#x27;);
       const monday=selected.getUTCDate()-(selected.getUTCDay()+6)%7;
+      const step=(offset,label,glyph)=&gt;{
+        const day=new Date(selected);day.setUTCDate(day.getUTCDate()+offset*7);
+        const iso=day.toISOString().split(&#x27;T&#x27;)[0],marker=icon(glyph);
+        return `&lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-week-step=&quot;${offset}&quot; data-date=&quot;${iso}&quot; ${isDate(iso)?&#x27;&#x27;:&#x27;disabled&#x27;}&gt;${offset&lt;0?marker+label:label+marker}&lt;/button&gt;`;
+      };
       const days=[&#x27;一&#x27;,&#x27;二&#x27;,&#x27;三&#x27;,&#x27;四&#x27;,&#x27;五&#x27;,&#x27;六&#x27;,&#x27;日&#x27;].map((label,i)=&gt;{
         const day=new Date(selected);day.setUTCDate(monday+i);
         const month=day.getUTCMonth()+1,number=day.getUTCDate(),iso=day.toISOString().split(&#x27;T&#x27;)[0];
         const available=day.getUTCFullYear()&gt;=1&amp;&amp;day.getUTCFullYear()&lt;=9999;
         return `&lt;button class=&quot;ks-day cursor-interaction&quot; data-date=&quot;${iso}&quot; type=&quot;button&quot; ${available?&#x27;&#x27;:&#x27;disabled&#x27;} aria-label=&quot;${month} 月 ${number} 日，星期${label}&quot; aria-pressed=&quot;${state.date===iso}&quot;&gt;&lt;small&gt;${label}&lt;/small&gt;&lt;span&gt;${number}&lt;/span&gt;&lt;/button&gt;`;
       }).join(&#x27;&#x27;);
-      return `&lt;div class=&quot;ks-week&quot; role=&quot;group&quot; aria-label=&quot;选择日期&quot;&gt;${days}&lt;/div&gt;`;
+      return `&lt;div class=&quot;ks-week&quot;&gt;
+        &lt;div class=&quot;ks-week-nav&quot;&gt;${step(-1,&#x27;上一周&#x27;,&#x27;chevron-left&#x27;)}${step(1,&#x27;下一周&#x27;,&#x27;chevron-right&#x27;)}&lt;/div&gt;
+        &lt;div class=&quot;ks-week-days&quot; role=&quot;group&quot; aria-label=&quot;选择日期&quot;&gt;${days}&lt;/div&gt;
+      &lt;/div&gt;`;
     }
     const section = (title,extra=&#x27;&#x27;) =&gt; `&lt;div class=&quot;ks-section ks-row&quot;&gt;&lt;h3&gt;${title}&lt;/h3&gt;${extra}&lt;/div&gt;`;
     const choice = (label,value,current,action) =&gt; `&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-${action}=&quot;${escapeText(value)}&quot; aria-pressed=&quot;${current===value}&quot;&gt;${label}&lt;/button&gt;`;
@@ -2369,7 +2381,11 @@ html&gt;body{padding:0}&lt;/style&gt;
     const walletScope=()=&gt;{const chosen=selectedWallets(),label=state.walletFilterIds===null?&#x27;常规钱包&#x27;:state.walletFilterIds===&#x27;ALL&#x27;?&#x27;全部钱包（含独立核算）&#x27;:chosen.length===1?`${chosen[0].name} · ${chosen[0].code}`:`已选 ${chosen.length} 个钱包`;return `&lt;div class=&quot;ks-toolbar&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-toolbar-action ks-scope cursor-interaction&quot; data-action=&quot;choose-wallets&quot; aria-label=&quot;选择统计与流水的钱包范围&quot;&gt;&lt;span&gt;${icon(&#x27;wallet&#x27;)}钱包范围&lt;/span&gt;&lt;span&gt;${escapeText(label)}${icon(&#x27;chevron-down&#x27;)}&lt;/span&gt;&lt;/button&gt;&lt;/div&gt;${state.walletFilterIds&amp;&amp;chosen.length&gt;1?`&lt;p class=&quot;ks-filter-context&quot;&gt;${chosen.map(w=&gt;`${escapeText(w.name)} · ${w.code}`).join(&#x27;、&#x27;)}&lt;/p&gt;`:&#x27;&#x27;}`;};
     const methodCounts = meals =&gt; [...new Set([&#x27;下厨&#x27;,&#x27;外卖&#x27;,&#x27;未填写&#x27;,...meals.map(m=&gt;m.method||&#x27;未填写&#x27;)])].map(method=&gt;({method,count:meals.filter(m=&gt;(m.method||&#x27;未填写&#x27;)===method).length}));
     const recommendedSlot = () =&gt; {const hour=style.mealHour===&#x27;auto&#x27;?new Date().getHours():Number(style.mealHour);return hour&lt;11?0:hour&lt;17?1:2;};
-    const countBar = (label,count,denominator,unit=&#x27;餐&#x27;) =&gt; {const percent=denominator?Math.round(count/denominator*100):0;return `&lt;div class=&quot;ks-stat-row&quot;&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;span&gt;${escapeText(label)}&lt;/span&gt;&lt;span&gt;&lt;strong&gt;${count} ${unit}&lt;/strong&gt;&lt;small&gt;${percent}%&lt;/small&gt;&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-bar-track&quot; role=&quot;meter&quot; aria-label=&quot;${escapeText(label)}：${count}${unit}，占${percent}%&quot; aria-valuemin=&quot;0&quot; aria-valuemax=&quot;100&quot; aria-valuenow=&quot;${percent}&quot;&gt;&lt;div class=&quot;ks-bar-fill&quot; style=&quot;width:${denominator?count/denominator*100:0}%&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;`;};
+    const statBar=(label,ratio,tone=&#x27;&#x27;)=&gt;`&lt;div class=&quot;ks-bar-track ${tone}&quot; role=&quot;meter&quot; aria-label=&quot;${escapeText(label)}&quot; aria-valuemin=&quot;0&quot; aria-valuemax=&quot;100&quot; aria-valuenow=&quot;${Math.round(ratio*100)}&quot;&gt;&lt;div class=&quot;ks-bar-fill&quot; style=&quot;width:${ratio*100}%&quot;&gt;&lt;/div&gt;&lt;/div&gt;`;
+    const countBar = (label,count,denominator,unit=&#x27;餐&#x27;) =&gt; {
+      const ratio=denominator?count/denominator:0,percent=Math.round(ratio*100);
+      return `&lt;div class=&quot;ks-stat-row&quot;&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;span&gt;${escapeText(label)}&lt;/span&gt;&lt;span&gt;&lt;strong&gt;${count} ${unit}&lt;/strong&gt;&lt;small&gt;${percent}%&lt;/small&gt;&lt;/span&gt;&lt;/div&gt;${statBar(`${label}：${count}${unit}，占${percent}%`,ratio)}&lt;/div&gt;`;
+    };
     const mealResult=m=&gt;{
       const method=m.method||&#x27;方式未填写&#x27;,dishes=m.dishes||&#x27;未填写菜品&#x27;;
       const meta=[`计划在家：${m.atHome?&#x27;是&#x27;:&#x27;否&#x27;}`,...m.categories,m.note?`备注：${m.note.replace(/\s+/g,&#x27; &#x27;)}`:&#x27;&#x27;].filter(Boolean).join(&#x27; · &#x27;);
@@ -2424,6 +2440,26 @@ html&gt;body{padding:0}&lt;/style&gt;
           &lt;div class=&quot;ks-stats-panel&quot;&gt;${allRows.map(({method,count})=&gt;countBar(method,count,all.length)).join(&#x27;&#x27;)}&lt;/div&gt;
         &lt;/section&gt;&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 示例数据&lt;/p&gt;`;
     }
+    function ledgerCategoryPanel(type,code,entries){
+      const income=type===&#x27;收入&#x27;,totals=new Map();
+      for(const entry of entries){
+        if(entry.type!==type&amp;&amp;(income||entry.type!==&#x27;退款&#x27;))continue;
+        const category=categoryForEntry(entry),amount=entry.type===&#x27;退款&#x27;?-entry.cents:entry.cents;
+        totals.set(category,(totals.get(category)??0n)+amount);
+      }
+      if(!totals.size)return &#x27;&#x27;;
+      const abs=amount=&gt;amount&lt;0n?-amount:amount;
+      const rows=[...totals].map(([id,amount])=&gt;({name:categoryDescriptionForId(id),amount}))
+        .sort((a,b)=&gt;a.amount===b.amount?a.name.localeCompare(b.name,&#x27;zh-CN&#x27;):a.amount&gt;b.amount?-1:1);
+      const magnitude=rows.reduce((sum,row)=&gt;sum+abs(row.amount),0n);
+      const title=`${income?&#x27;收入&#x27;:&#x27;净支出&#x27;}分类 · ${code}`;
+      const note=rows.at(-1).amount&lt;0n?&#x27;条长按绝对值占比&#x27;:&#x27;金额占比&#x27;;
+      return `${section(title,magnitude&gt;0n?`&lt;span class=&quot;ks-note&quot;&gt;${note}&lt;/span&gt;`:&#x27;&#x27;)}
+        &lt;div class=&quot;ks-stats-panel&quot;&gt;${rows.map(({name,amount})=&gt;`&lt;div class=&quot;ks-stat-row&quot;&gt;
+          &lt;div class=&quot;ks-row&quot;&gt;&lt;span&gt;${escapeText(name)}&lt;/span&gt;&lt;strong&gt;${money(amount,code)}&lt;/strong&gt;&lt;/div&gt;
+          ${amount!==0n?statBar(name+&#x27;金额占比&#x27;,Number(abs(amount))/Number(magnitude),income?&#x27;ks-bar-income&#x27;:&#x27;ks-bar-expense&#x27;):&#x27;&#x27;}
+        &lt;/div&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`;
+    }
     function pageLedger(){
       const allEntries=financialEntries();
       const tabs=`&lt;div class=&quot;ks-segments&quot; aria-label=&quot;记账视图&quot;&gt;${[&#x27;流水&#x27;,&#x27;钱包&#x27;,&#x27;统计&#x27;].map(tab=&gt;`&lt;button type=&quot;button&quot; data-ledger-tab=&quot;${tab}&quot; aria-pressed=&quot;${state.ledgerTab===tab}&quot; class=&quot;cursor-interaction&quot;&gt;${tab}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`;
@@ -2448,21 +2484,16 @@ html&gt;body{padding:0}&lt;/style&gt;
       const includeYear=state.ledgerRange&amp;&amp;state.ledgerRange.from.slice(0,4)!==state.ledgerRange.to.slice(0,4);
       const empty=&#x27;&lt;p class=&quot;ks-empty-state&quot;&gt;所选日期和钱包范围内没有账目&lt;/p&gt;&#x27;;
       if(state.ledgerTab===&#x27;统计&#x27;)return `${tabs}${picker}&lt;div data-ledger-statistics aria-live=&quot;polite&quot;&gt;
-        ${groups.map(({code,entries:group})=&gt;{
-          const expenses=group.filter(entry=&gt;entry.type===&#x27;支出&#x27;||entry.type===&#x27;退款&#x27;);
-          const categories=[...new Set(expenses.map(categoryForEntry))]
-            .map(id=&gt;({id,name:categoryDescriptionForId(id),amount:netExpense(expenses.filter(entry=&gt;categoryForEntry(entry)===id))}))
-            .sort((a,b)=&gt;a.amount===b.amount?a.name.localeCompare(b.name,&#x27;zh-CN&#x27;):a.amount&gt;b.amount?-1:1);
-          return `&lt;section class=&quot;ks-currency-group&quot; data-currency=&quot;${code}&quot;&gt;
+        ${groups.map(({code,entries:group})=&gt;`&lt;section class=&quot;ks-currency-group&quot; data-currency=&quot;${code}&quot;&gt;
             ${section(`${period}收支 · ${code}`)}
             &lt;div class=&quot;ks-summary&quot;&gt;
               &lt;div&gt;&lt;span class=&quot;ks-note&quot;&gt;收入 · ${code}&lt;/span&gt;&lt;strong data-income&gt;${money(total(group,&#x27;收入&#x27;),code)}&lt;/strong&gt;&lt;/div&gt;
               &lt;div&gt;&lt;span class=&quot;ks-note&quot;&gt;净支出 · ${code}&lt;/span&gt;&lt;strong data-expense&gt;${money(netExpense(group),code)}&lt;/strong&gt;&lt;/div&gt;
             &lt;/div&gt;
-            ${categories.length?section(`净支出分类 · ${code}`)+`&lt;div class=&quot;ks-stats-panel&quot;&gt;${categories.map(({name,amount})=&gt;`&lt;div class=&quot;ks-stat-row&quot;&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;span&gt;${escapeText(name)}&lt;/span&gt;&lt;strong&gt;${money(amount,code)}&lt;/strong&gt;&lt;/div&gt;&lt;/div&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`:&#x27;&#x27;}
+            ${ledgerCategoryPanel(&#x27;收入&#x27;,code,group)}
+            ${ledgerCategoryPanel(&#x27;支出&#x27;,code,group)}
             ${group.length?&#x27;&#x27;:empty}
-          &lt;/section&gt;`;
-        }).join(&#x27;&#x27;)}
+          &lt;/section&gt;`).join(&#x27;&#x27;)}
       &lt;/div&gt;&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 各币种独立统计&lt;/p&gt;`;
       return `${tabs}${picker}&lt;section data-monthly-ledger aria-label=&quot;所选日期与钱包的流水&quot; aria-live=&quot;polite&quot;&gt;
         ${groups.map(({code,entries:group})=&gt;`&lt;div class=&quot;ks-currency-group&quot;&gt;${moneyCard(code,group)}&lt;/div&gt;`).join(&#x27;&#x27;)}
@@ -2945,7 +2976,12 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(b.dataset.calcAction){closeCalculator(b.dataset.calcAction===&#x27;apply&#x27;);return;}
       if(b.dataset.monthStep){const key=b.dataset.monthKey;if(![&#x27;ledgerMonth&#x27;,&#x27;mealMonth&#x27;].includes(key))return;const [year,month]=state[key].split(&#x27;-&#x27;).map(Number),ordinal=year*12+month-1+Number(b.dataset.monthStep);if(ordinal&lt;12||ordinal&gt;=120000)return;state[key]=`${String(Math.floor(ordinal/12)).padStart(4,&#x27;0&#x27;)}-${String(ordinal%12+1).padStart(2,&#x27;0&#x27;)}`;render();persist();return;}
       if(b.dataset.page){if(state.page===b.dataset.page)return;state.page=b.dataset.page;if(state.page===&#x27;settings&#x27;)resetAppearance();render();persist();return;}
-      if(b.dataset.date){state.date=b.dataset.date;render();return;}
+      if(b.dataset.date){
+        state.date=b.dataset.date;render();
+        if(b.dataset.weekStep)(phone.querySelector(`[data-week-step=&quot;${b.dataset.weekStep}&quot;]:not(:disabled)`)||
+          phone.querySelector(&#x27;.ks-day[aria-pressed=true]&#x27;))?.focus({preventScroll:true});
+        return;
+      }
       if(b.dataset.meal!==undefined){if(state.page===&#x27;home&#x27;)state.date=&#x27;2026-11-17&#x27;;else if(b.dataset.mealDate)state.date=b.dataset.mealDate;state.slot=Number(b.dataset.meal);state.mealReturn=state.page;const m=records()[state.slot];state.editing=!!m;if(m&amp;&amp;b.classList.contains(&#x27;ks-record&#x27;)){recordOrigin={page:state.page,date:state.date,slot:b.dataset.meal};entrance=visible(b)?rect(b):null;}else recordOrigin=null;state.editingDate=state.date;state.editingSlot=state.slot;state.atHome=m?.atHome??null;state.method=m?.method??null;state.categories=[...(m?.categories||[])];state.dishes=m?.dishes||&#x27;&#x27;;state.note=m?.note||&#x27;&#x27;;state.page=&#x27;meal-form&#x27;;render();return;}
       if(b.dataset.homeChoice!==undefined){state.atHome=b.dataset.homeChoice===&#x27;true&#x27;;render();return;}
       if(b.dataset.method){const m=b.dataset.method;state.method=state.method===m?null:m;if(state.method!==&#x27;下厨&#x27;)state.categories=[];render();return;}

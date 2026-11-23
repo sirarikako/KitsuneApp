@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -21,6 +22,7 @@ import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
@@ -267,6 +269,54 @@ class LedgerLayoutTest {
             }
         })
         onView(withId(android.R.id.button1)).perform(click())
+    }
+
+    @Test
+    fun rendersCategorySharesByDirectionAndCurrencyWithRefunds() {
+        val month = YearMonth.now()
+        val date = month.atDay(1).toString()
+        val earlier = month.minusMonths(1).atEndOfMonth().toString()
+        val now = "2026-11-17T12:00:00Z"
+        val daily = Wallet("daily", "日常钱包", "日常钱包", "CNY", 2, 0, 0, false, false,
+            CategoryMode.DEFAULT, CategoryMode.DEFAULT, now, now)
+        val travel = daily.copy(id = "travel", name = "旅行钱包", currencyCode = "JPY", currencyScale = 0)
+        val categories = listOf("food" to "食材", "refund" to "交通", "zero" to "日用", "salary" to "工资", "tickets" to "门票")
+            .map { (id, name) -> Category(id, if (id == "salary") Scope.INCOME else Scope.EXPENSE, null, "",
+                name, name, 0, false, false, now, now) }
+        fun entry(id: String, amount: Long, category: String?, type: EntryType = EntryType.EXPENSE,
+                  day: String = date, wallet: Wallet = daily, original: String? = null) =
+            FinancialEntry(id, day, "12:00", type, wallet.id, amount, category, null, null, original, "", now, now)
+        val entries = listOf(
+            entry("food", 700, "food"),
+            entry("old-ride", 300, "refund", day = earlier),
+            entry("ride-refund", 300, null, EntryType.REFUND, original = "old-ride"),
+            entry("purchase", 200, "zero"),
+            entry("purchase-refund", 200, null, EntryType.REFUND, original = "purchase"),
+            entry("salary", 1_200, "salary", EntryType.INCOME),
+            entry("tickets", 900, "tickets", wallet = travel),
+        )
+        val records = Records(DataState(installationId = "test", datasetId = "test", arrayElements = 0),
+            ThemePreferences(), emptyList(), categories, emptyList(), emptyMap(), listOf(daily, travel), entries)
+        compose.setContent { KitsuneTheme(records.theme) { LedgerPage(records, {}, {}) } }
+        compose.onNodeWithText("统计").performClick()
+        val list = compose.onNode(hasScrollToNodeAction())
+        fun assertShare(label: String, ratio: Float) {
+            val bar = hasContentDescription("${label}金额占比")
+            list.performScrollToNode(bar)
+            val progress = compose.onNode(bar).assertIsDisplayed().fetchSemanticsNode()
+                .config[SemanticsProperties.ProgressBarRangeInfo]
+            assertEquals(ratio, progress.current, 0.0001f)
+        }
+
+        assertShare("工资", 1f)
+        assertShare("食材", 0.7f)
+        assertShare("交通", 0.3f)
+        compose.onNodeWithText("-3.00").assertExists()
+        compose.onNodeWithText("条长按绝对值占比").assertExists()
+        compose.onNodeWithText("日用").assertExists()
+        compose.onNodeWithContentDescription("日用金额占比").assertDoesNotExist()
+        assertShare("门票", 1f)
+        compose.onNodeWithText("净支出分类 · JPY").assertExists()
     }
 
     @Test

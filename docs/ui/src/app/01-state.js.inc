@@ -198,13 +198,21 @@
     function week(){
       const selected=new Date(state.date+'T00:00:00Z');
       const monday=selected.getUTCDate()-(selected.getUTCDay()+6)%7;
+      const step=(offset,label,glyph)=>{
+        const day=new Date(selected);day.setUTCDate(day.getUTCDate()+offset*7);
+        const iso=day.toISOString().split('T')[0],marker=icon(glyph);
+        return `<button type="button" class="ks-text-btn cursor-interaction" data-week-step="${offset}" data-date="${iso}" ${isDate(iso)?'':'disabled'}>${offset<0?marker+label:label+marker}</button>`;
+      };
       const days=['一','二','三','四','五','六','日'].map((label,i)=>{
         const day=new Date(selected);day.setUTCDate(monday+i);
         const month=day.getUTCMonth()+1,number=day.getUTCDate(),iso=day.toISOString().split('T')[0];
         const available=day.getUTCFullYear()>=1&&day.getUTCFullYear()<=9999;
         return `<button class="ks-day cursor-interaction" data-date="${iso}" type="button" ${available?'':'disabled'} aria-label="${month} 月 ${number} 日，星期${label}" aria-pressed="${state.date===iso}"><small>${label}</small><span>${number}</span></button>`;
       }).join('');
-      return `<div class="ks-week" role="group" aria-label="选择日期">${days}</div>`;
+      return `<div class="ks-week">
+        <div class="ks-week-nav">${step(-1,'上一周','chevron-left')}${step(1,'下一周','chevron-right')}</div>
+        <div class="ks-week-days" role="group" aria-label="选择日期">${days}</div>
+      </div>`;
     }
     const section = (title,extra='') => `<div class="ks-section ks-row"><h3>${title}</h3>${extra}</div>`;
     const choice = (label,value,current,action) => `<button type="button" class="ks-choice cursor-interaction" data-${action}="${escapeText(value)}" aria-pressed="${current===value}">${label}</button>`;
@@ -225,7 +233,11 @@
     const walletScope=()=>{const chosen=selectedWallets(),label=state.walletFilterIds===null?'常规钱包':state.walletFilterIds==='ALL'?'全部钱包（含独立核算）':chosen.length===1?`${chosen[0].name} · ${chosen[0].code}`:`已选 ${chosen.length} 个钱包`;return `<div class="ks-toolbar"><button type="button" class="ks-toolbar-action ks-scope cursor-interaction" data-action="choose-wallets" aria-label="选择统计与流水的钱包范围"><span>${icon('wallet')}钱包范围</span><span>${escapeText(label)}${icon('chevron-down')}</span></button></div>${state.walletFilterIds&&chosen.length>1?`<p class="ks-filter-context">${chosen.map(w=>`${escapeText(w.name)} · ${w.code}`).join('、')}</p>`:''}`;};
     const methodCounts = meals => [...new Set(['下厨','外卖','未填写',...meals.map(m=>m.method||'未填写')])].map(method=>({method,count:meals.filter(m=>(m.method||'未填写')===method).length}));
     const recommendedSlot = () => {const hour=style.mealHour==='auto'?new Date().getHours():Number(style.mealHour);return hour<11?0:hour<17?1:2;};
-    const countBar = (label,count,denominator,unit='餐') => {const percent=denominator?Math.round(count/denominator*100):0;return `<div class="ks-stat-row"><div class="ks-row"><span>${escapeText(label)}</span><span><strong>${count} ${unit}</strong><small>${percent}%</small></span></div><div class="ks-bar-track" role="meter" aria-label="${escapeText(label)}：${count}${unit}，占${percent}%" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><div class="ks-bar-fill" style="width:${denominator?count/denominator*100:0}%"></div></div></div>`;};
+    const statBar=(label,ratio,tone='')=>`<div class="ks-bar-track ${tone}" role="meter" aria-label="${escapeText(label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(ratio*100)}"><div class="ks-bar-fill" style="width:${ratio*100}%"></div></div>`;
+    const countBar = (label,count,denominator,unit='餐') => {
+      const ratio=denominator?count/denominator:0,percent=Math.round(ratio*100);
+      return `<div class="ks-stat-row"><div class="ks-row"><span>${escapeText(label)}</span><span><strong>${count} ${unit}</strong><small>${percent}%</small></span></div>${statBar(`${label}：${count}${unit}，占${percent}%`,ratio)}</div>`;
+    };
     const mealResult=m=>{
       const method=m.method||'方式未填写',dishes=m.dishes||'未填写菜品';
       const meta=[`计划在家：${m.atHome?'是':'否'}`,...m.categories,m.note?`备注：${m.note.replace(/\s+/g,' ')}`:''].filter(Boolean).join(' · ');

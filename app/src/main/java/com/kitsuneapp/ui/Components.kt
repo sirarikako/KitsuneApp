@@ -411,12 +411,16 @@ internal fun DeleteAction(label: String, onClick: () -> Unit, enabled: Boolean =
 }
 
 @Composable
-internal fun TextAction(label: String, onClick: () -> Unit, trailing: ImageVector? = null) {
-    Row(Modifier.heightIn(min = 44.dp).clickable(role = Role.Button, onClick = onClick)
+internal fun TextAction(label: String, onClick: () -> Unit, trailing: ImageVector? = null,
+                        leading: ImageVector? = null, enabled: Boolean = true) {
+    val colors = MaterialTheme.colorScheme
+    val ink = if (enabled) colors.primary else colors.onSurfaceVariant.copy(alpha = 0.6f)
+    Row(Modifier.heightIn(min = 44.dp).clickable(enabled = enabled, role = Role.Button, onClick = onClick)
         .padding(horizontal = 2.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-        if (trailing != null) Icon(trailing, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+        if (leading != null) Icon(leading, null, Modifier.size(14.dp), tint = ink)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = ink)
+        if (trailing != null) Icon(trailing, null, Modifier.size(14.dp), tint = ink)
     }
 }
 
@@ -497,12 +501,13 @@ fun CountBar(label: String, count: Int, total: Int, unit: String = "餐") {
 }
 
 @Composable
-internal fun StatBar(ratio: Float, segmented: Boolean = false) {
+internal fun StatBar(ratio: Float, segmented: Boolean = false, color: Color = MaterialTheme.colorScheme.primary,
+                     modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
-    Row(Modifier.fillMaxWidth().height(if (segmented) 8.dp else 9.dp)
+    Row(modifier.fillMaxWidth().height(if (segmented) 8.dp else 9.dp)
         .clip(androidx.compose.foundation.shape.RoundedCornerShape(5.dp)).background(colors.surfaceVariant),
         horizontalArrangement = Arrangement.spacedBy(if (segmented && ratio in 0.001f..0.999f) 3.dp else 0.dp)) {
-        if (ratio > 0f) Spacer(Modifier.weight(ratio.coerceAtMost(1f)).fillMaxHeight().background(colors.primary))
+        if (ratio > 0f) Spacer(Modifier.weight(ratio.coerceAtMost(1f)).fillMaxHeight().background(color))
         if (ratio < 1f) Spacer(Modifier.weight((1f - ratio).coerceAtMost(1f)).fillMaxHeight()
             .background(if (segmented) colors.onSurfaceVariant.copy(alpha = .45f) else Color.Transparent))
     }
