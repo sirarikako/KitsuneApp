@@ -31,6 +31,7 @@
   #kitsune-preview .ks-home-currency small{display:block;color:var(--ks-dim);font-size:11px;margin-bottom:3px}
   #kitsune-preview .ks-home-currency strong{display:block;font-size:16px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
   #kitsune-preview .ks-home-currency .ks-money-caption{padding-top:2px;font-weight:600}
+  #kitsune-preview .ks-home-money .ks-primary{margin-top:8px}
   #kitsune-preview .ks-stat-row{padding:var(--ks-space-3) 0}
   #kitsune-preview .ks-stat-row + .ks-stat-row{border-top:1px solid var(--ks-line)}
   #kitsune-preview .ks-stat-row .ks-row{font-size:13px}

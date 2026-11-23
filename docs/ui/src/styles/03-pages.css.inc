@@ -81,8 +81,6 @@
   #kitsune-preview .ks-motion-copy *{pointer-events:none!important}
   #kitsune-preview .ks-motion-modal-copy{z-index:21}
   #kitsune-preview .ks-motion-appearance-copy{pointer-events:none;overflow:hidden}
-  #kitsune-preview .ks-home-actions{display:flex;align-items:center;gap:4px}
-  #kitsune-preview .ks-home-add{min-width:44px;color:var(--ks-accent)}
   #kitsune-preview .ks-phone:has(>.ks-ledger-screen){height:clamp(570px,92vh,740px);min-height:0}
   #kitsune-preview .ks-ledger-screen{position:relative;min-height:0;overflow:hidden}
   #kitsune-preview .ks-ledger-screen .ks-main{min-height:0;overflow-y:auto;overflow-anchor:none;overscroll-behavior:contain;padding-top:12px}

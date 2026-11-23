@@ -342,12 +342,12 @@ private fun Home(records: Records, now: LocalDateTime, open: (String) -> Unit, m
             val ledger = remember(records) { Ledger(records) }
             Section("本月收支") {
                 TextAction("查看账本", { open("ledger") }, designIcon(R.drawable.ks_arrow_up_right))
-                Spacer(Modifier.width(4.dp))
-                SquareIcon(designIcon(R.drawable.ks_plus), "记一笔") { open(newEntryRoute(ledger)) }
             }
             Paper {
                 val month = java.time.YearMonth.from(now).toString()
-                val totals = remember(ledger, month) { ledger.statistics(LedgerPeriod(month), WalletRange()) }
+                val totals = remember(ledger, month) {
+                    ledger.statistics(LedgerPeriod(month), WalletRange()).sortedBy { it.currency != "CNY" }
+                }
                 if (totals.isEmpty()) Secondary("暂无常规钱包的收支")
                 totals.forEachIndexed { index, total ->
                     if (index > 0) HorizontalDivider()
@@ -365,6 +365,8 @@ private fun Home(records: Records, now: LocalDateTime, open: (String) -> Unit, m
                         }
                     }
                 }
+                Primary("记一笔", { open(newEntryRoute(ledger)) }, Modifier.fillMaxWidth(),
+                    icon = designIcon(R.drawable.ks_plus))
             }
         }
     }

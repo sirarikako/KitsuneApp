@@ -2015,6 +2015,7 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-home-currency small{display:block;color:var(--ks-dim);font-size:11px;margin-bottom:3px}
   #kitsune-preview .ks-home-currency strong{display:block;font-size:16px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
   #kitsune-preview .ks-home-currency .ks-money-caption{padding-top:2px;font-weight:600}
+  #kitsune-preview .ks-home-money .ks-primary{margin-top:8px}
   #kitsune-preview .ks-stat-row{padding:var(--ks-space-3) 0}
   #kitsune-preview .ks-stat-row + .ks-stat-row{border-top:1px solid var(--ks-line)}
   #kitsune-preview .ks-stat-row .ks-row{font-size:13px}
@@ -2152,8 +2153,6 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-motion-copy *{pointer-events:none!important}
   #kitsune-preview .ks-motion-modal-copy{z-index:21}
   #kitsune-preview .ks-motion-appearance-copy{pointer-events:none;overflow:hidden}
-  #kitsune-preview .ks-home-actions{display:flex;align-items:center;gap:4px}
-  #kitsune-preview .ks-home-add{min-width:44px;color:var(--ks-accent)}
   #kitsune-preview .ks-phone:has(&gt;.ks-ledger-screen){height:clamp(570px,92vh,740px);min-height:0}
   #kitsune-preview .ks-ledger-screen{position:relative;min-height:0;overflow:hidden}
   #kitsune-preview .ks-ledger-screen .ks-main{min-height:0;overflow-y:auto;overflow-anchor:none;overscroll-behavior:contain;padding-top:12px}
@@ -2433,15 +2432,17 @@ html&gt;body{padding:0}&lt;/style&gt;
     };
     function pageHome(){
       const today=state.records[demoToday]||[null,null,null],count=today.filter(Boolean).length,current=recommendedSlot();
-      const groups=currencyGroups(monthEntries(demoToday.slice(0,7)).filter(e=&gt;regularWallets().some(w=&gt;w.id===e.walletId)),regularWallets());
+      const groups=currencyGroups(monthEntries(demoToday.slice(0,7)).filter(e=&gt;regularWallets().some(w=&gt;w.id===e.walletId)),regularWallets())
+        .sort((a,b)=&gt;Number(b.code===&#x27;CNY&#x27;)-Number(a.code===&#x27;CNY&#x27;));
       return `&lt;section class=&quot;ks-daily&quot; aria-label=&quot;今日用餐进度&quot;&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;h3 class=&quot;ks-daily-heading&quot;&gt;今日用餐 &lt;strong&gt;${count}&lt;/strong&gt;&lt;span class=&quot;ks-note&quot;&gt; / 3&lt;/span&gt;&lt;/h3&gt;&lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-page=&quot;meals&quot;&gt;全部记录 ${icon(&#x27;chevron-right&#x27;)}&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;ks-daily-states&quot;&gt;${slots.map((slot,i)=&gt;`&lt;span class=&quot;ks-daily-state ${today[i]?&#x27;&#x27;:&#x27;ks-pending&#x27;}&quot;&gt;${icon(today[i]?&#x27;circle-check&#x27;:&#x27;circle-dashed&#x27;)}&lt;span&gt;${slot}${today[i]?&#x27;已记&#x27;:&#x27;待记&#x27;}&lt;/span&gt;&lt;/span&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary ks-full cursor-interaction&quot; data-home-meal data-meal=&quot;${current}&quot;&gt;${icon(today[current]?&#x27;pencil&#x27;:&#x27;plus&#x27;)}${today[current]?&#x27;编辑&#x27;:&#x27;记录&#x27;}${slots[current]}&lt;/button&gt;&lt;/section&gt;
-        ${section(&#x27;本月收支&#x27;,`&lt;div class=&quot;ks-home-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-page=&quot;ledger&quot;&gt;查看账本 ${icon(&#x27;arrow-up-right&#x27;)}&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-icon-btn ks-home-add&quot; data-action=&quot;add-entry&quot; aria-label=&quot;记一笔&quot; title=&quot;记一笔&quot;&gt;${icon(&#x27;plus&#x27;)}&lt;/button&gt;&lt;/div&gt;`)}
+        ${section(&#x27;本月收支&#x27;,`&lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-page=&quot;ledger&quot;&gt;查看账本 ${icon(&#x27;arrow-up-right&#x27;)}&lt;/button&gt;`)}
         &lt;div class=&quot;ks-money-card ks-home-money&quot;&gt;
           ${groups.map(({code,entries})=&gt;`&lt;div class=&quot;ks-home-currency&quot; data-currency=&quot;${code}&quot;&gt;
             &lt;span class=&quot;ks-money-caption&quot;&gt;${code}&lt;/span&gt;
             &lt;span&gt;&lt;small&gt;净支出&lt;/small&gt;&lt;strong data-expense&gt;${money(netExpense(entries),code)}&lt;/strong&gt;&lt;/span&gt;
             &lt;span&gt;&lt;small&gt;收入&lt;/small&gt;&lt;strong data-income&gt;${money(total(entries,&#x27;收入&#x27;),code)}&lt;/strong&gt;&lt;/span&gt;
           &lt;/div&gt;`).join(&#x27;&#x27;)}
+          &lt;button type=&quot;button&quot; class=&quot;ks-primary ks-full cursor-interaction&quot; data-action=&quot;add-entry&quot;&gt;${icon(&#x27;plus&#x27;)}记一笔&lt;/button&gt;
         &lt;/div&gt;`;
     }
     function pageMeals(){
