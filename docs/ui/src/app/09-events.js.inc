@@ -35,13 +35,19 @@
         render();(phone.querySelector(focus)??phone.querySelector('[data-calendar-action=jump]'))?.focus({preventScroll:true});return;
       }
       if(b.dataset.githubAction){
-        const action=b.dataset.githubAction;
-        if(action==='open')state.page='github';
-        else if(action==='backup')state.githubDemo.backedUp=true;
-        else if(action==='review'||action==='restore')state.githubDemo.review=action;
-        else state.githubDemo.review=null;
+        const action=b.dataset.githubAction,demo=state.githubDemo;
+        if(action==='open'||action==='handle'){state.page='github';demo.review=null;}
+        else if(action==='backup'||action==='apply-upload'){
+          demo.uploading=true;demo.review=null;
+          setTimeout(()=>{if(demo.uploading){demo.uploading=false;demo.scenario='normal';demo.backedUp=true;render();}},600);
+        }
+        else if(action==='apply-restore'){demo.scenario='restored';demo.review='notice';}
+        else if(action==='configure'){demo.editing=true;demo.draftWifi=demo.wifi;}
+        else if(action==='save-connection'){demo.wifi=demo.draftWifi;demo.editing=false;demo.scenario='review';}
+        else if(action==='cancel-connection')demo.editing=false;
+        else demo.review=action==='cancel'?null:action;
         render();
-        if(action==='cancel'||action==='confirm')phone.querySelector('[data-github-action=review]').focus({preventScroll:true});
+        if(!demo.review)phone.querySelector('[data-github-action=restore-preview]')?.focus({preventScroll:true});
         return;
       }
       if(b.dataset.previewMode){state.previewMode=b.dataset.previewMode;updateAppearancePreview();return;}
@@ -149,7 +155,7 @@
       if(event.key==='Escape'){
         event.preventDefault();
         if(state.githubDemo.review){
-          state.githubDemo.review=null;render();phone.querySelector('[data-github-action=review]').focus({preventScroll:true});
+          state.githubDemo.review=null;render();phone.querySelector('[data-github-action=restore-preview]')?.focus({preventScroll:true});
         }else if(state.addingMealOption)closeMealOption();
         else if(state.mealCalendar)closeMealCalendar(false);
         else if(state.ledgerPeriodDraft)closeLedgerPeriod(false);
@@ -165,6 +171,12 @@
     });
     phone.addEventListener('change',event=>{
       const e=event.target;
+      if(e.matches('[data-github-wifi]')){state.githubDemo.wifi=e.checked;return;}
+      if(e.matches('[data-github-wifi-draft]')){state.githubDemo.draftWifi=e.checked;return;}
+      if(e.matches('[data-github-scenario]')){
+        state.githubDemo.scenario=e.value;state.githubDemo.editing=false;state.githubDemo.uploading=false;
+        state.githubDemo.review=githubPause()?'notice':null;render();return;
+      }
       if(e.matches('[data-category-wallet]')){state.categoryWalletId=e.value;state.editingFinancialCategoryId=null;render();return;}
       if(e.matches('[data-category-mode]')){const wallet=wallets.find(w=>w.id===state.categoryWalletId);if(wallet){wallet[state.financialScope==='INCOME'?'incomeCategoryMode':'expenseCategoryMode']=e.value;state.editingFinancialCategoryId=null;render();}return;}
       if(e.matches('[data-wallet-option]')){

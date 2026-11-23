@@ -6,6 +6,8 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,10 +17,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kitsuneapp.AppViewModel
 import com.kitsuneapp.RestorePreview
 import com.kitsuneapp.backup.CLOUD_LIMIT
-import com.kitsuneapp.backup.GitHubState
+import com.kitsuneapp.backup.GitHubBackupStatus
+import com.kitsuneapp.backup.GitHubPause
+import com.kitsuneapp.backup.GitHubPauseReason
 import com.kitsuneapp.backup.suggestedBackupFilename
 import com.kitsuneapp.data.BackupKind
 import com.kitsuneapp.data.Records
@@ -26,6 +31,12 @@ import com.kitsuneapp.data.backupStatusTime
 import com.kitsuneapp.ui.*
 import java.math.BigDecimal
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
+
+internal const val GITHUB_PAUSED = "自动备份已暂停"
+private const val LOCAL_DATA_SAVED = "本机记录仍会正常保存，暂时不会自动上传。"
+
+private enum class CloudDialogStep { SUMMARY, RESTORE, UPLOAD }
 
 @Composable
 fun GitHubPage(records: Records, model: AppViewModel, back: () -> Unit) {
@@ -37,19 +48,32 @@ fun GitHubPage(records: Records, model: AppViewModel, back: () -> Unit) {
     val busy by model.busy.collectAsState()
     val error by model.error.collectAsState()
     val state = records.state
-    val owned = config?.takeIf { it.installation == state.installationId &&
-        (it.generation != state.generation || it.lastRevision <= state.revision) }
+    val owned = config?.takeIf { it.belongsTo(state) }
+    val pause = config?.pause(state)
+    val wifiAvailable by service.wifiChanges.collectAsStateWithLifecycle(service.wifiAvailable())
+    val retryGate = owned?.retry
+    val retryWaiting by produceState(initialValue = false, retryGate) {
+        val delayMs = service.retryDelay(retryGate)
+        value = delayMs > 0
+        if (value) {
+            delay(delayMs)
+            value = false
+        }
+    }
+    val wifiChange by model.githubWifiChange.collectAsState()
+    val wifiUpdate = wifiChange?.takeIf { it.binding == owned?.binding }
     val hasFolder = directory?.let { it.installation == state.installationId &&
         (it.generation != state.generation || it.revision <= state.revision) } == true
-    var editing by rememberSaveable { mutableStateOf(owned == null) }
-    var target by rememberSaveable { mutableStateOf(owned?.let { "${it.target.owner}/${it.target.repository}" }.orEmpty()) }
-    var branch by rememberSaveable { mutableStateOf(owned?.target?.branch ?: "main") }
+    var editingBinding by rememberSaveable { mutableStateOf<String?>(null) }
+    val editing = owned == null || editingBinding == owned.binding
+    var target by rememberSaveable { mutableStateOf(config?.target?.let { "${it.owner}/${it.repository}" }.orEmpty()) }
+    var branch by rememberSaveable { mutableStateOf(config?.target?.branch ?: "main") }
     var token by remember { mutableStateOf("") }
     var wifi by rememberSaveable { mutableStateOf(owned?.wifiOnly ?: false) }
     var threshold by rememberSaveable(owned?.capacity?.thresholdMb) { mutableStateOf((owned?.capacity?.thresholdMb ?: 800).toString()) }
     val preview by model.restorePreview.collectAsState()
     val cloudRestore = preview as? RestorePreview.Cloud
-    var restoring by rememberSaveable { mutableStateOf(false) }
+    var step by rememberSaveable { mutableStateOf(CloudDialogStep.SUMMARY) }
     var estimated by remember { mutableStateOf<Long?>(null) }
     LaunchedEffect(state.revision, owned?.repositoryId) {
         estimated = if (owned == null) null else try {
@@ -65,52 +89,93 @@ fun GitHubPage(records: Records, model: AppViewModel, back: () -> Unit) {
         if (uri != null && cloudRestore != null) model.restoreBackup(cloudRestore, uri)
     }
 
+    fun reconfigure() {
+        target = config?.target?.let { "${it.owner}/${it.repository}" }.orEmpty()
+        branch = config?.target?.branch ?: "main"
+        token = ""
+        wifi = owned?.wifiOnly ?: false
+        editingBinding = owned?.binding
+    }
+
+    fun preview(resolvePause: Boolean) {
+        step = CloudDialogStep.SUMMARY
+        model.previewCloudRestore(resolvePause)
+    }
+
     Column {
         Header("GitHub 备份", back = back)
+        Box(Modifier.fillMaxWidth().height(4.dp)) {
+            if (busy || running) LinearProgressIndicator(Modifier.fillMaxSize())
+        }
         Form {
             Paper {
-                Text(when {
-                    config != null && owned == null -> "需重新配置并确认"
-                    owned == null -> "未配置"
-                    running -> "备份执行中"
-                    owned.generation != state.generation -> "完整恢复后等待确认更新远端"
-                    owned.paused != null && owned.consent == null -> owned.paused
-                    owned.status != null && owned.failedRevision == state.revision -> owned.status
-                    owned.lastRevision == state.revision -> "最新修订已备份"
-                    else -> "最新修订等待备份"
-                }, style = MaterialTheme.typography.titleLarge)
-                if (owned != null) {
-                    Secondary("上次成功 · ${backupStatusTime(owned.succeededAt) ?: "尚无成功记录"}")
-                    Secondary("${owned.target.owner}/${owned.target.repository} · ${owned.target.branch}")
+                val status = owned?.status(state.revision, running, wifiAvailable, retryWaiting)
+                Text(if (pause != null) GITHUB_PAUSED else status?.label ?: "未配置",
+                    style = MaterialTheme.typography.titleLarge)
+                if (pause != null) {
+                    Text(pause.description())
+                    Secondary(LOCAL_DATA_SAVED)
+                }
+                config?.let {
+                    Secondary("上次成功 · ${backupStatusTime(owned?.succeededAt) ?: "尚无成功记录"}")
+                    Secondary("${it.target.owner}/${it.target.repository} · ${it.target.branch}")
+                }
+                if (owned != null && (pause == null || owned.consent != null)) {
+                    if (pause != null && status != null) Secondary(status.label)
+                    owned.status?.takeIf {
+                        it == "已是最新" && status == GitHubBackupStatus.NORMAL ||
+                            owned.failedRevision == state.revision && it != "等待连接到 Wi-Fi"
+                    }
+                        ?.let { Secondary(it) }
                 }
                 estimated?.takeIf { it >= CLOUD_LIMIT * 8 / 10 }?.let {
                     Text(if (it > CLOUD_LIMIT) "当前快照超过 GitHub 的 32 MiB 上限，请使用本地备份。"
                         else "当前快照接近 GitHub 的 32 MiB 上限。", color = MaterialTheme.colorScheme.error)
                 }
-                if (owned != null && owned.paused == null && owned.generation == state.generation) {
-                    Primary("立即备份", { model.backup { service.schedule(manual = true) } }, Modifier.fillMaxWidth(),
-                        enabled = !busy && !running)
+                if (pause != null) {
+                    val canConfigure = pause.reason == GitHubPauseReason.CONNECTION
+                    Primary(pause.reason.action, {
+                        if (canConfigure) reconfigure() else preview(resolvePause = true)
+                    }, Modifier.fillMaxWidth(), enabled = !busy && !running && !(canConfigure && editing))
                 }
-                if (busy || running) LinearProgressIndicator(Modifier.fillMaxWidth())
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            }
+            if (editing) {
+                Section("连接私有仓库")
+                Paper {
+                    Field("仓库（owner/repository）", target, { target = it })
+                    Field("分支", branch, { branch = it })
+                    Field("细粒度访问令牌", token, { token = it }, keyboard = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        transformation = PasswordVisualTransformation())
+                    Toggle("仅使用 Wi-Fi", wifi, enabled = !busy) { wifi = it }
+                    Secondary("请将令牌限定为数据仓库的 Contents 读写权限。完整 JSON 会保存在 backups/latest.json。")
+                    Primary("测试并保存连接", {
+                        val supplied = token
+                        val savedTarget = target
+                        val savedBranch = branch
+                        val savedWifi = wifi
+                        model.backup({ token = ""; editingBinding = null }) {
+                            service.connect(savedTarget, savedBranch, supplied, savedWifi)
+                        }
+                    }, Modifier.fillMaxWidth(), enabled = !busy && token.isNotBlank())
+                    if (owned != null) Choice("取消", { token = ""; editingBinding = null }, Modifier.fillMaxWidth(), enabled = !busy)
+                }
             }
             if (owned != null) {
-                Section("远端核对与恢复")
                 Paper {
-                    Choice("核对远端备份", {
-                        restoring = false
-                        model.previewCloudRestore()
-                    }, Modifier.fillMaxWidth(), enabled = !busy)
+                    Primary("立即备份", { model.backup { service.schedule(manual = true) } }, Modifier.fillMaxWidth(),
+                        enabled = pause == null && !busy && !running)
+                    Choice("从 GitHub 恢复", { preview(resolvePause = false) }, Modifier.fillMaxWidth(), enabled = !busy)
                 }
                 Paper {
-                    Toggle("仅使用 Wi-Fi", owned.wifiOnly) { selected ->
-                        if (!busy) model.backup { service.setWifi(selected) }
+                    Toggle("仅使用 Wi-Fi", wifiUpdate?.requested ?: owned.wifiOnly,
+                        enabled = !busy && !editing && wifiUpdate?.requested == null) { selected ->
+                        model.setGitHubWifi(owned.binding, selected)
                     }
-                    Choice("重新配置连接", {
-                        target = "${owned.target.owner}/${owned.target.repository}"
-                        branch = owned.target.branch
-                        wifi = owned.wifiOnly
-                        editing = true
-                    }, Modifier.fillMaxWidth(), enabled = !busy)
+                    if (pause?.reason != GitHubPauseReason.CONNECTION) {
+                        Choice("重新配置连接", ::reconfigure, Modifier.fillMaxWidth(), enabled = !busy && !editing)
+                    }
+                    wifiUpdate?.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 }
                 Section("仓库容量提醒")
                 Paper {
@@ -122,52 +187,103 @@ fun GitHubPage(records: Records, model: AppViewModel, back: () -> Unit) {
                     Choice("保存阈值", { model.backup { service.setThreshold(threshold) } }, Modifier.fillMaxWidth(), enabled = !busy)
                 }
             }
-            if (editing) {
-                Section("连接私有仓库")
-                Paper {
-                    Field("仓库（owner/repository）", target, { target = it })
-                    Field("分支", branch, { branch = it })
-                    Field("细粒度访问令牌", token, { token = it }, keyboard = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        transformation = PasswordVisualTransformation())
-                    Toggle("仅使用 Wi-Fi", wifi) { wifi = it }
-                    Secondary("请将令牌限定为数据仓库的 Contents 读写权限。完整 JSON 会保存在 backups/latest.json。")
-                    Primary("测试并保存连接", {
-                        val supplied = token
-                        model.backup({ token = ""; editing = false }) { service.connect(target, branch, supplied, wifi) }
-                    }, Modifier.fillMaxWidth(), enabled = !busy && token.isNotBlank())
-                    if (owned != null) Choice("取消", { token = ""; editing = false }, Modifier.fillMaxWidth(), enabled = !busy)
-                }
-            }
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         }
     }
 
     cloudRestore?.let { preview ->
         val staged = preview.source.stage
-        if (restoring && staged != null) {
-            RestoreDialog(staged, state.revision != 0L, hasFolder, busy, error,
-                { restoring = false }, { model.restoreBackup(preview, null) },
-                { protect.launch(suggestedBackupFilename(BackupKind.PRE_RESTORE)) })
-        } else {
-            AlertDialog(onDismissRequest = { model.discardRestorePreview(preview) }, shape = DialogShape,
-                title = { Text("核对远端备份") }, text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("本机 · 用餐 ${records.meals.size} 条 · 钱包 ${records.wallets.size} 个 · 账目 ${records.entries.size} 笔")
-                        if (staged == null) Text("远端尚无备份文件。确认后创建本机完整备份。")
-                        else {
-                            Text("远端 · ${staged.info.exportedAt}")
-                            Text("用餐 ${staged.counts.meals} 条 · 钱包 ${staged.counts.wallets} 个 · 账目 ${staged.counts.entries} 笔")
-                            Secondary("覆盖授权只适用于当前远端版本。")
-                            Choice("恢复云端", { restoring = true }, Modifier.fillMaxWidth(), enabled = !busy)
+        val needsProtection = state.revision != 0L
+        val dismiss = { model.discardRestorePreview(preview) }
+        when (step) {
+            CloudDialogStep.RESTORE -> if (staged != null) {
+                RestoreDialog(staged, needsProtection, hasFolder, busy, error, dismiss,
+                    { model.restoreBackup(preview, null) },
+                    { protect.launch(suggestedBackupFilename(BackupKind.PRE_RESTORE)) })
+            }
+            CloudDialogStep.UPLOAD -> if (preview.source.pause != null) {
+                val action = uploadAction(preview, owned?.accepted)
+                AlertDialog(onDismissRequest = { if (!busy) dismiss() }, shape = DialogShape,
+                    title = { Text(action) }, text = {
+                        Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(if (staged != null) "这会用本机完整数据覆盖当前 GitHub 备份。"
+                                else "这会将本机完整数据写入 GitHub，建立新的备份文件。")
+                            Secondary("确认仅适用于本次核对的仓库、分支和远端版本。")
+                            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                         }
-                        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                    }
-                }, confirmButton = {
-                    val action = if (staged != null) "保留本机并覆盖" else if (owned?.accepted?.isNotEmpty() == true) "确认重建" else "确认创建"
-                    Primary(action, { model.confirmCloudBackup(preview) }, enabled = !busy, danger = staged != null)
-                }, dismissButton = { TextButton({ model.discardRestorePreview(preview) }, enabled = !busy) { Text("取消") } })
+                    }, confirmButton = {
+                        Primary(if (staged == null) "确认备份" else "确认覆盖 GitHub",
+                            { model.confirmCloudBackup(preview) }, enabled = !busy, danger = staged != null)
+                    }, dismissButton = { TextButton(dismiss, enabled = !busy) { Text("取消") } })
+            }
+            CloudDialogStep.SUMMARY -> GitHubSummary(records, preview, needsProtection, busy, error, owned?.accepted,
+                dismiss, { step = CloudDialogStep.RESTORE }, { step = CloudDialogStep.UPLOAD })
         }
     }
+}
+
+private fun uploadAction(preview: RestorePreview.Cloud, accepted: String?): String = when {
+    preview.source.stage != null -> "保留本机数据并覆盖 GitHub"
+    preview.source.pause?.reason == GitHubPauseReason.CONFLICT || !accepted.isNullOrEmpty() -> "重新创建 GitHub 备份"
+    else -> "创建 GitHub 备份"
+}
+
+@Composable
+private fun GitHubSummary(
+    records: Records,
+    preview: RestorePreview.Cloud,
+    needsProtection: Boolean,
+    busy: Boolean,
+    error: String?,
+    accepted: String?,
+    dismiss: () -> Unit,
+    restore: () -> Unit,
+    upload: () -> Unit,
+) {
+    val staged = preview.source.stage
+    val resolution = preview.source.pause
+    AlertDialog(onDismissRequest = { if (!busy) dismiss() }, shape = DialogShape,
+        title = { Text(resolution?.reason?.action ?: "从 GitHub 恢复") },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("本机 · 用餐 ${records.meals.size} 条 · 钱包 ${records.wallets.size} 个 · 账目 ${records.entries.size} 笔")
+                if (staged == null) {
+                    Text("GitHub 尚无备份")
+                } else {
+                    Text("GitHub 备份时间 · ${backupStatusTime(staged.info.exportedAt) ?: staged.info.exportedAt}")
+                    Text("用餐 ${staged.counts.meals} 条 · 钱包 ${staged.counts.wallets} 个 · 账目 ${staged.counts.entries} 笔")
+                    if (resolution?.reason != GitHubPauseReason.RESTORED) {
+                        Secondary("恢复会替换本机全部业务数据与外观。")
+                        if (needsProtection) Secondary("继续恢复前需写入并校验本机保护文件。")
+                    }
+                }
+                if (resolution != null) {
+                    if (staged != null && resolution.reason != GitHubPauseReason.RESTORED) {
+                        Choice("使用 GitHub 数据恢复本机", restore, Modifier.fillMaxWidth(), enabled = !busy)
+                    }
+                    Choice(uploadAction(preview, accepted), upload, Modifier.fillMaxWidth(), enabled = !busy)
+                }
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            }
+        }, confirmButton = {
+            if (resolution == null && staged != null) Primary("继续恢复", restore, enabled = !busy)
+            if (resolution == null && staged == null) TextButton(dismiss, enabled = !busy) { Text("返回") }
+        }, dismissButton = {
+            if (resolution != null || staged != null) TextButton(dismiss, enabled = !busy) { Text("取消") }
+        })
+}
+
+private fun GitHubPause.description() = detail?.takeIf(String::isNotBlank) ?: reason.description
+
+@Composable
+internal fun GitHubPauseAlert(pause: GitHubPause, model: AppViewModel, onHandle: () -> Unit) {
+    fun acknowledge(handle: Boolean) {
+        model.backup({ if (handle) onHandle() }) { github.acknowledgePause(pause.id) }
+    }
+    AlertDialog(onDismissRequest = { acknowledge(false) }, shape = DialogShape,
+        title = { Text("GitHub 自动备份已暂停") },
+        text = { Text("${pause.description()}\n\n$LOCAL_DATA_SAVED", Modifier.verticalScroll(rememberScrollState())) },
+        confirmButton = { Primary("前往处理", { acknowledge(true) }) },
+        dismissButton = { TextButton({ acknowledge(false) }) { Text("稍后处理") } })
 }
 
 @Composable
@@ -176,8 +292,7 @@ fun CapacityAlert(records: Records, model: AppViewModel) {
     val config by source.state.collectAsState()
     val busy by model.busy.collectAsState()
     val context = LocalContext.current
-    val state = config?.takeIf { it.installation == records.state.installationId &&
-        (it.generation != records.state.generation || it.lastRevision <= records.state.revision) && it.capacity.pending }
+    val state = config?.takeIf { it.belongsTo(records.state) && it.capacity.pending }
     val size = state?.capacity?.sizeKb
     if (state == null || size == null || busy) return
 

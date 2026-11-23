@@ -1,6 +1,9 @@
 package com.kitsuneapp.backup
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingWorkPolicy
@@ -25,8 +28,10 @@ import java.io.OutputStream
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -36,11 +41,16 @@ internal data class GitHubPreview(
     val target: GitHubTarget,
     val repositoryId: Long,
     val binding: String,
+    val datasetId: String,
+    val generation: Long,
     val condition: String,
     val stage: StagedSnapshot?,
+    val pause: GitHubPause?,
 ) : Closeable {
     override fun close() { stage?.close() }
 }
+
+internal class GitHubPreviewChanged(message: String) : IllegalStateException(message)
 
 private const val MINUTE = 60_000L
 private const val WRITE_INTERVAL = 30 * MINUTE
@@ -52,6 +62,9 @@ internal class GitHubBackup(
     private val repository: Repository,
     private val snapshots: SnapshotStore,
     private val publication: Mutex,
+    private val createClient: (GitHubTarget, String, Boolean) -> GitHubClient = { target, token, wifi ->
+        GitHubClient(context, target, token, wifi)
+    },
 ) {
     private val prefs = context.getSharedPreferences("github-target", Context.MODE_PRIVATE)
     private val gson = Gson()
@@ -63,6 +76,21 @@ internal class GitHubBackup(
     val state = mutableState.asStateFlow()
     private val mutableRunning = MutableStateFlow(false)
     val running = mutableRunning.asStateFlow()
+    private val network = requireNotNull(context.getSystemService(ConnectivityManager::class.java))
+    fun wifiAvailable() = network.activeWifi() != null
+    fun retryDelay(gate: DelayGate?) = clock.refreshed(gate)?.remaining(clock.now) ?: 0L
+
+    val wifiChanges = callbackFlow {
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onLost(network: Network) { trySend(false) }
+            override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
+                trySend(capabilities.isBackupWifi())
+            }
+        }
+        network.registerDefaultNetworkCallback(callback)
+        trySend(wifiAvailable())
+        awaitClose { network.unregisterNetworkCallback(callback) }
+    }
 
     @Synchronized
     private fun persist(data: GitHubState) {
@@ -86,12 +114,13 @@ internal class GitHubBackup(
             val safeToken = token.trim()
             require(safeToken.startsWith("github_pat_") && safeToken.all { it.isLetterOrDigit() || it == '_' }) { "请输入细粒度访问令牌" }
             val target = GitHubTarget(parts[0], parts[1], branch.trim())
-            val remote = GitHubClient(context, target, safeToken, wifi).version()
+            val remote = createClient(target, safeToken, wifi).version()
             val previous = state.value
             val sameRepo = previous?.installation == local.installationId && previous.repositoryId == remote.repo.id
             val sameTarget = sameRepo && previous?.target?.branch == target.branch
             val configuration = GitHubState(local.installationId, target, remote.repo.id,
                 BackupSecret(local.installationId).encrypt(safeToken), wifi, local.generation,
+                succeededAt = previous?.takeIf { sameTarget && it.belongsTo(local) }?.succeededAt,
                 attempts = if (sameTarget) previous?.attempts.orEmpty() else emptyList(),
                 retry = if (sameTarget) previous?.retry else null,
                 capacity = if (sameRepo) checkNotNull(previous).capacity else Capacity(thresholdMb = previous?.capacity?.thresholdMb ?: 800))
@@ -108,14 +137,20 @@ internal class GitHubBackup(
         }
     }
 
-    suspend fun setWifi(enabled: Boolean) {
-        withContext(Dispatchers.IO) {
-            publication.withLock {
-                val config = ownerConfig(repository.ownedState())
-                persist(config.copy(wifiOnly = enabled))
-            }
+    suspend fun setWifi(binding: String, enabled: Boolean) = withContext(Dispatchers.IO) {
+        publication.withLock {
+            val config = ownerConfig(repository.ownedState())
+            check(config.binding == binding) { "GitHub 连接已更改，请重试" }
+            persist(config.copy(wifiOnly = enabled))
         }
-        schedule()
+    }
+
+    suspend fun acknowledgePause(id: String) = withContext(Dispatchers.IO) {
+        publication.withLock {
+            val local = repository.ownedState()
+            val config = state.value ?: return@withLock
+            if (config.pause(local)?.id == id) persist(config.copy(acknowledgedPause = id))
+        }
     }
 
     suspend fun estimateBytes(): Long = snapshots.measure()
@@ -133,29 +168,27 @@ internal class GitHubBackup(
         val token = try {
             BackupSecret(configuration.installation).decrypt(configuration.encryptedToken)
         } catch (_: Exception) {
-            throw IllegalArgumentException("GitHub 凭据需重新配置")
+            throw GitHubConnectionInvalid("GitHub 凭据需重新配置")
         }
-        return GitHubClient(context, configuration.target, token, configuration.wifiOnly)
+        return createClient(configuration.target, token, configuration.wifiOnly)
     }
 
     private fun ownerConfig(local: DataState): GitHubState {
-        val config = requireNotNull(state.value?.takeIf { it.installation == local.installationId }) { "请先重新配置 GitHub 备份" }
-        require(config.generation != local.generation || config.lastRevision <= local.revision) {
-            "检测到本机修订倒退，请重新配置 GitHub 备份"
-        }
-        return config
+        return requireNotNull(state.value?.takeIf { it.belongsTo(local) }) { "请先重新配置 GitHub 备份" }
     }
 
-    suspend fun preview(): GitHubPreview = withContext(Dispatchers.IO) {
+    suspend fun preview(resolvePause: Boolean): GitHubPreview = withContext(Dispatchers.IO) {
         publication.withLock {
             val local = repository.ownedState()
-            val config = ownerConfig(local)
-            validateRetry(config)
-            val client = client(config)
-            withUserRateLimit(config) {
+            val config = validateRetry(ownerConfig(local))
+            val pause = if (resolvePause) config.pause(local)?.takeUnless { it.reason == GitHubPauseReason.CONNECTION }
+                ?: throw GitHubPreviewChanged("备份暂停状态已更改，请重新核对") else null
+            withUserFailure(config) {
+                val client = client(config)
                 val remote = client.verifiedVersion(config)
                 val stage = remote.backup?.let { download(client, it) { file -> file.inputStream().use { snapshots.stage(it) } } }
-                GitHubPreview(config.target, config.repositoryId, config.binding, remote.condition, stage)
+                GitHubPreview(config.target, config.repositoryId, config.binding, local.datasetId, local.generation,
+                    remote.condition, stage, pause)
             }
         }
     }
@@ -164,10 +197,18 @@ internal class GitHubBackup(
         withContext(Dispatchers.IO) {
             publication.withLock {
                 val current = repository.ownedState()
-                val config = ownerConfig(current)
-                verifyPreview(config, preview)
-                validateRetry(config)
-                persist(config.copy(generation = current.generation, consent = preview.condition, bypassFrequency = true,
+                val config = validateRetry(ownerConfig(current))
+                verifyPreview(config, current, preview)
+                if (preview.pause == null || preview.pause.id != config.pause(current)?.id)
+                    throw GitHubPreviewChanged("备份暂停状态已更改，请重新核对")
+                val remote = withUserFailure(config) { client(config).verifiedVersion(config) }
+                if (remote.condition != preview.condition) {
+                    persist(config.withPause(GitHubPauseReason.CONFLICT))
+                    throw GitHubPreviewChanged("远端备份已更改，请重新核对")
+                }
+                val paused = if (preview.pause.reason == GitHubPauseReason.RESTORED)
+                    config.withPause(GitHubPauseReason.RESTORED) else config
+                persist(paused.copy(generation = current.generation, consent = preview.condition, bypassFrequency = true,
                     lastRevision = if (config.generation == current.generation) config.lastRevision else -1,
                     failures = 0, permanent = false, failedRevision = -1, status = null))
             }
@@ -176,31 +217,38 @@ internal class GitHubBackup(
     }
 
     internal suspend fun checkRestore(preview: GitHubPreview): GitHubState {
-        val config = ownerConfig(repository.ownedState())
-        verifyPreview(config, preview)
-        validateRetry(config)
-        val remote = withUserRateLimit(config) { client(config).verifiedVersion(config) }
-        require(remote.condition == preview.condition && preview.stage != null) { "远端备份已更改，请重新核对" }
+        val local = repository.ownedState()
+        val config = validateRetry(ownerConfig(local))
+        verifyPreview(config, local, preview)
+        val remote = withUserFailure(config) { client(config).verifiedVersion(config) }
+        if (remote.condition != preview.condition || preview.stage == null)
+            throw GitHubPreviewChanged("远端备份已更改，请重新核对")
         return config
     }
 
     internal suspend fun restoredCloud(config: GitHubState, preview: GitHubPreview) {
         val local = repository.ownedState()
-        persist(config.copy(generation = local.generation, accepted = preview.condition, consent = null, bypassFrequency = false,
-            lastRevision = -1, pending = null, paused = "完整恢复后等待确认更新远端", permanent = false, status = null))
+        persist(config.withPause(GitHubPauseReason.RESTORED).copy(generation = local.generation, accepted = preview.condition,
+            lastRevision = -1, pending = null, permanent = false, status = null))
     }
 
-    private suspend fun <T> withUserRateLimit(config: GitHubState, operation: suspend () -> T): T {
+    private suspend fun <T> withUserFailure(config: GitHubState, operation: suspend () -> T): T {
         return try {
             operation()
         } catch (failure: GitHubFailure) {
             if (failure.waitMs != null) persist(config.copy(retry = clock.after(failure.waitMs)))
+            if (failure.requiresConnection) persist(config.withPause(GitHubPauseReason.CONNECTION, failure.message.orEmpty()))
+            throw failure
+        } catch (failure: GitHubConnectionInvalid) {
+            persist(config.withPause(GitHubPauseReason.CONNECTION, failure.message.orEmpty()))
             throw failure
         }
     }
 
-    private fun verifyPreview(config: GitHubState, preview: GitHubPreview) {
-        require(config.target == preview.target && config.repositoryId == preview.repositoryId && config.binding == preview.binding) { "GitHub 目标已更改，请重新核对" }
+    private fun verifyPreview(config: GitHubState, local: DataState, preview: GitHubPreview) {
+        if (config.target != preview.target || config.repositoryId != preview.repositoryId || config.binding != preview.binding ||
+            local.datasetId != preview.datasetId || local.generation != preview.generation)
+            throw GitHubPreviewChanged("GitHub 目标或本机数据集已更改，请重新核对")
     }
 
     private data class ScheduledGitHub(val local: DataState, val config: GitHubState, val delay: Long)
@@ -245,24 +293,26 @@ internal class GitHubBackup(
             if (config.generation != local.generation || (config.paused != null && config.consent == null)) return@withLock true
             if (config.permanent && config.failedRevision == local.revision && !manual) return@withLock true
             var attemptedRevision = local.revision
-            mutableRunning.value = true
             try {
                 val normalized = normalizeGates(config, manual)
                 if (normalized != config) persist(normalized)
                 config = normalized
                 if ((config.retry?.remaining(clock.now) ?: 0) > 0) return@withLock false
                 if (config.attempts.isEmpty() && neededDelay(config, manual) > 0) return@withLock false
+                if (config.wifiOnly && !wifiAvailable()) throw WifiUnavailable()
+                mutableRunning.value = true
                 val api = client(config)
                 val remote = api.verifiedVersion(config)
                 config = reconcile(config, remote, api, local)
+                if (config.paused != null && config.consent == null) return@withLock true
                 val allowed = config.consent ?: config.accepted
                 if (allowed == null || allowed != remote.condition) {
-                    persist(config.copy(paused = "远端版本已变更，请核对后选择恢复或覆盖", consent = null,
-                        bypassFrequency = false, status = null))
+                    persist(config.withPause(GitHubPauseReason.CONFLICT).copy(status = null))
                     return@withLock true
                 }
                 if (config.lastRevision == local.revision && config.consent == null) {
-                    persist(config.copy(status = "已是最新", pending = null))
+                    persist(config.copy(status = "已是最新", pending = null, retry = null,
+                        failures = 0, failedRevision = -1, permanent = false))
                     return@withLock true
                 }
                 if (neededDelay(config, manual) > 0) return@withLock false
@@ -310,10 +360,10 @@ internal class GitHubBackup(
                     error is IllegalArgumentException && error.message?.any { it in '一'..'龥' } == true -> error.message
                     else -> "GitHub 备份未确认，请检查网络并重试"
                 }
-                persist(current.copy(status = message, failures = failures, failedRevision = attemptedRevision,
-                    permanent = !shouldRetry, retry = if (retry) clock.after(delay) else null,
-                    paused = if (remote?.status in listOf(401, 403, 404) && remote?.waitMs == null) message else current.paused,
-                    consent = if (remote?.status in listOf(401, 403, 404) && remote?.waitMs == null) null else current.consent))
+                val failed = current.copy(status = message, failures = failures, failedRevision = attemptedRevision,
+                    permanent = !shouldRetry, retry = if (retry) clock.after(delay) else null)
+                persist(if (remote?.requiresConnection == true || error is GitHubConnectionInvalid)
+                    failed.withPause(GitHubPauseReason.CONNECTION, message.orEmpty()) else failed)
                 !shouldRetry
             } finally {
                 mutableRunning.value = false
@@ -335,10 +385,11 @@ internal class GitHubBackup(
         return maxOf(wait, config.pending?.remaining(now) ?: 0, config.lastWrite?.remaining(now) ?: 0)
     }
 
-    private fun validateRetry(config: GitHubState) {
+    private fun validateRetry(config: GitHubState): GitHubState {
         val gate = clock.refreshed(config.retry)
-        if (gate != config.retry) persist(config.copy(retry = gate))
+        val normalized = if (gate != config.retry) config.copy(retry = gate).also(::persist) else config
         require((gate?.remaining(clock.now) ?: 0L) == 0L) { "GitHub 要求等待，稍后再重试" }
+        return normalized
     }
 
     private suspend fun reconcile(config: GitHubState, remote: RemoteVersion, api: GitHubClient, local: DataState): GitHubState {
@@ -348,13 +399,14 @@ internal class GitHubBackup(
         return download(api, remoteFile) { file ->
             val sha = file.inputStream().use { digest(it) }
             val candidate = possible.lastOrNull { it.sha256 == sha } ?: return@download config
+            if (config.consent != null && candidate.condition != config.consent) return@download config
             val matches = file.inputStream().use { snapshots.stage(it) }.use {
                 it.info.datasetId == candidate.datasetId && it.info.snapshotId == candidate.snapshotId
             }
             if (!matches) return@download config
             if (candidate.datasetId != local.datasetId || candidate.generation != local.generation) {
                 val paused = if (config.consent == remote.condition) config.copy(attempts = emptyList())
-                    else config.copy(consent = null, paused = "上一代备份已发布，请确认当前远端版本", attempts = emptyList())
+                    else config.withPause(GitHubPauseReason.CONFLICT).copy(attempts = emptyList())
                 persist(paused)
                 return@download paused
             }
@@ -366,7 +418,8 @@ internal class GitHubBackup(
 
     private fun confirmSuccess(config: GitHubState, attempt: UploadAttempt, sha: String): GitHubState {
         val next = config.copy(accepted = sha, consent = null, bypassFrequency = false, lastRevision = attempt.revision,
-            succeededAt = utcNow(), paused = null, attempts = emptyList(), pending = null, retry = null, failures = 0,
+            succeededAt = utcNow(), paused = null, pauseReason = null, pauseId = null, acknowledgedPause = null,
+            attempts = emptyList(), pending = null, retry = null, failures = 0,
             failedRevision = -1, permanent = false, status = null)
         persist(next)
         return next
@@ -389,7 +442,7 @@ internal class GitHubBackup(
     }
 
     private suspend fun GitHubClient.verifiedVersion(config: GitHubState): RemoteVersion = version().also {
-        require(it.repo.id == config.repositoryId) { "GitHub 仓库身份已变化，请重新配置" }
+        if (it.repo.id != config.repositoryId) throw GitHubConnectionInvalid("GitHub 仓库身份已变化，请重新配置")
     }
 
     private suspend fun <T> download(client: GitHubClient, remote: RemoteBackup, consume: suspend (File) -> T): T {

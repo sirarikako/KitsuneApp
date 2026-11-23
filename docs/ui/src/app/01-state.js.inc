@@ -29,7 +29,7 @@
     state.ledgerRange=null;state.ledgerPeriodDraft=null;state.previewMode=null;
     const blankLedgerFilters=()=>({type:'',category:'',note:''});
     state.ledgerFilters=blankLedgerFilters();state.ledgerFiltersOpen=false;
-    state.githubDemo={backedUp:false,review:null};
+    state.githubDemo={backedUp:false,review:null,scenario:'normal',wifi:false,draftWifi:false,editing:false,uploading:false};
     const blankMealFilters=()=>({from:'',to:'',slot:'any',atHome:'any',method:'any',preparations:[],keyword:''});
     state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
     const mealMethods=['下厨','外卖'],mealPreparations=['炒菜','预制菜'];
