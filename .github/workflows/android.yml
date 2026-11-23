@@ -78,7 +78,7 @@ jobs:
           printf 'Test signing certificate SHA-256: %s\n' "$fingerprint"
           badging="$("$build_tools/aapt2" dump badging apk-signed/app-debug.apk)"
           grep -Fq "package: name='com.kitsuneapp' " <<< "$badging"
-          grep -Fxq "sdkVersion:'26'" <<< "$badging"
+          grep -Eq "^(minSdkVersion|sdkVersion):'26'$" <<< "$badging"
           grep -Fxq "targetSdkVersion:'36'" <<< "$badging"
           "$build_tools/zipalign" -c -P 16 4 apk-signed/app-debug.apk
           sha256sum apk-signed/app-debug.apk
