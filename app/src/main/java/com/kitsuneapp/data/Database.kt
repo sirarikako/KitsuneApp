@@ -25,6 +25,7 @@ interface RecordsDao {
     @Upsert suspend fun put(theme: ThemePreferences)
 
     @Query("SELECT * FROM MealMethod ORDER BY sortOrder, id") suspend fun methods(): List<MealMethod>
+    @Query("SELECT MAX(sortOrder) FROM MealMethod") suspend fun maxMethodOrder(): Int?
     @Query("SELECT * FROM MealMethod WHERE id = :id") suspend fun method(id: String): MealMethod?
     @Query("SELECT * FROM MealMethod WHERE normalizedName = :name") suspend fun methodByName(name: String): MealMethod?
     @Upsert suspend fun put(method: MealMethod)

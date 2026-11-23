@@ -22,6 +22,7 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import androidx.compose.ui.text.TextLayoutResult
+import com.kitsuneapp.data.Scope
 import com.kitsuneapp.data.WalletDraft
 import com.kitsuneapp.data.removeWallet
 import com.kitsuneapp.data.saveWallet
@@ -160,9 +161,12 @@ class NavigationTest {
         screenshot("kitsune-meals")
         compose.onNodeWithText("早餐").performClick()
         screenshot("kitsune-meal-form")
-        compose.onNodeWithText("保存早餐记录").performClick()
-        compose.waitUntilAtLeastOneExists(hasText("请选择是否计划在家吃"), 15_000)
-        compose.onNodeWithText("否").performClick()
+        compose.onNodeWithText("是").assertIsSelected()
+        val cooking = compose.onNodeWithText("下厨")
+        cooking.assertIsSelected().performClick()
+        compose.onNodeWithText("保存早餐记录").performScrollTo().performClick()
+        compose.waitUntilAtLeastOneExists(hasText("请选择用餐方式"), 15_000)
+        compose.onNodeWithText("否").performScrollTo().performClick()
         val values = mapOf("菜品内容" to "番茄炒蛋、\"紫菜汤\"、".repeat(8), "备注" to "配菜另装\n少放盐")
         for ((label, value) in values) {
             compose.onNodeWithContentDescription(label).performScrollTo().performTextReplacement(value)
@@ -171,10 +175,66 @@ class NavigationTest {
         compose.onNodeWithText("保存早餐记录").performScrollTo().performClick()
         compose.waitUntilAtLeastOneExists(hasText("三餐记录"), 15_000)
         compose.onNodeWithText("早餐").performClick()
+        compose.onNodeWithText("否").assertIsSelected()
+        cooking.assertIsNotSelected()
         for ((label, value) in values) assertSingleLineMealText(label, value)
         compose.onNodeWithText("删除这条用餐记录").performScrollTo().performClick()
         compose.onNodeWithText("确认删除").performClick()
         compose.waitUntilAtLeastOneExists(hasText("添加记录"), 15_000)
+    }
+
+    @Test
+    fun addsMealOptionsFromDialogsWithoutSavingMeal() {
+        compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
+        val repository = runBlocking { (compose.activity.application as KitsuneApplication).repository() }
+        val suffix = UUID.randomUUID().toString().take(8)
+        val method = "试做-$suffix"
+        val preparation = "清蒸-$suffix"
+        val mealsBefore = runBlocking { repository.read().meals }
+
+        try {
+            compose.onNodeWithText("用餐").performClick()
+            compose.onNodeWithText("早餐").performClick()
+            compose.onNodeWithContentDescription("菜品内容").performScrollTo().performTextReplacement("保留草稿")
+
+            fun open(label: String, name: String) {
+                compose.onNodeWithContentDescription(label).performScrollTo().performClick()
+                compose.onNodeWithContentDescription("名称").performTextReplacement(name)
+            }
+
+            open("新增用餐方式", "  $method  ")
+            compose.onNodeWithText("确定").performClick()
+            compose.waitUntilAtLeastOneExists(hasText(method), 15_000)
+            compose.onNodeWithText(method).assertIsNotSelected()
+            compose.onNodeWithText("下厨").assertIsSelected()
+
+            open("新增用餐方式", method)
+            compose.onNodeWithText("确定").performClick()
+            compose.waitUntilAtLeastOneExists(hasText("已有同名用餐方式"), 15_000)
+            compose.onNodeWithText("取消").performClick()
+
+            open("新增制作分类", preparation)
+            compose.onNodeWithText("取消").performClick()
+            compose.onNodeWithText(preparation).assertDoesNotExist()
+            open("新增制作分类", preparation)
+            compose.onNodeWithText("确定").performClick()
+            compose.waitUntilAtLeastOneExists(hasText(preparation), 15_000)
+            compose.onNodeWithText(preparation).assertIsNotSelected()
+            assertSingleLineMealText("菜品内容", "保留草稿")
+
+            val saved = runBlocking { repository.read() }
+            assertEquals(mealsBefore, saved.meals)
+            assertEquals(method, saved.methods.last().name)
+            assertEquals(false, saved.methods.last().showPreparationCategories)
+            assertEquals(preparation, saved.categories.filter { it.scope == Scope.PREPARATION }.last().name)
+        } finally {
+            runBlocking {
+                val saved = repository.read()
+                saved.methods.find { it.name == method }?.let { repository.deleteMethod(it.id) }
+                saved.categories.find { it.scope == Scope.PREPARATION && it.name == preparation }
+                    ?.let { repository.deleteCategory(it.id) }
+            }
+        }
     }
 
     @Test

@@ -32,6 +32,8 @@
     state.githubDemo={backedUp:false,review:null,scenario:'normal',wifi:false,draftWifi:false,editing:false,uploading:false};
     const blankMealFilters=()=>({from:'',to:'',slot:'any',atHome:'any',method:'any',preparations:[],keyword:''});
     state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
+    const mealMethods=['下厨','外卖'],mealPreparations=['炒菜','预制菜'];
+    const mealOptionLabels={method:'用餐方式',preparation:'制作分类'};
     const wallets=[{id:'daily',name:'日常钱包',code:'CNY',scale:2,opening:0n,separateAccounting:false},{id:'pocket',name:'零钱钱包',code:'CNY',scale:2,opening:50000n,separateAccounting:false},{id:'travel',name:'旅行钱包',code:'JPY',scale:0,opening:20000n,separateAccounting:true}];
     const walletById=id=>wallets.find(w=>w.id===id)||wallets[0];
     const entryWallet=()=>wallets.find(w=>w.id===state.entryDraft.walletId)||null;
@@ -237,7 +239,7 @@
         single?`${chosen[0].name} · ${chosen[0].code}`:`已选 ${chosen.length} 个钱包`;
       return `<button type="button" class="ks-choice ks-ledger-filter ${single?'ks-ledger-wallet':''}" data-action="choose-wallets" aria-haspopup="dialog" aria-label="钱包范围：${escapeText(label)}"><span>${escapeText(label)}</span>${icon('chevron-down')}</button>`;
     };
-    const methodCounts = meals => [...new Set(['下厨','外卖','未填写',...meals.map(m=>m.method||'未填写')])].map(method=>({method,count:meals.filter(m=>(m.method||'未填写')===method).length}));
+    const methodCounts = meals => [...new Set([...mealMethods,'未填写',...meals.map(m=>m.method||'未填写')])].map(method=>({method,count:meals.filter(m=>(m.method||'未填写')===method).length}));
     const recommendedSlot = () => {const hour=style.mealHour==='auto'?new Date().getHours():Number(style.mealHour);return hour<11?0:hour<17?1:2;};
     const statBar=(label,ratio,tone='')=>`<div class="ks-bar-track ${tone}" role="meter" aria-label="${escapeText(label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(ratio*100)}"><div class="ks-bar-fill" style="width:${ratio*100}%"></div></div>`;
     const countBar = (label,count,denominator,unit='餐') => {
