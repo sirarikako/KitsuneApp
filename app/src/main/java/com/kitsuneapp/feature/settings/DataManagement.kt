@@ -113,7 +113,7 @@ internal fun RestoreDialog(staged: StagedSnapshot, needsProtection: Boolean, fol
                            error: String?, dismiss: () -> Unit, apply: () -> Unit, chooseProtection: () -> Unit) {
     AlertDialog(onDismissRequest = { if (!busy) dismiss() }, title = { Text("确认完整恢复") }, shape = DialogShape,
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("备份时间 · ${staged.info.exportedAt}")
                 Text("用餐 ${staged.counts.meals} 条 · 钱包 ${staged.counts.wallets} 个 · 账目 ${staged.counts.entries} 笔")
                 Text("恢复将替换本机全部业务数据与外观。")

@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,7 +36,7 @@ import com.kitsuneapp.ui.*
 import java.util.Locale
 
 @Composable
-fun SettingsPage(navigate: (String) -> Unit) {
+fun SettingsPage(githubPaused: Boolean, navigate: (String) -> Unit) {
     Column {
         Header("设置")
         Column(Modifier.verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
@@ -65,7 +66,9 @@ fun SettingsPage(navigate: (String) -> Unit) {
                     HorizontalDivider()
                     Setting("本地文件夹备份", designIcon(R.drawable.ks_hard_drive)) { navigate("folder") }
                     HorizontalDivider()
-                    Setting("GitHub 备份", designIcon(R.drawable.ks_cloud)) { navigate("github") }
+                    Setting("GitHub 备份", designIcon(R.drawable.ks_cloud), warning = GITHUB_PAUSED.takeIf { githubPaused }) {
+                        navigate("github")
+                    }
                 }
             }
         }
@@ -73,14 +76,31 @@ fun SettingsPage(navigate: (String) -> Unit) {
 }
 
 @Composable
-fun Setting(label: String, icon: ImageVector? = null, hint: String? = null, enabled: Boolean = true, action: () -> Unit) {
+@OptIn(ExperimentalLayoutApi::class)
+fun Setting(
+    label: String,
+    icon: ImageVector? = null,
+    hint: String? = null,
+    enabled: Boolean = true,
+    warning: String? = null,
+    action: () -> Unit,
+) {
     val tint = MaterialTheme.colorScheme.onSurfaceVariant
     Row(Modifier.fillMaxWidth().heightIn(min = if (icon == null) 44.dp else 55.dp)
         .clickable(enabled = enabled, role = Role.Button, onClick = action).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         if (icon != null) Icon(icon, null, Modifier.size(18.dp), tint = tint)
         Column(Modifier.weight(1f)) {
-            Text(label)
+            if (warning == null) Text(label)
+            else FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(label)
+                Row(Modifier.align(Alignment.CenterVertically), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    val ink = MaterialTheme.colorScheme.error
+                    Icon(Icons.Outlined.Warning, null, Modifier.size(14.dp), tint = ink)
+                    Text(warning, style = MaterialTheme.typography.bodySmall, color = ink)
+                }
+            }
             if (hint != null) Secondary(hint)
         }
         Icon(designIcon(R.drawable.ks_chevron_right), null, Modifier.size(14.dp), tint = tint)

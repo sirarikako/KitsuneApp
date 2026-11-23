@@ -6,8 +6,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.kitsuneapp.backup.BackupCoordinator
 import com.kitsuneapp.backup.FolderOption
+import com.kitsuneapp.backup.GitHubConnectionInvalid
 import com.kitsuneapp.backup.GitHubFailure
 import com.kitsuneapp.backup.GitHubPreview
+import com.kitsuneapp.backup.GitHubPreviewChanged
 import com.kitsuneapp.backup.WifiUnavailable
 import com.kitsuneapp.data.OwnershipException
 import com.kitsuneapp.data.Records
@@ -26,6 +28,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 data class AppState(val records: Records? = null, val openingError: String? = null, val needsNewDatabase: Boolean = false)
+
+internal data class GitHubWifiChange(val binding: String, val requested: Boolean? = null, val error: String? = null)
 
 internal sealed interface RestorePreview : Closeable {
     class Local(val snapshot: StagedSnapshot) : RestorePreview {
@@ -57,6 +61,8 @@ class AppViewModel internal constructor(
     internal val restorePreview = pendingRestore.asStateFlow()
     private val localRestoreResult = MutableStateFlow(false)
     internal val localRestoreSucceeded = localRestoreResult.asStateFlow()
+    private val wifiChange = MutableStateFlow<GitHubWifiChange?>(null)
+    internal val githubWifiChange = wifiChange.asStateFlow()
     private var observe: Job? = null
     private lateinit var repository: Repository
     lateinit var backupServices: BackupCoordinator
@@ -93,8 +99,30 @@ class AppViewModel internal constructor(
         replaceRestorePreview(RestorePreview.Local(openFolder(option)))
     }
 
-    internal fun previewCloudRestore() = backup {
-        replaceRestorePreview(RestorePreview.Cloud(github.preview()))
+    internal fun previewCloudRestore(resolvePause: Boolean = false) = backup {
+        replaceRestorePreview(RestorePreview.Cloud(github.preview(resolvePause)))
+    }
+
+    internal fun setGitHubWifi(binding: String, selected: Boolean) {
+        if (isBusy || wifiChange.value?.requested != null) return
+        wifiChange.value = GitHubWifiChange(binding, requested = selected)
+        viewModelScope.launch {
+            val github = backupServices.github
+            var saved = false
+            try {
+                github.setWifi(binding, selected)
+                saved = true
+                github.schedule()
+                wifiChange.value = null
+            } catch (cancelled: CancellationException) {
+                wifiChange.value = null
+                throw cancelled
+            } catch (failure: Exception) {
+                val detail = if (saved) "Wi-Fi 设置已保存，暂时无法安排自动备份"
+                    else failure.userMessage("无法保存 Wi-Fi 设置，请重试")
+                wifiChange.value = GitHubWifiChange(binding, error = detail)
+            }
+        }
     }
 
     internal fun restoreBackup(preview: RestorePreview, protection: Uri?) = useRestorePreview(preview) {
@@ -135,7 +163,9 @@ class AppViewModel internal constructor(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (failure: Exception) {
-                if (currentCoroutineContext().isActive) {
+                if (currentCoroutineContext().isActive &&
+                    failure !is GitHubPreviewChanged && failure !is GitHubConnectionInvalid &&
+                    (failure as? GitHubFailure)?.requiresConnection != true) {
                     pendingRestore.value = preview
                     retry = true
                 }
