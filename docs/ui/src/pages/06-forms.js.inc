@@ -27,12 +27,45 @@
         <button type="button" class="ks-amount-input ks-amount-trigger" data-action="open-calculator" aria-labelledby="ks-amount-label ks-amount-value" ${entryWallet()?'':'disabled'}>
           <span id="ks-amount-value">${escapeText(state.amount|| (entryWallet()?.scale===0?'0':'0.00'))}</span></button>
       </div>
-      <label><span class="ks-label">日期时间</span><input type="datetime-local" name="dateTime" value="${escapeText(state.entryDraft.dateTime)}" class="ks-control" required></label>
+      <fieldset><legend class="ks-label">日期时间</legend><div class="ks-field-row ks-entry-date-time">
+        <input type="date" name="date" value="${escapeText(state.entryDraft.dateTime.slice(0,10))}" class="ks-control" aria-label="日期" required>
+        <button type="button" class="ks-control" data-action="open-entry-time" aria-haspopup="dialog" aria-label="时间 ${state.entryDraft.dateTime.slice(-5)}">${state.entryDraft.dateTime.slice(-5)}</button>
+      </div></fieldset>
       <div class="ks-field-row"><label><span class="ks-label">钱包</span><select name="wallet" class="ks-control" required><option value="" ${!entryWallet()?'selected':''} disabled>请选择钱包</option>${wallets.map(w=>`<option value="${w.id}" ${entryWallet()?.id===w.id?'selected':''}>${w.name} · ${w.code}${w.separateAccounting?'（独立核算）':''}</option>`).join('')}</select></label><label><span class="ks-label">分类</span><select name="category" class="ks-control" required><option value="" ${!state.entryDraft.category?'selected':''} disabled>请选择分类</option>${effectiveFinancialCategories(state.entryDraft.walletId,state.entryType).map(c=>`<option value="${c.id}" ${state.entryDraft.category===c.id?'selected':''}>${escapeText(c.name)}</option>`).join('')}</select></label></div>
       <p class="ks-note">分类来源：${entryWallet()?scopeMode(entryWallet(),financialScopeOf(state.entryType))==='CUSTOM'?'本钱包专属分类':'通用分类':'请先选择钱包'}。切换钱包后如无对应分类，请重新选择。</p>
       <label><span class="ks-label">备注</span><input name="note" class="ks-control" placeholder="这笔钱用在了哪里？" value="${escapeText(state.entryDraft.note)}"></label>
       ${formFooter(saveButton(`保存${state.entryType}`),'交互预览 · 仅保存到当前演示')}
     </form>`;}
+    const validTimePart=(value,part)=>/^\d{2}$/.test(value)&&Number(value)<=(part==='hour'?23:59);
+    const timeDigits=value=>String(value).padStart(2,'0');
+    function entryTimeDialog(){
+      const d=state.entryTimeDraft;
+      const field=(part,label)=>d.clock
+        ?`<button type="button" class="ks-time-digits" data-time-part="${part}" aria-pressed="${d.part===part}" aria-label="${label} ${d[part]}">${d[part]}</button>`
+        :`<label><input class="ks-time-digits" name="${part}" type="text" inputmode="numeric" enterkeyhint="${part==='hour'?'next':'done'}" maxlength="2" autocomplete="off" value="${d[part]}" aria-invalid="${d[part].length===2&&!validTimePart(d[part],part)}"><span class="ks-note">${label}</span></label>`;
+      const isHour=d.part==='hour',selected=Number(d[d.part]),step=isHour?1:5;
+      const radius=value=>isHour&&value>=12?26:40;
+      const angle=value=>value/step*30;
+      const options=Array.from({length:isHour?24:60/step},(_,i)=>i*step);
+      if(!isHour&&!options.includes(selected))options.push(selected);
+      const dial=d.clock?`<div class="ks-time-face" role="group" aria-label="${isHour?'小时':'分钟'}">
+        <span class="ks-time-hand" aria-hidden="true" style="height:${radius(selected)}%;transform:rotate(${angle(selected)}deg)"></span>
+        ${options.map(value=>{
+          const a=angle(value)*Math.PI/180,r=radius(value);
+          return `<button type="button" data-time-value="${value}" aria-pressed="${value===selected}" style="left:${50+r*Math.sin(a)}%;top:${50-r*Math.cos(a)}%">${isHour?value:timeDigits(value)}</button>`;
+        }).join('')}
+      </div>`:'';
+      return `<div class="ks-modal-overlay ks-time-overlay"><form class="ks-period-dialog ks-time-dialog ${d.clock?'ks-time-clock':''}" data-entry-time role="dialog" aria-modal="true" aria-label="选择时间">
+        <h3>选择时间</h3>
+        <div class="ks-time-fields">${field('hour','小时')}<span class="ks-time-colon" aria-hidden="true">:</span>${field('minute','分钟')}</div>
+        ${dial}
+        <div class="ks-period-actions">
+          <button type="button" class="ks-icon-btn" data-time-action="mode" aria-label="${d.clock?'输入时间':'使用时钟'}">${icon(d.clock?'keyboard':'clock')}</button>
+          <button type="button" class="ks-text-btn" data-time-action="cancel">取消</button>
+          <button type="submit" class="ks-text-btn" ${validTimePart(d.hour,'hour')&&validTimePart(d.minute,'minute')?'':'disabled'}>确定</button>
+        </div>
+      </form></div>`;
+    }
     function calculatorSheet(){return `<div class="ks-modal-overlay"><section class="ks-calc-sheet" role="dialog" aria-modal="true" aria-label="金额计算器"><div class="ks-calc-body"><div class="ks-row"><h3>金额计算器</h3><button type="button" class="ks-text-btn cursor-interaction" data-calc-action="cancel">关闭</button></div><span class="ks-note">${entryWallet()?.code||'未选择钱包'} · 支持加减乘除</span><div class="ks-amount-input" data-calc-expression aria-label="计算表达式" aria-live="polite">${escapeText(state.calcExpression||(entryWallet()?.scale===0?'0':'0.00'))}</div><div class="ks-calculator" role="group" aria-label="计算键盘">${['C','⌫','÷','×','7','8','9','−','4','5','6','+','1','2','3','=','0','.'].map(k=>`<button type="button" class="ks-key ${['÷','×','−','+','='].includes(k)?'ks-operator':''} ${k==='0'?'ks-zero':''} ${k==='='?'ks-equal':''} cursor-interaction" data-key="${k}" aria-label="${k==='⌫'?'退格':k==='C'?'清空':k}">${k}</button>`).join('')}</div></div><div class="ks-calc-footer"><p class="ks-calc-error" role="alert"></p><div class="ks-calc-actions"><button type="button" class="ks-choice cursor-interaction" data-calc-action="cancel">取消</button><button type="button" class="ks-primary cursor-interaction" data-calc-action="apply">使用此金额</button></div></div></section></div>`;}
     function mealCalendarDialog(){
       const d=state.mealCalendar,[year,month]=d.month.split('-').map(Number);

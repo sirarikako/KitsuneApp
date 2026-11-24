@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -45,10 +46,12 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
@@ -374,24 +377,56 @@ class LedgerLayoutTest {
     }
 
     @Test
-    fun validatesTwentyFourHourTimeAndKeepsCanceledValue() {
+    fun replacesTheExistingTimeWithFourDigitsAndSupportsTheClock() {
         var time by mutableStateOf("09:41")
         compose.setContent { KitsuneTheme(ThemePreferences(), forceDark = true) { TimeControl(time, { time = it }) } }
         val trigger = compose.onNodeWithContentDescription("时间")
-        val input = compose.onNodeWithContentDescription("时间（HH:mm）")
+        val hour = compose.onNodeWithContentDescription("小时")
+        val minute = compose.onNodeWithContentDescription("分钟")
         val confirm = compose.onNodeWithText("确定")
         trigger.performClick()
-        compose.onNodeWithText("输入时间").performClick()
-        input.performTextReplacement("24:00")
+        hour.assertIsFocused().assertTextEquals("09")
+        assertEquals(TextRange(0, 2), hour.fetchSemanticsNode().config[SemanticsProperties.TextSelectionRange])
+        saveScreenshot("kitsune-time-input")
+        hour.performTextInput("2")
         confirm.assertIsNotEnabled()
-        input.performTextReplacement("23:59")
+        hour.performTextInput("4")
+        hour.assertIsFocused().assertTextEquals("24")
+        confirm.assertIsNotEnabled()
         compose.onNodeWithText("取消").performClick()
         compose.runOnIdle { assertEquals("09:41", time) }
+
         trigger.performClick()
-        compose.onNodeWithText("输入时间").performClick()
-        input.performTextReplacement("00:00")
+        hour.performTextInput("0")
+        hour.performTextInput("0")
+        minute.assertIsFocused().assertTextEquals("41")
+        assertEquals(TextRange(0, 2), minute.fetchSemanticsNode().config[SemanticsProperties.TextSelectionRange])
+        minute.performTextInput("0")
+        minute.performTextInput("0")
         confirm.performClick()
         compose.runOnIdle { assertEquals("00:00", time) }
+
+        trigger.performClick()
+        hour.performTextInput("2")
+        hour.performTextInput("3")
+        minute.performTextInput("6")
+        minute.performTextInput("0")
+        confirm.assertIsNotEnabled()
+        minute.performTextReplacement("59")
+        compose.onNodeWithContentDescription("使用时钟").performClick()
+        saveScreenshot("kitsune-time-clock")
+        compose.onNodeWithContentDescription("输入时间").performClick()
+        hour.assertIsFocused().assertTextEquals("23")
+        minute.assertTextEquals("59")
+        confirm.performClick()
+        compose.runOnIdle { assertEquals("23:59", time) }
+
+        trigger.performClick()
+        compose.onNodeWithContentDescription("使用时钟").performClick()
+        compose.onNodeWithContentDescription("17", substring = true).performSemanticsAction(SemanticsActions.OnClick)
+        compose.onNodeWithContentDescription("15", substring = true).performSemanticsAction(SemanticsActions.OnClick)
+        confirm.performClick()
+        compose.runOnIdle { assertEquals("17:15", time) }
     }
 
     @Test

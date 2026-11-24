@@ -54,6 +54,12 @@
         for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
         if(previous?.modal!==kind)phone.querySelector('[data-calendar-action=jump],[data-calendar-text]').focus({preventScroll:true});
       }
+      if(state.entryTimeDraft){
+        phone.insertAdjacentHTML('beforeend',entryTimeDialog());
+        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
+        const focus=state.entryTimeDraft.clock?'[data-time-part][aria-pressed=true]':'[data-entry-time] [name=hour]';
+        phone.querySelector(focus).focus({preventScroll:true});
+      }
       if(keepingMealForm)phone.querySelector('.ks-main').scrollTop=mealPosition;
       if(state.addingMealOption){
         phone.insertAdjacentHTML('beforeend',mealOptionDialog());
@@ -80,7 +86,16 @@
       if(changingPage&&primary(state.page))recordOrigin=null;
       if(changingPage&&!kind){const header=phone.querySelector('.ks-top');header.setAttribute('tabindex','-1');header.focus({preventScroll:true});}
     }
-    function capture(){const form=phone.querySelector('[data-meal-form]');if(form){state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);}const entry=phone.querySelector('[data-entry-form]');if(entry){state.entryDraft={dateTime:entry.elements.dateTime.value,note:entry.elements.note.value,category:entry.elements.category.value,walletId:entry.elements.wallet.value};}}
+    function capture(){const form=phone.querySelector('[data-meal-form]');if(form){state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);}const entry=phone.querySelector('[data-entry-form]');if(entry){state.entryDraft={dateTime:entry.elements.date.value+state.entryDraft.dateTime.slice(-6),note:entry.elements.note.value,category:entry.elements.category.value,walletId:entry.elements.wallet.value};}}
+    function closeEntryTime(apply){
+      const {hour,minute}=state.entryTimeDraft;
+      if(apply){
+        if(!validTimePart(hour,'hour')||!validTimePart(minute,'minute'))return;
+        state.entryDraft.dateTime=state.entryDraft.dateTime.slice(0,-6)+'T'+hour+':'+minute;
+      }
+      state.entryTimeDraft=null;render();
+      phone.querySelector('[data-action=open-entry-time]').focus({preventScroll:true});
+    }
     function error(message){phone.querySelector('.ks-error').textContent=message;}
     function updateAppearancePreview(){
       const editor=phone.querySelector('[data-appearance-editor]');
