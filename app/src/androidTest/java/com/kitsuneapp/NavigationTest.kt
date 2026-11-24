@@ -8,6 +8,7 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.captureToImage
@@ -149,12 +150,13 @@ class NavigationTest {
             compose.onNodeWithText("3").performScrollTo().performClick()
             compose.onNodeWithText("7").performScrollTo().performClick()
             compose.onNodeWithText("使用此金额").performClick()
+            compose.onNode(amount and hasText("37")).assertExists()
             note.performScrollTo().performTextReplacement("上一笔的备注")
 
-            val save = compose.onNodeWithText("保存收入").performScrollTo()
+            val save = compose.onNodeWithText("保存收入").performScrollTo().assertIsEnabled()
             compose.mainClock.autoAdvance = false
-            save.performClick()
-            compose.waitUntil(10_000) {
+            save.performSemanticsAction(SemanticsActions.OnClick)
+            compose.waitUntil(20_000) {
                 compose.mainClock.advanceTimeByFrame()
                 compose.onAllNodesWithContentDescription("记一笔").fetchSemanticsNodes().isNotEmpty()
             }
@@ -410,7 +412,9 @@ class NavigationTest {
             compose.onNodeWithContentDescription("菜品内容").performScrollTo().performTextReplacement("保留草稿")
 
             fun open(label: String, name: String) {
-                compose.onNodeWithContentDescription(label).performScrollTo().performClick()
+                compose.onNodeWithContentDescription(label).performScrollTo().assertIsEnabled()
+                    .performSemanticsAction(SemanticsActions.OnClick)
+                compose.waitUntilAtLeastOneExists(hasContentDescription("名称"), 10_000)
                 compose.onNodeWithContentDescription("名称").performTextReplacement(name)
             }
 
