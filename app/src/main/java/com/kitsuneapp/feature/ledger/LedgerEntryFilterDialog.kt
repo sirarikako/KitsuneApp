@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -36,7 +37,7 @@ internal fun LedgerEntryFilterDialog(
     AlertDialog(onDismissRequest = dismiss, shape = DialogShape, title = { Text("流水筛选") },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                FieldLabel("类型")
+                FilterGroupHeader("类型", { draft = draft.copy(types = null) }, { draft = draft.copy(types = emptySet()) })
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     EntryType.entries.forEach { type ->
                         FilterChoice(type.label, type in types) {
@@ -44,8 +45,7 @@ internal fun LedgerEntryFilterDialog(
                         }
                     }
                 }
-                BulkSelection("类型", { draft = draft.copy(types = null) }, { draft = draft.copy(types = emptySet()) })
-                FieldLabel("分类")
+                FilterGroupHeader("分类", { draft = draft.copy(categoryNames = null) }, { draft = draft.copy(categoryNames = emptySet()) })
                 if (categories.isEmpty()) Secondary("当前钱包范围没有可选分类")
                 LazyColumn(Modifier.heightIn(max = 216.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     items(categories, key = Category::normalizedName) { category ->
@@ -55,7 +55,6 @@ internal fun LedgerEntryFilterDialog(
                         }
                     }
                 }
-                BulkSelection("分类", { draft = draft.copy(categoryNames = null) }, { draft = draft.copy(categoryNames = emptySet()) })
                 Field("备注关键词", draft.note, { draft = draft.copy(note = it) })
                 TextButton({ draft = LedgerEntryFilters() }) { Text("重置条件") }
             }
@@ -73,8 +72,13 @@ private fun FilterChoice(label: String, checked: Boolean, modifier: Modifier = M
 }
 
 @Composable
-private fun BulkSelection(label: String, selectAll: () -> Unit, clear: () -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+private fun FilterGroupHeader(label: String, selectAll: () -> Unit, clear: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.weight(1f)) { FieldLabel(label) }
         TextButton(selectAll, Modifier.semantics { contentDescription = "全选$label" }) { Text("全选") }
         TextButton(clear, Modifier.semantics { contentDescription = "全不选$label" }) { Text("全不选") }
     }

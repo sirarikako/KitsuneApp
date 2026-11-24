@@ -15,7 +15,10 @@
   #kitsune-preview .ks-ledger-check{display:flex;align-items:center;justify-content:flex-start;gap:var(--ks-space-2);overflow-wrap:anywhere}
   #kitsune-preview .ks-ledger-check input{width:18px;height:18px;accent-color:var(--ks-accent);flex:none}
   #kitsune-preview .ks-ledger-check:has(input:checked){color:var(--ks-accent);border-color:var(--ks-accent);background:var(--ks-accent-bg)}
-  #kitsune-preview .ks-ledger-filter-bulk{display:flex;gap:var(--ks-space-2)}
+  #kitsune-preview .ks-filter-field-heading{display:flex;align-items:center;min-height:44px;gap:var(--ks-space-2)}
+  #kitsune-preview .ks-filter-field-heading > :first-child{flex:1;margin:0}
+  #kitsune-preview .ks-filter-field-heading .ks-text-btn{flex:none}
+  #kitsune-preview .ks-filter-field-heading .ks-text-btn[hidden]{display:none}
   #kitsune-preview .ks-date-trigger{display:flex;justify-content:space-between;align-items:center;gap:var(--ks-space-2);text-align:left}
   #kitsune-preview .ks-calendar-dialog{max-width:360px;gap:var(--ks-space-2)}
   #kitsune-preview .ks-calendar-dialog h3{font-size:20px}

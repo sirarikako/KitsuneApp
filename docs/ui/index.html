@@ -2086,7 +2086,10 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-ledger-check{display:flex;align-items:center;justify-content:flex-start;gap:var(--ks-space-2);overflow-wrap:anywhere}
   #kitsune-preview .ks-ledger-check input{width:18px;height:18px;accent-color:var(--ks-accent);flex:none}
   #kitsune-preview .ks-ledger-check:has(input:checked){color:var(--ks-accent);border-color:var(--ks-accent);background:var(--ks-accent-bg)}
-  #kitsune-preview .ks-ledger-filter-bulk{display:flex;gap:var(--ks-space-2)}
+  #kitsune-preview .ks-filter-field-heading{display:flex;align-items:center;min-height:44px;gap:var(--ks-space-2)}
+  #kitsune-preview .ks-filter-field-heading &gt; :first-child{flex:1;margin:0}
+  #kitsune-preview .ks-filter-field-heading .ks-text-btn{flex:none}
+  #kitsune-preview .ks-filter-field-heading .ks-text-btn[hidden]{display:none}
   #kitsune-preview .ks-date-trigger{display:flex;justify-content:space-between;align-items:center;gap:var(--ks-space-2);text-align:left}
   #kitsune-preview .ks-calendar-dialog{max-width:360px;gap:var(--ks-space-2)}
   #kitsune-preview .ks-calendar-dialog h3{font-size:20px}
@@ -2628,17 +2631,17 @@ html&gt;body{padding:0}&lt;/style&gt;
     }
     function ledgerFiltersDialog(){
       const draft=state.ledgerFilterDraft;
-      const group=(label,key,options)=&gt;`&lt;fieldset data-filter-group=&quot;${key}&quot;&gt;
-        &lt;legend class=&quot;ks-label&quot;&gt;${label}&lt;/legend&gt;
+      const group=(label,key,options)=&gt;`&lt;div data-filter-group=&quot;${key}&quot; role=&quot;group&quot; aria-labelledby=&quot;ledger-filter-${key}&quot;&gt;
+        &lt;div class=&quot;ks-filter-field-heading&quot;&gt;
+          &lt;span class=&quot;ks-label&quot; id=&quot;ledger-filter-${key}&quot;&gt;${label}&lt;/span&gt;
+          &lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-filter-bulk=&quot;all&quot; aria-label=&quot;全选${label}&quot;&gt;全选&lt;/button&gt;
+          &lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-filter-bulk=&quot;none&quot; aria-label=&quot;全不选${label}&quot;&gt;全不选&lt;/button&gt;
+        &lt;/div&gt;
         &lt;div class=&quot;ks-ledger-filter-options&quot;&gt;
           ${options.map(([id,text])=&gt;`&lt;label class=&quot;ks-choice ks-ledger-check cursor-interaction&quot;&gt;&lt;input type=&quot;checkbox&quot; value=&quot;${escapeText(id)}&quot; ${draft[key]===null||draft[key].includes(id)?&#x27;checked&#x27;:&#x27;&#x27;}&gt;${escapeText(text)}&lt;/label&gt;`).join(&#x27;&#x27;)}
           ${options.length?&#x27;&#x27;:&#x27;&lt;p class=&quot;ks-note&quot;&gt;当前钱包范围没有可选分类&lt;/p&gt;&#x27;}
         &lt;/div&gt;
-        &lt;div class=&quot;ks-ledger-filter-bulk&quot;&gt;
-          &lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-filter-bulk=&quot;all&quot; aria-label=&quot;全选${label}&quot;&gt;全选&lt;/button&gt;
-          &lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-filter-bulk=&quot;none&quot; aria-label=&quot;全不选${label}&quot;&gt;全不选&lt;/button&gt;
-        &lt;/div&gt;
-      &lt;/fieldset&gt;`;
+      &lt;/div&gt;`;
       return `&lt;div class=&quot;ks-modal-overlay ks-period-overlay&quot; data-ledger-filter-overlay&gt;
         &lt;form class=&quot;ks-period-dialog&quot; data-ledger-filters role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;流水筛选&quot;&gt;
           &lt;h3&gt;流水筛选&lt;/h3&gt;
@@ -3015,11 +3018,18 @@ html&gt;body{padding:0}&lt;/style&gt;
     function pageMealFilter(){
       const f=state.mealFilterDraft,methods=[...new Set([...mealMethods,...allMeals().map(m=&gt;m.method).filter(Boolean)])],preparations=[...new Set([...mealPreparations,...allMeals().flatMap(m=&gt;m.categories)])];
       const datePreset=mealDatePreset(f);
+      const dateField=(name,label)=&gt;`&lt;div class=&quot;ks-meal-filter-date&quot;&gt;
+        &lt;div class=&quot;ks-filter-field-heading&quot;&gt;
+          &lt;label class=&quot;ks-note&quot; for=&quot;meal-filter-${name}&quot;&gt;${label}&lt;/label&gt;
+          &lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-clear-meal-date=&quot;${name}&quot; aria-label=&quot;清空${label}&quot; ${f[name]?&#x27;&#x27;:&#x27;hidden&#x27;}&gt;清空&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;input class=&quot;ks-control&quot; type=&quot;date&quot; id=&quot;meal-filter-${name}&quot; name=&quot;${name}&quot; value=&quot;${f[name]}&quot; min=&quot;0001-01-01&quot; max=&quot;9999-12-31&quot;&gt;
+      &lt;/div&gt;`;
       const select=(label,name,choices)=&gt;`&lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;${label}&lt;/span&gt;&lt;select class=&quot;ks-control&quot; name=&quot;${name}&quot;&gt;${choices.map(([value,label])=&gt;`&lt;option value=&quot;${escapeText(value)}&quot; ${f[name]===value?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${escapeText(label)}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;`;
       return `&lt;form class=&quot;ks-form&quot; data-meal-filter-form&gt;
         &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;日期范围&lt;/legend&gt;
           &lt;div class=&quot;ks-choices&quot;&gt;${choice(&#x27;本月&#x27;,&#x27;month&#x27;,datePreset,&#x27;meal-date-preset&#x27;)}${choice(&#x27;所有时间&#x27;,&#x27;all&#x27;,datePreset,&#x27;meal-date-preset&#x27;)}&lt;/div&gt;
-          &lt;div class=&quot;ks-field-row&quot;&gt;&lt;label&gt;&lt;span class=&quot;ks-note&quot;&gt;开始日期&lt;/span&gt;&lt;input class=&quot;ks-control&quot; type=&quot;date&quot; name=&quot;from&quot; value=&quot;${f.from}&quot; aria-label=&quot;开始日期&quot; min=&quot;0001-01-01&quot; max=&quot;9999-12-31&quot;&gt;&lt;/label&gt;&lt;label&gt;&lt;span class=&quot;ks-note&quot;&gt;结束日期&lt;/span&gt;&lt;input class=&quot;ks-control&quot; type=&quot;date&quot; name=&quot;to&quot; value=&quot;${f.to}&quot; aria-label=&quot;结束日期&quot; min=&quot;0001-01-01&quot; max=&quot;9999-12-31&quot;&gt;&lt;/label&gt;&lt;/div&gt;
+          &lt;div class=&quot;ks-field-row&quot;&gt;${dateField(&#x27;from&#x27;,&#x27;开始日期&#x27;)}${dateField(&#x27;to&#x27;,&#x27;结束日期&#x27;)}&lt;/div&gt;
         &lt;/fieldset&gt;
         &lt;div class=&quot;ks-field-row&quot;&gt;${select(&#x27;餐次&#x27;,&#x27;slot&#x27;,[[&#x27;any&#x27;,&#x27;全部餐次&#x27;],...slots.map((s,i)=&gt;[String(i),s])])}${select(&#x27;计划在家吃&#x27;,&#x27;atHome&#x27;,[[&#x27;any&#x27;,&#x27;不限&#x27;],[&#x27;yes&#x27;,&#x27;是&#x27;],[&#x27;no&#x27;,&#x27;否&#x27;]])}&lt;/div&gt;
         ${select(&#x27;用餐方式&#x27;,&#x27;method&#x27;,[[&#x27;any&#x27;,&#x27;全部方式&#x27;],...methods.map(m=&gt;[m,m]),[&#x27;none&#x27;,&#x27;未填写方式&#x27;]])}
@@ -3361,6 +3371,9 @@ html&gt;body{padding:0}&lt;/style&gt;
     }
     function updateMealDatePresets(form){
       const selected=mealDatePreset({from:form.elements.from.value,to:form.elements.to.value});
+      for(const button of form.querySelectorAll(&#x27;[data-clear-meal-date]&#x27;)){
+        button.hidden=!form.elements[button.dataset.clearMealDate].value;
+      }
       for(const button of form.querySelectorAll(&#x27;[data-meal-date-preset]&#x27;)){
         button.setAttribute(&#x27;aria-pressed&#x27;,String(button.dataset.mealDatePreset===selected));
       }
@@ -3480,6 +3493,13 @@ html&gt;body{padding:0}&lt;/style&gt;
         b.form.elements.from.value=dates.from;
         b.form.elements.to.value=dates.to;
         updateMealDatePresets(b.form);
+        return;
+      }
+      if(b.dataset.clearMealDate){
+        const date=b.form.elements[b.dataset.clearMealDate];
+        date.value=&#x27;&#x27;;
+        updateMealDatePresets(b.form);
+        date.focus({preventScroll:true});
         return;
       }
       if(b.dataset.action===&#x27;reset-meal-filter&#x27;){

@@ -1,5 +1,8 @@
     function updateMealDatePresets(form){
       const selected=mealDatePreset({from:form.elements.from.value,to:form.elements.to.value});
+      for(const button of form.querySelectorAll('[data-clear-meal-date]')){
+        button.hidden=!form.elements[button.dataset.clearMealDate].value;
+      }
       for(const button of form.querySelectorAll('[data-meal-date-preset]')){
         button.setAttribute('aria-pressed',String(button.dataset.mealDatePreset===selected));
       }
@@ -119,6 +122,13 @@
         b.form.elements.from.value=dates.from;
         b.form.elements.to.value=dates.to;
         updateMealDatePresets(b.form);
+        return;
+      }
+      if(b.dataset.clearMealDate){
+        const date=b.form.elements[b.dataset.clearMealDate];
+        date.value='';
+        updateMealDatePresets(b.form);
+        date.focus({preventScroll:true});
         return;
       }
       if(b.dataset.action==='reset-meal-filter'){
