@@ -332,7 +332,7 @@ fun MealFilterPage(
                     { if (it.isEmpty()) "不限" else if (it == "true") "是" else "否" },
                     { draft = draft.copy(atHome = it.toBooleanStrictOrNull()) }, Modifier.weight(1f))
             }
-            Select("用餐方式", draft.method, listOf("", "none") + records.methods.map { it.id },
+            SheetSelect("用餐方式", draft.method, listOf("", "none") + records.methods.map { it.id },
                 { when (it) { "" -> "全部方式"; "none" -> "未填写方式"; else -> records.methodName(it) } },
                 { draft = draft.copy(method = it) })
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {

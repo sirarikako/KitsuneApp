@@ -34,32 +34,30 @@ internal fun LedgerEntryFilterDialog(
     val allCategories = remember(categories) { categories.mapTo(mutableSetOf()) { it.normalizedName } }
     val types = draft.types ?: allTypes
     val categoryNames = draft.categoryNames ?: allCategories
-    AlertDialog(onDismissRequest = dismiss, shape = DialogShape, title = { Text("流水筛选") },
-        text = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterGroupHeader("类型", { draft = draft.copy(types = null) }, { draft = draft.copy(types = emptySet()) })
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    EntryType.entries.forEach { type ->
-                        FilterChoice(type.label, type in types) {
-                            draft = draft.copy(types = toggle(types, type).takeUnless { it == allTypes })
-                        }
-                    }
+    SelectionSheet("流水筛选", dismiss, footer = {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            TextButton(dismiss) { Text("取消") }
+            Primary("应用", { apply(draft) }, Modifier.weight(1f))
+        }
+    }) {
+        FilterGroupHeader("类型", { draft = draft.copy(types = null) }, { draft = draft.copy(types = emptySet()) })
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            EntryType.entries.forEach { type ->
+                FilterChoice(type.label, type in types) {
+                    draft = draft.copy(types = toggle(types, type).takeUnless { it == allTypes })
                 }
-                FilterGroupHeader("分类", { draft = draft.copy(categoryNames = null) }, { draft = draft.copy(categoryNames = emptySet()) })
-                if (categories.isEmpty()) Secondary("当前钱包范围没有可选分类")
-                LazyColumn(Modifier.heightIn(max = 216.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    items(categories, key = Category::normalizedName) { category ->
-                        val name = category.normalizedName
-                        FilterChoice(category.name, name in categoryNames, Modifier.fillMaxWidth()) {
-                            draft = draft.copy(categoryNames = toggle(categoryNames, name).takeUnless { it == allCategories })
-                        }
-                    }
-                }
-                Field("备注关键词", draft.note, { draft = draft.copy(note = it) })
             }
-        },
-        confirmButton = { Primary("应用", { apply(draft) }) },
-        dismissButton = { TextButton(dismiss) { Text("取消") } })
+        }
+        FilterGroupHeader("分类", { draft = draft.copy(categoryNames = null) }, { draft = draft.copy(categoryNames = emptySet()) })
+        if (categories.isEmpty()) Secondary("当前钱包范围没有可选分类")
+        categories.forEach { category ->
+            val name = category.normalizedName
+            MultiSelectionRow(category.name, name in categoryNames, {
+                draft = draft.copy(categoryNames = toggle(categoryNames, name).takeUnless { it == allCategories })
+            })
+        }
+        Field("备注关键词", draft.note, { draft = draft.copy(note = it) })
+    }
 }
 
 private fun <T> toggle(selection: Set<T>, value: T): Set<T> =

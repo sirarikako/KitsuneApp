@@ -196,7 +196,7 @@ private fun CsvPanel(records: Records, model: AppViewModel, message: (String) ->
                     }
                     source.methods().filter { name -> records.methods.none { it.normalizedName == normalizedName(name) } }
                         .forEach { name ->
-                            Select("映射 $name", mappings.methods[name], records.methods.map { it.id }, records::methodName,
+                            SheetSelect("映射 $name", mappings.methods[name], records.methods.map { it.id }, records::methodName,
                                 { recheck(mappings.copy(methods = mappings.methods + (name to it))) }, enabled = !busy)
                         }
                     source.wallets().filter { (name, code) -> records.wallets.none {
@@ -204,7 +204,7 @@ private fun CsvPanel(records: Records, model: AppViewModel, message: (String) ->
                     } }.forEach { (name, code) ->
                         val choices = records.wallets.filter { it.currencyCode == code }
                         if (choices.isEmpty()) Secondary("请先新建 $code 钱包，再重新导入。")
-                        else Select("映射 $name · $code", mappings.wallets[name to code], choices.map { it.id },
+                        else SheetSelect("映射 $name · $code", mappings.wallets[name to code], choices.map { it.id },
                             { id -> choices.find { it.id == id }?.name.orEmpty() }, { id ->
                                 recheck(mappings.copy(wallets = mappings.wallets + ((name to code) to id)))
                             }, enabled = !busy)

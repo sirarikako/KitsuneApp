@@ -92,21 +92,13 @@ fun WalletForm(records: Records, id: String?, model: AppViewModel, back: () -> U
     if (pickCurrency) {
         var query by rememberSaveable { mutableStateOf("") }
         val locale = Locale.SIMPLIFIED_CHINESE
-        AlertDialog(onDismissRequest = { pickCurrency = false }, shape = DialogShape, title = { Text("选择币种") },
-            text = {
-                Column {
-                    Field("搜索代码或名称", query, { query = it })
-                    LazyColumn(Modifier.heightIn(max = 300.dp)) {
-                        items(availableCurrencies.filter {
-                            it.currencyCode.contains(query.trim(), true) || it.getDisplayName(locale).contains(query.trim(), true)
-                        }, key = { it.currencyCode }) {
-                            TextButton({ code = it.currencyCode; pickCurrency = false }) {
-                                Text(it.currencyCode + " · " + it.getDisplayName(locale))
-                            }
-                        }
-                    }
-                }
-            }, confirmButton = { TextButton({ pickCurrency = false }) { Text("取消") } })
+        val options = availableCurrencies.filter {
+            it.currencyCode.contains(query.trim(), true) || it.getDisplayName(locale).contains(query.trim(), true)
+        }
+        SingleSelectSheet("选择币种", options.firstOrNull { it.currencyCode == code }, options,
+            { it.currencyCode }, { code = it.currencyCode }, { pickCurrency = false },
+            secondary = { it.getDisplayName(locale) }, empty = "没有匹配币种",
+            header = { Field("搜索代码或名称", query, { query = it }) })
     }
     if (delete && wallet != null) ConfirmDelete(wallet.name + " · " + wallet.currencyCode, { delete = false },
         { delete = false; model.save(back) { removeWallet(wallet.id) } })
@@ -220,6 +212,7 @@ fun EntryForm(records: Records, id: String?, expenseId: String?, model: AppViewM
         calculator = field
     }
     var walletSheet by rememberSaveable { mutableIntStateOf(0) }
+    var categorySheet by rememberSaveable { mutableStateOf(false) }
     val busy by model.busy.collectAsState()
     val error by model.error.collectAsState()
     val scope = type.scope
@@ -286,38 +279,23 @@ fun EntryForm(records: Records, id: String?, expenseId: String?, model: AppViewM
                     }
                 }
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.weight(1f)) { FieldLabel("钱包") }
-                        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.weight(1f)) { FieldLabel("分类") }
-                            if (wallet != null) {
-                                TextAction("新增分类", {
-                                    model.clearError()
-                                    addingCategory = true
-                                }, enabled = !busy)
-                            }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    WalletControl("钱包", ledger.walletLabel(walletId), Modifier.weight(1f)) { walletSheet = 1 }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        FieldLabel("分类")
+                        OutlinedAction({ categorySheet = true },
+                            Modifier.fillMaxWidth().semantics { contentDescription = "分类" },
+                            enabled = wallet != null, spread = true) {
+                            val current = ledger.categories.firstOrNull { it.id == categoryId }
+                            if (current != null) Icon(categoryGlyph(current.icon), null, Modifier.size(16.dp))
+                            Text(current?.let { ledger.categoryLabel(it.id) } ?: "请选择", Modifier.weight(1f))
+                            Icon(designIcon(R.drawable.ks_chevron_down), null, Modifier.size(14.dp))
                         }
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        WalletControl("钱包", ledger.walletLabel(walletId), Modifier.weight(1f), showLabel = false) { walletSheet = 1 }
-                        val currentCategory = ledger.categories.firstOrNull { it.id == categoryId }
-                        Select("分类", currentCategory, options, { ledger.categoryLabel(it.id) }, {
-                            followsWalletType = false
-                            categoryId = it.id
-                            categoryCleared = false
-                        }, Modifier.weight(1f), enabled = wallet != null, showLabel = false,
-                            optionIcon = { categoryGlyph(it.icon) })
                     }
                 }
             }
             if (wallet == null) Secondary("请手动选择钱包")
-            if (scope != null && wallet != null) Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                val categorySource = if (wallet.categoryMode(scope) == CategoryMode.CUSTOM) "本钱包专属分类" else "通用分类"
-                Secondary("分类来源：$categorySource。切换钱包后如无对应分类，请重新选择。")
-                if (categoryCleared) Secondary("请重新选择该钱包的分类")
-            }
+            if (scope != null && wallet != null && categoryCleared) Secondary("请重新选择该钱包的分类")
             if (expense != null) {
                 val available = ledger.refundRemaining(expense, original?.id)
                 Secondary("原支出 · ${expense.date} · " + ledger.categoryLabel(expense.categoryId))
@@ -336,6 +314,28 @@ fun EntryForm(records: Records, id: String?, expenseId: String?, model: AppViewM
         }
     }
 
+    if (categorySheet && scope != null && wallet != null) {
+        val source = if (wallet.categoryMode(scope) == CategoryMode.CUSTOM) "本钱包专属分类" else "通用分类"
+        SingleSelectSheet("选择分类", options.firstOrNull { it.id == categoryId }, options,
+            { ledger.categoryLabel(it.id) }, {
+                followsWalletType = false
+                categoryId = it.id
+                categoryCleared = false
+            }, { categorySheet = false }, subtitle = "$source · ${type.label}",
+            optionIcon = { categoryGlyph(it.icon) }, empty = "没有可选分类",
+            footer = {
+                HorizontalDivider()
+                TextButton({
+                    categorySheet = false
+                    model.clearError()
+                    addingCategory = true
+                }, Modifier.fillMaxWidth(), enabled = !busy) {
+                    Icon(designIcon(R.drawable.ks_plus), null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("新增分类")
+                }
+            })
+    }
     if (addingCategory && scope != null && wallet != null) {
         AddEntryCategoryDialog(busy || (pendingCategoryId != null && error == null), error, dismiss = {
             model.clearError()
@@ -363,28 +363,22 @@ fun EntryForm(records: Records, id: String?, expenseId: String?, model: AppViewM
             active && (if (source) item.id != targetId || type != EntryType.TRANSFER else item.id != walletId) &&
                 (!source || expense == null || item.currencyCode == sourceExpenseWallet?.currencyCode)
         }
-        DesignSheet({ walletSheet = 0 }) {
-            Text(if (source) "选择钱包" else "选择到账钱包", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-            if (choices.isEmpty()) EmptyState("没有可选钱包")
-            LazyColumn(Modifier.heightIn(max = 320.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(choices, key = { it.id }) { item ->
-                    val current = if (source) walletId else targetId
-                    Choice(ledger.walletLabel(item.id) + if (item.separateAccounting) " · 独立核算" else "", {
-                        if (source) {
-                            if (walletId != item.id) {
-                                val nextType = if (followsWalletType) defaultEntryType(item) else type
-                                if (nextType != type) categoryId = null
-                                unselectCategory(item, nextType)
-                                type = nextType
-                            }
-                            walletId = item.id
-                        } else targetId = item.id
-                        walletSheet = 0
-                    }, Modifier.fillMaxWidth(), selected = current == item.id)
-                }
-            }
-            Choice("取消", { walletSheet = 0 }, Modifier.fillMaxWidth())
-        }
+        SingleSelectSheet(if (source) "选择钱包" else "选择到账钱包",
+            choices.firstOrNull { it.id == (if (source) walletId else targetId) },
+            choices, { it.name }, { item ->
+                if (source) {
+                    if (walletId != item.id) {
+                        val nextType = if (followsWalletType) defaultEntryType(item) else type
+                        if (nextType != type) categoryId = null
+                        unselectCategory(item, nextType)
+                        type = nextType
+                    }
+                    walletId = item.id
+                } else targetId = item.id
+            }, { walletSheet = 0 }, secondary = { item ->
+                item.currencyCode + (if (item.separateAccounting) " · 独立核算" else "") +
+                    (if (item.archived) " · 已归档" else "")
+            }, empty = "没有可选钱包")
     }
 }
 

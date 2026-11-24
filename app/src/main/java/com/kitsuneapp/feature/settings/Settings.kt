@@ -208,7 +208,7 @@ fun CategorySettings(records: Records, model: AppViewModel, specific: Boolean, w
         Header(if (specific) "钱包专属分类" else "通用收支分类", back = back)
         Form {
             Secondary("钱包没有设置专属分类时，自动使用通用分类。收入与支出分别设置。")
-            if (specific) Select("管理对象", wallet, records.wallets.map { it.id },
+            if (specific) SheetSelect("管理对象", wallet, records.wallets.map { it.id },
                 { id -> records.wallets.find { it.id == id }?.let { it.name + " · " + it.currencyCode } ?: "已移除" }, { wallet = it })
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 FieldLabel("收支类型")
