@@ -1,20 +1,14 @@
-  #kitsune-preview :is(.ks-wallet-dialog,.ks-period-dialog) h3{font-size:var(--ks-font-title);font-weight:600;line-height:1.3;margin:0}
-  #kitsune-preview :is(.ks-wallet-body,.ks-period-body){display:grid;gap:var(--ks-space-2);overflow:auto;min-height:0}
-  #kitsune-preview .ks-wallet-body p{margin:0}
-  #kitsune-preview :is(.ks-wallet-dialog,.ks-period-dialog) .ks-choice{padding:var(--ks-space-2)}
-  @media(max-width:400px){#kitsune-preview :is(.ks-wallet-dialog,.ks-period-dialog){padding-inline:var(--ks-space-4)}#kitsune-preview :is(.ks-wallet-dialog,.ks-period-dialog) .ks-choice{padding-inline:var(--ks-space-1)}}
-  #kitsune-preview :is(.ks-wallet-dialog,.ks-period-dialog) .ks-choice[aria-pressed=true]{box-shadow:inset 0 0 0 1px var(--ks-accent)}
-  #kitsune-preview :is(.ks-wallet-actions,.ks-period-actions){display:flex;justify-content:flex-end;flex-wrap:wrap;gap:var(--ks-space-2);padding-top:var(--ks-space-2)}
-  #kitsune-preview :is(.ks-wallet-actions,.ks-period-actions) .ks-text-btn{font-size:var(--ks-font-body);padding:var(--ks-space-2)}
+  #kitsune-preview .ks-period-dialog h3{font-size:var(--ks-font-title);font-weight:600;line-height:1.3;margin:0}
+  #kitsune-preview .ks-period-body{display:grid;gap:var(--ks-space-2);overflow:auto;min-height:0}
+  #kitsune-preview .ks-period-dialog .ks-choice{padding:var(--ks-space-2)}
+  @media(max-width:400px){#kitsune-preview .ks-period-dialog{padding-inline:var(--ks-space-4)}#kitsune-preview .ks-period-dialog .ks-choice{padding-inline:var(--ks-space-1)}}
+  #kitsune-preview .ks-period-dialog .ks-choice[aria-pressed=true]{box-shadow:inset 0 0 0 1px var(--ks-accent)}
+  #kitsune-preview .ks-period-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:var(--ks-space-2);padding-top:var(--ks-space-2)}
+  #kitsune-preview .ks-period-actions .ks-text-btn{font-size:var(--ks-font-body);padding:var(--ks-space-2)}
   #kitsune-preview .ks-period-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ks-space-2)}
   #kitsune-preview .ks-period-months{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--ks-space-2)}
   #kitsune-preview .ks-period-body .ks-error:empty{display:none}
   #kitsune-preview [data-filter-group]{min-width:0;border:0;margin:0;padding:0}
-  #kitsune-preview .ks-ledger-filter-options{display:flex;flex-wrap:wrap;gap:var(--ks-space-1)}
-  #kitsune-preview [data-filter-group=categoryNames] .ks-ledger-filter-options{display:grid;max-height:216px;overflow:auto}
-  #kitsune-preview .ks-ledger-check{display:flex;align-items:center;justify-content:flex-start;gap:var(--ks-space-2);overflow-wrap:anywhere}
-  #kitsune-preview .ks-ledger-check input{width:18px;height:18px;accent-color:var(--ks-accent);flex:none}
-  #kitsune-preview .ks-ledger-check:has(input:checked){color:var(--ks-accent);border-color:var(--ks-accent);background:var(--ks-accent-bg)}
   #kitsune-preview .ks-filter-field-heading{display:flex;align-items:center;min-height:44px;gap:var(--ks-space-2)}
   #kitsune-preview .ks-filter-field-heading > :first-child{flex:1;margin:0}
   #kitsune-preview .ks-filter-field-heading .ks-text-btn{flex:none}
@@ -76,18 +70,10 @@
   #kitsune-preview .ks-backup-status~p{margin:var(--ks-space-1) 0 0}
   #kitsune-preview .ks-category-form{margin-top:4px}
   #kitsune-preview .ks-category-form .ks-form-actions{align-items:center}
-  #kitsune-preview .ks-entry-category{align-items:center;row-gap:var(--ks-space-1)}
   #kitsune-preview .ks-category-icons .ks-choice{display:inline-flex;align-items:center;gap:var(--ks-space-1);position:relative;cursor:pointer}
   #kitsune-preview .ks-category-icons input{position:absolute;opacity:0;width:1px;height:1px}
   #kitsune-preview .ks-category-icons .ks-choice:has(input:checked){background:var(--ks-accent-bg);border-color:var(--ks-accent);color:var(--ks-accent)}
   #kitsune-preview .ks-category-icons .ks-choice:focus-within{outline:2px solid var(--ks-accent);outline-offset:2px}
-  @supports (appearance:base-select){
-    #kitsune-preview .ks-category-select,#kitsune-preview .ks-category-select::picker(select){appearance:base-select}
-    #kitsune-preview .ks-category-select{display:flex;align-items:center}
-    #kitsune-preview .ks-category-select::picker(select){background:var(--ks-paper);color:var(--ks-ink);border:var(--ks-card-border);border-radius:var(--ks-control-radius)}
-    #kitsune-preview .ks-category-select :is(selectedcontent,option){display:flex;align-items:center;gap:var(--ks-space-2)}
-    #kitsune-preview .ks-category-select svg{flex:none}
-  }
   #kitsune-preview .ks-wallet-check>span{flex:1}
   #kitsune-preview .ks-wallet-check small{font-size:var(--ks-font-note);color:var(--ks-accent)}
   #kitsune-preview .ks-filter-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 15px}

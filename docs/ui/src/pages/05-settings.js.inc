@@ -1,3 +1,11 @@
+    function pageCsvMapping(){
+      const wallet=wallets.find(w=>w.id===state.csvWallet);
+      return `<div class="ks-form">
+        ${section('CSV 映射示例')}
+        ${selectionControl('csv-method','映射 外送',state.csvMethod)}
+        ${selectionControl('csv-wallet','映射 随身账户 · CNY',wallet?.name)}
+      </div>`;
+    }
     function pageSettings(){
       const item=(glyph,label,attrs='',detail='')=>`<${attrs?'button type="button"':'div'} class="ks-setting ${attrs?'ks-setting-link cursor-interaction':''}" ${attrs}>${icon(glyph)}<span>${label}</span>${detail}${icon('chevron-right')}</${attrs?'button':'div'}>`;
       return `${section('分类管理')}<div class="ks-settings">
@@ -8,7 +16,7 @@
       </div>
       ${section('个性化')}<div class="ks-settings">${item('palette','外观与调色板','data-action="open-appearance"')}</div>
       ${section('数据与备份')}<div class="ks-settings">
-        ${item('files','导入与导出')}
+        ${item('files','导入与导出','data-action="open-csv-mapping"')}
         ${item('hard-drive','本地文件夹备份')}
         ${item('cloud','GitHub 备份','data-github-action="open"',githubPause()
           ? '<small class="ks-backup-warning"><span aria-hidden="true">⚠</span> 自动备份已暂停</small>' : '')}
@@ -41,10 +49,7 @@
       const name=wallet?wallet.name:'通用收支分类';
       return `<div class="ks-category-manager">
         <p class="ks-note">钱包没有设置专属分类时，自动使用通用分类；收入与支出分别设置。</p>
-        <label><span class="ks-label">管理对象</span><select class="ks-control" data-category-wallet>
-          <option value="GLOBAL" ${!wallet?'selected':''}>通用分类</option>
-          ${wallets.map(w=>`<option value="${w.id}" ${wallet?.id===w.id?'selected':''}>${escapeText(w.name)} · ${w.code}</option>`).join('')}
-        </select></label>
+        ${selectionControl('category-wallet','管理对象',wallet?`${wallet.name} · ${wallet.code}`:'通用分类')}
         <fieldset><legend class="ks-label">收支类型</legend><div class="ks-choices">
           ${[['EXPENSE','支出'],['INCOME','收入']].map(([code,label])=>`<button type="button" class="ks-choice cursor-interaction" data-financial-scope="${code}" aria-pressed="${scope===code}">${label}</button>`).join('')}
         </div></fieldset>

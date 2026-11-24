@@ -196,18 +196,18 @@ private fun CsvPanel(records: Records, model: AppViewModel, message: (String) ->
                     }
                     source.methods().filter { name -> records.methods.none { it.normalizedName == normalizedName(name) } }
                         .forEach { name ->
-                            Select("映射 $name", mappings.methods[name], records.methods.map { it.id }, records::methodName,
+                            SheetSelect("映射 $name", mappings.methods[name], records.methods.map { it.id }, records::methodName,
                                 { recheck(mappings.copy(methods = mappings.methods + (name to it))) }, enabled = !busy)
                         }
                     source.wallets().filter { (name, code) -> records.wallets.none {
                         it.normalizedName == normalizedName(name) && it.currencyCode == code
                     } }.forEach { (name, code) ->
-                        val choices = records.wallets.filter { it.currencyCode == code }
+                        val choices = records.wallets.filter { it.currencyCode == code }.associateBy { it.id }
                         if (choices.isEmpty()) Secondary("请先新建 $code 钱包，再重新导入。")
-                        else Select("映射 $name · $code", mappings.wallets[name to code], choices.map { it.id },
-                            { id -> choices.find { it.id == id }?.name.orEmpty() }, { id ->
+                        else SheetSelect("映射 $name · $code", mappings.wallets[name to code], choices.keys.toList(),
+                            { id -> choices[id]?.name.orEmpty() }, { id ->
                                 recheck(mappings.copy(wallets = mappings.wallets + ((name to code) to id)))
-                            }, enabled = !busy)
+                            }, enabled = !busy, secondary = { id -> choices[id]?.let(::walletSelectionDetails) })
                     }
                     error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                     if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())

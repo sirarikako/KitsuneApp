@@ -63,7 +63,7 @@
     const discard=group=>()=>group?.remove();
     const pageNode=()=>phone.querySelector(':scope > .ks-page-motion');
     const modalNode=()=>phone.querySelector(':scope > .ks-modal-overlay');
-    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.walletPickerOpen?'wallet':state.periodDraft?'period':state.ledgerFilterDraft?'ledger-filters':state.githubDemo.review?'github-review':state.mealCalendar?'date-calendar':state.entryTimeDraft?'entry-time':state.addingEntryCategory?'entry-category':state.addingMealOption?'meal-option':null;
+    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.singleSelection?'single-selection':state.walletPickerOpen?'wallet':state.periodDraft?'period':state.ledgerFilterDraft?'ledger-filters':state.githubDemo.review?'github-review':state.mealCalendar?'date-calendar':state.entryTimeDraft?'entry-time':state.addingEntryCategory?'entry-category':state.addingMealOption?'meal-option':null;
     const primary=page=>navs.some(n=>n[0]===page);
     const localKey=()=>state.page==='meals'?JSON.stringify([state.mealTab,state.date,state.mealStatsFilters,state.mealListMode,state.mealFilters]):state.page==='ledger'?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds,state.ledgerFilters]):'';
     const localNodes=()=>{
@@ -134,7 +134,7 @@
       const opening=!!kind,group=opening?node:attachGhost(oldModal);
       const overlay=opening?node:group?.firstElementChild;
       if(!overlay)return;
-      const panel=overlay.firstElementChild,variant=opening?kind:previous,dialog=variant!=='calculator',duration=dialog?motion.dialog:motion.sheet;
+      const panel=overlay.firstElementChild,variant=opening?kind:previous,dialog=!['calculator','single-selection','wallet','ledger-filters'].includes(variant),duration=dialog?motion.dialog:motion.sheet;
       play(overlay,opening?[{opacity:0},{opacity:1}]:[{opacity:1},{opacity:0}],duration,opening?()=>{}:discard(group));
       play(panel,dialog?(opening?[{transform:'scale(.96)'},{transform:'scale(1)'}]:[{transform:'scale(1)'},{transform:'scale(.96)'}]):(opening?[{transform:'translateY(100%)'},{transform:'translateY(0)'}]:[{transform:'translateY(0)'},{transform:'translateY(100%)'}]),duration);
     }

@@ -68,30 +68,34 @@
     }
     function ledgerFiltersDialog(){
       const draft=state.ledgerFilterDraft;
-      const group=(label,key,options)=>`<div data-filter-group="${key}" role="group" aria-labelledby="ledger-filter-${key}">
-        <div class="ks-filter-field-heading">
-          <span class="ks-label" id="ledger-filter-${key}">${label}</span>
-          <button type="button" class="ks-text-btn" data-filter-bulk="all" aria-label="全选${label}">全选</button>
-          <button type="button" class="ks-text-btn" data-filter-bulk="none" aria-label="全不选${label}">全不选</button>
-        </div>
-        <div class="ks-ledger-filter-options">
-          ${options.map(([id,text])=>`<label class="ks-choice ks-ledger-check cursor-interaction"><input type="checkbox" value="${escapeText(id)}" ${draft[key]===null||draft[key].includes(id)?'checked':''}>${escapeText(text)}</label>`).join('')}
-          ${options.length?'':'<p class="ks-note">当前钱包范围没有可选分类</p>'}
-        </div>
-      </div>`;
-      return `<div class="ks-modal-overlay ks-period-overlay" data-ledger-filter-overlay>
-        <form class="ks-period-dialog" data-ledger-filters role="dialog" aria-modal="true" aria-label="流水筛选">
-          <h3>流水筛选</h3>
-          <div class="ks-period-body">
-            ${group('类型','types',['收入','支出','转账','退款'].map(value=>[value,value]))}
-            ${group('分类','categoryNames',ledgerFilterCategories())}
-            <label><span class="ks-label">备注关键词</span><input name="note" class="ks-control" value="${escapeText(draft.note)}"></label>
+      const group=(label,key,options)=>{
+        const types=key==='types';
+        const checked=id=>draft[key]===null||draft[key].includes(id);
+        const count=options.filter(([id])=>checked(id)).length;
+        return `<div class="${types?'':'ks-selection-section'}" data-filter-group="${key}" role="group" aria-labelledby="ledger-filter-${key}">
+          <div class="ks-selection-group-heading">
+            <div class="ks-selection-group-name"><h4 id="ledger-filter-${key}">${label}</h4>
+              ${types?'':`<span class="ks-note" data-filter-count>${count}/${options.length}</span>`}</div>
+            <button type="button" class="ks-text-btn" data-filter-bulk="all" aria-label="全选${label}">全选</button>
+            <button type="button" class="ks-text-btn" data-filter-bulk="none" aria-label="全不选${label}">全不选</button>
           </div>
-          <div class="ks-period-actions">
-            <button type="button" class="ks-text-btn" data-action="cancel-ledger-filters">取消</button>
-            <button type="submit" class="ks-text-btn">应用</button>
-          </div>
-        </form></div>`;
+          ${types?`<div class="ks-selection-chips">${options.map(([id,text])=>`<label class="ks-selection-chip">
+            <input type="checkbox" value="${escapeText(id)}" ${checked(id)?'checked':''}>
+            <span aria-hidden="true">${icon('check')}</span>${escapeText(text)}</label>`).join('')}</div>`:
+            `<div class="ks-selection-checks">${options.map(([id,text,glyph])=>selectionCheck(text,`value="${escapeText(id)}"`,checked(id),'',glyph)).join('')}
+              ${options.length?'':'<p class="ks-note">当前钱包范围没有可选分类</p>'}</div>`}
+        </div>`;
+      };
+      return selectionPanel('流水筛选',
+        group('类型','types',['收入','支出','转账','退款'].map(value=>[value,value]))+
+        group('分类','categoryNames',ledgerFilterCategories())+
+        `<label class="ks-selection-note"><span class="ks-label">备注关键词</span><input name="note" class="ks-control" value="${escapeText(draft.note)}"></label>`,
+        `<button type="submit" class="ks-primary">应用</button>`,
+        {attrs:'data-ledger-filters',form:true});
+    }
+    function updateLedgerFilterCount(group){
+      const count=group.querySelector('[data-filter-count]');
+      if(count)count.textContent=`${group.querySelectorAll('input:checked').length}/${group.querySelectorAll('input').length}`;
     }
     function pageLedger(){
       const allEntries=financialEntries();
@@ -156,12 +160,15 @@
       </section><p class="ks-footnote">交互预览 · 示例数据</p>`;
     }
     function pageWalletEdit(){
-      const wallet=walletById(state.editingWalletId);
-      return `<section class="ks-money-card">
-        <div class="ks-money-caption">${escapeText(wallet.name)} · ${wallet.code}</div>
-        <label class="ks-wallet-setting"><span>独立核算<small>开启后默认排除本钱包的收支和流水。余额与历史记录保留，可在账本手动选择。</small></span><input type="checkbox" data-wallet-independent ${wallet.separateAccounting?'checked':''}></label>
-        <label class="ks-wallet-setting"><span>设为默认钱包</span><input type="checkbox" data-wallet-default ${state.defaultWalletId===wallet.id?'checked':''} ${wallet.archived?'disabled':''}></label>
-        <label class="ks-wallet-setting"><span>默认记为收入</span><input type="checkbox" data-wallet-income-default ${wallet.defaultToIncome?'checked':''}></label>
+      const wallet=walletById(state.editingWalletId),draft=state.walletEditDraft;
+      const locked=financialEntries().some(entry=>entry.walletId===wallet.id||entry.toWalletId===wallet.id);
+      return `<section class="ks-money-card ks-form">
+        <div class="ks-money-caption">${escapeText(wallet.name)}</div>
+        ${selectionControl('currency','币种',draft.code,'',locked)}
+        ${locked?'<span class="ks-note">已有流水，币种和精度固定</span>':''}
+        <label class="ks-wallet-setting"><span>独立核算<small>开启后默认排除本钱包的收支和流水。余额与历史记录保留，可在账本手动选择。</small></span><input type="checkbox" data-wallet-independent ${draft.separateAccounting?'checked':''}></label>
+        <label class="ks-wallet-setting"><span>设为默认钱包</span><input type="checkbox" data-wallet-default ${draft.defaultWallet?'checked':''} ${wallet.archived?'disabled':''}></label>
+        <label class="ks-wallet-setting"><span>默认记为收入</span><input type="checkbox" data-wallet-income-default ${draft.defaultToIncome?'checked':''}></label>
         <button type="button" class="ks-primary ks-full cursor-interaction" data-action="save-wallet">保存</button>
       </section><p class="ks-footnote">交互预览 · 示例数据</p>`;
     }

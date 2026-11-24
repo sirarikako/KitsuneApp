@@ -1,5 +1,7 @@
 package com.kitsuneapp
 
+import android.content.pm.ActivityInfo
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.os.ParcelFileDescriptor
 import androidx.compose.ui.MotionDurationScale
@@ -13,10 +15,12 @@ import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -109,17 +113,17 @@ class NavigationTest {
             compose.onNodeWithText("收入").assertIsSelected()
 
             compose.onNodeWithText(incomeWallet).performClick()
-            compose.onNodeWithText(expenseWallet).performClick()
+            compose.onNodeWithText(expenseName).performClick()
             compose.onNodeWithText("支出").assertIsSelected()
             compose.onNodeWithText(expenseWallet).performClick()
-            compose.onNodeWithText("$incomeWallet · 独立核算").performClick()
+            compose.onNode(hasText(incomeName) and hasText("JPY · 独立核算")).performClick()
             compose.onNodeWithText("收入").assertIsSelected()
 
             compose.onNodeWithText("支出").performClick()
             compose.onNodeWithText(incomeWallet).performClick()
+            compose.onNodeWithText(expenseName).performClick()
             compose.onNodeWithText(expenseWallet).performClick()
-            compose.onNodeWithText(expenseWallet).performClick()
-            compose.onNodeWithText("$incomeWallet · 独立核算").performClick()
+            compose.onNode(hasText(incomeName) and hasText("JPY · 独立核算")).performClick()
             compose.onNodeWithText("支出").assertIsSelected()
 
             compose.onNodeWithContentDescription("返回").performClick()
@@ -186,6 +190,42 @@ class NavigationTest {
     }
 
     @Test
+    fun openWalletPickerAndEntryDraftSurviveRotationAndRecreation() {
+        compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
+        val repository = runBlocking { (compose.activity.application as KitsuneApplication).repository() }
+        val name = "旋转测试-" + UUID.randomUUID().toString().take(8)
+        val wallet = runBlocking {
+            repository.saveWallet(WalletDraft(null, name, "CNY", "0", 0, false, false))
+            repository.read().wallets.single { it.name == name }
+        }
+        val activity = compose.activityRule.scenario
+        val initialOrientation = compose.activity.requestedOrientation
+        val initialConfiguration = compose.activity.resources.configuration.orientation
+        val rotateTo = if (initialConfiguration == Configuration.ORIENTATION_PORTRAIT)
+            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        try {
+            compose.onNodeWithText("记一笔").performScrollTo().performClick()
+            compose.onNodeWithContentDescription("备注").performScrollTo().performTextReplacement("旋转保留")
+            compose.onNodeWithContentDescription("钱包").performScrollTo().performClick()
+            compose.onNodeWithText("选择钱包").assertIsDisplayed()
+            activity.onActivity { it.requestedOrientation = rotateTo }
+            compose.waitUntil(15_000) {
+                compose.activity.resources.configuration.orientation != initialConfiguration
+            }
+            compose.onNodeWithText("选择钱包").assertIsDisplayed()
+            activity.recreate()
+            compose.waitUntilAtLeastOneExists(hasText("选择钱包"), 15_000)
+            compose.onNodeWithText(name).performClick()
+            compose.onNode(hasContentDescription("钱包") and hasText("$name · CNY")).assertExists()
+            assertEquals("旋转保留", compose.onNodeWithContentDescription("备注")
+                .fetchSemanticsNode().config[SemanticsProperties.InputText].text)
+        } finally {
+            activity.onActivity { it.requestedOrientation = initialOrientation }
+            runBlocking { repository.removeWallet(wallet.id) }
+        }
+    }
+
+    @Test
     fun opensAppearanceFromSettings() {
         compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
         screenshot("kitsune-home")
@@ -208,10 +248,25 @@ class NavigationTest {
             repository.read().wallets.single { it.name == walletName }
         }
         try {
+            // Wait for the activity's records flow to display the seeded wallet before opening a new entry.
+            compose.onNodeWithText("记账").performClick()
+            compose.onNodeWithText("钱包").performClick()
+            compose.waitUntilAtLeastOneExists(hasText("$walletName · CNY"), 20_000)
+            compose.onNodeWithText("首页").performClick()
             compose.onNodeWithText("记一笔").performScrollTo().performClick()
             compose.waitUntilAtLeastOneExists(hasContentDescription("分类"), 10_000)
             compose.onNodeWithContentDescription("备注").performScrollTo().performTextReplacement("保留备注")
-            compose.onNodeWithText("新增分类").performScrollTo().performClick()
+            val category = compose.onNodeWithContentDescription("分类")
+            category.performScrollTo().performClick()
+            compose.onNodeWithText("新增分类").assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription("分类名称").performTextReplacement(categoryName)
+            compose.onNodeWithText("取消").performClick()
+            compose.onNodeWithText("选择分类").assertDoesNotExist()
+            category.assertExists()
+            assertTrue(runBlocking { repository.read().categories.none { it.name == categoryName } })
+
+            category.performScrollTo().performClick()
+            compose.onNodeWithText("新增分类").performClick()
             compose.onNodeWithContentDescription("分类名称").performTextReplacement(categoryName)
             compose.onNodeWithText("礼物").performScrollTo().performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithText("保存").assertIsEnabled().performSemanticsAction(SemanticsActions.OnClick)
@@ -222,6 +277,12 @@ class NavigationTest {
             assertEquals("保留备注", compose.onNodeWithContentDescription("备注")
                 .fetchSemanticsNode().config[SemanticsProperties.InputText].text)
             assertEquals(CategoryIcon.GIFT, runBlocking { repository.read().categories.single { it.name == categoryName }.icon })
+            category.performClick()
+            val dialogContent = hasAnyAncestor(isDialog())
+            compose.onNode(hasScrollToNodeAction() and dialogContent).performScrollToNode(hasText(categoryName))
+            compose.onNode(hasText(categoryName) and dialogContent).assertIsSelected()
+            compose.onNodeWithContentDescription("关闭").performClick()
+            compose.onNode(selected).assertExists()
         } finally {
             runBlocking {
                 repository.read().categories.find { it.name == categoryName }?.let { repository.deleteCategory(it.id) }

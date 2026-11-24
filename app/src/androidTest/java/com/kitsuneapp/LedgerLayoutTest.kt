@@ -24,6 +24,7 @@ import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
@@ -90,7 +91,7 @@ class LedgerLayoutTest {
         val other = expense.copy(id = "other", name = "日用", normalizedName = "日用")
         fun entry(id: String, wallet: Wallet, type: EntryType, amount: Long, category: Category) =
             FinancialEntry(id, LocalDate.now().toString(), "12:00", type, wallet.id, amount, category.id,
-                null, null, null, "", now, now)
+                null, null, null, if (id == "one") "独有备注" else "", now, now)
         val records = Records(DataState(installationId = "test", datasetId = "test", arrayElements = 0),
             ThemePreferences(), emptyList(), listOf(income, expense, other), emptyList(), emptyMap(), listOf(source, second),
             listOf(entry("one", source, EntryType.INCOME, 800, income),
@@ -109,16 +110,24 @@ class LedgerLayoutTest {
         val inDialog = hasAnyAncestor(isDialog())
         fun openFilters() = compose.onNodeWithText("筛选").performClick()
         fun apply() = compose.onNode(hasText("应用") and inDialog).performClick()
-        fun bulk(description: String) = compose.onNodeWithContentDescription(description).performScrollTo()
-            .performSemanticsAction(SemanticsActions.OnClick)
-        fun choose(name: String) = compose.onNode(hasText(name) and inDialog).performScrollTo()
-            .performSemanticsAction(SemanticsActions.OnClick)
+        val body = compose.onNode(hasScrollToNodeAction() and inDialog)
+        fun bulk(description: String) {
+            body.performScrollToNode(hasContentDescription(description))
+            compose.onNodeWithContentDescription(description).performSemanticsAction(SemanticsActions.OnClick)
+        }
+        fun choose(name: String) {
+            body.performScrollToNode(hasText(name))
+            compose.onNode(hasText(name) and inDialog).performSemanticsAction(SemanticsActions.OnClick)
+        }
         openFilters()
         bulk("全不选类型")
+        EntryType.entries.forEach { type -> compose.onNode(hasText(type.label) and inDialog).assertIsNotSelected() }
         choose("收入")
         choose("支出")
         bulk("全不选分类")
+        compose.onNode(hasText("0/2") and inDialog).assertExists()
         choose("奖金")
+        compose.onNode(hasText("1/2") and inDialog).assertExists()
         apply()
         compose.onNodeWithText("2 笔").assertExists()
         compose.onNodeWithText("净支出 3.00").assertIsDisplayed()
@@ -133,6 +142,17 @@ class LedgerLayoutTest {
         bulk("全选分类")
         apply()
         compose.onNodeWithText("3 笔").assertExists()
+
+        openFilters()
+        body.performScrollToNode(hasContentDescription("备注关键词"))
+        compose.onNodeWithContentDescription("备注关键词").performTextReplacement("独有备注")
+        compose.onNode(hasText("应用") and inDialog).assertIsDisplayed()
+        apply()
+        compose.onNodeWithText("1 笔").assertExists()
+        openFilters()
+        bulk("全不选类型")
+        compose.onNodeWithContentDescription("关闭").performClick()
+        compose.onNodeWithText("1 笔").assertExists()
     }
 
     @Test
@@ -203,31 +223,42 @@ class LedgerLayoutTest {
             CategoryMode.DEFAULT, CategoryMode.DEFAULT, now, now)
         val separate = regular.copy(id = "separate", name = "省钱钱包", currencyCode = "JPY", currencyScale = 0,
             separateAccounting = true)
+        val archived = regular.copy(id = "archived", name = "旧钱包", archived = true)
         val records = Records(DataState(installationId = "test", datasetId = "test", arrayElements = 0),
-            ThemePreferences(), emptyList(), emptyList(), emptyList(), emptyMap(), listOf(regular, separate), emptyList())
+            ThemePreferences(), emptyList(), emptyList(), emptyList(), emptyMap(), listOf(regular, separate, archived), emptyList())
         compose.setContent { KitsuneTheme(records.theme, forceDark = false) { LedgerPage(records, {}, {}) } }
 
         fun inDialog(label: String) = compose.onNode(hasText(label) and hasAnyAncestor(isDialog()))
         val range = compose.onNodeWithContentDescription("钱包范围")
-        val daily = inDialog("日常钱包 · CNY")
-        val savings = inDialog("省钱钱包 · JPY")
+        val daily = compose.onNode(hasText("日常钱包") and hasText("CNY") and hasAnyAncestor(isDialog()))
+        val savings = compose.onNode(hasText("省钱钱包") and hasText("JPY · 独立核算") and hasAnyAncestor(isDialog()))
+        val history = compose.onNode(hasText("旧钱包") and hasText("CNY · 已归档") and hasAnyAncestor(isDialog()))
         val apply = inDialog("应用")
         val manual = inDialog("手动选择")
         val all = inDialog("全部钱包")
         compose.onNodeWithText("统计").performClick()
         range.performClick()
-        inDialog("常规钱包").assertIsSelected()
+        val regularMode = inDialog("常规钱包").assertIsSelected()
+        val modes = listOf(regularMode, all, manual).map { it.fetchSemanticsNode().boundsInRoot }
+        assertTrue(modes.zipWithNext().all { (first, next) -> first.center.x < next.center.x && first.top == next.top })
+        assertTrue(modes.zipWithNext().all { (first, next) -> kotlin.math.abs(first.width - next.width) <= 1f })
         daily.assertDoesNotExist()
         savings.assertDoesNotExist()
         saveScreenshot("kitsune-wallet-range-regular")
 
         manual.performClick().assertIsSelected()
+        inDialog("选择钱包").assertIsDisplayed()
+        inDialog("已选 2/3").assertIsDisplayed()
         daily.assertIsOn()
         savings.assertIsOff()
+        history.assertIsOn()
         saveScreenshot("kitsune-wallet-range-manual")
         daily.performClick().assertIsOff()
+        history.performClick().assertIsOff()
+        inDialog("已选 0/3").assertIsDisplayed()
         apply.assertIsNotEnabled()
         savings.performClick().assertIsOn()
+        inDialog("已选 1/3").assertIsDisplayed()
         all.performClick().assertIsSelected()
         savings.assertDoesNotExist()
         manual.performClick()
@@ -239,7 +270,7 @@ class LedgerLayoutTest {
         range.performClick()
         savings.assertIsOn()
         all.performClick()
-        inDialog("取消").performClick()
+        compose.onNodeWithContentDescription("关闭").performClick()
         compose.onNodeWithText("本月收支 · CNY").assertDoesNotExist()
         range.performClick()
         all.performClick()
@@ -252,6 +283,13 @@ class LedgerLayoutTest {
         daily.assertIsOn()
         savings.assertIsOff()
         inDialog("恢复默认").performClick()
+        inDialog("常规钱包").assertIsSelected()
+        compose.onNodeWithContentDescription("关闭").performClick()
+        compose.onNodeWithText("本月收支 · JPY").assertIsDisplayed()
+        range.performClick()
+        all.assertIsSelected()
+        inDialog("恢复默认").performClick()
+        apply.performClick()
         compose.onNodeWithText("常规钱包").assertIsDisplayed()
         compose.onNodeWithText("本月收支 · JPY").assertDoesNotExist()
     }

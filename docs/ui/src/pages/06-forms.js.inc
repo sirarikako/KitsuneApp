@@ -1,3 +1,67 @@
+    const walletSelectionDetails=w=>[w.code,w.separateAccounting?'独立核算':'',w.archived?'已归档':''].filter(Boolean).join(' · ');
+    const walletSelectionOption=w=>[w.id,w.name,walletSelectionDetails(w)];
+    const knownCurrencies=['AUD','CAD','CHF','CNY','EUR','GBP','HKD','JPY','KRW','MOP','SGD','TWD','USD'];
+    const displayCurrency=new Intl.DisplayNames(['zh-CN'],{type:'currency'});
+    const mealFilterMethods=()=>[['any','全部方式'],['none','未填写方式'],
+      ...[...new Set([...mealMethods,...allMeals().map(m=>m.method).filter(Boolean)])].map(m=>[m,m])];
+    function selectionControl(kind,label,value,glyph='',disabled=false){
+      return `<div class="ks-selection-field"><span class="ks-label" id="ks-choice-${kind}">${escapeText(label)}</span>
+        <button type="button" class="ks-control ks-selection-trigger" data-select-open="${kind}" aria-labelledby="ks-choice-${kind} ks-choice-${kind}-value" aria-haspopup="dialog" ${disabled?'disabled':''}>
+          ${glyph}<span id="ks-choice-${kind}-value">${escapeText(value||'请选择')}</span>${icon('chevron-down')}
+        </button></div>`;
+    }
+    function selectionOption([value,label,detail,glyph],selected,action){
+      return `<button type="button" class="ks-selection-option ks-selection-single" ${action}="${escapeText(value)}" aria-pressed="${selected}" ${detail?'data-selection-detail':''}>
+        ${glyph||''}<span class="ks-selection-copy">${escapeText(label)}${detail?`<small>${escapeText(detail)}</small>`:''}</span>
+        <span class="ks-selection-indicator" aria-hidden="true">${selected?icon('check'):''}</span></button>`;
+    }
+    function selectionCheck(label,attributes,checked,detail='',glyph=''){
+      return `<label class="ks-selection-option" ${detail?'data-selection-detail':''}>
+        ${glyph}<span class="ks-selection-copy">${escapeText(label)}${detail?`<small>${escapeText(detail)}</small>`:''}</span>
+        <input type="checkbox" ${attributes} ${checked?'checked':''}></label>`;
+    }
+    function selectionPanel(title,body,footer='',{attrs='',form=false,header=''}={}){
+      const tag=form?'form':'section';
+      return `<div class="ks-modal-overlay ks-selection-overlay"><${tag} class="ks-selection-panel" role="dialog" aria-modal="true" aria-label="${escapeText(title)}" ${attrs}>
+        <div class="ks-selection-handle" aria-hidden="true"><span></span></div>
+        <div class="ks-selection-heading"><h3>${escapeText(title)}</h3><button type="button" class="ks-selection-close" data-select-close aria-label="关闭">${icon('x')}</button></div>
+        ${header}<div class="ks-selection-body">${body}</div>${footer?`<div class="ks-selection-footer">${footer}</div>`:''}
+      </${tag}></div>`;
+    }
+    function currencyOptions(query){
+      const search=query.trim().toLowerCase();
+      const choices=knownCurrencies.map(code=>[code,code,displayCurrency.of(code)])
+        .filter(([,code,name])=>code.toLowerCase().includes(search)||name.toLowerCase().includes(search));
+      return choices.map(option=>selectionOption(option,option[0]===state.walletEditDraft.code,'data-select-value')).join('')
+        || '<p class="ks-note">没有匹配币种</p>';
+    }
+    function singleSelectionPanel(){
+      const kind=state.singleSelection,wallet=entryWallet(),scope=financialScopeOf(state.entryType);
+      let title,choices,current,subtitle='',footer='';
+      switch(kind){
+        case 'entry-wallet':
+          title='选择钱包';choices=wallets.filter(w=>!w.archived).map(walletSelectionOption);current=wallet?.id;break;
+        case 'entry-category':
+          title='选择分类';current=state.entryDraft.category;
+          subtitle=(scopeMode(wallet,scope)==='CUSTOM'?'本钱包专属分类':'通用分类')+' · '+state.entryType;
+          choices=effectiveFinancialCategories(wallet?.id,state.entryType).map(c=>[c.id,c.name,'',categoryGlyph(c.icon)]);
+          footer=`<button type="button" class="ks-text-btn ks-selection-add" data-action="add-entry-category">${icon('plus')}新增分类</button>`;break;
+        case 'meal-method':
+          title='选择用餐方式';choices=mealFilterMethods();current=state.mealFilterDraft.method;break;
+        case 'category-wallet':
+          title='选择管理对象';choices=[['GLOBAL','通用分类'],...wallets.map(walletSelectionOption)];current=state.categoryWalletId;break;
+        case 'csv-method':
+          title='选择映射 外送';choices=mealMethods.map(m=>[m,m]);current=state.csvMethod;break;
+        case 'csv-wallet':
+          title='选择映射 随身账户 · CNY';choices=wallets.filter(w=>w.code==='CNY').map(walletSelectionOption);current=state.csvWallet;break;
+        case 'currency':
+          return selectionPanel('选择币种',currencyOptions(''),'',{header:
+            '<label><span class="ks-label">搜索代码或名称</span><input class="ks-control" type="search" data-currency-search></label>'});
+      }
+      const options=choices.map(option=>selectionOption(option,option[0]===current,'data-select-value')).join('');
+      return selectionPanel(title,(subtitle?`<p class="ks-note">${escapeText(subtitle)}</p>`:'')+
+        (options||'<p class="ks-note">没有可选项目</p>'),footer);
+    }
     const addMealOption = kind => `<button type="button" class="ks-icon-btn cursor-interaction" data-add-meal-option="${kind}" aria-label="新增${mealOptionLabels[kind]}">${icon('plus')}</button>`;
     function pageMealForm(){return `<form class="ks-form" data-meal-form>
       <div class="ks-field-row"><label><span class="ks-label">日期</span><input type="date" name="date" class="ks-control" value="${state.date}" required></label><label><span class="ks-label">餐次</span><select name="slot" class="ks-control">${slots.map((s,i)=>`<option value="${i}" ${i===state.slot?'selected':''}>${s}</option>`).join('')}</select></label></div>
@@ -53,19 +117,12 @@
         <input type="date" name="date" value="${escapeText(state.entryDraft.dateTime.slice(0,10))}" class="ks-control" aria-label="日期" required>
         <button type="button" class="ks-control" data-action="open-entry-time" aria-haspopup="dialog" aria-label="时间 ${state.entryDraft.dateTime.slice(-5)}">${state.entryDraft.dateTime.slice(-5)}</button>
       </div></fieldset>
-      <div class="ks-field-row ks-entry-category">
-        <label class="ks-label" for="entry-wallet">钱包</label>
-        <div class="ks-filter-field-heading"><label class="ks-label" for="entry-category">分类</label>
-          ${entryWallet()?'<button type="button" class="ks-text-btn" data-action="add-entry-category" aria-haspopup="dialog">新增分类</button>':''}
-        </div>
-        <select id="entry-wallet" name="wallet" class="ks-control" required><option value="" ${!entryWallet()?'selected':''} disabled>请选择钱包</option>${wallets.map(w=>`<option value="${w.id}" ${entryWallet()?.id===w.id?'selected':''}>${w.name} · ${w.code}${w.separateAccounting?'（独立核算）':''}</option>`).join('')}</select>
-        <select id="entry-category" name="category" class="ks-control ks-category-select" required ${entryWallet()?'':'disabled'}>
-          <button><selectedcontent></selectedcontent></button>
-          <option value="" ${!state.entryDraft.category?'selected':''} disabled>请选择分类</option>
-          ${effectiveFinancialCategories(state.entryDraft.walletId,state.entryType).map(c=>`<option value="${c.id}" ${state.entryDraft.category===c.id?'selected':''}>${categoryGlyph(c.icon)}<span>${escapeText(c.name)}</span></option>`).join('')}
-        </select>
+      <div class="ks-field-row">
+        ${selectionControl('entry-wallet','钱包',entryWallet()?`${entryWallet().name} · ${entryWallet().code}`:'未选择')}
+        ${selectionControl('entry-category','分类',categoryById(state.entryDraft.category)?.name,
+          state.entryDraft.category?categoryGlyph(categoryById(state.entryDraft.category)?.icon):'',!entryWallet())}
       </div>
-      <p class="ks-note">分类来源：${entryWallet()?scopeMode(entryWallet(),financialScopeOf(state.entryType))==='CUSTOM'?'本钱包专属分类':'通用分类':'请先选择钱包'}。切换钱包后如无对应分类，请重新选择。</p>
+      ${entryWallet()&&!state.entryDraft.category?'<p class="ks-note">请重新选择该钱包的分类</p>':''}
       <label><span class="ks-label">备注</span><input name="note" class="ks-control" placeholder="这笔钱用在了哪里？" value="${escapeText(state.entryDraft.note)}"></label>
       ${formFooter(saveButton(`保存${state.entryType}`),'交互预览 · 仅保存到当前演示')}
     </form>`;}
@@ -159,24 +216,26 @@
         </div></form></div>`;
     }
     function walletRangeDialog(){
-      const mode=state.walletDraftMode,manual=mode==='MANUAL',canApply=!manual||state.walletDraftIds.length>0;
-      const modeLabels={REGULAR:'常规钱包',ALL:'全部钱包',MANUAL:'手动选择'};
-      const hints={REGULAR:'仅常规钱包（独立核算关闭），包括归档历史。',ALL:'包括独立核算钱包和归档历史。',MANUAL:'独立核算钱包在下方列表中默认不勾选。'};
-      const options=wallets.map(w=>`<label class="ks-wallet-check cursor-interaction"><input type="checkbox" data-wallet-option="${w.id}" ${state.walletDraftIds.includes(w.id)?'checked':''}><span>${escapeText(w.name)} · ${w.code}</span>${w.separateAccounting?'<small>独立核算</small>':''}</label>`).join('');
-      return `<div class="ks-modal-overlay ks-wallet-overlay"><section class="ks-wallet-dialog" role="dialog" aria-modal="true" aria-label="钱包范围">
-        <h3>钱包范围</h3><div class="ks-wallet-body">
-          <p class="ks-note">默认只统计常规钱包；独立核算钱包可手动加入。</p>
-          <div class="ks-choices" role="group" aria-label="钱包范围模式">${Object.entries(modeLabels).map(([value,label])=>choice(label,value,mode,'wallet-mode')).join('')}</div>
-          <p class="ks-note">${hints[mode]}</p>${manual?options:''}
-          ${canApply?'':'<p class="ks-note">请选择至少一个钱包，或恢复默认。</p>'}
-        </div><div class="ks-wallet-actions">
-          <button type="button" class="ks-text-btn" data-wallet-action="default">恢复默认</button>
-          <button type="button" class="ks-text-btn" data-wallet-action="cancel">取消</button>
-          <button type="button" class="ks-text-btn" data-wallet-action="apply" ${canApply?'':'disabled'}>应用</button>
-        </div></section></div>`;
+      const mode=state.walletDraftMode,manual=mode==='MANUAL';
+      const selected=wallets.filter(w=>state.walletDraftIds.includes(w.id)).length;
+      const canApply=!manual||selected>0;
+      const modes=[['REGULAR','常规钱包'],['ALL','全部钱包'],['MANUAL','手动选择']];
+      const hints={REGULAR:'排除独立核算钱包，保留归档历史。',ALL:'包含独立核算钱包及归档历史。'};
+      const segments=modes.map(([id,label])=>`<button type="button" class="ks-selection-segment" data-wallet-mode="${id}" aria-pressed="${mode===id}">${label}</button>`).join('');
+      const options=manual?wallets.map(w=>selectionCheck(w.name,`data-wallet-option="${w.id}"`,
+        state.walletDraftIds.includes(w.id),walletSelectionDetails(w))).join(''):'';
+      const body=`<div class="ks-selection-segments" role="group" aria-label="钱包范围模式">${segments}</div>
+        ${manual?`<section class="ks-selection-section" aria-labelledby="ks-manual-wallets">
+          <div class="ks-selection-group-heading"><h4 id="ks-manual-wallets">选择钱包</h4>
+            <span class="ks-note">已选 ${selected}/${wallets.length}</span></div>
+          ${canApply?'':'<p class="ks-note">至少选择一个钱包。</p>'}${options}
+        </section>`:`<p class="ks-note">${hints[mode]}</p>`}`;
+      const footer=`<button type="button" class="ks-text-btn" data-wallet-action="default">恢复默认</button>
+        <button type="button" class="ks-primary" data-wallet-action="apply" ${canApply?'':'disabled'}>应用</button>`;
+      return selectionPanel('钱包范围',body,footer);
     }
     function pageMealFilter(){
-      const f=state.mealFilterDraft,methods=[...new Set([...mealMethods,...allMeals().map(m=>m.method).filter(Boolean)])],preparations=[...new Set([...mealPreparations,...allMeals().flatMap(m=>m.categories)])];
+      const f=state.mealFilterDraft,preparations=[...new Set([...mealPreparations,...allMeals().flatMap(m=>m.categories)])];
       const datePreset=mealDatePreset(f);
       const dateField=(name,label)=>`<div class="ks-meal-filter-date">
         <div class="ks-filter-field-heading">
@@ -192,7 +251,7 @@
           <div class="ks-field-row">${dateField('from','开始日期')}${dateField('to','结束日期')}</div>
         </fieldset>
         <div class="ks-field-row">${select('餐次','slot',[['any','全部餐次'],...slots.map((s,i)=>[String(i),s])])}${select('计划在家吃','atHome',[['any','不限'],['yes','是'],['no','否']])}</div>
-        ${select('用餐方式','method',[['any','全部方式'],...methods.map(m=>[m,m]),['none','未填写方式']])}
+        ${selectionControl('meal-method','用餐方式',mealFilterMethods().find(([value])=>value===f.method)?.[1])}
         <fieldset><legend class="ks-label">制作分类<span class="ks-required">多选，匹配任一项</span></legend><div class="ks-preparation-choices">${preparations.map(c=>`<label class="ks-preparation-check cursor-interaction"><input type="checkbox" name="preparation" value="${escapeText(c)}" ${f.preparations.includes(c)?'checked':''}>${escapeText(c)}</label>`).join('')}</div></fieldset>
         <label><span class="ks-label">菜品／备注关键词</span><input class="ks-control" type="search" name="keyword" value="${escapeText(f.keyword)}" placeholder="例如：番茄、和朋友" maxlength="100"></label>
         <p class="ks-note" style="margin:0">不同条件同时满足；未选择的条件不限制。</p>
