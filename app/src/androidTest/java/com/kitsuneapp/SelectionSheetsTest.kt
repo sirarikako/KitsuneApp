@@ -50,6 +50,8 @@ import com.kitsuneapp.ui.KitsuneTheme
 import com.kitsuneapp.ui.Primary
 import java.io.File
 import java.time.LocalDate
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
@@ -405,7 +407,21 @@ class SelectionSheetsScreenshotTest {
         val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
         // A Compose node can be visible before Android presents the new dialog window.
         automation.waitForIdle(300L, 5_000L)
-        if (Build.VERSION.SDK_INT >= 29) automation.syncInputTransactions()
+        if (Build.VERSION.SDK_INT >= 29) {
+            val frameCommitted = CountDownLatch(1)
+            compose.runOnUiThread {
+                val view = WindowInspector.getGlobalWindowViews().lastOrNull {
+                    it.hasWindowFocus() && it.isHardwareAccelerated
+                }
+                if (view != null) {
+                    view.viewTreeObserver.registerFrameCommitCallback { frameCommitted.countDown() }
+                    view.invalidate()
+                } else {
+                    frameCommitted.countDown()
+                }
+            }
+            check(frameCommitted.await(5, TimeUnit.SECONDS)) { "The selection sheet did not render a new frame." }
+        }
         val bitmap = checkNotNull(automation.takeScreenshot())
         val file = "selection-$profile-$name"
         File(compose.activity.cacheDir, "$file.png").outputStream().use {
