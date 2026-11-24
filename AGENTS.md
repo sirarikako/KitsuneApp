@@ -37,3 +37,9 @@
 - 按变更范围运行适当检查，并落实 docs/testing/ACCEPTANCE.md 与所改模块的相关验收条件。
 - 文档变更检查编码、链接、示例与一致性；无需为此安装应用工具链。
 - 清楚区分设计、已实现和已验证，记录实际执行结果及未验证项，不将模板命令或模拟结果当作实测。
+
+### APK 下载链接交付要求
+
+- 每次 Android 开发、修正或构建任务的最终回复末尾，必须提供当前任务对应的 GitHub Actions 运行详情链接，以及已成功构建并通过固定签名及覆盖安装验证的 APK 直接下载链接。优先列出 Release（`kitsune-release`），同时列出 Debug（`kitsune-debug`），注明分支、提交 SHA 和验证状态。
+- 通过 GitHub Actions 实际查询运行结果及 Artifact ID，使用 `https://github.com/sirarikako/KitsuneApp/actions/runs/<run_id>/artifacts/<artifact_id>` 形式的直接链接（须对应真实、未过期的产物）。不以 PR 页面、Actions 列表或临时签名／未签名的 `*-ci` 产物替代最终安装包。
+- 如果本次构建仍在运行、失败、未获固定签名授权或产物已过期，明确注明尚无本次可安装 APK，提供对应 Actions 运行详情链接；如有必要可另列最近一次验证通过的安装包，但须注明是旧构建，不得冒充本次产物。纯文档或设计任务未构建 APK 时，无需额外触发 Android 构建；如提供现有下载链接，同样注明实际来源。
