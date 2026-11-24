@@ -68,25 +68,34 @@
     }
     function ledgerFiltersDialog(){
       const draft=state.ledgerFilterDraft;
-      const group=(label,key,options)=>`<div data-filter-group="${key}" role="group" aria-labelledby="ledger-filter-${key}">
-        <div class="ks-filter-field-heading">
-          <span class="ks-label" id="ledger-filter-${key}">${label}</span>
-          <button type="button" class="ks-text-btn" data-filter-bulk="all" aria-label="全选${label}">全选</button>
-          <button type="button" class="ks-text-btn" data-filter-bulk="none" aria-label="全不选${label}">全不选</button>
-        </div>
-        <div class="ks-ledger-filter-options">
-          ${options.map(([id,text,glyph])=>selectionCheck(text,`value="${escapeText(id)}"`,
-            draft[key]===null||draft[key].includes(id),'',glyph)).join('')}
-          ${options.length?'':'<p class="ks-note">当前钱包范围没有可选分类</p>'}
-        </div>
-      </div>`;
+      const group=(label,key,options)=>{
+        const types=key==='types';
+        const checked=id=>draft[key]===null||draft[key].includes(id);
+        const count=options.filter(([id])=>checked(id)).length;
+        return `<div class="${types?'':'ks-selection-section'}" data-filter-group="${key}" role="group" aria-labelledby="ledger-filter-${key}">
+          <div class="ks-selection-group-heading">
+            <div class="ks-selection-group-name"><h4 id="ledger-filter-${key}">${label}</h4>
+              ${types?'':`<span class="ks-note" data-filter-count>${count}/${options.length}</span>`}</div>
+            <button type="button" class="ks-text-btn" data-filter-bulk="all" aria-label="全选${label}">全选</button>
+            <button type="button" class="ks-text-btn" data-filter-bulk="none" aria-label="全不选${label}">全不选</button>
+          </div>
+          ${types?`<div class="ks-selection-chips">${options.map(([id,text])=>`<label class="ks-selection-chip">
+            <input type="checkbox" value="${escapeText(id)}" ${checked(id)?'checked':''}>
+            <span aria-hidden="true">${icon('check')}</span>${escapeText(text)}</label>`).join('')}</div>`:
+            `<div class="ks-selection-checks">${options.map(([id,text,glyph])=>selectionCheck(text,`value="${escapeText(id)}"`,checked(id),'',glyph)).join('')}
+              ${options.length?'':'<p class="ks-note">当前钱包范围没有可选分类</p>'}</div>`}
+        </div>`;
+      };
       return selectionPanel('流水筛选',
         group('类型','types',['收入','支出','转账','退款'].map(value=>[value,value]))+
         group('分类','categoryNames',ledgerFilterCategories())+
-        `<label><span class="ks-label">备注关键词</span><input name="note" class="ks-control" value="${escapeText(draft.note)}"></label>`,
-        `<button type="button" class="ks-text-btn" data-action="cancel-ledger-filters">取消</button>
-         <button type="submit" class="ks-primary">应用</button>`,
+        `<label class="ks-selection-note"><span class="ks-label">备注关键词</span><input name="note" class="ks-control" value="${escapeText(draft.note)}"></label>`,
+        `<button type="submit" class="ks-primary">应用</button>`,
         {attrs:'data-ledger-filters',form:true});
+    }
+    function updateLedgerFilterCount(group){
+      const count=group.querySelector('[data-filter-count]');
+      if(count)count.textContent=`${group.querySelectorAll('input:checked').length}/${group.querySelectorAll('input').length}`;
     }
     function pageLedger(){
       const allEntries=financialEntries();

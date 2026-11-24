@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kitsuneapp.R
 import com.kitsuneapp.data.Wallet
 
@@ -42,7 +43,7 @@ internal fun SelectionSheet(
     ModalBottomSheet(
         onDismissRequest = dismiss,
         containerColor = Color.Transparent,
-        scrimColor = Color.Black.copy(alpha = .33f),
+        scrimColor = colors.scrim.copy(alpha = .33f),
         dragHandle = null,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
@@ -53,9 +54,9 @@ internal fun SelectionSheet(
                     .size(32.dp, 4.dp).clip(ControlShape).background(colors.outlineVariant))
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(title, Modifier.weight(1f).semantics { heading() },
-                        style = MaterialTheme.typography.titleLarge)
-                    IconButton(onClick = dismiss) {
-                        Icon(designIcon(R.drawable.ks_x), contentDescription = "关闭")
+                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, lineHeight = 24.sp))
+                    IconButton(onClick = dismiss, modifier = Modifier.size(48.dp)) {
+                        Icon(designIcon(R.drawable.ks_x), contentDescription = "关闭", modifier = Modifier.size(22.dp))
                     }
                 }
                 header?.invoke()
@@ -89,22 +90,22 @@ internal fun SelectionRow(
 internal fun MultiSelectionRow(
     label: String, checked: Boolean, change: (Boolean) -> Unit,
     secondary: String? = null, icon: ImageVector? = null,
-) = SelectionOption(label, checked, Modifier.toggleable(checked, role = Role.Checkbox, onValueChange = change),
+) = SelectionOption(label, false, Modifier.toggleable(checked, role = Role.Checkbox, onValueChange = change),
     secondary, icon) {
     Checkbox(checked, onCheckedChange = null)
 }
 
 @Composable
 private fun SelectionOption(
-    label: String, selected: Boolean, modifier: Modifier,
+    label: String, highlighted: Boolean, modifier: Modifier,
     secondary: String?, icon: ImageVector?, indicator: @Composable () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
-    val foreground = if (selected) colors.onPrimaryContainer else colors.onSurface
-    val supporting = if (selected) colors.onPrimaryContainer else colors.onSurfaceVariant
+    val foreground = if (highlighted) colors.onPrimaryContainer else colors.onSurface
+    val supporting = if (highlighted) colors.onPrimaryContainer else colors.onSurfaceVariant
     Row(
         Modifier.fillMaxWidth().heightIn(min = if (secondary == null) 48.dp else 64.dp)
-            .clip(ControlShape).background(if (selected) colors.primaryContainer else Color.Transparent)
+            .clip(ControlShape).background(if (highlighted) colors.primaryContainer else Color.Transparent)
             .then(modifier).padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -116,6 +117,11 @@ private fun SelectionOption(
         }
         CompositionLocalProvider(LocalContentColor provides foreground, content = indicator)
     }
+}
+
+@Composable
+internal fun SelectionGroupTitle(label: String, modifier: Modifier = Modifier) {
+    Text(label, modifier.semantics { heading() }, style = MaterialTheme.typography.labelLarge)
 }
 
 @Composable

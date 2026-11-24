@@ -11,7 +11,7 @@
         </button></div>`;
     }
     function selectionOption([value,label,detail,glyph],selected,action){
-      return `<button type="button" class="ks-selection-option" ${action}="${escapeText(value)}" aria-pressed="${selected}" ${detail?'data-selection-detail':''}>
+      return `<button type="button" class="ks-selection-option ks-selection-single" ${action}="${escapeText(value)}" aria-pressed="${selected}" ${detail?'data-selection-detail':''}>
         ${glyph||''}<span class="ks-selection-copy">${escapeText(label)}${detail?`<small>${escapeText(detail)}</small>`:''}</span>
         <span class="ks-selection-indicator" aria-hidden="true">${selected?icon('check'):''}</span></button>`;
     }
@@ -216,17 +216,22 @@
         </div></form></div>`;
     }
     function walletRangeDialog(){
-      const mode=state.walletDraftMode,manual=mode==='MANUAL',canApply=!manual||state.walletDraftIds.length>0;
+      const mode=state.walletDraftMode,manual=mode==='MANUAL';
+      const selected=wallets.filter(w=>state.walletDraftIds.includes(w.id)).length;
+      const canApply=!manual||selected>0;
       const modes=[['REGULAR','常规钱包'],['ALL','全部钱包'],['MANUAL','手动选择']];
-      const hints={REGULAR:'仅常规钱包（独立核算关闭），包括归档历史。',ALL:'包括独立核算钱包和归档历史。',MANUAL:'可勾选独立核算钱包和归档钱包。'};
+      const hints={REGULAR:'排除独立核算钱包，保留归档历史。',ALL:'包含独立核算钱包及归档历史。'};
+      const segments=modes.map(([id,label])=>`<button type="button" class="ks-selection-segment" data-wallet-mode="${id}" aria-pressed="${mode===id}">${label}</button>`).join('');
       const options=manual?wallets.map(w=>selectionCheck(w.name,`data-wallet-option="${w.id}"`,
         state.walletDraftIds.includes(w.id),walletSelectionDetails(w))).join(''):'';
-      const body=`<div role="group" aria-label="钱包范围模式">${modes.map(option=>selectionOption(option,option[0]===mode,'data-wallet-mode')).join('')}</div>
-        <p class="ks-note">${hints[mode]}</p>${options}
-        ${canApply?'':'<p class="ks-note">请选择至少一个钱包，或恢复默认。</p>'}`;
+      const body=`<div class="ks-selection-segments" role="group" aria-label="钱包范围模式">${segments}</div>
+        ${manual?`<section class="ks-selection-section" aria-labelledby="ks-manual-wallets">
+          <div class="ks-selection-group-heading"><h4 id="ks-manual-wallets">选择钱包</h4>
+            <span class="ks-note">已选 ${selected}/${wallets.length}</span></div>
+          ${canApply?'':'<p class="ks-note">至少选择一个钱包。</p>'}${options}
+        </section>`:`<p class="ks-note">${hints[mode]}</p>`}`;
       const footer=`<button type="button" class="ks-text-btn" data-wallet-action="default">恢复默认</button>
-        <button type="button" class="ks-text-btn" data-wallet-action="cancel">取消</button>
-        <button type="button" class="ks-text-btn" data-wallet-action="apply" ${canApply?'':'disabled'}>应用</button>`;
+        <button type="button" class="ks-primary" data-wallet-action="apply" ${canApply?'':'disabled'}>应用</button>`;
       return selectionPanel('钱包范围',body,footer);
     }
     function pageMealFilter(){

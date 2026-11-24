@@ -2,6 +2,8 @@ package com.kitsuneapp
 
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.os.Build
+import android.view.inspector.WindowInspector
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,7 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
@@ -32,12 +34,15 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kitsuneapp.data.*
 import com.kitsuneapp.feature.ledger.EntryForm
 import com.kitsuneapp.feature.ledger.LedgerEntryFilterDialog
 import com.kitsuneapp.feature.ledger.WalletForm
+import com.kitsuneapp.feature.ledger.WalletRangeDialog
 import com.kitsuneapp.feature.ledger.LedgerPage
 import com.kitsuneapp.feature.meals.MealFilter
 import com.kitsuneapp.feature.meals.MealFilterPage
@@ -193,7 +198,7 @@ class SelectionSheetsTest {
 
         fun open() {
             compose.onNodeWithText("打开筛选").performClick()
-            sheetText("支出").assertIsOn().performClick()
+            sheetText("支出").assertIsSelected().performClick()
         }
         fun assertCanceled() {
             compose.waitUntil(5_000) { compose.onAllNodes(hasText("流水筛选") and inDialog).fetchSemanticsNodes().isEmpty() }
@@ -228,11 +233,90 @@ class SelectionSheetsTest {
         list().performScrollToNode(hasContentDescription("备注关键词"))
         compose.onNode(hasContentDescription("备注关键词") and hasText("草稿")).assertIsDisplayed()
         list().performScrollToNode(hasText("支出"))
-        sheetText("支出").assertIsOff()
+        sheetText("支出").assertIsNotSelected()
         sheetText("应用").assertIsDisplayed().performClick()
         compose.runOnIdle {
             assertEquals(EntryType.entries.toSet() - EntryType.EXPENSE, applied.value.types)
             assertEquals("草稿", applied.value.note)
+        }
+    }
+
+    @Test
+    fun filterStartsAtTopAndKeepsApplyAccessibleWithSoftwareKeyboard() {
+        val records = selectionRecords().withMoreFilterCategories()
+        var applied = LedgerEntryFilters()
+        compose.setContent {
+            KitsuneTheme(records.theme) {
+                var open by rememberSaveable { mutableStateOf(false) }
+                Box(Modifier.fillMaxSize()) { Primary("打开筛选", { open = true }) }
+                if (open) LedgerEntryFilterDialog(applied, records.categories, { open = false }) {
+                    applied = it
+                    open = false
+                }
+            }
+        }
+        fun assertTypesVisible() {
+            EntryType.entries.forEach { sheetText(it.label).assertIsDisplayed().assertIsSelected() }
+        }
+        compose.onNodeWithText("打开筛选").performClick()
+        assertTypesVisible()
+        list().performScrollToNode(hasText("图书影音"))
+        sheetText("图书影音").assertIsOn().performClick()
+        sheetText("应用").assertIsDisplayed()
+        close()
+
+        compose.onNodeWithText("打开筛选").performClick()
+        assertTypesVisible()
+        val note = hasContentDescription("备注关键词")
+        list().performScrollToNode(note)
+        compose.onNode(note).performClick()
+        compose.waitUntil(10_000) {
+            compose.runOnUiThread {
+                val windows = if (Build.VERSION.SDK_INT >= 29) WindowInspector.getGlobalWindowViews()
+                    else listOf(compose.activity.window.decorView)
+                windows.any { decor ->
+                    ViewCompat.getRootWindowInsets(decor)?.isVisible(WindowInsetsCompat.Type.ime()) == true
+                }
+            }
+        }
+        compose.onNode(note).assertIsDisplayed().performTextReplacement("键盘筛选")
+        sheetText("流水筛选").assertIsDisplayed()
+        sheetText("应用").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(LedgerEntryFilters(note = "键盘筛选"), applied) }
+    }
+
+    @Test
+    fun manualWalletListPreservesPositionAndDraftWhileFooterStaysVisible() {
+        val records = selectionRecords()
+        val lastWallet = "追加的钱包 20"
+        val wallets = records.wallets + (1..20).map { number ->
+            val name = "追加的钱包 $number"
+            records.wallets.first().copy(id = "wallet-$number", name = name, normalizedName = name,
+                separateAccounting = true)
+        }
+        val restoration = StateRestorationTester(compose)
+        var applied = WalletRange()
+        restoration.setContent {
+            KitsuneTheme(records.theme) {
+                var open by rememberSaveable { mutableStateOf(true) }
+                if (open) WalletRangeDialog(applied, wallets, { open = false }) {
+                    applied = it
+                    open = false
+                }
+            }
+        }
+        sheetText("手动选择").performClick()
+        sheetText("已选 2/23").assertIsDisplayed()
+        list().performScrollToNode(hasText(lastWallet))
+        sheetText(lastWallet).assertIsDisplayed().performClick().assertIsOn()
+        sheetText("应用").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(WalletRange(), applied) }
+
+        restoration.emulateSavedInstanceStateRestore()
+        sheetText(lastWallet).assertIsDisplayed().assertIsOn()
+        sheetText("应用").assertIsDisplayed().performClick()
+        compose.runOnIdle {
+            assertEquals(WalletRange(RangeMode.MANUAL, listOf("regular", "archived", "wallet-20")), applied)
         }
     }
 
@@ -251,12 +335,12 @@ class SelectionSheetsScreenshotTest {
         val isDark = (configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
         val profile = InstrumentationRegistry.getArguments().getString("selectionProfile")
             ?: if (isDark) "dark" else "light"
-        if (profile == "narrow-large") {
+        if (profile == "narrow" || profile == "narrow-large") {
             assertEquals(320, configuration.screenWidthDp)
-            assertEquals(1.5f, configuration.fontScale, .01f)
+            assertEquals(if (profile == "narrow-large") 1.5f else 1f, configuration.fontScale, .01f)
         }
         assertEquals(profile == "dark", isDark)
-        val records = selectionRecords()
+        val records = selectionRecords().withMoreFilterCategories()
         val model = compose.runOnIdle { ViewModelProvider(compose.activity)[AppViewModel::class.java] }
         var screen by mutableStateOf("entry")
         compose.setContent {
@@ -281,13 +365,26 @@ class SelectionSheetsScreenshotTest {
 
         compose.runOnIdle { screen = "ledger" }
         compose.onNodeWithText("筛选").performScrollTo().performClick()
+        val list = compose.onNode(hasScrollToNodeAction() and inDialog)
         sheetText("应用").assertIsDisplayed()
+        EntryType.entries.forEach { sheetText(it.label).assertIsDisplayed().assertIsSelected() }
         capture("流水筛选", "ledger-filter", profile)
+
+        sheetText("支出").performClick().assertIsNotSelected()
+        list.performScrollToNode(hasText("餐饮"))
+        sheetText("餐饮").performClick()
+        list.performScrollToIndex(0)
+        sheetText("支出").assertIsDisplayed().assertIsNotSelected()
+        capture("流水筛选", "ledger-filter-partial", profile)
+
+        list.performScrollToNode(hasText("图书影音"))
+        sheetText("应用").assertIsDisplayed()
+        capture("流水筛选", "ledger-filter-categories", profile)
         compose.onNodeWithContentDescription("关闭").performClick()
 
         compose.onNodeWithContentDescription("钱包范围").performClick()
         sheetText("手动选择").performClick()
-        val list = compose.onNode(hasScrollToNodeAction() and inDialog)
+        sheetText("已选 2/3").assertIsDisplayed()
         list.performScrollToNode(hasText("旧钱包"))
         sheetText("应用").assertIsDisplayed()
         capture("钱包范围", "wallet-range", profile)
@@ -305,8 +402,18 @@ class SelectionSheetsScreenshotTest {
     private fun capture(title: String, name: String, profile: String) {
         sheetText(title).assertIsDisplayed()
         val bitmap = checkNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
-        File(compose.activity.cacheDir, "selection-$profile-$name.png").outputStream().use {
+        val file = "selection-$profile-$name"
+        File(compose.activity.cacheDir, "$file.png").outputStream().use {
             check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
+        }
+        val review = InstrumentationRegistry.getArguments().getString("selectionVisualReview") == "true"
+        if (review && (name == "wallet-range" || name.startsWith("ledger-filter"))) {
+            val width = minOf(bitmap.width, 420)
+            val height = bitmap.height * width / bitmap.width
+            val thumbnail = Bitmap.createScaledBitmap(bitmap, width, height, true)
+            File(compose.activity.cacheDir, "$file.jpg").outputStream().use {
+                check(thumbnail.compress(Bitmap.CompressFormat.JPEG, 78, it))
+            }
         }
     }
 }
@@ -327,4 +434,15 @@ private fun selectionRecords(): Records {
     return Records(DataState(installationId = "test", datasetId = "test", arrayElements = 0),
         ThemePreferences(), emptyList(), listOf(fallback, food, transport), emptyList(), emptyMap(),
         listOf(daily, travel, archived), listOf(historical))
+}
+
+
+private fun Records.withMoreFilterCategories(): Records {
+    val template = categories.first { it.id == "food" }
+    val names = listOf("日常用品", "水电燃气", "公共交通", "医疗保健", "运动健身", "朋友聚餐",
+        "通讯网络", "学习培训", "宠物用品", "个人护理", "礼物人情", "本地出行", "居家维修", "图书影音")
+    return copy(categories = categories + names.mapIndexed { index, name ->
+        template.copy(id = "sample-$index", name = name, normalizedName = name, sortOrder = index + 10,
+            icon = CategoryIcon.entries[index % CategoryIcon.entries.size])
+    })
 }

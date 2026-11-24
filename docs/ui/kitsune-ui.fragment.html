@@ -140,17 +140,19 @@
   #kitsune-preview .ks-selection-handle{display:grid;place-items:center;min-height:12px;touch-action:none}
   #kitsune-preview .ks-selection-handle span{width:32px;height:4px;border-radius:4px;background:var(--ks-line)}
   #kitsune-preview .ks-selection-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
-  #kitsune-preview .ks-selection-heading h3{font-size:1.55em;font-weight:600;margin:0;line-height:1.3}
+  #kitsune-preview .ks-selection-heading h3{font-size:1.286em;font-weight:600;margin:0;line-height:1.33}
   #kitsune-preview .ks-selection-close{display:grid;place-items:center;width:48px;height:48px;flex:none;border:0;border-radius:50%;background:transparent;color:var(--ks-ink)}
+  #kitsune-preview .ks-selection-close svg{width:22px;height:22px}
   #kitsune-preview .ks-selection-body{max-height:420px;min-height:0;overflow:auto;overscroll-behavior:contain;display:grid;gap:2px}
   #kitsune-preview .ks-selection-body p{margin:4px 0}
-  #kitsune-preview .ks-selection-footer{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-  #kitsune-preview .ks-selection-footer .ks-primary{flex:1}
+  #kitsune-preview .ks-selection-footer{display:flex;flex:none;align-items:center;gap:8px}
+  #kitsune-preview .ks-selection-footer .ks-primary{flex:1;min-height:48px}
   #kitsune-preview .ks-selection-footer .ks-text-btn{min-height:48px}
   #kitsune-preview .ks-selection-add{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border-top:1px solid var(--ks-line)}
   #kitsune-preview .ks-selection-option{display:flex;align-items:center;gap:12px;text-align:left;color:var(--ks-ink);border:0;border-radius:var(--ks-control-radius);background:transparent;width:100%;min-height:48px;padding:8px 12px;font-size:1.14em;cursor:pointer}
   #kitsune-preview .ks-selection-option[data-selection-detail]{min-height:64px}
-  #kitsune-preview .ks-selection-option:is([aria-pressed=true],:has(input:checked)){background:var(--ks-accent-bg);color:var(--ks-accent)}
+  #kitsune-preview .ks-selection-single[aria-pressed=true] .ks-selection-copy small{color:inherit}
+  #kitsune-preview .ks-selection-single[aria-pressed=true]{background:var(--ks-accent-bg);color:var(--ks-accent)}
   #kitsune-preview .ks-selection-copy{display:grid;gap:2px;flex:1;min-width:0}
   #kitsune-preview .ks-selection-copy small{font-size:.75em;color:var(--ks-dim)}
   #kitsune-preview .ks-selection-option>svg{flex:none}
@@ -162,9 +164,29 @@
   #kitsune-preview .ks-selection-trigger:disabled{opacity:.65}
   #kitsune-preview .ks-selection-field{min-width:0}
   #kitsune-preview .ks-selection-field .ks-label{display:block}
-  #kitsune-preview .ks-selection-panel [data-filter-group]>div:last-child{display:grid;gap:2px}
-  #kitsune-preview .ks-selection-panel .ks-filter-field-heading{flex-wrap:wrap}
-  #kitsune-preview .ks-selection-panel .ks-filter-field-heading .ks-text-btn{min-height:48px}
+  #kitsune-preview .ks-selection-segments{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--ks-line);border-radius:999px;margin-bottom:4px}
+  #kitsune-preview .ks-selection-segment{min-height:48px;border:0;background:transparent;color:var(--ks-ink);font:inherit;font-weight:500;padding:6px 8px;text-wrap:balance}
+  #kitsune-preview .ks-selection-segment:first-child{border-start-start-radius:999px;border-end-start-radius:999px}
+  #kitsune-preview .ks-selection-segment:last-child{border-start-end-radius:999px;border-end-end-radius:999px}
+  #kitsune-preview .ks-selection-segment+.ks-selection-segment{border-inline-start:1px solid var(--ks-line)}
+  #kitsune-preview .ks-selection-segment[aria-pressed=true]{background:var(--ks-accent-bg);color:var(--ks-accent)}
+  #kitsune-preview .ks-selection-section{margin-top:12px;border-top:1px solid var(--ks-line)}
+  #kitsune-preview .ks-selection-note{margin-top:12px}
+  #kitsune-preview .ks-selection-group-heading{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px}
+  #kitsune-preview .ks-selection-group-heading:has(.ks-text-btn){justify-content:flex-end}
+  #kitsune-preview .ks-selection-group-name{display:flex;align-items:center;gap:8px;flex:1 0 auto}
+  #kitsune-preview .ks-selection-group-heading h4{margin:0;font-size:1em;font-weight:500;line-height:1.43}
+  #kitsune-preview .ks-selection-group-heading .ks-text-btn{min-height:48px;padding-inline:8px}
+  #kitsune-preview #ks-manual-wallets{padding-block:8px}
+  #kitsune-preview .ks-selection-checks{display:grid;gap:2px}
+  #kitsune-preview .ks-selection-chips{display:flex;flex-wrap:wrap;gap:4px 6px}
+  #kitsune-preview .ks-selection-chip{position:relative;display:flex;align-items:center;gap:4px;min-height:36px;padding:4px 8px;border:1px solid var(--ks-line);border-radius:8px;font-weight:500;cursor:pointer}
+  #kitsune-preview .ks-selection-chip input{position:absolute;opacity:0;width:1px;height:1px}
+  #kitsune-preview .ks-selection-chip span{display:flex;visibility:hidden}
+  #kitsune-preview .ks-selection-chip svg{width:16px;height:16px}
+  #kitsune-preview .ks-selection-chip:has(input:checked){border-color:transparent;background:var(--ks-accent-bg);color:var(--ks-accent)}
+  #kitsune-preview .ks-selection-chip:has(input:checked) span{visibility:visible}
+  #kitsune-preview .ks-selection-chip:focus-within,#kitsune-preview .ks-selection-segment:focus-visible{outline:2px solid var(--ks-accent);outline-offset:-2px}
   #kitsune-preview .ks-selection-option:focus-visible,#kitsune-preview .ks-selection-option:focus-within{outline:2px solid var(--ks-accent);outline-offset:-2px}
   #kitsune-preview .ks-calc-sheet{display:flex;flex-direction:column;width:100%;background:var(--ks-card-surface);border:var(--ks-card-border);color:var(--ks-ink);border-radius:var(--ks-dialog-radius);padding:var(--ks-space-4);box-shadow:var(--ks-dialog-shadow);max-height:calc(100% - 24px);overflow:hidden}
   #kitsune-preview .ks-calc-body{min-height:0;overflow-y:auto}
@@ -798,25 +820,34 @@
     }
     function ledgerFiltersDialog(){
       const draft=state.ledgerFilterDraft;
-      const group=(label,key,options)=>`<div data-filter-group="${key}" role="group" aria-labelledby="ledger-filter-${key}">
-        <div class="ks-filter-field-heading">
-          <span class="ks-label" id="ledger-filter-${key}">${label}</span>
-          <button type="button" class="ks-text-btn" data-filter-bulk="all" aria-label="全选${label}">全选</button>
-          <button type="button" class="ks-text-btn" data-filter-bulk="none" aria-label="全不选${label}">全不选</button>
-        </div>
-        <div class="ks-ledger-filter-options">
-          ${options.map(([id,text,glyph])=>selectionCheck(text,`value="${escapeText(id)}"`,
-            draft[key]===null||draft[key].includes(id),'',glyph)).join('')}
-          ${options.length?'':'<p class="ks-note">当前钱包范围没有可选分类</p>'}
-        </div>
-      </div>`;
+      const group=(label,key,options)=>{
+        const types=key==='types';
+        const checked=id=>draft[key]===null||draft[key].includes(id);
+        const count=options.filter(([id])=>checked(id)).length;
+        return `<div class="${types?'':'ks-selection-section'}" data-filter-group="${key}" role="group" aria-labelledby="ledger-filter-${key}">
+          <div class="ks-selection-group-heading">
+            <div class="ks-selection-group-name"><h4 id="ledger-filter-${key}">${label}</h4>
+              ${types?'':`<span class="ks-note" data-filter-count>${count}/${options.length}</span>`}</div>
+            <button type="button" class="ks-text-btn" data-filter-bulk="all" aria-label="全选${label}">全选</button>
+            <button type="button" class="ks-text-btn" data-filter-bulk="none" aria-label="全不选${label}">全不选</button>
+          </div>
+          ${types?`<div class="ks-selection-chips">${options.map(([id,text])=>`<label class="ks-selection-chip">
+            <input type="checkbox" value="${escapeText(id)}" ${checked(id)?'checked':''}>
+            <span aria-hidden="true">${icon('check')}</span>${escapeText(text)}</label>`).join('')}</div>`:
+            `<div class="ks-selection-checks">${options.map(([id,text,glyph])=>selectionCheck(text,`value="${escapeText(id)}"`,checked(id),'',glyph)).join('')}
+              ${options.length?'':'<p class="ks-note">当前钱包范围没有可选分类</p>'}</div>`}
+        </div>`;
+      };
       return selectionPanel('流水筛选',
         group('类型','types',['收入','支出','转账','退款'].map(value=>[value,value]))+
         group('分类','categoryNames',ledgerFilterCategories())+
-        `<label><span class="ks-label">备注关键词</span><input name="note" class="ks-control" value="${escapeText(draft.note)}"></label>`,
-        `<button type="button" class="ks-text-btn" data-action="cancel-ledger-filters">取消</button>
-         <button type="submit" class="ks-primary">应用</button>`,
+        `<label class="ks-selection-note"><span class="ks-label">备注关键词</span><input name="note" class="ks-control" value="${escapeText(draft.note)}"></label>`,
+        `<button type="submit" class="ks-primary">应用</button>`,
         {attrs:'data-ledger-filters',form:true});
+    }
+    function updateLedgerFilterCount(group){
+      const count=group.querySelector('[data-filter-count]');
+      if(count)count.textContent=`${group.querySelectorAll('input:checked').length}/${group.querySelectorAll('input').length}`;
     }
     function pageLedger(){
       const allEntries=financialEntries();
@@ -1086,7 +1117,7 @@
         </button></div>`;
     }
     function selectionOption([value,label,detail,glyph],selected,action){
-      return `<button type="button" class="ks-selection-option" ${action}="${escapeText(value)}" aria-pressed="${selected}" ${detail?'data-selection-detail':''}>
+      return `<button type="button" class="ks-selection-option ks-selection-single" ${action}="${escapeText(value)}" aria-pressed="${selected}" ${detail?'data-selection-detail':''}>
         ${glyph||''}<span class="ks-selection-copy">${escapeText(label)}${detail?`<small>${escapeText(detail)}</small>`:''}</span>
         <span class="ks-selection-indicator" aria-hidden="true">${selected?icon('check'):''}</span></button>`;
     }
@@ -1291,17 +1322,22 @@
         </div></form></div>`;
     }
     function walletRangeDialog(){
-      const mode=state.walletDraftMode,manual=mode==='MANUAL',canApply=!manual||state.walletDraftIds.length>0;
+      const mode=state.walletDraftMode,manual=mode==='MANUAL';
+      const selected=wallets.filter(w=>state.walletDraftIds.includes(w.id)).length;
+      const canApply=!manual||selected>0;
       const modes=[['REGULAR','常规钱包'],['ALL','全部钱包'],['MANUAL','手动选择']];
-      const hints={REGULAR:'仅常规钱包（独立核算关闭），包括归档历史。',ALL:'包括独立核算钱包和归档历史。',MANUAL:'可勾选独立核算钱包和归档钱包。'};
+      const hints={REGULAR:'排除独立核算钱包，保留归档历史。',ALL:'包含独立核算钱包及归档历史。'};
+      const segments=modes.map(([id,label])=>`<button type="button" class="ks-selection-segment" data-wallet-mode="${id}" aria-pressed="${mode===id}">${label}</button>`).join('');
       const options=manual?wallets.map(w=>selectionCheck(w.name,`data-wallet-option="${w.id}"`,
         state.walletDraftIds.includes(w.id),walletSelectionDetails(w))).join(''):'';
-      const body=`<div role="group" aria-label="钱包范围模式">${modes.map(option=>selectionOption(option,option[0]===mode,'data-wallet-mode')).join('')}</div>
-        <p class="ks-note">${hints[mode]}</p>${options}
-        ${canApply?'':'<p class="ks-note">请选择至少一个钱包，或恢复默认。</p>'}`;
+      const body=`<div class="ks-selection-segments" role="group" aria-label="钱包范围模式">${segments}</div>
+        ${manual?`<section class="ks-selection-section" aria-labelledby="ks-manual-wallets">
+          <div class="ks-selection-group-heading"><h4 id="ks-manual-wallets">选择钱包</h4>
+            <span class="ks-note">已选 ${selected}/${wallets.length}</span></div>
+          ${canApply?'':'<p class="ks-note">至少选择一个钱包。</p>'}${options}
+        </section>`:`<p class="ks-note">${hints[mode]}</p>`}`;
       const footer=`<button type="button" class="ks-text-btn" data-wallet-action="default">恢复默认</button>
-        <button type="button" class="ks-text-btn" data-wallet-action="cancel">取消</button>
-        <button type="button" class="ks-text-btn" data-wallet-action="apply" ${canApply?'':'disabled'}>应用</button>`;
+        <button type="button" class="ks-primary" data-wallet-action="apply" ${canApply?'':'disabled'}>应用</button>`;
       return selectionPanel('钱包范围',body,footer);
     }
     function pageMealFilter(){
@@ -1850,12 +1886,12 @@
         applyAnimatedAppearance(next);state.notice='已应用外观。';render();persist();return;
       }
       if(b.dataset.action==='open-ledger-filters'){state.ledgerFilterDraft={...state.ledgerFilters};render();return;}
-      if(b.dataset.action==='cancel-ledger-filters'){closeLedgerFilters(false);return;}
       if(b.dataset.filterBulk){
         const group=b.closest('[data-filter-group]'),key=group.dataset.filterGroup;
         const all=b.dataset.filterBulk==='all';
         state.ledgerFilterDraft[key]=all?null:[];
         group.querySelectorAll('input').forEach(input=>{input.checked=all;});
+        updateLedgerFilterCount(group);
         return;
       }
       if(b.dataset.action==='choose-ledger-period'){
@@ -2057,6 +2093,7 @@
         if(e.checked)selected.add(e.value);else selected.delete(e.value);
         state.ledgerFilterDraft[key]=selected.size===options.length&&options.every(value=>selected.has(value))
           ?null:[...selected];
+        updateLedgerFilterCount(group);
         return;
       }
       if(e.matches('[data-github-wifi]')){state.githubDemo.wifi=e.checked;return;}

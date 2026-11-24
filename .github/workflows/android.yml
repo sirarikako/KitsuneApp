@@ -144,7 +144,7 @@ jobs:
             adb exec-out run-as com.kitsuneapp cat cache/kitsune-time-input.png > captures/time-input.png
             adb exec-out run-as com.kitsuneapp cat cache/kitsune-time-clock.png > captures/time-clock.png
             python3 -c 'from pathlib import Path; files = list(Path("captures").glob("*.png")); assert len(files) == 13 and all(f.read_bytes().startswith(bytes.fromhex("89504e470d0a1a0a")) for f in files)'
-            bash .github/scripts/capture-selection-sheets.sh captures/selection-sheets
+            SELECTION_VISUAL_REVIEW='${{ matrix.api-level == 36 && github.ref == 'refs/heads/feat/selection-sheet-hierarchy' }}' bash .github/scripts/capture-selection-sheets.sh captures/selection-sheets
       - uses: actions/upload-artifact@v4
         if: always()
         with:
