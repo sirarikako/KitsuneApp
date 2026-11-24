@@ -195,7 +195,10 @@
   #kitsune-preview .ks-ledger-check{display:flex;align-items:center;justify-content:flex-start;gap:var(--ks-space-2);overflow-wrap:anywhere}
   #kitsune-preview .ks-ledger-check input{width:18px;height:18px;accent-color:var(--ks-accent);flex:none}
   #kitsune-preview .ks-ledger-check:has(input:checked){color:var(--ks-accent);border-color:var(--ks-accent);background:var(--ks-accent-bg)}
-  #kitsune-preview .ks-ledger-filter-bulk{display:flex;gap:var(--ks-space-2)}
+  #kitsune-preview .ks-filter-field-heading{display:flex;align-items:center;min-height:44px;gap:var(--ks-space-2)}
+  #kitsune-preview .ks-filter-field-heading > :first-child{flex:1;margin:0}
+  #kitsune-preview .ks-filter-field-heading .ks-text-btn{flex:none}
+  #kitsune-preview .ks-filter-field-heading .ks-text-btn[hidden]{display:none}
   #kitsune-preview .ks-date-trigger{display:flex;justify-content:space-between;align-items:center;gap:var(--ks-space-2);text-align:left}
   #kitsune-preview .ks-entry-date-time{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
   #kitsune-preview .ks-time-dialog{max-width:280px}
@@ -285,6 +288,9 @@
   #kitsune-preview .ks-appearance-preview .ks-primary{margin-top:var(--ks-space-2)}
   #kitsune-preview .ks-phone{overflow:clip}
   #kitsune-preview .ks-page-motion{display:flex;flex:1;flex-direction:column;min-width:0;background:var(--ks-bg)}
+  #kitsune-preview .ks-phone:has(>:is(.ks-settings-screen,.ks-github-screen)){height:clamp(450px,92vh,776px);min-height:0}
+  #kitsune-preview :is(.ks-settings-screen,.ks-github-screen){min-height:0}
+  #kitsune-preview :is(.ks-settings-screen,.ks-github-screen) .ks-main{min-height:0;overflow-y:auto;overscroll-behavior:contain}
   #kitsune-preview .ks-motion-copy{position:absolute;inset:0;z-index:8;pointer-events:none;overflow:hidden;border-radius:30px}
   #kitsune-preview .ks-motion-copy *{pointer-events:none!important}
   #kitsune-preview .ks-motion-modal-copy{z-index:21}
@@ -755,17 +761,17 @@
     }
     function ledgerFiltersDialog(){
       const draft=state.ledgerFilterDraft;
-      const group=(label,key,options)=>`<fieldset data-filter-group="${key}">
-        <legend class="ks-label">${label}</legend>
+      const group=(label,key,options)=>`<div data-filter-group="${key}" role="group" aria-labelledby="ledger-filter-${key}">
+        <div class="ks-filter-field-heading">
+          <span class="ks-label" id="ledger-filter-${key}">${label}</span>
+          <button type="button" class="ks-text-btn" data-filter-bulk="all" aria-label="全选${label}">全选</button>
+          <button type="button" class="ks-text-btn" data-filter-bulk="none" aria-label="全不选${label}">全不选</button>
+        </div>
         <div class="ks-ledger-filter-options">
           ${options.map(([id,text])=>`<label class="ks-choice ks-ledger-check cursor-interaction"><input type="checkbox" value="${escapeText(id)}" ${draft[key]===null||draft[key].includes(id)?'checked':''}>${escapeText(text)}</label>`).join('')}
           ${options.length?'':'<p class="ks-note">当前钱包范围没有可选分类</p>'}
         </div>
-        <div class="ks-ledger-filter-bulk">
-          <button type="button" class="ks-text-btn" data-filter-bulk="all" aria-label="全选${label}">全选</button>
-          <button type="button" class="ks-text-btn" data-filter-bulk="none" aria-label="全不选${label}">全不选</button>
-        </div>
-      </fieldset>`;
+      </div>`;
       return `<div class="ks-modal-overlay ks-period-overlay" data-ledger-filter-overlay>
         <form class="ks-period-dialog" data-ledger-filters role="dialog" aria-modal="true" aria-label="流水筛选">
           <h3>流水筛选</h3>
@@ -773,7 +779,6 @@
             ${group('类型','types',['收入','支出','转账','退款'].map(value=>[value,value]))}
             ${group('分类','categoryNames',ledgerFilterCategories())}
             <label><span class="ks-label">备注关键词</span><input name="note" class="ks-control" value="${escapeText(draft.note)}"></label>
-            <button type="button" class="ks-text-btn" data-action="reset-ledger-filters">重置条件</button>
           </div>
           <div class="ks-period-actions">
             <button type="button" class="ks-text-btn" data-action="cancel-ledger-filters">取消</button>
@@ -1175,11 +1180,18 @@
     function pageMealFilter(){
       const f=state.mealFilterDraft,methods=[...new Set([...mealMethods,...allMeals().map(m=>m.method).filter(Boolean)])],preparations=[...new Set([...mealPreparations,...allMeals().flatMap(m=>m.categories)])];
       const datePreset=mealDatePreset(f);
+      const dateField=(name,label)=>`<div class="ks-meal-filter-date">
+        <div class="ks-filter-field-heading">
+          <label class="ks-note" for="meal-filter-${name}">${label}</label>
+          <button type="button" class="ks-text-btn" data-clear-meal-date="${name}" aria-label="清空${label}" ${f[name]?'':'hidden'}>清空</button>
+        </div>
+        <input class="ks-control" type="date" id="meal-filter-${name}" name="${name}" value="${f[name]}" min="0001-01-01" max="9999-12-31">
+      </div>`;
       const select=(label,name,choices)=>`<label><span class="ks-label">${label}</span><select class="ks-control" name="${name}">${choices.map(([value,label])=>`<option value="${escapeText(value)}" ${f[name]===value?'selected':''}>${escapeText(label)}</option>`).join('')}</select></label>`;
       return `<form class="ks-form" data-meal-filter-form>
         <fieldset><legend class="ks-label">日期范围</legend>
           <div class="ks-choices">${choice('本月','month',datePreset,'meal-date-preset')}${choice('所有时间','all',datePreset,'meal-date-preset')}</div>
-          <div class="ks-field-row"><label><span class="ks-note">开始日期</span><input class="ks-control" type="date" name="from" value="${f.from}" aria-label="开始日期" min="0001-01-01" max="9999-12-31"></label><label><span class="ks-note">结束日期</span><input class="ks-control" type="date" name="to" value="${f.to}" aria-label="结束日期" min="0001-01-01" max="9999-12-31"></label></div>
+          <div class="ks-field-row">${dateField('from','开始日期')}${dateField('to','结束日期')}</div>
         </fieldset>
         <div class="ks-field-row">${select('餐次','slot',[['any','全部餐次'],...slots.map((s,i)=>[String(i),s])])}${select('计划在家吃','atHome',[['any','不限'],['yes','是'],['no','否']])}</div>
         ${select('用餐方式','method',[['any','全部方式'],...methods.map(m=>[m,m]),['none','未填写方式']])}
@@ -1237,7 +1249,9 @@
         Object.assign(copy.style,{position:'absolute',inset:'auto',left:r.x+'px',top:r.y+'px',width:r.w+'px',height:r.h+'px',margin:'0',boxSizing:'border-box'});
         const ledgerViewport=rect(node.closest('.ks-ledger-screen .ks-main'));
         if(ledgerViewport)copy.style.clipPath=clip(r,ledgerViewport,0);
-        if(node.matches('.ks-ledger-screen'))group.ledgerPosition=node.querySelector('.ks-main').scrollTop;
+        if(node.matches('.ks-ledger-screen,.ks-settings-screen,.ks-github-screen')){
+          group.pageScrollTop=node.querySelector('.ks-main').scrollTop;
+        }
         group.append(copy);
       }
       return group.childElementCount?group:null;
@@ -1245,7 +1259,7 @@
     const attachGhost=group=>{
       if(group){
         phone.append(group);
-        if(group.ledgerPosition)group.querySelector('.ks-ledger-screen .ks-main').scrollTop=group.ledgerPosition;
+        if(group.pageScrollTop)group.querySelector('.ks-main').scrollTop=group.pageScrollTop;
       }
       return group;
     };
@@ -1349,8 +1363,10 @@
         themeAnimation=phone.animate([from,themeValues()],{duration:motion.theme,easing:motion.easing});
       }
     }
+    let settingsScrollTop=0;
     function render(){
       const previous=rendered,kind=modalKind(),key=localKey(),changingPage=previous&&previous.page!==state.page;
+      if(previous?.page==='settings')settingsScrollTop=phone.querySelector('.ks-settings-screen .ks-main').scrollTop;
       const keepingMealForm=previous?.page==='meal-form'&&state.page==='meal-form';
       const mealPosition=keepingMealForm?phone.querySelector('.ks-main').scrollTop:0;
       const oldLedger=phone.querySelector('.ks-ledger-screen');
@@ -1380,8 +1396,9 @@
       const header=state.page==='home'?`<div class="ks-home-brand"><span class="ks-app-mark"><img src="data:image/webp;base64,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" alt=""></span><div>${heading}<p class="ks-sub">11 月 17 日 · 星期二</p></div></div>`:form?`<button type="button" class="ks-icon-btn cursor-interaction" data-action="back" aria-label="返回">${icon('arrow-left')}</button>${heading}`:heading;
       const pages={home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,appearance:pageAppearance,'wallet-edit':pageWalletEdit,'meal-form':pageMealForm,'meal-filter':pageMealFilter,entry:pageEntry,'entry-detail':pageEntryDetail,'category-manager':pageCategoryManager,'category-owned':pageOwnedCategories,'category-detail':pageCategoryDetail,github:pageGitHubBackup};
       const ledger=state.page==='ledger',fab=ledger&&state.ledgerTab==='流水';
+      const settingsScreen=state.page==='settings'||state.page==='github'?`ks-${state.page}-screen`:'';
       const top=`<header class="ks-top ${form?'ks-subpage':''}">${header}</header>`;
-      phone.innerHTML=`<div class="ks-status"><span>9:41</span><span class="ks-signal">${icon('signal')}${icon('wifi')}${icon('battery-full')}</span></div><div class="ks-page-motion ${ledger?'ks-ledger-screen':''} ${fab?'ks-ledger-with-fab':''}">${ledger?`<div class="ks-ledger-collapsible">${top}</div>${ledgerTabs()}${ledgerFilters()}`:top}<main class="ks-main">${pages[state.page]()}${state.notice?`<p class="ks-success" role="status">${escapeText(state.notice)}</p>`:''}</main>${fab?`<button type="button" class="ks-primary ks-ledger-fab" data-action="add-entry" aria-label="记一笔">${icon('plus')}<span>记一笔</span></button>`:''}</div>${form?'':`<nav class="ks-nav" aria-label="主导航">${navs.map(([id,name,ic])=>`<button type="button" data-page="${id}" class="cursor-interaction" ${state.page===id?'aria-current="page"':''}><span>${icon(ic)}</span>${name}</button>`).join('')}</nav>`}<div class="ks-home-indicator" aria-hidden="true"></div>`;
+      phone.innerHTML=`<div class="ks-status"><span>9:41</span><span class="ks-signal">${icon('signal')}${icon('wifi')}${icon('battery-full')}</span></div><div class="ks-page-motion ${settingsScreen} ${ledger?'ks-ledger-screen':''} ${fab?'ks-ledger-with-fab':''}">${ledger?`<div class="ks-ledger-collapsible">${top}</div>${ledgerTabs()}${ledgerFilters()}`:top}<main class="ks-main">${pages[state.page]()}${state.notice?`<p class="ks-success" role="status">${escapeText(state.notice)}</p>`:''}</main>${fab?`<button type="button" class="ks-primary ks-ledger-fab" data-action="add-entry" aria-label="记一笔">${icon('plus')}<span>记一笔</span></button>`:''}</div>${form?'':`<nav class="ks-nav" aria-label="主导航">${navs.map(([id,name,ic])=>`<button type="button" data-page="${id}" class="cursor-interaction" ${state.page===id?'aria-current="page"':''}><span>${icon(ic)}</span>${name}</button>`).join('')}</nav>`}<div class="ks-home-indicator" aria-hidden="true"></div>`;
       if(state.calcOpen){phone.insertAdjacentHTML('beforeend',calculatorSheet());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-calc-action=cancel]').focus({preventScroll:true});}
       if(state.deletePending){phone.insertAdjacentHTML('beforeend',deleteConfirmation());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-delete-action=cancel]').focus({preventScroll:true});}
       if(state.walletPickerOpen){phone.insertAdjacentHTML('beforeend',walletRangeDialog());for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;phone.querySelector('[data-wallet-mode][aria-pressed=true]').focus({preventScroll:true});}
@@ -1411,6 +1428,7 @@
         const focus=state.entryTimeDraft.clock?'[data-time-part][aria-pressed=true]':'[data-entry-time] [name=hour]';
         phone.querySelector(focus).focus({preventScroll:true});
       }
+      if(state.page==='settings')phone.querySelector('.ks-settings-screen .ks-main').scrollTop=settingsScrollTop;
       if(keepingMealForm)phone.querySelector('.ks-main').scrollTop=mealPosition;
       if(state.addingMealOption){
         phone.insertAdjacentHTML('beforeend',mealOptionDialog());
@@ -1536,6 +1554,9 @@
     }
     function updateMealDatePresets(form){
       const selected=mealDatePreset({from:form.elements.from.value,to:form.elements.to.value});
+      for(const button of form.querySelectorAll('[data-clear-meal-date]')){
+        button.hidden=!form.elements[button.dataset.clearMealDate].value;
+      }
       for(const button of form.querySelectorAll('[data-meal-date-preset]')){
         button.setAttribute('aria-pressed',String(button.dataset.mealDatePreset===selected));
       }
@@ -1635,12 +1656,6 @@
         group.querySelectorAll('input').forEach(input=>{input.checked=all;});
         return;
       }
-      if(b.dataset.action==='reset-ledger-filters'){
-        state.ledgerFilterDraft=blankLedgerFilters();
-        b.form.querySelectorAll('input[type=checkbox]').forEach(input=>{input.checked=true;});
-        b.form.elements.note.value='';
-        return;
-      }
       if(b.dataset.action==='choose-ledger-period'){
         const range=state.ledgerRange,[year,month]=state.ledgerMonth.split('-').map(n=>String(Number(n)));
         state.periodDraft={target:'ledger',mode:range?'range':'month',year,month,from:range?.from||'',to:range?.to||''};
@@ -1678,6 +1693,13 @@
         b.form.elements.from.value=dates.from;
         b.form.elements.to.value=dates.to;
         updateMealDatePresets(b.form);
+        return;
+      }
+      if(b.dataset.clearMealDate){
+        const date=b.form.elements[b.dataset.clearMealDate];
+        date.value='';
+        updateMealDatePresets(b.form);
+        date.focus({preventScroll:true});
         return;
       }
       if(b.dataset.action==='reset-meal-filter'){

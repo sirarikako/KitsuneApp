@@ -39,6 +39,7 @@ jobs:
       github.ref == 'refs/heads/feat/android-default-wallet' ||
       github.ref == 'refs/heads/feat/ledger-time-picker' ||
       github.ref == 'refs/heads/feat/meal-statistics-month' ||
+      github.ref == 'refs/heads/feat/filter-action-alignment' ||
       github.ref == 'refs/heads/feat/github-backup-ui-pauses' || github.ref == 'refs/heads/codex/android-16')
     needs: [verify, device-tests]
     runs-on: ubuntu-latest

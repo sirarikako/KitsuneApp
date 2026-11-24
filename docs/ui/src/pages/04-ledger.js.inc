@@ -68,17 +68,17 @@
     }
     function ledgerFiltersDialog(){
       const draft=state.ledgerFilterDraft;
-      const group=(label,key,options)=>`<fieldset data-filter-group="${key}">
-        <legend class="ks-label">${label}</legend>
+      const group=(label,key,options)=>`<div data-filter-group="${key}" role="group" aria-labelledby="ledger-filter-${key}">
+        <div class="ks-filter-field-heading">
+          <span class="ks-label" id="ledger-filter-${key}">${label}</span>
+          <button type="button" class="ks-text-btn" data-filter-bulk="all" aria-label="全选${label}">全选</button>
+          <button type="button" class="ks-text-btn" data-filter-bulk="none" aria-label="全不选${label}">全不选</button>
+        </div>
         <div class="ks-ledger-filter-options">
           ${options.map(([id,text])=>`<label class="ks-choice ks-ledger-check cursor-interaction"><input type="checkbox" value="${escapeText(id)}" ${draft[key]===null||draft[key].includes(id)?'checked':''}>${escapeText(text)}</label>`).join('')}
           ${options.length?'':'<p class="ks-note">当前钱包范围没有可选分类</p>'}
         </div>
-        <div class="ks-ledger-filter-bulk">
-          <button type="button" class="ks-text-btn" data-filter-bulk="all" aria-label="全选${label}">全选</button>
-          <button type="button" class="ks-text-btn" data-filter-bulk="none" aria-label="全不选${label}">全不选</button>
-        </div>
-      </fieldset>`;
+      </div>`;
       return `<div class="ks-modal-overlay ks-period-overlay" data-ledger-filter-overlay>
         <form class="ks-period-dialog" data-ledger-filters role="dialog" aria-modal="true" aria-label="流水筛选">
           <h3>流水筛选</h3>
@@ -86,7 +86,6 @@
             ${group('类型','types',['收入','支出','转账','退款'].map(value=>[value,value]))}
             ${group('分类','categoryNames',ledgerFilterCategories())}
             <label><span class="ks-label">备注关键词</span><input name="note" class="ks-control" value="${escapeText(draft.note)}"></label>
-            <button type="button" class="ks-text-btn" data-action="reset-ledger-filters">重置条件</button>
           </div>
           <div class="ks-period-actions">
             <button type="button" class="ks-text-btn" data-action="cancel-ledger-filters">取消</button>

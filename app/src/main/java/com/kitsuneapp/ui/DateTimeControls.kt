@@ -48,12 +48,26 @@ fun DateControl(label: String, value: String, set: (String) -> Unit, modifier: M
                 allowEmpty: Boolean = false, showLabel: Boolean = true) {
     var open by rememberSaveable { mutableStateOf(false) }
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        if (showLabel) FieldLabel(label)
+        if (allowEmpty) {
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 44.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.weight(1f)) {
+                    if (showLabel) FieldLabel(label)
+                }
+                if (value.isNotEmpty()) {
+                    TextAction("清空", { set("") }, modifier = Modifier.semantics { contentDescription = "清空$label" })
+                }
+            }
+        } else if (showLabel) {
+            FieldLabel(label)
+        }
         OutlinedAction({ open = true }, Modifier.fillMaxWidth().semantics { contentDescription = label }, spread = true) {
             Text(value.ifEmpty { if (allowEmpty) "不限" else "请选择" }, Modifier.weight(1f))
             Icon(designIcon(R.drawable.ks_calendar_days), null, Modifier.size(16.dp))
         }
-        if (allowEmpty && value.isNotEmpty()) TextAction("清空", { set("") })
     }
     if (open) {
         DateSelectionDialog(label, readDate(value) ?: LocalDate.now(), dismiss = { open = false }) {

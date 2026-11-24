@@ -169,10 +169,9 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
 
     val transition = updateTransition(stack, label = "页面过渡")
     val onPrimaryPage = top in roots
-    NavigationFrame(bottomBar = {
-        if (onPrimaryPage || transition.currentState.last() in roots) {
-            MainNavigation(root, onPrimaryPage, ::open)
-        }
+    val showBottomBar = onPrimaryPage || transition.currentState.last() in roots
+    NavigationFrame(showBottomBar, bottomBar = {
+        MainNavigation(root, onPrimaryPage, ::open)
     }) { bottomBarHeight ->
         SharedTransitionLayout(Modifier.fillMaxSize().clipToBounds().testTag("navigation-pages")) {
             val shared = this
@@ -212,7 +211,7 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
                     val outgoing = if (active) Modifier else Modifier.inert(path)
                     val pageBackground = Modifier.background(MaterialTheme.colorScheme.background)
                     val pageInsets = if (path in roots) {
-                        Modifier.padding(bottom = bottomBarHeight).then(pageBackground)
+                        Modifier.padding(bottom = bottomBarHeight).clipToBounds().then(pageBackground)
                     } else {
                         pageBackground.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
                     }
@@ -285,15 +284,15 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
 }
 
 @Composable
-private fun NavigationFrame(bottomBar: @Composable () -> Unit, pages: @Composable (Dp) -> Unit) {
-    // Measure the bar before the pages so only primary routes reserve its actual height.
-    // The full-height page layer stays put and covers the stationary bar as a subpage slides in.
+private fun NavigationFrame(showBottomBar: Boolean, bottomBar: @Composable () -> Unit, pages: @Composable (Dp) -> Unit) {
+    // Keep the primary viewport's height stable while its scroll position is restored.
+    // Place the bar behind the full-height subpage during the slide.
     val frameInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     SubcomposeLayout(Modifier.fillMaxSize().windowInsetsPadding(frameInsets).imePadding()) { constraints ->
-        val bar = subcompose("bottomBar", bottomBar).singleOrNull()?.measure(constraints.copy(minHeight = 0))
-        val viewport = subcompose("pages") { pages((bar?.height ?: 0).toDp()) }.single().measure(constraints)
+        val bar = subcompose("bottomBar", bottomBar).single().measure(constraints.copy(minHeight = 0))
+        val viewport = subcompose("pages") { pages(bar.height.toDp()) }.single().measure(constraints)
         layout(viewport.width, viewport.height) {
-            bar?.placeRelative(0, viewport.height - bar.height)
+            if (showBottomBar) bar.placeRelative(0, viewport.height - bar.height)
             viewport.placeRelative(0, 0)
         }
     }

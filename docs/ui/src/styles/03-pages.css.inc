@@ -15,7 +15,10 @@
   #kitsune-preview .ks-ledger-check{display:flex;align-items:center;justify-content:flex-start;gap:var(--ks-space-2);overflow-wrap:anywhere}
   #kitsune-preview .ks-ledger-check input{width:18px;height:18px;accent-color:var(--ks-accent);flex:none}
   #kitsune-preview .ks-ledger-check:has(input:checked){color:var(--ks-accent);border-color:var(--ks-accent);background:var(--ks-accent-bg)}
-  #kitsune-preview .ks-ledger-filter-bulk{display:flex;gap:var(--ks-space-2)}
+  #kitsune-preview .ks-filter-field-heading{display:flex;align-items:center;min-height:44px;gap:var(--ks-space-2)}
+  #kitsune-preview .ks-filter-field-heading > :first-child{flex:1;margin:0}
+  #kitsune-preview .ks-filter-field-heading .ks-text-btn{flex:none}
+  #kitsune-preview .ks-filter-field-heading .ks-text-btn[hidden]{display:none}
   #kitsune-preview .ks-date-trigger{display:flex;justify-content:space-between;align-items:center;gap:var(--ks-space-2);text-align:left}
   #kitsune-preview .ks-entry-date-time{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
   #kitsune-preview .ks-time-dialog{max-width:280px}
@@ -105,6 +108,9 @@
   #kitsune-preview .ks-appearance-preview .ks-primary{margin-top:var(--ks-space-2)}
   #kitsune-preview .ks-phone{overflow:clip}
   #kitsune-preview .ks-page-motion{display:flex;flex:1;flex-direction:column;min-width:0;background:var(--ks-bg)}
+  #kitsune-preview .ks-phone:has(>:is(.ks-settings-screen,.ks-github-screen)){height:clamp(450px,92vh,776px);min-height:0}
+  #kitsune-preview :is(.ks-settings-screen,.ks-github-screen){min-height:0}
+  #kitsune-preview :is(.ks-settings-screen,.ks-github-screen) .ks-main{min-height:0;overflow-y:auto;overscroll-behavior:contain}
   #kitsune-preview .ks-motion-copy{position:absolute;inset:0;z-index:8;pointer-events:none;overflow:hidden;border-radius:30px}
   #kitsune-preview .ks-motion-copy *{pointer-events:none!important}
   #kitsune-preview .ks-motion-modal-copy{z-index:21}

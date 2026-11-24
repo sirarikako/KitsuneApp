@@ -360,10 +360,10 @@ internal fun DeleteAction(label: String, onClick: () -> Unit, enabled: Boolean =
 
 @Composable
 internal fun TextAction(label: String, onClick: () -> Unit, trailing: ImageVector? = null,
-                        leading: ImageVector? = null, enabled: Boolean = true) {
+                        leading: ImageVector? = null, enabled: Boolean = true, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
     val ink = if (enabled) colors.primary else colors.onSurfaceVariant.copy(alpha = 0.6f)
-    Row(Modifier.heightIn(min = 44.dp).clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+    Row(modifier.heightIn(min = 44.dp).clickable(enabled = enabled, role = Role.Button, onClick = onClick)
         .padding(horizontal = 2.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         if (leading != null) Icon(leading, null, Modifier.size(14.dp), tint = ink)

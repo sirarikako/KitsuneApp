@@ -145,11 +145,18 @@
     function pageMealFilter(){
       const f=state.mealFilterDraft,methods=[...new Set([...mealMethods,...allMeals().map(m=>m.method).filter(Boolean)])],preparations=[...new Set([...mealPreparations,...allMeals().flatMap(m=>m.categories)])];
       const datePreset=mealDatePreset(f);
+      const dateField=(name,label)=>`<div class="ks-meal-filter-date">
+        <div class="ks-filter-field-heading">
+          <label class="ks-note" for="meal-filter-${name}">${label}</label>
+          <button type="button" class="ks-text-btn" data-clear-meal-date="${name}" aria-label="清空${label}" ${f[name]?'':'hidden'}>清空</button>
+        </div>
+        <input class="ks-control" type="date" id="meal-filter-${name}" name="${name}" value="${f[name]}" min="0001-01-01" max="9999-12-31">
+      </div>`;
       const select=(label,name,choices)=>`<label><span class="ks-label">${label}</span><select class="ks-control" name="${name}">${choices.map(([value,label])=>`<option value="${escapeText(value)}" ${f[name]===value?'selected':''}>${escapeText(label)}</option>`).join('')}</select></label>`;
       return `<form class="ks-form" data-meal-filter-form>
         <fieldset><legend class="ks-label">日期范围</legend>
           <div class="ks-choices">${choice('本月','month',datePreset,'meal-date-preset')}${choice('所有时间','all',datePreset,'meal-date-preset')}</div>
-          <div class="ks-field-row"><label><span class="ks-note">开始日期</span><input class="ks-control" type="date" name="from" value="${f.from}" aria-label="开始日期" min="0001-01-01" max="9999-12-31"></label><label><span class="ks-note">结束日期</span><input class="ks-control" type="date" name="to" value="${f.to}" aria-label="结束日期" min="0001-01-01" max="9999-12-31"></label></div>
+          <div class="ks-field-row">${dateField('from','开始日期')}${dateField('to','结束日期')}</div>
         </fieldset>
         <div class="ks-field-row">${select('餐次','slot',[['any','全部餐次'],...slots.map((s,i)=>[String(i),s])])}${select('计划在家吃','atHome',[['any','不限'],['yes','是'],['no','否']])}</div>
         ${select('用餐方式','method',[['any','全部方式'],...methods.map(m=>[m,m]),['none','未填写方式']])}
