@@ -94,16 +94,21 @@ python docs/ui/build_preview.py
 安装 JDK 和 Android SDK 后，在仓库根目录运行。Windows PowerShell 将 `./gradlew` 换为 `.\gradlew.bat`。
 
 ```bash
-./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
+./gradlew :app:assembleDebug :app:assembleRelease :app:testDebugUnitTest :app:lintDebug :app:lintRelease
 ./gradlew :app:assembleDebugAndroidTest
 # 需要已启动的模拟器或已连接的真机
 ./gradlew :app:connectedDebugAndroidTest
 ./gradlew :app:installDebug
 ```
 
-调试 APK 生成在 `app/build/outputs/apk/debug/app-debug.apk`。安装到设备可使用 `adb install -r app/build/outputs/apk/debug/app-debug.apk`。发布签名需由持有发布密钥的维护者另行配置。测试和 lint 报告位于 `app/build/reports/`。
+调试 APK 生成在 `app/build/outputs/apk/debug/app-debug.apk`。本地调试可使用 `adb install -r app/build/outputs/apk/debug/app-debug.apk`（本机签名须与已装版本相同）。`assembleRelease` 生成 `app/build/outputs/apk/release/app-release-unsigned.apk`，不可直接安装。Release 关闭调试属性，暂不开启 R8 混淆和资源压缩。测试和 lint 报告位于 `app/build/reports/`。
 
-GitHub Actions 在构建、lint、单元测试及 Android 15／16 设备测试通过后，使用 `KITSUNE_TEST_KEYSTORE_BASE64` 中的现有固定测试密钥签名。在受信任分支上，签名作业核对证书 SHA-256、包名、SDK 和 APK 对齐，再上传 `kitsune-debug`。已安装同证书版本的设备可覆盖安装。旧包使用其他证书时，先导出完整 JSON 备份，再安装固定签名包并恢复。`kitsune-debug-ci` 使用当次运行器的临时签名。迁移差异和验证范围见[开发进度](docs/IMPLEMENTATION_PROGRESS.md#android-16-迁移)。
+GitHub Actions 在 Debug／Release 构建、lint、单元测试及 Android 15／16 设备测试通过后，仅在受信任分支使用现有 `KITSUNE_TEST_KEYSTORE_BASE64` 固定密钥签署两种 APK，不新增密钥或 Secrets。签名作业核对证书 SHA-256、包名、版本号、SDK、调试属性及 16 KB 对齐，并在 API 36 模拟器验证 Debug → Release → Debug 覆盖安装和钱包数据保留。通过后上传：
+- `kitsune-release`：日常使用及新功能测试，优先下载安装。
+- `kitsune-debug`：需要调试时安装；同一版本可与 Release 相互覆盖，无需卸载。
+- `kitsune-debug-ci`、`kitsune-release-ci`、`kitsune-androidtest-ci`：内部验证产物，不用于日常手机安装。
+
+两个可安装 APK 共用 `com.kitsuneapp`、版本号及固定签名；正常升级无需卸载，切换前仍建议保留完整 JSON 备份。不同证书的旧包须先导出、卸载、安装固定签名版本后恢复。低版本 APK 或旧数据库结构不保证可回退；不按 Actions 运行次数增加版本号。保管现有签名密钥，不将其写入仓库、日志或产物。不使用 Google Play、AAB 或额外发布服务器。迁移差异和验证范围见[开发进度](docs/IMPLEMENTATION_PROGRESS.md#android-16-迁移)。
 
 持有原工作区调试 keystore 且有仓库 Secret 管理权限时，可通过标准输入配置密钥。
 
