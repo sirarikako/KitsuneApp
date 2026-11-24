@@ -1,0 +1,330 @@
+package com.kitsuneapp
+
+import android.content.res.Configuration
+import android.graphics.Bitmap
+import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.junit4.StateRestorationTester
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTextReplacement
+import androidx.lifecycle.ViewModelProvider
+import androidx.test.platform.app.InstrumentationRegistry
+import com.kitsuneapp.data.*
+import com.kitsuneapp.feature.ledger.EntryForm
+import com.kitsuneapp.feature.ledger.LedgerEntryFilterDialog
+import com.kitsuneapp.feature.ledger.WalletForm
+import com.kitsuneapp.feature.ledger.LedgerPage
+import com.kitsuneapp.feature.meals.MealFilter
+import com.kitsuneapp.feature.meals.MealFilterPage
+import com.kitsuneapp.ui.KitsuneTheme
+import com.kitsuneapp.ui.Primary
+import java.io.File
+import java.time.LocalDate
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Rule
+import org.junit.Test
+
+class SelectionSheetsTest {
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+    private val inDialog = hasAnyAncestor(isDialog())
+    private val automation get() = InstrumentationRegistry.getInstrumentation().uiAutomation
+
+    @Test
+    fun walletChangeClearsAnIncompatibleCategoryAndRestoresThePickerDraft() {
+        val model = compose.runOnIdle { ViewModelProvider(compose.activity)[AppViewModel::class.java] }
+        val restoration = StateRestorationTester(compose)
+        val records = selectionRecords()
+        restoration.setContent {
+            KitsuneTheme(records.theme) { EntryForm(records, null, null, model, {}, {}) }
+        }
+
+        val wallet = compose.onNodeWithContentDescription("钱包")
+        val category = compose.onNodeWithContentDescription("分类")
+        compose.onNode(hasContentDescription("钱包") and hasText("日常钱包 · CNY")).assertExists()
+        category.performScrollTo().performClick()
+        sheetText("通用分类 · 支出").assertIsDisplayed()
+        sheetText("餐饮").performClick()
+        compose.onNode(hasContentDescription("分类") and hasText("餐饮")).assertExists()
+
+        wallet.performScrollTo().performClick()
+        sheetText("旅行钱包").performClick()
+        compose.onNode(hasContentDescription("钱包") and hasText("旅行钱包 · JPY")).assertExists()
+        compose.onNodeWithText("请重新选择该钱包的分类").assertExists()
+        val note = compose.onNodeWithContentDescription("备注")
+        note.performScrollTo().performTextReplacement("保留草稿")
+        category.performScrollTo().performClick()
+        sheetText("本钱包专属分类 · 支出").assertIsDisplayed()
+        restoration.emulateSavedInstanceStateRestore()
+        sheetText("本钱包专属分类 · 支出").assertIsDisplayed()
+        sheetText("餐饮").assertDoesNotExist()
+        sheetText("旅途交通").performClick()
+        compose.onNode(hasContentDescription("分类") and hasText("旅途交通")).assertExists()
+        compose.onNode(hasContentDescription("备注") and hasText("保留草稿")).assertExists()
+    }
+
+    @Test
+    fun historicalWalletRemainsSelectableOnEditAndRefundOnlyShowsSameCurrency() {
+        val records = selectionRecords()
+        val original = records.entries.single()
+        val model = compose.runOnIdle { ViewModelProvider(compose.activity)[AppViewModel::class.java] }
+        var editing by mutableStateOf(true)
+        compose.setContent {
+            KitsuneTheme(records.theme) {
+                key(editing) {
+                    EntryForm(records, original.id.takeIf { editing }, original.id.takeUnless { editing },
+                        model, {}, {})
+                }
+            }
+        }
+
+        val wallet = compose.onNodeWithContentDescription("钱包")
+        wallet.performScrollTo().performClick()
+        compose.onNode(hasText("旧钱包") and hasText("CNY · 已归档") and inDialog).assertIsSelected()
+        sheetText("旅行钱包").assertIsDisplayed()
+        close()
+        compose.runOnIdle { editing = false }
+
+        compose.onNodeWithText("记录退款").assertIsDisplayed()
+        wallet.performScrollTo().performClick()
+        sheetText("旧钱包").assertIsSelected()
+        sheetText("旅行钱包").assertDoesNotExist()
+        sheetText("日常钱包").performClick()
+        compose.onNode(hasContentDescription("钱包") and hasText("日常钱包 · CNY")).assertExists()
+    }
+
+    @Test
+    fun currencySearchRestoresTextUsesCodeAndNameAndLocksAReferencedWallet() {
+        val records = selectionRecords()
+        val model = compose.runOnIdle { ViewModelProvider(compose.activity)[AppViewModel::class.java] }
+        val restoration = StateRestorationTester(compose)
+        var editing by mutableStateOf(false)
+        restoration.setContent {
+            KitsuneTheme(records.theme) {
+                key(editing) {
+                    WalletForm(records, "archived".takeIf { editing }, model, {})
+                }
+            }
+        }
+        val currency = compose.onNodeWithContentDescription("币种")
+        currency.performScrollTo().performClick()
+        list().performScrollToIndex(30)
+        val search = compose.onNodeWithContentDescription("搜索代码或名称")
+        search.performTextReplacement("无匹配的搜索")
+        sheetText("没有匹配币种").assertIsDisplayed()
+        search.performTextReplacement("日元")
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNode(hasContentDescription("搜索代码或名称") and hasText("日元")).assertIsDisplayed()
+        sheetText("JPY").performClick()
+        compose.onNode(hasContentDescription("币种") and hasText("JPY")).assertExists()
+        currency.performClick()
+        search.performTextReplacement("jpy")
+        sheetText("JPY").assertIsSelected()
+        close()
+        compose.runOnIdle { editing = true }
+        currency.assertIsNotEnabled()
+        compose.onNodeWithText("已有流水，币种和精度固定").assertExists()
+    }
+
+    @Test
+    fun mealMethodSelectionChangesOnlyTheFilterDraftUntilApply() {
+        val records = selectionRecords()
+        var applied: MealFilter? = null
+        compose.setContent {
+            KitsuneTheme(records.theme) {
+                val filter = MealFilter()
+                MealFilterPage(records, filter, filter, filter, {}, { applied = it })
+            }
+        }
+        val chooser = compose.onNodeWithContentDescription("用餐方式")
+        chooser.performScrollTo().performClick()
+        sheetText("全部方式").assertIsSelected()
+        sheetText("未填写方式").performClick()
+        compose.onNode(hasContentDescription("用餐方式") and hasText("未填写方式")).assertExists()
+        compose.runOnIdle { assertNull(applied) }
+        chooser.performClick()
+        sheetText("全部方式").assertIsDisplayed()
+        close()
+        compose.onNode(hasContentDescription("用餐方式") and hasText("未填写方式")).assertExists()
+        compose.onNodeWithText("应用筛选").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals("none", applied?.method) }
+    }
+
+    @Test
+    fun dismissGesturesDoNotApplyAndARecreatedFilterRetainsItsDraft() {
+        val records = selectionRecords()
+        val applied = mutableStateOf(LedgerEntryFilters())
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            KitsuneTheme(records.theme) {
+                var open by rememberSaveable { mutableStateOf(false) }
+                Box(Modifier.fillMaxSize()) { Primary("打开筛选", { open = true }) }
+                if (open) LedgerEntryFilterDialog(applied.value, records.categories, { open = false }) {
+                    applied.value = it
+                    open = false
+                }
+            }
+        }
+
+        fun open() {
+            compose.onNodeWithText("打开筛选").performClick()
+            sheetText("支出").assertIsOn().performClick()
+        }
+        fun assertCanceled() {
+            compose.waitUntil(5_000) { compose.onAllNodes(hasText("流水筛选") and inDialog).fetchSemanticsNodes().isEmpty() }
+            compose.runOnIdle { assertEquals(LedgerEntryFilters(), applied.value) }
+        }
+
+        open()
+        close()
+        assertCanceled()
+        open()
+        automation.executeShellCommand("input keyevent KEYCODE_BACK").close()
+        assertCanceled()
+
+        open()
+        // Tap the scrim above the sheet.
+        val title = sheetText("流水筛选").assertIsDisplayed().fetchSemanticsNode().boundsInWindow
+        automation.executeShellCommand("input tap ${title.center.x.toInt()} ${(title.top / 3).toInt()}").close()
+        assertCanceled()
+
+        open()
+        val heading = sheetText("流水筛选").fetchSemanticsNode().boundsInWindow
+        val displayHeight = compose.activity.resources.displayMetrics.heightPixels
+        val x = heading.center.x.toInt()
+        val y = heading.center.y.toInt()
+        automation.executeShellCommand("input swipe $x $y $x ${displayHeight - 2} 250").close()
+        assertCanceled()
+
+        open()
+        list().performScrollToNode(hasContentDescription("备注关键词"))
+        compose.onNodeWithContentDescription("备注关键词").performTextReplacement("草稿")
+        restoration.emulateSavedInstanceStateRestore()
+        list().performScrollToNode(hasContentDescription("备注关键词"))
+        compose.onNode(hasContentDescription("备注关键词") and hasText("草稿")).assertIsDisplayed()
+        list().performScrollToNode(hasText("支出"))
+        sheetText("支出").assertIsOff()
+        sheetText("应用").assertIsDisplayed().performClick()
+        compose.runOnIdle {
+            assertEquals(EntryType.entries.toSet() - EntryType.EXPENSE, applied.value.types)
+            assertEquals("草稿", applied.value.note)
+        }
+    }
+
+    private fun list() = compose.onNode(hasScrollToNodeAction() and inDialog)
+    private fun sheetText(text: String) = compose.onNode(hasText(text) and inDialog)
+    private fun close() = compose.onNodeWithContentDescription("关闭").performClick()
+}
+
+class SelectionSheetsScreenshotTest {
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+    private val inDialog = hasAnyAncestor(isDialog())
+
+    @Test
+    fun capturesSelectionSheets() {
+        val configuration = compose.activity.resources.configuration
+        val isDark = (configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        val profile = InstrumentationRegistry.getArguments().getString("selectionProfile")
+            ?: if (isDark) "dark" else "light"
+        if (profile == "narrow-large") {
+            assertEquals(320, configuration.screenWidthDp)
+            assertEquals(1.5f, configuration.fontScale, .01f)
+        }
+        assertEquals(profile == "dark", isDark)
+        val records = selectionRecords()
+        val model = compose.runOnIdle { ViewModelProvider(compose.activity)[AppViewModel::class.java] }
+        var screen by mutableStateOf("entry")
+        compose.setContent {
+            KitsuneTheme(records.theme, forceDark = isDark) {
+                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    when (screen) {
+                        "entry" -> EntryForm(records, null, null, model, {}, {})
+                        "ledger" -> LedgerPage(records, open = {}, openDetails = {})
+                        "currency" -> WalletForm(records, null, model, {})
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithContentDescription("钱包").performScrollTo().performClick()
+        capture("选择钱包", "wallet", profile)
+        compose.onNodeWithContentDescription("关闭").performClick()
+        compose.onNodeWithContentDescription("分类").performScrollTo().performClick()
+        sheetText("新增分类").assertIsDisplayed()
+        capture("选择分类", "category", profile)
+        compose.onNodeWithContentDescription("关闭").performClick()
+
+        compose.runOnIdle { screen = "ledger" }
+        compose.onNodeWithText("筛选").performScrollTo().performClick()
+        sheetText("应用").assertIsDisplayed()
+        capture("流水筛选", "ledger-filter", profile)
+        compose.onNodeWithContentDescription("关闭").performClick()
+
+        compose.onNodeWithContentDescription("钱包范围").performClick()
+        sheetText("手动选择").performClick()
+        val list = compose.onNode(hasScrollToNodeAction() and inDialog)
+        list.performScrollToNode(hasText("旧钱包"))
+        sheetText("应用").assertIsDisplayed()
+        capture("钱包范围", "wallet-range", profile)
+        compose.onNodeWithContentDescription("关闭").performClick()
+
+        compose.runOnIdle { screen = "currency" }
+        compose.onNodeWithContentDescription("币种").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("搜索代码或名称").performTextReplacement("jpy")
+        sheetText("JPY").assertIsDisplayed()
+        capture("选择币种", "currency", profile)
+    }
+
+    private fun sheetText(text: String) = compose.onNode(hasText(text) and inDialog)
+
+    private fun capture(title: String, name: String, profile: String) {
+        sheetText(title).assertIsDisplayed()
+        val bitmap = checkNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
+        File(compose.activity.cacheDir, "selection-$profile-$name.png").outputStream().use {
+            check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
+        }
+    }
+}
+
+private fun selectionRecords(): Records {
+    val time = "2026-11-17T12:00:00Z"
+    val daily = Wallet("regular", "日常钱包", "日常钱包", "CNY", 2, 0, 0, false, false,
+        CategoryMode.DEFAULT, CategoryMode.DEFAULT, time, time)
+    val travel = daily.copy(id = "travel", name = "旅行钱包", normalizedName = "旅行钱包",
+        separateAccounting = true, expenseCategoryMode = CategoryMode.CUSTOM, currencyCode = "JPY", currencyScale = 0)
+    val archived = daily.copy(id = "archived", name = "旧钱包", normalizedName = "旧钱包", archived = true)
+    val fallback = Category("fallback", Scope.EXPENSE, null, "", "未分类", "未分类", 0, false, true, time, time)
+    val food = fallback.copy(id = "food", name = "餐饮", normalizedName = "餐饮", isDefault = false, icon = CategoryIcon.FOOD)
+    val transport = food.copy(id = "transport", name = "旅途交通", normalizedName = "旅途交通",
+        icon = CategoryIcon.TRANSPORT, walletId = travel.id, ownerKey = travel.id)
+    val historical = FinancialEntry("expense", LocalDate.now().toString(), "12:00", EntryType.EXPENSE,
+        archived.id, 2000, food.id, null, null, null, "", time, time)
+    return Records(DataState(installationId = "test", datasetId = "test", arrayElements = 0),
+        ThemePreferences(), emptyList(), listOf(fallback, food, transport), emptyList(), emptyMap(),
+        listOf(daily, travel, archived), listOf(historical))
+}

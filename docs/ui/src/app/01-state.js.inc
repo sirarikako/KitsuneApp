@@ -164,9 +164,9 @@
       const names=new Map();
       for(const category of candidates){
         const key=categoryNameKey(category);
-        if(!names.has(key))names.set(key,category.name);
+        if(!names.has(key))names.set(key,[key,category.name,categoryGlyph(category.icon)]);
       }
-      return [...names];
+      return [...names.values()];
     }
     const matchesLedgerScope=entry=>{
       const range=state.ledgerRange;

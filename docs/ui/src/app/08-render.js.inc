@@ -2,8 +2,8 @@
     function render(){
       const previous=rendered,kind=modalKind(),key=localKey(),changingPage=previous&&previous.page!==state.page;
       if(previous?.page==='settings')settingsScrollTop=phone.querySelector('.ks-settings-screen .ks-main').scrollTop;
-      const keepingMealForm=previous?.page==='meal-form'&&state.page==='meal-form';
-      const mealPosition=keepingMealForm?phone.querySelector('.ks-main').scrollTop:0;
+      const keepingForm=previous?.page===state.page&&['meal-form','meal-filter','entry','wallet-edit'].includes(state.page);
+      const formPosition=keepingForm?phone.querySelector('.ks-main').scrollTop:0;
       const oldLedger=phone.querySelector('.ks-ledger-screen');
       const sameLedger=oldLedger&&state.page==='ledger'&&previous.local===key;
       const ledgerPosition=sameLedger?oldLedger.querySelector('.ks-main').scrollTop:0;
@@ -26,26 +26,26 @@
       const sourceRect=entrance;entrance=null;if(leavingPrimary&&!sourceRect)recordOrigin=null;
       rendering=true;
       const form=!primary(state.page);
-      const titles={home:'日常记录',meals:'用餐',ledger:'记账',settings:'设置',appearance:'外观与调色板','wallet-edit':'编辑钱包', 'meal-form':`${state.editing?'编辑':'记录'}${slots[state.slot]}`,'meal-filter':'筛选用餐',entry:'记一笔','entry-detail':'账目详情','category-manager':'分类管理','category-owned':'钱包专属分类','category-detail':state.editingFinancialCategoryId?'编辑分类':'新增分类',github:'GitHub 备份'};
+      const titles={home:'日常记录',meals:'用餐',ledger:'记账',settings:'设置',appearance:'外观与调色板','csv-mapping':'导入与导出','wallet-edit':'编辑钱包', 'meal-form':`${state.editing?'编辑':'记录'}${slots[state.slot]}`,'meal-filter':'筛选用餐',entry:'记一笔','entry-detail':'账目详情','category-manager':'分类管理','category-owned':'钱包专属分类','category-detail':state.editingFinancialCategoryId?'编辑分类':'新增分类',github:'GitHub 备份'};
       const heading=`<h2 class="ks-title">${titles[state.page]}</h2>`;
       const header=state.page==='home'?`<div class="ks-home-brand"><span class="ks-app-mark"><img src="__KITSUNE_FOX_MARK__" alt=""></span><div>${heading}<p class="ks-sub">11 月 17 日 · 星期二</p></div></div>`:form?`<button type="button" class="ks-icon-btn cursor-interaction" data-action="back" aria-label="返回">${icon('arrow-left')}</button>${heading}`:heading;
-      const pages={home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,appearance:pageAppearance,'wallet-edit':pageWalletEdit,'meal-form':pageMealForm,'meal-filter':pageMealFilter,entry:pageEntry,'entry-detail':pageEntryDetail,'category-manager':pageCategoryManager,'category-owned':pageOwnedCategories,'category-detail':pageCategoryDetail,github:pageGitHubBackup};
+      const pages={home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,appearance:pageAppearance,'csv-mapping':pageCsvMapping,'wallet-edit':pageWalletEdit,'meal-form':pageMealForm,'meal-filter':pageMealFilter,entry:pageEntry,'entry-detail':pageEntryDetail,'category-manager':pageCategoryManager,'category-owned':pageOwnedCategories,'category-detail':pageCategoryDetail,github:pageGitHubBackup};
       const ledger=state.page==='ledger',fab=ledger&&state.ledgerTab==='流水';
       const settingsScreen=state.page==='settings'||state.page==='github'?`ks-${state.page}-screen`:'';
       const top=`<header class="ks-top ${form?'ks-subpage':''}">${header}</header>`;
       phone.innerHTML=`<div class="ks-status"><span>9:41</span><span class="ks-signal">${icon('signal')}${icon('wifi')}${icon('battery-full')}</span></div><div class="ks-page-motion ${settingsScreen} ${ledger?'ks-ledger-screen':''} ${fab?'ks-ledger-with-fab':''}">${ledger?`<div class="ks-ledger-collapsible">${top}</div>${ledgerTabs()}${ledgerFilters()}`:top}<main class="ks-main">${pages[state.page]()}${state.notice?`<p class="ks-success" role="status">${escapeText(state.notice)}</p>`:''}</main>${fab?`<button type="button" class="ks-primary ks-ledger-fab" data-action="add-entry" aria-label="记一笔">${icon('plus')}<span>记一笔</span></button>`:''}</div>${form?'':`<nav class="ks-nav" aria-label="主导航">${navs.map(([id,name,ic])=>`<button type="button" data-page="${id}" class="cursor-interaction" ${state.page===id?'aria-current="page"':''}><span>${icon(ic)}</span>${name}</button>`).join('')}</nav>`}<div class="ks-home-indicator" aria-hidden="true"></div>`;
       if(state.calcOpen){phone.insertAdjacentHTML('beforeend',calculatorSheet());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-calc-action=cancel]').focus({preventScroll:true});}
       if(state.deletePending){phone.insertAdjacentHTML('beforeend',deleteConfirmation());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-delete-action=cancel]').focus({preventScroll:true});}
-      if(state.walletPickerOpen){phone.insertAdjacentHTML('beforeend',walletRangeDialog());for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;phone.querySelector('[data-wallet-mode][aria-pressed=true]').focus({preventScroll:true});}
+      if(state.walletPickerOpen||state.ledgerFilterDraft||state.singleSelection){
+        const panel=state.walletPickerOpen?walletRangeDialog():state.ledgerFilterDraft?ledgerFiltersDialog():singleSelectionPanel();
+        phone.insertAdjacentHTML('beforeend',panel);
+        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
+        phone.querySelector('.ks-selection-panel [data-select-close]').focus({preventScroll:true});
+      }
       if(state.periodDraft){
         phone.insertAdjacentHTML('beforeend',periodDialog());
         for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
         if(previous?.modal!==kind)phone.querySelector('[data-period-mode][aria-pressed=true],[data-period-month][aria-pressed=true]').focus({preventScroll:true});
-      }
-      if(state.ledgerFilterDraft){
-        phone.insertAdjacentHTML('beforeend',ledgerFiltersDialog());
-        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
-        phone.querySelector('[data-ledger-filters] input').focus({preventScroll:true});
       }
       if(state.githubDemo.review){
         phone.insertAdjacentHTML('beforeend',githubDemoDialog());
@@ -69,7 +69,7 @@
         phone.querySelector('[data-entry-category] [name=categoryName]').focus({preventScroll:true});
       }
       if(state.page==='settings')phone.querySelector('.ks-settings-screen .ks-main').scrollTop=settingsScrollTop;
-      if(keepingMealForm)phone.querySelector('.ks-main').scrollTop=mealPosition;
+      if(keepingForm)phone.querySelector('.ks-main').scrollTop=formPosition;
       if(state.addingMealOption){
         phone.insertAdjacentHTML('beforeend',mealOptionDialog());
         for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
@@ -95,7 +95,30 @@
       if(changingPage&&primary(state.page))recordOrigin=null;
       if(changingPage&&!kind){const header=phone.querySelector('.ks-top');header.setAttribute('tabindex','-1');header.focus({preventScroll:true});}
     }
-    function capture(){const form=phone.querySelector('[data-meal-form]');if(form){state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);}const entry=phone.querySelector('[data-entry-form]');if(entry){state.entryDraft={dateTime:entry.elements.date.value+state.entryDraft.dateTime.slice(-6),note:entry.elements.note.value,category:entry.elements.category.value,walletId:entry.elements.wallet.value};}}
+    function capture(){
+      const form=phone.querySelector('[data-meal-form]');
+      if(form){
+        state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;
+        state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);
+      }
+      const entry=phone.querySelector('[data-entry-form]');
+      if(entry){
+        state.entryDraft.dateTime=entry.elements.date.value+state.entryDraft.dateTime.slice(-6);
+        state.entryDraft.note=entry.elements.note.value;
+      }
+      const meal=phone.querySelector('[data-meal-filter-form]');
+      if(meal){
+        const {from,to,slot,atHome,keyword}=meal.elements;
+        state.mealFilterDraft={...state.mealFilterDraft,from:from.value,to:to.value,slot:slot.value,atHome:atHome.value,
+          keyword:keyword.value,preparations:[...meal.querySelectorAll('[name=preparation]:checked')].map(e=>e.value)};
+      }
+      if(state.page==='wallet-edit'){
+        const draft=state.walletEditDraft;
+        draft.separateAccounting=phone.querySelector('[data-wallet-independent]').checked;
+        draft.defaultWallet=phone.querySelector('[data-wallet-default]').checked;
+        draft.defaultToIncome=phone.querySelector('[data-wallet-income-default]').checked;
+      }
+    }
     function closeEntryTime(apply){
       const {hour,minute}=state.entryTimeDraft;
       if(apply){
@@ -144,8 +167,45 @@
         const mode=state.walletDraftMode;
         if(mode==='MANUAL'&&!state.walletDraftIds.length)return;
         state.walletFilterIds=mode==='MANUAL'?[...state.walletDraftIds]:mode==='ALL'?'ALL':null;
-      }else if(action==='default')state.walletFilterIds=null;
+      }
       state.walletPickerOpen=false;render();persist();phone.querySelector('[data-action=choose-wallets]')?.focus({preventScroll:true});
+    }
+    function closeSingleSelection(value){
+      const kind=state.singleSelection;
+      if(value!==undefined){
+        switch(kind){
+          case 'entry-wallet': {
+            const {category,walletId}=state.entryDraft;
+            if(walletId!==value){
+              state.entryDraft.walletId=value;
+              const nextType=state.followsWalletType?defaultEntryType(entryWallet()):state.entryType;
+              state.entryDraft.category=nextType!==state.entryType||!category
+                ?initialEntryCategory(value,nextType):chooseFinancialCategory(value,nextType,category);
+              state.entryType=nextType;
+            }
+            break;
+          }
+          case 'entry-category':
+            state.entryDraft.category=value;state.followsWalletType=false;break;
+          case 'meal-method':
+            state.mealFilterDraft.method=value;break;
+          case 'category-wallet':
+            state.categoryWalletId=value;state.editingFinancialCategoryId=null;break;
+          case 'csv-method':
+            state.csvMethod=value;break;
+          case 'csv-wallet':
+            state.csvWallet=value;break;
+          case 'currency':
+            state.walletEditDraft.code=value;break;
+        }
+      }
+      state.singleSelection=null;render();
+      phone.querySelector(`[data-select-open="${kind}"]`)?.focus({preventScroll:true});
+    }
+    function cancelSelection(){
+      if(state.singleSelection)closeSingleSelection();
+      else if(state.walletPickerOpen)closeWalletPicker('cancel');
+      else if(state.ledgerFilterDraft)closeLedgerFilters(false);
     }
     function closeMealOption(){
       const kind=state.addingMealOption;
@@ -154,7 +214,7 @@
     }
     function closeEntryCategory(){
       state.addingEntryCategory=false;render();
-      phone.querySelector('[data-action=add-entry-category]')?.focus({preventScroll:true});
+      phone.querySelector('[data-select-open=entry-category]')?.focus({preventScroll:true});
     }
     function closeMealCalendar(apply){
       const d=state.mealCalendar;

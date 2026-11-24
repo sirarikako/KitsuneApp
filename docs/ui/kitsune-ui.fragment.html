@@ -136,6 +136,36 @@
   #kitsune-preview .ks-top.ks-subpage{justify-content:flex-start;padding-top:12px;padding-bottom:12px}
   #kitsune-preview .ks-subpage .ks-title{margin:0;font-size:var(--ks-font-title)}
   #kitsune-preview .ks-modal-overlay{position:absolute;inset:0;z-index:20;background:#00000055;border-radius:30px;display:flex;align-items:flex-end;padding:9px}
+  #kitsune-preview .ks-selection-panel{display:flex;flex-direction:column;gap:4px;width:100%;max-height:100%;overflow:hidden;background:var(--ks-card-surface);color:var(--ks-ink);border-radius:var(--ks-dialog-radius);padding:8px 16px}
+  #kitsune-preview .ks-selection-handle{display:grid;place-items:center;min-height:12px;touch-action:none}
+  #kitsune-preview .ks-selection-handle span{width:32px;height:4px;border-radius:4px;background:var(--ks-line)}
+  #kitsune-preview .ks-selection-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  #kitsune-preview .ks-selection-heading h3{font-size:1.55em;font-weight:600;margin:0;line-height:1.3}
+  #kitsune-preview .ks-selection-close{display:grid;place-items:center;width:48px;height:48px;flex:none;border:0;border-radius:50%;background:transparent;color:var(--ks-ink)}
+  #kitsune-preview .ks-selection-body{max-height:420px;min-height:0;overflow:auto;overscroll-behavior:contain;display:grid;gap:2px}
+  #kitsune-preview .ks-selection-body p{margin:4px 0}
+  #kitsune-preview .ks-selection-footer{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+  #kitsune-preview .ks-selection-footer .ks-primary{flex:1}
+  #kitsune-preview .ks-selection-footer .ks-text-btn{min-height:48px}
+  #kitsune-preview .ks-selection-add{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border-top:1px solid var(--ks-line)}
+  #kitsune-preview .ks-selection-option{display:flex;align-items:center;gap:12px;text-align:left;color:var(--ks-ink);border:0;border-radius:var(--ks-control-radius);background:transparent;width:100%;min-height:48px;padding:8px 12px;font-size:1.14em;cursor:pointer}
+  #kitsune-preview .ks-selection-option[data-selection-detail]{min-height:64px}
+  #kitsune-preview .ks-selection-option:is([aria-pressed=true],:has(input:checked)){background:var(--ks-accent-bg);color:var(--ks-accent)}
+  #kitsune-preview .ks-selection-copy{display:grid;gap:2px;flex:1;min-width:0}
+  #kitsune-preview .ks-selection-copy small{font-size:.75em;color:var(--ks-dim)}
+  #kitsune-preview .ks-selection-option>svg{flex:none}
+  #kitsune-preview .ks-selection-indicator{display:grid;place-items:center;width:24px;height:24px;flex:none}
+  #kitsune-preview .ks-selection-option input{width:18px;height:18px;margin:0 3px;flex:none;accent-color:var(--ks-accent)}
+  #kitsune-preview .ks-selection-trigger{display:flex;align-items:center;gap:8px;text-align:left}
+  #kitsune-preview .ks-selection-trigger span{flex:1;min-width:0}
+  #kitsune-preview .ks-selection-trigger svg{flex:none}
+  #kitsune-preview .ks-selection-trigger:disabled{opacity:.65}
+  #kitsune-preview .ks-selection-field{min-width:0}
+  #kitsune-preview .ks-selection-field .ks-label{display:block}
+  #kitsune-preview .ks-selection-panel [data-filter-group]>div:last-child{display:grid;gap:2px}
+  #kitsune-preview .ks-selection-panel .ks-filter-field-heading{flex-wrap:wrap}
+  #kitsune-preview .ks-selection-panel .ks-filter-field-heading .ks-text-btn{min-height:48px}
+  #kitsune-preview .ks-selection-option:focus-visible,#kitsune-preview .ks-selection-option:focus-within{outline:2px solid var(--ks-accent);outline-offset:-2px}
   #kitsune-preview .ks-calc-sheet{display:flex;flex-direction:column;width:100%;background:var(--ks-card-surface);border:var(--ks-card-border);color:var(--ks-ink);border-radius:var(--ks-dialog-radius);padding:var(--ks-space-4);box-shadow:var(--ks-dialog-shadow);max-height:calc(100% - 24px);overflow:hidden}
   #kitsune-preview .ks-calc-body{min-height:0;overflow-y:auto}
   #kitsune-preview .ks-calc-footer{flex:none}
@@ -151,7 +181,7 @@
   #kitsune-preview .ks-delete-btn{display:flex;align-items:center;justify-content:center;gap:7px;color:var(--ks-danger);width:100%;min-height:var(--ks-control-height);border:var(--ks-card-border);border-radius:var(--ks-control-radius);background:var(--ks-card-surface);padding:var(--ks-space-2) var(--ks-space-4);font-size:var(--ks-font-body)}
   #kitsune-preview .ks-delete-btn svg{width:var(--ks-icon-size);height:var(--ks-icon-size)}
   #kitsune-preview .ks-danger-confirm{background:var(--ks-danger);color:var(--ks-on-danger,light-dark(#fff8f7,#451714))}
-  #kitsune-preview :is(.ks-delete-overlay,.ks-wallet-overlay,.ks-period-overlay){align-items:center;padding:18px}
+  #kitsune-preview :is(.ks-delete-overlay,.ks-period-overlay){align-items:center;padding:18px}
   #kitsune-preview .ks-delete-sheet{background:var(--ks-card-surface);border:var(--ks-card-border);width:100%;border-radius:var(--ks-dialog-radius);padding:var(--ks-space-4);box-shadow:var(--ks-dialog-shadow);max-height:calc(100% - 24px);overflow:auto}
   #kitsune-preview .ks-delete-sheet h3{font-size:18px;font-weight:600;margin:0 0 var(--ks-space-2)}
   #kitsune-preview .ks-delete-summary{font-size:14px;line-height:1.7;margin:0 0 12px;white-space:pre-line}
@@ -177,24 +207,18 @@
   #kitsune-preview .ks-currency-amount small{font-size:11px;color:var(--ks-dim)}
   #kitsune-preview .ks-currency-group{margin-bottom:19px}
   #kitsune-preview .ks-currency-group .ks-money-card{margin-bottom:10px}
-  #kitsune-preview :is(.ks-wallet-dialog,.ks-period-dialog){display:flex;flex-direction:column;gap:var(--ks-space-4);width:100%;max-width:480px;margin:auto;background:var(--ks-card-surface);border:var(--ks-card-border);border-radius:var(--ks-dialog-radius);padding:var(--ks-space-6);box-shadow:var(--ks-dialog-shadow);max-height:100%;overflow:hidden}
-  #kitsune-preview :is(.ks-wallet-dialog,.ks-period-dialog) h3{font-size:var(--ks-font-title);font-weight:600;line-height:1.3;margin:0}
-  #kitsune-preview :is(.ks-wallet-body,.ks-period-body){display:grid;gap:var(--ks-space-2);overflow:auto;min-height:0}
-  #kitsune-preview .ks-wallet-body p{margin:0}
-  #kitsune-preview :is(.ks-wallet-dialog,.ks-period-dialog) .ks-choice{padding:var(--ks-space-2)}
-  @media(max-width:400px){#kitsune-preview :is(.ks-wallet-dialog,.ks-period-dialog){padding-inline:var(--ks-space-4)}#kitsune-preview :is(.ks-wallet-dialog,.ks-period-dialog) .ks-choice{padding-inline:var(--ks-space-1)}}
-  #kitsune-preview :is(.ks-wallet-dialog,.ks-period-dialog) .ks-choice[aria-pressed=true]{box-shadow:inset 0 0 0 1px var(--ks-accent)}
-  #kitsune-preview :is(.ks-wallet-actions,.ks-period-actions){display:flex;justify-content:flex-end;flex-wrap:wrap;gap:var(--ks-space-2);padding-top:var(--ks-space-2)}
-  #kitsune-preview :is(.ks-wallet-actions,.ks-period-actions) .ks-text-btn{font-size:var(--ks-font-body);padding:var(--ks-space-2)}
+  #kitsune-preview .ks-period-dialog{display:flex;flex-direction:column;gap:var(--ks-space-4);width:100%;max-width:480px;margin:auto;background:var(--ks-card-surface);border:var(--ks-card-border);border-radius:var(--ks-dialog-radius);padding:var(--ks-space-6);box-shadow:var(--ks-dialog-shadow);max-height:100%;overflow:hidden}
+  #kitsune-preview .ks-period-dialog h3{font-size:var(--ks-font-title);font-weight:600;line-height:1.3;margin:0}
+  #kitsune-preview .ks-period-body{display:grid;gap:var(--ks-space-2);overflow:auto;min-height:0}
+  #kitsune-preview .ks-period-dialog .ks-choice{padding:var(--ks-space-2)}
+  @media(max-width:400px){#kitsune-preview .ks-period-dialog{padding-inline:var(--ks-space-4)}#kitsune-preview .ks-period-dialog .ks-choice{padding-inline:var(--ks-space-1)}}
+  #kitsune-preview .ks-period-dialog .ks-choice[aria-pressed=true]{box-shadow:inset 0 0 0 1px var(--ks-accent)}
+  #kitsune-preview .ks-period-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:var(--ks-space-2);padding-top:var(--ks-space-2)}
+  #kitsune-preview .ks-period-actions .ks-text-btn{font-size:var(--ks-font-body);padding:var(--ks-space-2)}
   #kitsune-preview .ks-period-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ks-space-2)}
   #kitsune-preview .ks-period-months{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--ks-space-2)}
   #kitsune-preview .ks-period-body .ks-error:empty{display:none}
   #kitsune-preview [data-filter-group]{min-width:0;border:0;margin:0;padding:0}
-  #kitsune-preview .ks-ledger-filter-options{display:flex;flex-wrap:wrap;gap:var(--ks-space-1)}
-  #kitsune-preview [data-filter-group=categoryNames] .ks-ledger-filter-options{display:grid;max-height:216px;overflow:auto}
-  #kitsune-preview .ks-ledger-check{display:flex;align-items:center;justify-content:flex-start;gap:var(--ks-space-2);overflow-wrap:anywhere}
-  #kitsune-preview .ks-ledger-check input{width:18px;height:18px;accent-color:var(--ks-accent);flex:none}
-  #kitsune-preview .ks-ledger-check:has(input:checked){color:var(--ks-accent);border-color:var(--ks-accent);background:var(--ks-accent-bg)}
   #kitsune-preview .ks-filter-field-heading{display:flex;align-items:center;min-height:44px;gap:var(--ks-space-2)}
   #kitsune-preview .ks-filter-field-heading > :first-child{flex:1;margin:0}
   #kitsune-preview .ks-filter-field-heading .ks-text-btn{flex:none}
@@ -256,18 +280,10 @@
   #kitsune-preview .ks-backup-status~p{margin:var(--ks-space-1) 0 0}
   #kitsune-preview .ks-category-form{margin-top:4px}
   #kitsune-preview .ks-category-form .ks-form-actions{align-items:center}
-  #kitsune-preview .ks-entry-category{align-items:center;row-gap:var(--ks-space-1)}
   #kitsune-preview .ks-category-icons .ks-choice{display:inline-flex;align-items:center;gap:var(--ks-space-1);position:relative;cursor:pointer}
   #kitsune-preview .ks-category-icons input{position:absolute;opacity:0;width:1px;height:1px}
   #kitsune-preview .ks-category-icons .ks-choice:has(input:checked){background:var(--ks-accent-bg);border-color:var(--ks-accent);color:var(--ks-accent)}
   #kitsune-preview .ks-category-icons .ks-choice:focus-within{outline:2px solid var(--ks-accent);outline-offset:2px}
-  @supports (appearance:base-select){
-    #kitsune-preview .ks-category-select,#kitsune-preview .ks-category-select::picker(select){appearance:base-select}
-    #kitsune-preview .ks-category-select{display:flex;align-items:center}
-    #kitsune-preview .ks-category-select::picker(select){background:var(--ks-paper);color:var(--ks-ink);border:var(--ks-card-border);border-radius:var(--ks-control-radius)}
-    #kitsune-preview .ks-category-select :is(selectedcontent,option){display:flex;align-items:center;gap:var(--ks-space-2)}
-    #kitsune-preview .ks-category-select svg{flex:none}
-  }
   #kitsune-preview .ks-wallet-check>span{flex:1}
   #kitsune-preview .ks-wallet-check small{font-size:var(--ks-font-note);color:var(--ks-accent)}
   #kitsune-preview .ks-filter-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 15px}
@@ -495,9 +511,9 @@
       const names=new Map();
       for(const category of candidates){
         const key=categoryNameKey(category);
-        if(!names.has(key))names.set(key,category.name);
+        if(!names.has(key))names.set(key,[key,category.name,categoryGlyph(category.icon)]);
       }
-      return [...names];
+      return [...names.values()];
     }
     const matchesLedgerScope=entry=>{
       const range=state.ledgerRange;
@@ -789,23 +805,18 @@
           <button type="button" class="ks-text-btn" data-filter-bulk="none" aria-label="全不选${label}">全不选</button>
         </div>
         <div class="ks-ledger-filter-options">
-          ${options.map(([id,text])=>`<label class="ks-choice ks-ledger-check cursor-interaction"><input type="checkbox" value="${escapeText(id)}" ${draft[key]===null||draft[key].includes(id)?'checked':''}>${escapeText(text)}</label>`).join('')}
+          ${options.map(([id,text,glyph])=>selectionCheck(text,`value="${escapeText(id)}"`,
+            draft[key]===null||draft[key].includes(id),'',glyph)).join('')}
           ${options.length?'':'<p class="ks-note">当前钱包范围没有可选分类</p>'}
         </div>
       </div>`;
-      return `<div class="ks-modal-overlay ks-period-overlay" data-ledger-filter-overlay>
-        <form class="ks-period-dialog" data-ledger-filters role="dialog" aria-modal="true" aria-label="流水筛选">
-          <h3>流水筛选</h3>
-          <div class="ks-period-body">
-            ${group('类型','types',['收入','支出','转账','退款'].map(value=>[value,value]))}
-            ${group('分类','categoryNames',ledgerFilterCategories())}
-            <label><span class="ks-label">备注关键词</span><input name="note" class="ks-control" value="${escapeText(draft.note)}"></label>
-          </div>
-          <div class="ks-period-actions">
-            <button type="button" class="ks-text-btn" data-action="cancel-ledger-filters">取消</button>
-            <button type="submit" class="ks-text-btn">应用</button>
-          </div>
-        </form></div>`;
+      return selectionPanel('流水筛选',
+        group('类型','types',['收入','支出','转账','退款'].map(value=>[value,value]))+
+        group('分类','categoryNames',ledgerFilterCategories())+
+        `<label><span class="ks-label">备注关键词</span><input name="note" class="ks-control" value="${escapeText(draft.note)}"></label>`,
+        `<button type="button" class="ks-text-btn" data-action="cancel-ledger-filters">取消</button>
+         <button type="submit" class="ks-primary">应用</button>`,
+        {attrs:'data-ledger-filters',form:true});
     }
     function pageLedger(){
       const allEntries=financialEntries();
@@ -870,14 +881,25 @@
       </section><p class="ks-footnote">交互预览 · 示例数据</p>`;
     }
     function pageWalletEdit(){
-      const wallet=walletById(state.editingWalletId);
-      return `<section class="ks-money-card">
-        <div class="ks-money-caption">${escapeText(wallet.name)} · ${wallet.code}</div>
-        <label class="ks-wallet-setting"><span>独立核算<small>开启后默认排除本钱包的收支和流水。余额与历史记录保留，可在账本手动选择。</small></span><input type="checkbox" data-wallet-independent ${wallet.separateAccounting?'checked':''}></label>
-        <label class="ks-wallet-setting"><span>设为默认钱包</span><input type="checkbox" data-wallet-default ${state.defaultWalletId===wallet.id?'checked':''} ${wallet.archived?'disabled':''}></label>
-        <label class="ks-wallet-setting"><span>默认记为收入</span><input type="checkbox" data-wallet-income-default ${wallet.defaultToIncome?'checked':''}></label>
+      const wallet=walletById(state.editingWalletId),draft=state.walletEditDraft;
+      const locked=financialEntries().some(entry=>entry.walletId===wallet.id||entry.toWalletId===wallet.id);
+      return `<section class="ks-money-card ks-form">
+        <div class="ks-money-caption">${escapeText(wallet.name)}</div>
+        ${selectionControl('currency','币种',draft.code,'',locked)}
+        ${locked?'<span class="ks-note">已有流水，币种和精度固定</span>':''}
+        <label class="ks-wallet-setting"><span>独立核算<small>开启后默认排除本钱包的收支和流水。余额与历史记录保留，可在账本手动选择。</small></span><input type="checkbox" data-wallet-independent ${draft.separateAccounting?'checked':''}></label>
+        <label class="ks-wallet-setting"><span>设为默认钱包</span><input type="checkbox" data-wallet-default ${draft.defaultWallet?'checked':''} ${wallet.archived?'disabled':''}></label>
+        <label class="ks-wallet-setting"><span>默认记为收入</span><input type="checkbox" data-wallet-income-default ${draft.defaultToIncome?'checked':''}></label>
         <button type="button" class="ks-primary ks-full cursor-interaction" data-action="save-wallet">保存</button>
       </section><p class="ks-footnote">交互预览 · 示例数据</p>`;
+    }
+    function pageCsvMapping(){
+      const wallet=wallets.find(w=>w.id===state.csvWallet);
+      return `<div class="ks-form">
+        ${section('CSV 映射示例')}
+        ${selectionControl('csv-method','映射 外送',state.csvMethod)}
+        ${selectionControl('csv-wallet','映射 随身账户 · CNY',wallet?.name)}
+      </div>`;
     }
     function pageSettings(){
       const item=(glyph,label,attrs='',detail='')=>`<${attrs?'button type="button"':'div'} class="ks-setting ${attrs?'ks-setting-link cursor-interaction':''}" ${attrs}>${icon(glyph)}<span>${label}</span>${detail}${icon('chevron-right')}</${attrs?'button':'div'}>`;
@@ -889,7 +911,7 @@
       </div>
       ${section('个性化')}<div class="ks-settings">${item('palette','外观与调色板','data-action="open-appearance"')}</div>
       ${section('数据与备份')}<div class="ks-settings">
-        ${item('files','导入与导出')}
+        ${item('files','导入与导出','data-action="open-csv-mapping"')}
         ${item('hard-drive','本地文件夹备份')}
         ${item('cloud','GitHub 备份','data-github-action="open"',githubPause()
           ? '<small class="ks-backup-warning"><span aria-hidden="true">⚠</span> 自动备份已暂停</small>' : '')}
@@ -922,10 +944,7 @@
       const name=wallet?wallet.name:'通用收支分类';
       return `<div class="ks-category-manager">
         <p class="ks-note">钱包没有设置专属分类时，自动使用通用分类；收入与支出分别设置。</p>
-        <label><span class="ks-label">管理对象</span><select class="ks-control" data-category-wallet>
-          <option value="GLOBAL" ${!wallet?'selected':''}>通用分类</option>
-          ${wallets.map(w=>`<option value="${w.id}" ${wallet?.id===w.id?'selected':''}>${escapeText(w.name)} · ${w.code}</option>`).join('')}
-        </select></label>
+        ${selectionControl('category-wallet','管理对象',wallet?`${wallet.name} · ${wallet.code}`:'通用分类')}
         <fieldset><legend class="ks-label">收支类型</legend><div class="ks-choices">
           ${[['EXPENSE','支出'],['INCOME','收入']].map(([code,label])=>`<button type="button" class="ks-choice cursor-interaction" data-financial-scope="${code}" aria-pressed="${scope===code}">${label}</button>`).join('')}
         </div></fieldset>
@@ -1054,6 +1073,70 @@
         <div class="ks-period-actions">${githubAction(cancel,'cancel','text-btn')}${primary}</div>
       </section></div>`;
     }
+    const walletSelectionDetails=w=>[w.code,w.separateAccounting?'独立核算':'',w.archived?'已归档':''].filter(Boolean).join(' · ');
+    const walletSelectionOption=w=>[w.id,w.name,walletSelectionDetails(w)];
+    const knownCurrencies=['AUD','CAD','CHF','CNY','EUR','GBP','HKD','JPY','KRW','MOP','SGD','TWD','USD'];
+    const displayCurrency=new Intl.DisplayNames(['zh-CN'],{type:'currency'});
+    const mealFilterMethods=()=>[['any','全部方式'],['none','未填写方式'],
+      ...[...new Set([...mealMethods,...allMeals().map(m=>m.method).filter(Boolean)])].map(m=>[m,m])];
+    function selectionControl(kind,label,value,glyph='',disabled=false){
+      return `<div class="ks-selection-field"><span class="ks-label" id="ks-choice-${kind}">${escapeText(label)}</span>
+        <button type="button" class="ks-control ks-selection-trigger" data-select-open="${kind}" aria-labelledby="ks-choice-${kind} ks-choice-${kind}-value" aria-haspopup="dialog" ${disabled?'disabled':''}>
+          ${glyph}<span id="ks-choice-${kind}-value">${escapeText(value||'请选择')}</span>${icon('chevron-down')}
+        </button></div>`;
+    }
+    function selectionOption([value,label,detail,glyph],selected,action){
+      return `<button type="button" class="ks-selection-option" ${action}="${escapeText(value)}" aria-pressed="${selected}" ${detail?'data-selection-detail':''}>
+        ${glyph||''}<span class="ks-selection-copy">${escapeText(label)}${detail?`<small>${escapeText(detail)}</small>`:''}</span>
+        <span class="ks-selection-indicator" aria-hidden="true">${selected?icon('check'):''}</span></button>`;
+    }
+    function selectionCheck(label,attributes,checked,detail='',glyph=''){
+      return `<label class="ks-selection-option" ${detail?'data-selection-detail':''}>
+        ${glyph}<span class="ks-selection-copy">${escapeText(label)}${detail?`<small>${escapeText(detail)}</small>`:''}</span>
+        <input type="checkbox" ${attributes} ${checked?'checked':''}></label>`;
+    }
+    function selectionPanel(title,body,footer='',{attrs='',form=false,header=''}={}){
+      const tag=form?'form':'section';
+      return `<div class="ks-modal-overlay ks-selection-overlay"><${tag} class="ks-selection-panel" role="dialog" aria-modal="true" aria-label="${escapeText(title)}" ${attrs}>
+        <div class="ks-selection-handle" aria-hidden="true"><span></span></div>
+        <div class="ks-selection-heading"><h3>${escapeText(title)}</h3><button type="button" class="ks-selection-close" data-select-close aria-label="关闭">${icon('x')}</button></div>
+        ${header}<div class="ks-selection-body">${body}</div>${footer?`<div class="ks-selection-footer">${footer}</div>`:''}
+      </${tag}></div>`;
+    }
+    function currencyOptions(query){
+      const search=query.trim().toLowerCase();
+      const choices=knownCurrencies.map(code=>[code,code,displayCurrency.of(code)])
+        .filter(([,code,name])=>code.toLowerCase().includes(search)||name.toLowerCase().includes(search));
+      return choices.map(option=>selectionOption(option,option[0]===state.walletEditDraft.code,'data-select-value')).join('')
+        || '<p class="ks-note">没有匹配币种</p>';
+    }
+    function singleSelectionPanel(){
+      const kind=state.singleSelection,wallet=entryWallet(),scope=financialScopeOf(state.entryType);
+      let title,choices,current,subtitle='',footer='';
+      switch(kind){
+        case 'entry-wallet':
+          title='选择钱包';choices=wallets.filter(w=>!w.archived).map(walletSelectionOption);current=wallet?.id;break;
+        case 'entry-category':
+          title='选择分类';current=state.entryDraft.category;
+          subtitle=(scopeMode(wallet,scope)==='CUSTOM'?'本钱包专属分类':'通用分类')+' · '+state.entryType;
+          choices=effectiveFinancialCategories(wallet?.id,state.entryType).map(c=>[c.id,c.name,'',categoryGlyph(c.icon)]);
+          footer=`<button type="button" class="ks-text-btn ks-selection-add" data-action="add-entry-category">${icon('plus')}新增分类</button>`;break;
+        case 'meal-method':
+          title='选择用餐方式';choices=mealFilterMethods();current=state.mealFilterDraft.method;break;
+        case 'category-wallet':
+          title='选择管理对象';choices=[['GLOBAL','通用分类'],...wallets.map(walletSelectionOption)];current=state.categoryWalletId;break;
+        case 'csv-method':
+          title='选择映射 外送';choices=mealMethods.map(m=>[m,m]);current=state.csvMethod;break;
+        case 'csv-wallet':
+          title='选择映射 随身账户 · CNY';choices=wallets.filter(w=>w.code==='CNY').map(walletSelectionOption);current=state.csvWallet;break;
+        case 'currency':
+          return selectionPanel('选择币种',currencyOptions(''),'',{header:
+            '<label><span class="ks-label">搜索代码或名称</span><input class="ks-control" type="search" data-currency-search></label>'});
+      }
+      const options=choices.map(option=>selectionOption(option,option[0]===current,'data-select-value')).join('');
+      return selectionPanel(title,(subtitle?`<p class="ks-note">${escapeText(subtitle)}</p>`:'')+
+        (options||'<p class="ks-note">没有可选项目</p>'),footer);
+    }
     const addMealOption = kind => `<button type="button" class="ks-icon-btn cursor-interaction" data-add-meal-option="${kind}" aria-label="新增${mealOptionLabels[kind]}">${icon('plus')}</button>`;
     function pageMealForm(){return `<form class="ks-form" data-meal-form>
       <div class="ks-field-row"><label><span class="ks-label">日期</span><input type="date" name="date" class="ks-control" value="${state.date}" required></label><label><span class="ks-label">餐次</span><select name="slot" class="ks-control">${slots.map((s,i)=>`<option value="${i}" ${i===state.slot?'selected':''}>${s}</option>`).join('')}</select></label></div>
@@ -1109,19 +1192,12 @@
         <input type="date" name="date" value="${escapeText(state.entryDraft.dateTime.slice(0,10))}" class="ks-control" aria-label="日期" required>
         <button type="button" class="ks-control" data-action="open-entry-time" aria-haspopup="dialog" aria-label="时间 ${state.entryDraft.dateTime.slice(-5)}">${state.entryDraft.dateTime.slice(-5)}</button>
       </div></fieldset>
-      <div class="ks-field-row ks-entry-category">
-        <label class="ks-label" for="entry-wallet">钱包</label>
-        <div class="ks-filter-field-heading"><label class="ks-label" for="entry-category">分类</label>
-          ${entryWallet()?'<button type="button" class="ks-text-btn" data-action="add-entry-category" aria-haspopup="dialog">新增分类</button>':''}
-        </div>
-        <select id="entry-wallet" name="wallet" class="ks-control" required><option value="" ${!entryWallet()?'selected':''} disabled>请选择钱包</option>${wallets.map(w=>`<option value="${w.id}" ${entryWallet()?.id===w.id?'selected':''}>${w.name} · ${w.code}${w.separateAccounting?'（独立核算）':''}</option>`).join('')}</select>
-        <select id="entry-category" name="category" class="ks-control ks-category-select" required ${entryWallet()?'':'disabled'}>
-          <button><selectedcontent></selectedcontent></button>
-          <option value="" ${!state.entryDraft.category?'selected':''} disabled>请选择分类</option>
-          ${effectiveFinancialCategories(state.entryDraft.walletId,state.entryType).map(c=>`<option value="${c.id}" ${state.entryDraft.category===c.id?'selected':''}>${categoryGlyph(c.icon)}<span>${escapeText(c.name)}</span></option>`).join('')}
-        </select>
+      <div class="ks-field-row">
+        ${selectionControl('entry-wallet','钱包',entryWallet()?`${entryWallet().name} · ${entryWallet().code}`:'未选择')}
+        ${selectionControl('entry-category','分类',categoryById(state.entryDraft.category)?.name,
+          state.entryDraft.category?categoryGlyph(categoryById(state.entryDraft.category)?.icon):'',!entryWallet())}
       </div>
-      <p class="ks-note">分类来源：${entryWallet()?scopeMode(entryWallet(),financialScopeOf(state.entryType))==='CUSTOM'?'本钱包专属分类':'通用分类':'请先选择钱包'}。切换钱包后如无对应分类，请重新选择。</p>
+      ${entryWallet()&&!state.entryDraft.category?'<p class="ks-note">请重新选择该钱包的分类</p>':''}
       <label><span class="ks-label">备注</span><input name="note" class="ks-control" placeholder="这笔钱用在了哪里？" value="${escapeText(state.entryDraft.note)}"></label>
       ${formFooter(saveButton(`保存${state.entryType}`),'交互预览 · 仅保存到当前演示')}
     </form>`;}
@@ -1216,23 +1292,20 @@
     }
     function walletRangeDialog(){
       const mode=state.walletDraftMode,manual=mode==='MANUAL',canApply=!manual||state.walletDraftIds.length>0;
-      const modeLabels={REGULAR:'常规钱包',ALL:'全部钱包',MANUAL:'手动选择'};
-      const hints={REGULAR:'仅常规钱包（独立核算关闭），包括归档历史。',ALL:'包括独立核算钱包和归档历史。',MANUAL:'独立核算钱包在下方列表中默认不勾选。'};
-      const options=wallets.map(w=>`<label class="ks-wallet-check cursor-interaction"><input type="checkbox" data-wallet-option="${w.id}" ${state.walletDraftIds.includes(w.id)?'checked':''}><span>${escapeText(w.name)} · ${w.code}</span>${w.separateAccounting?'<small>独立核算</small>':''}</label>`).join('');
-      return `<div class="ks-modal-overlay ks-wallet-overlay"><section class="ks-wallet-dialog" role="dialog" aria-modal="true" aria-label="钱包范围">
-        <h3>钱包范围</h3><div class="ks-wallet-body">
-          <p class="ks-note">默认只统计常规钱包；独立核算钱包可手动加入。</p>
-          <div class="ks-choices" role="group" aria-label="钱包范围模式">${Object.entries(modeLabels).map(([value,label])=>choice(label,value,mode,'wallet-mode')).join('')}</div>
-          <p class="ks-note">${hints[mode]}</p>${manual?options:''}
-          ${canApply?'':'<p class="ks-note">请选择至少一个钱包，或恢复默认。</p>'}
-        </div><div class="ks-wallet-actions">
-          <button type="button" class="ks-text-btn" data-wallet-action="default">恢复默认</button>
-          <button type="button" class="ks-text-btn" data-wallet-action="cancel">取消</button>
-          <button type="button" class="ks-text-btn" data-wallet-action="apply" ${canApply?'':'disabled'}>应用</button>
-        </div></section></div>`;
+      const modes=[['REGULAR','常规钱包'],['ALL','全部钱包'],['MANUAL','手动选择']];
+      const hints={REGULAR:'仅常规钱包（独立核算关闭），包括归档历史。',ALL:'包括独立核算钱包和归档历史。',MANUAL:'可勾选独立核算钱包和归档钱包。'};
+      const options=manual?wallets.map(w=>selectionCheck(w.name,`data-wallet-option="${w.id}"`,
+        state.walletDraftIds.includes(w.id),walletSelectionDetails(w))).join(''):'';
+      const body=`<div role="group" aria-label="钱包范围模式">${modes.map(option=>selectionOption(option,option[0]===mode,'data-wallet-mode')).join('')}</div>
+        <p class="ks-note">${hints[mode]}</p>${options}
+        ${canApply?'':'<p class="ks-note">请选择至少一个钱包，或恢复默认。</p>'}`;
+      const footer=`<button type="button" class="ks-text-btn" data-wallet-action="default">恢复默认</button>
+        <button type="button" class="ks-text-btn" data-wallet-action="cancel">取消</button>
+        <button type="button" class="ks-text-btn" data-wallet-action="apply" ${canApply?'':'disabled'}>应用</button>`;
+      return selectionPanel('钱包范围',body,footer);
     }
     function pageMealFilter(){
-      const f=state.mealFilterDraft,methods=[...new Set([...mealMethods,...allMeals().map(m=>m.method).filter(Boolean)])],preparations=[...new Set([...mealPreparations,...allMeals().flatMap(m=>m.categories)])];
+      const f=state.mealFilterDraft,preparations=[...new Set([...mealPreparations,...allMeals().flatMap(m=>m.categories)])];
       const datePreset=mealDatePreset(f);
       const dateField=(name,label)=>`<div class="ks-meal-filter-date">
         <div class="ks-filter-field-heading">
@@ -1248,7 +1321,7 @@
           <div class="ks-field-row">${dateField('from','开始日期')}${dateField('to','结束日期')}</div>
         </fieldset>
         <div class="ks-field-row">${select('餐次','slot',[['any','全部餐次'],...slots.map((s,i)=>[String(i),s])])}${select('计划在家吃','atHome',[['any','不限'],['yes','是'],['no','否']])}</div>
-        ${select('用餐方式','method',[['any','全部方式'],...methods.map(m=>[m,m]),['none','未填写方式']])}
+        ${selectionControl('meal-method','用餐方式',mealFilterMethods().find(([value])=>value===f.method)?.[1])}
         <fieldset><legend class="ks-label">制作分类<span class="ks-required">多选，匹配任一项</span></legend><div class="ks-preparation-choices">${preparations.map(c=>`<label class="ks-preparation-check cursor-interaction"><input type="checkbox" name="preparation" value="${escapeText(c)}" ${f.preparations.includes(c)?'checked':''}>${escapeText(c)}</label>`).join('')}</div></fieldset>
         <label><span class="ks-label">菜品／备注关键词</span><input class="ks-control" type="search" name="keyword" value="${escapeText(f.keyword)}" placeholder="例如：番茄、和朋友" maxlength="100"></label>
         <p class="ks-note" style="margin:0">不同条件同时满足；未选择的条件不限制。</p>
@@ -1320,7 +1393,7 @@
     const discard=group=>()=>group?.remove();
     const pageNode=()=>phone.querySelector(':scope > .ks-page-motion');
     const modalNode=()=>phone.querySelector(':scope > .ks-modal-overlay');
-    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.walletPickerOpen?'wallet':state.periodDraft?'period':state.ledgerFilterDraft?'ledger-filters':state.githubDemo.review?'github-review':state.mealCalendar?'date-calendar':state.entryTimeDraft?'entry-time':state.addingEntryCategory?'entry-category':state.addingMealOption?'meal-option':null;
+    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.singleSelection?'single-selection':state.walletPickerOpen?'wallet':state.periodDraft?'period':state.ledgerFilterDraft?'ledger-filters':state.githubDemo.review?'github-review':state.mealCalendar?'date-calendar':state.entryTimeDraft?'entry-time':state.addingEntryCategory?'entry-category':state.addingMealOption?'meal-option':null;
     const primary=page=>navs.some(n=>n[0]===page);
     const localKey=()=>state.page==='meals'?JSON.stringify([state.mealTab,state.date,state.mealStatsFilters,state.mealListMode,state.mealFilters]):state.page==='ledger'?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds,state.ledgerFilters]):'';
     const localNodes=()=>{
@@ -1391,7 +1464,7 @@
       const opening=!!kind,group=opening?node:attachGhost(oldModal);
       const overlay=opening?node:group?.firstElementChild;
       if(!overlay)return;
-      const panel=overlay.firstElementChild,variant=opening?kind:previous,dialog=variant!=='calculator',duration=dialog?motion.dialog:motion.sheet;
+      const panel=overlay.firstElementChild,variant=opening?kind:previous,dialog=!['calculator','single-selection','wallet','ledger-filters'].includes(variant),duration=dialog?motion.dialog:motion.sheet;
       play(overlay,opening?[{opacity:0},{opacity:1}]:[{opacity:1},{opacity:0}],duration,opening?()=>{}:discard(group));
       play(panel,dialog?(opening?[{transform:'scale(.96)'},{transform:'scale(1)'}]:[{transform:'scale(1)'},{transform:'scale(.96)'}]):(opening?[{transform:'translateY(100%)'},{transform:'translateY(0)'}]:[{transform:'translateY(0)'},{transform:'translateY(100%)'}]),duration);
     }
@@ -1421,8 +1494,8 @@
     function render(){
       const previous=rendered,kind=modalKind(),key=localKey(),changingPage=previous&&previous.page!==state.page;
       if(previous?.page==='settings')settingsScrollTop=phone.querySelector('.ks-settings-screen .ks-main').scrollTop;
-      const keepingMealForm=previous?.page==='meal-form'&&state.page==='meal-form';
-      const mealPosition=keepingMealForm?phone.querySelector('.ks-main').scrollTop:0;
+      const keepingForm=previous?.page===state.page&&['meal-form','meal-filter','entry','wallet-edit'].includes(state.page);
+      const formPosition=keepingForm?phone.querySelector('.ks-main').scrollTop:0;
       const oldLedger=phone.querySelector('.ks-ledger-screen');
       const sameLedger=oldLedger&&state.page==='ledger'&&previous.local===key;
       const ledgerPosition=sameLedger?oldLedger.querySelector('.ks-main').scrollTop:0;
@@ -1445,26 +1518,26 @@
       const sourceRect=entrance;entrance=null;if(leavingPrimary&&!sourceRect)recordOrigin=null;
       rendering=true;
       const form=!primary(state.page);
-      const titles={home:'日常记录',meals:'用餐',ledger:'记账',settings:'设置',appearance:'外观与调色板','wallet-edit':'编辑钱包', 'meal-form':`${state.editing?'编辑':'记录'}${slots[state.slot]}`,'meal-filter':'筛选用餐',entry:'记一笔','entry-detail':'账目详情','category-manager':'分类管理','category-owned':'钱包专属分类','category-detail':state.editingFinancialCategoryId?'编辑分类':'新增分类',github:'GitHub 备份'};
+      const titles={home:'日常记录',meals:'用餐',ledger:'记账',settings:'设置',appearance:'外观与调色板','csv-mapping':'导入与导出','wallet-edit':'编辑钱包', 'meal-form':`${state.editing?'编辑':'记录'}${slots[state.slot]}`,'meal-filter':'筛选用餐',entry:'记一笔','entry-detail':'账目详情','category-manager':'分类管理','category-owned':'钱包专属分类','category-detail':state.editingFinancialCategoryId?'编辑分类':'新增分类',github:'GitHub 备份'};
       const heading=`<h2 class="ks-title">${titles[state.page]}</h2>`;
       const header=state.page==='home'?`<div class="ks-home-brand"><span class="ks-app-mark"><img src="data:image/webp;base64,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" alt=""></span><div>${heading}<p class="ks-sub">11 月 17 日 · 星期二</p></div></div>`:form?`<button type="button" class="ks-icon-btn cursor-interaction" data-action="back" aria-label="返回">${icon('arrow-left')}</button>${heading}`:heading;
-      const pages={home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,appearance:pageAppearance,'wallet-edit':pageWalletEdit,'meal-form':pageMealForm,'meal-filter':pageMealFilter,entry:pageEntry,'entry-detail':pageEntryDetail,'category-manager':pageCategoryManager,'category-owned':pageOwnedCategories,'category-detail':pageCategoryDetail,github:pageGitHubBackup};
+      const pages={home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,appearance:pageAppearance,'csv-mapping':pageCsvMapping,'wallet-edit':pageWalletEdit,'meal-form':pageMealForm,'meal-filter':pageMealFilter,entry:pageEntry,'entry-detail':pageEntryDetail,'category-manager':pageCategoryManager,'category-owned':pageOwnedCategories,'category-detail':pageCategoryDetail,github:pageGitHubBackup};
       const ledger=state.page==='ledger',fab=ledger&&state.ledgerTab==='流水';
       const settingsScreen=state.page==='settings'||state.page==='github'?`ks-${state.page}-screen`:'';
       const top=`<header class="ks-top ${form?'ks-subpage':''}">${header}</header>`;
       phone.innerHTML=`<div class="ks-status"><span>9:41</span><span class="ks-signal">${icon('signal')}${icon('wifi')}${icon('battery-full')}</span></div><div class="ks-page-motion ${settingsScreen} ${ledger?'ks-ledger-screen':''} ${fab?'ks-ledger-with-fab':''}">${ledger?`<div class="ks-ledger-collapsible">${top}</div>${ledgerTabs()}${ledgerFilters()}`:top}<main class="ks-main">${pages[state.page]()}${state.notice?`<p class="ks-success" role="status">${escapeText(state.notice)}</p>`:''}</main>${fab?`<button type="button" class="ks-primary ks-ledger-fab" data-action="add-entry" aria-label="记一笔">${icon('plus')}<span>记一笔</span></button>`:''}</div>${form?'':`<nav class="ks-nav" aria-label="主导航">${navs.map(([id,name,ic])=>`<button type="button" data-page="${id}" class="cursor-interaction" ${state.page===id?'aria-current="page"':''}><span>${icon(ic)}</span>${name}</button>`).join('')}</nav>`}<div class="ks-home-indicator" aria-hidden="true"></div>`;
       if(state.calcOpen){phone.insertAdjacentHTML('beforeend',calculatorSheet());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-calc-action=cancel]').focus({preventScroll:true});}
       if(state.deletePending){phone.insertAdjacentHTML('beforeend',deleteConfirmation());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-delete-action=cancel]').focus({preventScroll:true});}
-      if(state.walletPickerOpen){phone.insertAdjacentHTML('beforeend',walletRangeDialog());for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;phone.querySelector('[data-wallet-mode][aria-pressed=true]').focus({preventScroll:true});}
+      if(state.walletPickerOpen||state.ledgerFilterDraft||state.singleSelection){
+        const panel=state.walletPickerOpen?walletRangeDialog():state.ledgerFilterDraft?ledgerFiltersDialog():singleSelectionPanel();
+        phone.insertAdjacentHTML('beforeend',panel);
+        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
+        phone.querySelector('.ks-selection-panel [data-select-close]').focus({preventScroll:true});
+      }
       if(state.periodDraft){
         phone.insertAdjacentHTML('beforeend',periodDialog());
         for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
         if(previous?.modal!==kind)phone.querySelector('[data-period-mode][aria-pressed=true],[data-period-month][aria-pressed=true]').focus({preventScroll:true});
-      }
-      if(state.ledgerFilterDraft){
-        phone.insertAdjacentHTML('beforeend',ledgerFiltersDialog());
-        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
-        phone.querySelector('[data-ledger-filters] input').focus({preventScroll:true});
       }
       if(state.githubDemo.review){
         phone.insertAdjacentHTML('beforeend',githubDemoDialog());
@@ -1488,7 +1561,7 @@
         phone.querySelector('[data-entry-category] [name=categoryName]').focus({preventScroll:true});
       }
       if(state.page==='settings')phone.querySelector('.ks-settings-screen .ks-main').scrollTop=settingsScrollTop;
-      if(keepingMealForm)phone.querySelector('.ks-main').scrollTop=mealPosition;
+      if(keepingForm)phone.querySelector('.ks-main').scrollTop=formPosition;
       if(state.addingMealOption){
         phone.insertAdjacentHTML('beforeend',mealOptionDialog());
         for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
@@ -1514,7 +1587,30 @@
       if(changingPage&&primary(state.page))recordOrigin=null;
       if(changingPage&&!kind){const header=phone.querySelector('.ks-top');header.setAttribute('tabindex','-1');header.focus({preventScroll:true});}
     }
-    function capture(){const form=phone.querySelector('[data-meal-form]');if(form){state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);}const entry=phone.querySelector('[data-entry-form]');if(entry){state.entryDraft={dateTime:entry.elements.date.value+state.entryDraft.dateTime.slice(-6),note:entry.elements.note.value,category:entry.elements.category.value,walletId:entry.elements.wallet.value};}}
+    function capture(){
+      const form=phone.querySelector('[data-meal-form]');
+      if(form){
+        state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;
+        state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);
+      }
+      const entry=phone.querySelector('[data-entry-form]');
+      if(entry){
+        state.entryDraft.dateTime=entry.elements.date.value+state.entryDraft.dateTime.slice(-6);
+        state.entryDraft.note=entry.elements.note.value;
+      }
+      const meal=phone.querySelector('[data-meal-filter-form]');
+      if(meal){
+        const {from,to,slot,atHome,keyword}=meal.elements;
+        state.mealFilterDraft={...state.mealFilterDraft,from:from.value,to:to.value,slot:slot.value,atHome:atHome.value,
+          keyword:keyword.value,preparations:[...meal.querySelectorAll('[name=preparation]:checked')].map(e=>e.value)};
+      }
+      if(state.page==='wallet-edit'){
+        const draft=state.walletEditDraft;
+        draft.separateAccounting=phone.querySelector('[data-wallet-independent]').checked;
+        draft.defaultWallet=phone.querySelector('[data-wallet-default]').checked;
+        draft.defaultToIncome=phone.querySelector('[data-wallet-income-default]').checked;
+      }
+    }
     function closeEntryTime(apply){
       const {hour,minute}=state.entryTimeDraft;
       if(apply){
@@ -1563,8 +1659,45 @@
         const mode=state.walletDraftMode;
         if(mode==='MANUAL'&&!state.walletDraftIds.length)return;
         state.walletFilterIds=mode==='MANUAL'?[...state.walletDraftIds]:mode==='ALL'?'ALL':null;
-      }else if(action==='default')state.walletFilterIds=null;
+      }
       state.walletPickerOpen=false;render();persist();phone.querySelector('[data-action=choose-wallets]')?.focus({preventScroll:true});
+    }
+    function closeSingleSelection(value){
+      const kind=state.singleSelection;
+      if(value!==undefined){
+        switch(kind){
+          case 'entry-wallet': {
+            const {category,walletId}=state.entryDraft;
+            if(walletId!==value){
+              state.entryDraft.walletId=value;
+              const nextType=state.followsWalletType?defaultEntryType(entryWallet()):state.entryType;
+              state.entryDraft.category=nextType!==state.entryType||!category
+                ?initialEntryCategory(value,nextType):chooseFinancialCategory(value,nextType,category);
+              state.entryType=nextType;
+            }
+            break;
+          }
+          case 'entry-category':
+            state.entryDraft.category=value;state.followsWalletType=false;break;
+          case 'meal-method':
+            state.mealFilterDraft.method=value;break;
+          case 'category-wallet':
+            state.categoryWalletId=value;state.editingFinancialCategoryId=null;break;
+          case 'csv-method':
+            state.csvMethod=value;break;
+          case 'csv-wallet':
+            state.csvWallet=value;break;
+          case 'currency':
+            state.walletEditDraft.code=value;break;
+        }
+      }
+      state.singleSelection=null;render();
+      phone.querySelector(`[data-select-open="${kind}"]`)?.focus({preventScroll:true});
+    }
+    function cancelSelection(){
+      if(state.singleSelection)closeSingleSelection();
+      else if(state.walletPickerOpen)closeWalletPicker('cancel');
+      else if(state.ledgerFilterDraft)closeLedgerFilters(false);
     }
     function closeMealOption(){
       const kind=state.addingMealOption;
@@ -1573,7 +1706,7 @@
     }
     function closeEntryCategory(){
       state.addingEntryCategory=false;render();
-      phone.querySelector('[data-action=add-entry-category]')?.focus({preventScroll:true});
+      phone.querySelector('[data-select-open=entry-category]')?.focus({preventScroll:true});
     }
     function closeMealCalendar(apply){
       const d=state.mealCalendar;
@@ -1626,8 +1759,7 @@
       form.querySelector('.ks-error').textContent='';
     }
     phone.addEventListener('click',event=>{
-      if(event.target.matches('.ks-wallet-overlay')){closeWalletPicker('cancel');return;}
-      if(event.target.matches('[data-ledger-filter-overlay]')){closeLedgerFilters(false);return;}
+      if(event.target.matches('.ks-selection-overlay')){cancelSelection();return;}
       if(event.target.matches('[data-entry-category-overlay]')){closeEntryCategory();return;}
       if(event.target.matches('.ks-period-overlay')){closePeriod(false);return;}
       if(event.target.matches('.ks-calendar-overlay')){closeMealCalendar(false);return;}
@@ -1635,7 +1767,11 @@
       if(event.target.matches('[data-meal-option-overlay]')){closeMealOption();return;}
       const b=event.target.closest('button');if(!b)return;
       capture();state.notice='';
-      if(b.dataset.action==='add-entry-category'){state.addingEntryCategory=true;render();return;}
+      if(b.hasAttribute('data-select-close')){cancelSelection();return;}
+      if(b.dataset.selectOpen){state.singleSelection=b.dataset.selectOpen;render();return;}
+      if(b.dataset.selectValue!==undefined){closeSingleSelection(b.dataset.selectValue);return;}
+      if(b.dataset.action==='add-entry-category'){state.singleSelection=null;state.addingEntryCategory=true;render();return;}
+      if(b.dataset.action==='open-csv-mapping'){state.page='csv-mapping';render();return;}
       if(b.dataset.action==='cancel-entry-category'){closeEntryCategory();return;}
       if(b.dataset.action==='open-entry-time'){
         const [hour,minute]=state.entryDraft.dateTime.slice(-5).split(':');
@@ -1787,16 +1923,33 @@
         state.walletDraftIds=Array.isArray(scope)?[...scope]:regularWallets().map(w=>w.id);
         state.walletPickerOpen=true;render();return;
       }
-      if(b.dataset.editWallet){state.editingWalletId=b.dataset.editWallet;state.page='wallet-edit';render();return;}
+      if(b.dataset.editWallet){
+        const wallet=walletById(b.dataset.editWallet);
+        state.editingWalletId=wallet.id;state.page='wallet-edit';
+        state.walletEditDraft={code:wallet.code,separateAccounting:wallet.separateAccounting,
+          defaultToIncome:wallet.defaultToIncome,defaultWallet:state.defaultWalletId===wallet.id};
+        render();return;
+      }
       if(b.dataset.action==='save-wallet'){
-        const wallet=walletById(state.editingWalletId);
-        wallet.separateAccounting=phone.querySelector('[data-wallet-independent]').checked;
-        wallet.defaultToIncome=phone.querySelector('[data-wallet-income-default]').checked;
-        if(!wallet.archived&&phone.querySelector('[data-wallet-default]').checked)state.defaultWalletId=wallet.id;
+        const wallet=walletById(state.editingWalletId),draft=state.walletEditDraft;
+        wallet.separateAccounting=draft.separateAccounting;
+        wallet.defaultToIncome=draft.defaultToIncome;
+        if(wallet.code!==draft.code){
+          wallet.code=draft.code;
+          wallet.scale=new Intl.NumberFormat('zh-CN',{style:'currency',currency:wallet.code}).resolvedOptions().maximumFractionDigits;
+        }
+        if(!wallet.archived&&draft.defaultWallet)state.defaultWalletId=wallet.id;
         else if(state.defaultWalletId===wallet.id)state.defaultWalletId=null;
         state.page='ledger';render();persist();return;
       }
-      if(b.dataset.walletMode){state.walletDraftMode=b.dataset.walletMode;render();return;}
+      if(b.dataset.walletMode){
+        state.walletDraftMode=b.dataset.walletMode;render();
+        phone.querySelector('[data-wallet-mode][aria-pressed=true]').focus({preventScroll:true});return;
+      }
+      if(b.dataset.walletAction==='default'){
+        state.walletDraftMode='REGULAR';state.walletDraftIds=regularWallets().map(w=>w.id);render();
+        phone.querySelector('[data-wallet-action=default]').focus({preventScroll:true});return;
+      }
       if(b.dataset.walletAction){closeWalletPicker(b.dataset.walletAction);return;}
       if(b.dataset.entryId){if(!financialEntries().some(e=>e.id===b.dataset.entryId))return;recordOrigin={page:state.page,id:b.dataset.entryId};entrance=visible(b)?rect(b):null;state.selectedEntryId=b.dataset.entryId;state.page='entry-detail';render();return;}
       if(b.dataset.action==='delete-meal'){const meal=state.records[state.editingDate]?.[state.editingSlot];if(!meal)return;state.deletePending={kind:'meal',date:state.editingDate,slot:state.editingSlot,summary:`${state.editingDate} · ${slots[state.editingSlot]}\n${meal.dishes||'无菜品内容'}`};render();return;}
@@ -1850,10 +2003,24 @@
         state.entryDraft={dateTime:`${demoToday}T09:41`,note:'',category,walletId};
         render();return;
       }
-      if(b.dataset.action==='back'){state.page=state.page==='entry'?state.entryReturn:state.page==='category-detail'?state.categoryDetailReturn:state.page==='category-owned'?'category-manager':state.page==='category-manager'?state.categoryReturn:['appearance','github'].includes(state.page)?'settings':state.page==='meal-filter'?'meals':state.page==='meal-form'?state.mealReturn:'ledger';render();return;}
+      if(b.dataset.action==='back'){state.page=state.page==='entry'?state.entryReturn:state.page==='category-detail'?state.categoryDetailReturn:state.page==='category-owned'?'category-manager':state.page==='category-manager'?state.categoryReturn:['appearance','github','csv-mapping'].includes(state.page)?'settings':state.page==='meal-filter'?'meals':state.page==='meal-form'?state.mealReturn:'ledger';render();return;}
       if(b.dataset.addMealOption){state.addingMealOption=b.dataset.addMealOption;render();return;}
       if(b.dataset.action==='cancel-meal-option'){closeMealOption();return;}
     });
+    let selectionDrag=null;
+    phone.addEventListener('pointerdown',event=>{
+      const handle=event.target.closest('.ks-selection-handle');
+      if(!handle||!event.isPrimary)return;
+      selectionDrag={id:event.pointerId,x:event.clientX,y:event.clientY};
+      handle.setPointerCapture(event.pointerId);
+    });
+    phone.addEventListener('pointerup',event=>{
+      if(selectionDrag?.id!==event.pointerId)return;
+      const dy=event.clientY-selectionDrag.y,dx=event.clientX-selectionDrag.x;
+      selectionDrag=null;
+      if(dy>48&&dy>Math.abs(dx))cancelSelection();
+    });
+    phone.addEventListener('pointercancel',()=>{selectionDrag=null;});
     phone.addEventListener('keydown',event=>{
       if(!modalKind())return;
       if(event.key==='Escape'){
@@ -1865,10 +2032,11 @@
         else if(state.entryTimeDraft)closeEntryTime(false);
         else if(state.addingEntryCategory)closeEntryCategory();
         else if(state.periodDraft)closePeriod(false);
-        else if(state.ledgerFilterDraft)closeLedgerFilters(false);
-        else if(state.walletPickerOpen)closeWalletPicker('cancel');
+        else if(state.singleSelection||state.ledgerFilterDraft||state.walletPickerOpen)cancelSelection();
         else if(state.deletePending)cancelDelete();
         else closeCalculator(false);
+      }else if(event.key==='Enter'&&event.target.matches('[data-ledger-filters] [name=note]')){
+        event.preventDefault();
       }else if(event.key==='Enter'&&event.target.matches('[data-entry-time] [name=hour]')){
         event.preventDefault();event.target.form.elements.minute.focus();
       }else if(event.key==='Tab'){
@@ -1897,24 +2065,13 @@
         state.githubDemo.scenario=e.value;state.githubDemo.editing=false;state.githubDemo.uploading=false;
         state.githubDemo.review=githubPause()?'notice':null;render();return;
       }
-      if(e.matches('[data-category-wallet]')){state.categoryWalletId=e.value;state.editingFinancialCategoryId=null;render();return;}
       if(e.matches('[data-category-mode]')){const wallet=wallets.find(w=>w.id===state.categoryWalletId);if(wallet){wallet[state.financialScope==='INCOME'?'incomeCategoryMode':'expenseCategoryMode']=e.value;state.editingFinancialCategoryId=null;render();}return;}
       if(e.matches('[data-wallet-option]')){
-        const id=e.dataset.walletOption,scroll=e.closest('.ks-wallet-body').scrollTop;
+        const id=e.dataset.walletOption,scroll=e.closest('.ks-selection-body').scrollTop;
         state.walletDraftIds=e.checked?[...new Set([...state.walletDraftIds,id])]:state.walletDraftIds.filter(x=>x!==id);
-        render();phone.querySelector('.ks-wallet-body').scrollTop=scroll;
+        render();phone.querySelector('.ks-selection-body').scrollTop=scroll;
         phone.querySelector(`[data-wallet-option=${id}]`).focus({preventScroll:true});return;
       }
-      if(e.matches('[data-entry-form] [name=wallet]')){
-        capture();
-        const {walletId,category}=state.entryDraft;
-        const nextType=state.followsWalletType?defaultEntryType(entryWallet()):state.entryType;
-        state.entryDraft.category=nextType!==state.entryType||!category
-          ?initialEntryCategory(walletId,nextType):chooseFinancialCategory(walletId,nextType,category);
-        state.entryType=nextType;
-        render();return;
-      }
-      if(e.matches('[data-entry-form] [name=category]')){state.followsWalletType=false;return;}
       if(e.matches('[data-meal-filter-form] input[type=date]')){updateMealDatePresets(e.form);return;}
       if(e.matches('[data-theme]')){state.appearanceDraft.mode=e.value;updateAppearancePreview();return;}
       if(e.matches('[data-color-source]')){state.appearanceDraft.colorSource=e.value;render();return;}
@@ -1923,6 +2080,13 @@
     });
     phone.addEventListener('input',event=>{
       const e=event.target;
+      if(e.matches('[data-currency-search]')){
+        const body=e.closest('.ks-selection-panel').querySelector('.ks-selection-body');
+        body.innerHTML=currencyOptions(e.value);
+        body.scrollTop=0;
+        globalThis.lucide?.createIcons({root:body,attrs:{width:18,height:18}});
+        return;
+      }
       if(e.matches('[data-entry-time] input')){
         const d=state.entryTimeDraft;
         e.value=e.value.replace(/\D/g,'');
@@ -2015,10 +2179,10 @@
       if(f.matches('[data-ledger-filters]')){closeLedgerFilters(true);return;}
       if(f.matches('[data-period-form]')){closePeriod(true);return;}
       if(f.matches('[data-meal-filter-form]')){
-        const {from,to,slot,atHome,method,keyword}=f.elements;
+        const {from,to,slot,atHome,keyword}=f.elements;
         if(from.value&&to.value&&from.value>to.value){error('开始日期不能晚于结束日期。');return;}
         const applied={
-          from:from.value,to:to.value,slot:slot.value,atHome:atHome.value,method:method.value,
+          from:from.value,to:to.value,slot:slot.value,atHome:atHome.value,method:state.mealFilterDraft.method,
           preparations:[...f.querySelectorAll('[name=preparation]:checked')].map(e=>e.value),keyword:keyword.value.trim(),
         };
         if(state.mealTab==='统计')state.mealStatsFilters=applied;
@@ -2034,9 +2198,11 @@
       }
       if(f.matches('[data-entry-form]')){
         try{
-          if(!f.elements.wallet.value){error('请先选择钱包。');return;}const cents=calcCents(state.amount),walletId=f.elements.wallet.value;
-          if(!effectiveFinancialCategories(walletId,state.entryType).some(c=>c.id===f.elements.category.value)){error('请选择当前钱包可用的分类。');return;}
-          const entry={id:`draft-${state.nextEntryId++}`,type:state.entryType,cents,walletId,category:f.elements.category.value,note:f.elements.note.value,date:f.elements.date.value,time:state.entryDraft.dateTime.slice(-5)};
+          const {walletId,category}=state.entryDraft;
+          if(!walletId)throw Error('请先选择钱包。');
+          const cents=calcCents(state.amount);
+          if(!effectiveFinancialCategories(walletId,state.entryType).some(c=>c.id===category))throw Error('请选择当前钱包可用的分类。');
+          const entry={id:`draft-${state.nextEntryId++}`,type:state.entryType,cents,walletId,category,note:f.elements.note.value,date:f.elements.date.value,time:state.entryDraft.dateTime.slice(-5)};
           state.entries.push(entry);if(!walletById(walletId).separateAccounting)state.lastWalletId=walletId;state.page=state.entryReturn;
           state.notice=state.page==='ledger'&&!matchesLedgerScope(entry)?'已保存到当前演示，该账目不在当前筛选范围内。':'已保存到当前演示。';
           render();

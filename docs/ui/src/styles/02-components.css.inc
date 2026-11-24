@@ -43,6 +43,36 @@
   #kitsune-preview .ks-top.ks-subpage{justify-content:flex-start;padding-top:12px;padding-bottom:12px}
   #kitsune-preview .ks-subpage .ks-title{margin:0;font-size:var(--ks-font-title)}
   #kitsune-preview .ks-modal-overlay{position:absolute;inset:0;z-index:20;background:#00000055;border-radius:30px;display:flex;align-items:flex-end;padding:9px}
+  #kitsune-preview .ks-selection-panel{display:flex;flex-direction:column;gap:4px;width:100%;max-height:100%;overflow:hidden;background:var(--ks-card-surface);color:var(--ks-ink);border-radius:var(--ks-dialog-radius);padding:8px 16px}
+  #kitsune-preview .ks-selection-handle{display:grid;place-items:center;min-height:12px;touch-action:none}
+  #kitsune-preview .ks-selection-handle span{width:32px;height:4px;border-radius:4px;background:var(--ks-line)}
+  #kitsune-preview .ks-selection-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  #kitsune-preview .ks-selection-heading h3{font-size:1.55em;font-weight:600;margin:0;line-height:1.3}
+  #kitsune-preview .ks-selection-close{display:grid;place-items:center;width:48px;height:48px;flex:none;border:0;border-radius:50%;background:transparent;color:var(--ks-ink)}
+  #kitsune-preview .ks-selection-body{max-height:420px;min-height:0;overflow:auto;overscroll-behavior:contain;display:grid;gap:2px}
+  #kitsune-preview .ks-selection-body p{margin:4px 0}
+  #kitsune-preview .ks-selection-footer{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+  #kitsune-preview .ks-selection-footer .ks-primary{flex:1}
+  #kitsune-preview .ks-selection-footer .ks-text-btn{min-height:48px}
+  #kitsune-preview .ks-selection-add{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border-top:1px solid var(--ks-line)}
+  #kitsune-preview .ks-selection-option{display:flex;align-items:center;gap:12px;text-align:left;color:var(--ks-ink);border:0;border-radius:var(--ks-control-radius);background:transparent;width:100%;min-height:48px;padding:8px 12px;font-size:1.14em;cursor:pointer}
+  #kitsune-preview .ks-selection-option[data-selection-detail]{min-height:64px}
+  #kitsune-preview .ks-selection-option:is([aria-pressed=true],:has(input:checked)){background:var(--ks-accent-bg);color:var(--ks-accent)}
+  #kitsune-preview .ks-selection-copy{display:grid;gap:2px;flex:1;min-width:0}
+  #kitsune-preview .ks-selection-copy small{font-size:.75em;color:var(--ks-dim)}
+  #kitsune-preview .ks-selection-option>svg{flex:none}
+  #kitsune-preview .ks-selection-indicator{display:grid;place-items:center;width:24px;height:24px;flex:none}
+  #kitsune-preview .ks-selection-option input{width:18px;height:18px;margin:0 3px;flex:none;accent-color:var(--ks-accent)}
+  #kitsune-preview .ks-selection-trigger{display:flex;align-items:center;gap:8px;text-align:left}
+  #kitsune-preview .ks-selection-trigger span{flex:1;min-width:0}
+  #kitsune-preview .ks-selection-trigger svg{flex:none}
+  #kitsune-preview .ks-selection-trigger:disabled{opacity:.65}
+  #kitsune-preview .ks-selection-field{min-width:0}
+  #kitsune-preview .ks-selection-field .ks-label{display:block}
+  #kitsune-preview .ks-selection-panel [data-filter-group]>div:last-child{display:grid;gap:2px}
+  #kitsune-preview .ks-selection-panel .ks-filter-field-heading{flex-wrap:wrap}
+  #kitsune-preview .ks-selection-panel .ks-filter-field-heading .ks-text-btn{min-height:48px}
+  #kitsune-preview .ks-selection-option:focus-visible,#kitsune-preview .ks-selection-option:focus-within{outline:2px solid var(--ks-accent);outline-offset:-2px}
   #kitsune-preview .ks-calc-sheet{display:flex;flex-direction:column;width:100%;background:var(--ks-card-surface);border:var(--ks-card-border);color:var(--ks-ink);border-radius:var(--ks-dialog-radius);padding:var(--ks-space-4);box-shadow:var(--ks-dialog-shadow);max-height:calc(100% - 24px);overflow:hidden}
   #kitsune-preview .ks-calc-body{min-height:0;overflow-y:auto}
   #kitsune-preview .ks-calc-footer{flex:none}
@@ -58,7 +88,7 @@
   #kitsune-preview .ks-delete-btn{display:flex;align-items:center;justify-content:center;gap:7px;color:var(--ks-danger);width:100%;min-height:var(--ks-control-height);border:var(--ks-card-border);border-radius:var(--ks-control-radius);background:var(--ks-card-surface);padding:var(--ks-space-2) var(--ks-space-4);font-size:var(--ks-font-body)}
   #kitsune-preview .ks-delete-btn svg{width:var(--ks-icon-size);height:var(--ks-icon-size)}
   #kitsune-preview .ks-danger-confirm{background:var(--ks-danger);color:var(--ks-on-danger,light-dark(#fff8f7,#451714))}
-  #kitsune-preview :is(.ks-delete-overlay,.ks-wallet-overlay,.ks-period-overlay){align-items:center;padding:18px}
+  #kitsune-preview :is(.ks-delete-overlay,.ks-period-overlay){align-items:center;padding:18px}
   #kitsune-preview .ks-delete-sheet{background:var(--ks-card-surface);border:var(--ks-card-border);width:100%;border-radius:var(--ks-dialog-radius);padding:var(--ks-space-4);box-shadow:var(--ks-dialog-shadow);max-height:calc(100% - 24px);overflow:auto}
   #kitsune-preview .ks-delete-sheet h3{font-size:18px;font-weight:600;margin:0 0 var(--ks-space-2)}
   #kitsune-preview .ks-delete-summary{font-size:14px;line-height:1.7;margin:0 0 12px;white-space:pre-line}
@@ -84,4 +114,4 @@
   #kitsune-preview .ks-currency-amount small{font-size:11px;color:var(--ks-dim)}
   #kitsune-preview .ks-currency-group{margin-bottom:19px}
   #kitsune-preview .ks-currency-group .ks-money-card{margin-bottom:10px}
-  #kitsune-preview :is(.ks-wallet-dialog,.ks-period-dialog){display:flex;flex-direction:column;gap:var(--ks-space-4);width:100%;max-width:480px;margin:auto;background:var(--ks-card-surface);border:var(--ks-card-border);border-radius:var(--ks-dialog-radius);padding:var(--ks-space-6);box-shadow:var(--ks-dialog-shadow);max-height:100%;overflow:hidden}
+  #kitsune-preview .ks-period-dialog{display:flex;flex-direction:column;gap:var(--ks-space-4);width:100%;max-width:480px;margin:auto;background:var(--ks-card-surface);border:var(--ks-card-border);border-radius:var(--ks-dialog-radius);padding:var(--ks-space-6);box-shadow:var(--ks-dialog-shadow);max-height:100%;overflow:hidden}
