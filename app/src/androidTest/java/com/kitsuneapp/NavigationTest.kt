@@ -9,6 +9,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.captureToImage
@@ -316,7 +317,7 @@ class NavigationTest {
             assertTrue("The child page should enter from the right", slidingTitle.x > settledTitle.x)
             assertEquals(settledTitle.y, slidingTitle.y, 1f)
             assertEquals(viewportBounds, pageViewport.fetchSemanticsNode().boundsInRoot)
-            mainNav.assertDoesNotExist()
+            mainNav.assertIsNotDisplayed()
 
             compose.onNodeWithContentDescription("返回").performClick()
             compose.mainClock.advanceTimeBy(96)
@@ -347,7 +348,7 @@ class NavigationTest {
             fun checkReturn(back: () -> Unit) {
                 backup.performClick()
                 compose.mainClock.advanceTimeBy(300)
-                mainNav.assertDoesNotExist()
+                mainNav.assertIsNotDisplayed()
                 back()
                 compose.mainClock.advanceTimeBy(96)
                 assertEquals(rowTop, backup.fetchSemanticsNode().positionInRoot.y, 1f)
