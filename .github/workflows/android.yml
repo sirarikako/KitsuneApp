@@ -20,11 +20,21 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           packages: 'platform-tools platforms;android-36 build-tools;35.0.0'
-      - run: ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:assembleDebugAndroidTest
+      - run: ./gradlew :app:assembleDebug :app:assembleRelease :app:testDebugUnitTest :app:lintDebug :app:lintRelease :app:assembleDebugAndroidTest
       - uses: actions/upload-artifact@v4
         with:
           name: kitsune-debug-ci
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kitsune-release-ci
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kitsune-androidtest-ci
+          path: app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
@@ -36,6 +46,7 @@ jobs:
       github.repository == 'sirarikako/KitsuneApp' &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/android-full-implementation' ||
+      github.ref == 'refs/heads/feat/android-release-apk' ||
       github.ref == 'refs/heads/feat/android-default-wallet' ||
       github.ref == 'refs/heads/feat/ledger-time-picker' ||
       github.ref == 'refs/heads/feat/meal-statistics-month' ||
@@ -50,6 +61,14 @@ jobs:
         with:
           name: kitsune-debug-ci
           path: apk-input
+      - uses: actions/download-artifact@v4
+        with:
+          name: kitsune-release-ci
+          path: apk-input
+      - uses: actions/download-artifact@v4
+        with:
+          name: kitsune-androidtest-ci
+          path: apk-input
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -57,7 +76,7 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           packages: 'build-tools;35.0.0'
-      - name: Sign and verify the fixed test APK
+      - name: Sign and verify both APKs with the existing fixed certificate
         env:
           KITSUNE_TEST_KEYSTORE_BASE64: ${{ secrets.KITSUNE_TEST_KEYSTORE_BASE64 }}
         shell: bash
@@ -71,27 +90,84 @@ jobs:
           unset KITSUNE_TEST_KEYSTORE_BASE64
           build_tools="$ANDROID_HOME/build-tools/35.0.0"
           apksigner="$build_tools/apksigner"
-          mkdir -p apk-signed
-          "$apksigner" sign --ks "$keystore" --ks-key-alias androiddebugkey \
-            --ks-pass pass:android --v4-signing-enabled false \
-            --in apk-input/app-debug.apk --out apk-signed/app-debug.apk
-          certificates="$("$apksigner" verify --print-certs apk-signed/app-debug.apk)"
-          fingerprint="$(awk '/^Signer #[0-9]+ certificate SHA-256 digest:/{print $NF}' <<< "$certificates")"
-          if [[ "$fingerprint" != '7ba1cc5366bd8c4718429457011ab20064c9bf6bdc600c1f5b9bba3651d02f17' ]]; then
-            echo "::error::The signed APK does not match the approved test certificate."
-            exit 1
-          fi
-          printf 'Test signing certificate SHA-256: %s\n' "$fingerprint"
-          badging="$("$build_tools/aapt2" dump badging apk-signed/app-debug.apk)"
-          grep -Fq "package: name='com.kitsuneapp' " <<< "$badging"
-          grep -Eq "^(minSdkVersion|sdkVersion):'26'$" <<< "$badging"
-          grep -Fxq "targetSdkVersion:'36'" <<< "$badging"
-          "$build_tools/zipalign" -c -P 16 4 apk-signed/app-debug.apk
-          sha256sum apk-signed/app-debug.apk
+          mkdir -p apk-signed apk-aligned
+          sign_apk() {
+            local input="$1" output="$2" aligned certificates fingerprint
+            aligned="apk-aligned/$(basename "$input")"
+            "$build_tools/zipalign" -f -P 16 4 "$input" "$aligned"
+            "$apksigner" sign --ks "$keystore" --ks-key-alias androiddebugkey \
+              --ks-pass pass:android --v4-signing-enabled false \
+              --in "$aligned" --out "$output"
+            certificates="$("$apksigner" verify --print-certs "$output")"
+            fingerprint="$(awk '/^Signer #[0-9]+ certificate SHA-256 digest:/{print $NF}' <<< "$certificates")"
+            if [[ "$fingerprint" != '7ba1cc5366bd8c4718429457011ab20064c9bf6bdc600c1f5b9bba3651d02f17' ]]; then
+              echo "::error::The signed APK does not match the approved test certificate."
+              exit 1
+            fi
+            printf 'Signing certificate SHA-256: %s\n' "$fingerprint"
+            "$build_tools/zipalign" -c -P 16 4 "$output"
+            sha256sum "$output"
+          }
+          sign_apk apk-input/app-debug.apk apk-signed/app-debug.apk
+          sign_apk apk-input/app-release-unsigned.apk apk-signed/app-release.apk
+          # The instrumentation APK must have the same certificate to test the
+          # non-debuggable target. Keep it local to this ephemeral job.
+          sign_apk apk-input/app-debug-androidTest.apk apk-signed/app-debug-androidTest.apk
+          for variant in debug release; do
+            badging="$("$build_tools/aapt2" dump badging "apk-signed/app-$variant.apk")"
+            grep -Fq "package: name='com.kitsuneapp' " <<< "$badging"
+            grep -Eq "^(minSdkVersion|sdkVersion):'26'$" <<< "$badging"
+            grep -Fxq "targetSdkVersion:'36'" <<< "$badging"
+            if [[ "$variant" == debug ]]; then
+              grep -Fxq 'application-debuggable' <<< "$badging"
+            elif grep -Fxq 'application-debuggable' <<< "$badging"; then
+              echo "::error::Release APK is debuggable."
+              exit 1
+            fi
+            # The package line includes both versionCode and versionName.
+            grep '^package: ' <<< "$badging" | sed -E "s/ platformBuildVersion.*$//" > "apk-signed/$variant.package"
+          done
+          diff -u apk-signed/debug.package apk-signed/release.package
+      - name: Enable KVM for the upgrade emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Verify fixed-signature Debug / Release upgrades
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          arch: x86_64
+          target: google_apis
+          profile: pixel_2
+          disable-animations: true
+          script: |
+            set -euo pipefail
+            mkdir -p upgrade-reports
+            adb install apk-signed/app-debug.apk
+            adb install -t apk-signed/app-debug-androidTest.apk
+            adb shell am instrument -w -e class com.kitsuneapp.FixedSigningUpgradeTest -e kitsuneUpgradePhase seed com.kitsuneapp.test/androidx.test.runner.AndroidJUnitRunner | tee upgrade-reports/debug-seed.log
+            grep -Eq '^OK \(1 test\)' upgrade-reports/debug-seed.log
+            adb install -r apk-signed/app-release.apk
+            adb shell am instrument -w -e class com.kitsuneapp.FixedSigningUpgradeTest -e kitsuneUpgradePhase verify com.kitsuneapp.test/androidx.test.runner.AndroidJUnitRunner | tee upgrade-reports/release-verify.log
+            grep -Eq '^OK \(1 test\)' upgrade-reports/release-verify.log
+            adb install -r apk-signed/app-debug.apk
+            adb shell am instrument -w -e class com.kitsuneapp.FixedSigningUpgradeTest -e kitsuneUpgradePhase verify com.kitsuneapp.test/androidx.test.runner.AndroidJUnitRunner | tee upgrade-reports/debug-verify.log
+            grep -Eq '^OK \(1 test\)' upgrade-reports/debug-verify.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fixed-signature-upgrade-reports
+          path: upgrade-reports/
       - uses: actions/upload-artifact@v4
         with:
           name: kitsune-debug
           path: apk-signed/app-debug.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kitsune-release
+          path: apk-signed/app-release.apk
           if-no-files-found: error
   device-tests:
     runs-on: ubuntu-latest

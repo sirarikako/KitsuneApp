@@ -19,6 +19,14 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    buildTypes {
+        release {
+            isDebuggable = false
+            isMinifyEnabled = false
+            isShrinkResources = false
+        }
+    }
+
     sourceSets["main"].res.srcDir(rootProject.file("artwork/android/res"))
     buildFeatures.compose = true
     compileOptions {
