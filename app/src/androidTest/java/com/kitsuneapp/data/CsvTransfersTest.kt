@@ -46,6 +46,28 @@ class CsvTransfersTest {
     }
 
     @Test
+    fun explicitMappingsResolveUnknownMethodAndSameCurrencyWallet() = runBlocking {
+        repository.saveWallet(WalletDraft(null, "常规", "CNY", "0", 0, false, false))
+        repository.saveWallet(WalletDraft(null, "旅行", "JPY", "0", 1, false, true))
+        val before = repository.read()
+        val method = before.methods.single { it.name == "外卖" }
+        val regular = before.wallets.single { it.currencyCode == "CNY" }
+        val travel = before.wallets.single { it.currencyCode == "JPY" }
+        val source = mealColumns.joinToString(",") + "\n,2026-11-23,LUNCH,true,外送,[],汤,\n"
+        val meal = CsvDocument.load(CsvKind.MEALS, source.byteInputStream())
+        assertTrue(csv.preview(meal, CsvMappings()).errors.isNotEmpty())
+        assertEquals(1, csv.commit(meal, CsvMappings(methods = mapOf("外送" to method.id))).additions)
+        assertEquals(method.id, repository.read().meals.single().mealMethodId)
+
+        val ledgerSource = ledgerColumns.joinToString(",") + "\n,2026-11-23,10:20,EXPENSE,另一钱包,CNY,2,早餐,,,,,\n"
+        val entry = CsvDocument.load(CsvKind.LEDGER, ledgerSource.byteInputStream())
+        val key = "另一钱包" to "CNY"
+        assertTrue(csv.preview(entry, CsvMappings(wallets = mapOf(key to travel.id))).errors.isNotEmpty())
+        assertEquals(1, csv.commit(entry, CsvMappings(wallets = mapOf(key to regular.id))).additions)
+        assertEquals(regular.id, repository.read().entries.single().walletId)
+    }
+
+    @Test
     fun ledgerImportResolvesSameBatchRefundsAndRejectsTheWholeIncorrectBatch() = runBlocking {
         repository.saveWallet(WalletDraft(null, "常规", "CNY", "0", 0, false, false))
         val id = newId()

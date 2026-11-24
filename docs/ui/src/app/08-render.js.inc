@@ -1,5 +1,15 @@
+    let settingsScrollTop=0;
     function render(){
       const previous=rendered,kind=modalKind(),key=localKey(),changingPage=previous&&previous.page!==state.page;
+      if(previous?.page==='settings')settingsScrollTop=phone.querySelector('.ks-settings-screen .ks-main').scrollTop;
+      const keepingForm=previous?.page===state.page&&['meal-form','meal-filter','entry','wallet-edit'].includes(state.page);
+      const formPosition=keepingForm?phone.querySelector('.ks-main').scrollTop:0;
+      const oldLedger=phone.querySelector('.ks-ledger-screen');
+      const sameLedger=oldLedger&&state.page==='ledger'&&previous.local===key;
+      const ledgerPosition=sameLedger?oldLedger.querySelector('.ks-main').scrollTop:0;
+      const ledgerCollapse=sameLedger?[...oldLedger.querySelectorAll('.ks-ledger-collapsible')].reduce(
+        (sum,part)=>sum+part.firstElementChild.offsetHeight-part.offsetHeight,0):0;
+      const ledgerCompact=sameLedger&&!!oldLedger.querySelector('.ks-fab-compact');
       // Measure before removing old nodes, but first clear any stale visual copies.
       stopMotion();
       const oldEditor=phone.querySelector('[data-appearance-editor]');
@@ -7,25 +17,73 @@
       const editorHeight=editorWasVisible?oldEditor.getBoundingClientRect().height:0;
       const editorCopy=editorWasVisible&&state.page==='appearance'&&!appearanceChanged(pendingAppearance())?cloneVisual(oldEditor):null;
       const oldPage=changingPage&&!reducedMotion.matches?ghost([pageNode()].filter(Boolean)):null;
+      const leavingPrimary=changingPage&&primary(previous.page)&&!primary(state.page);
+      const oldNav=leavingPrimary&&!reducedMotion.matches?ghost([phone.querySelector(':scope > .ks-nav')]):null;
+      const oldHeight=oldNav?phone.getBoundingClientRect().height:0;
       const oldModal=previous?.modal&&!kind&&!reducedMotion.matches?ghost([modalNode()].filter(Boolean),true):null;
       const localChanged=previous&&!changingPage&&key!==previous.local;
       const oldLocal=localChanged&&!reducedMotion.matches?ghost(localNodes()):null;
-      const sourceRect=entrance;entrance=null;if(changingPage&&primary(previous.page)&&!primary(state.page)&&!sourceRect)recordOrigin=null;
+      const sourceRect=entrance;entrance=null;if(leavingPrimary&&!sourceRect)recordOrigin=null;
       rendering=true;
       const form=!primary(state.page);
-      const titles={home:'日常记录',meals:'用餐',ledger:'记账',settings:'设置',appearance:'外观与调色板','wallet-edit':'编辑钱包', 'meal-form':`${state.editing?'编辑':'记录'}${slots[state.slot]}`,'meal-filter':'筛选用餐',entry:'记一笔','entry-detail':'账目详情','category-manager':'分类管理'};
+      const titles={home:'日常记录',meals:'用餐',ledger:'记账',settings:'设置',appearance:'外观与调色板','csv-mapping':'导入与导出','wallet-edit':'编辑钱包', 'meal-form':`${state.editing?'编辑':'记录'}${slots[state.slot]}`,'meal-filter':'筛选用餐',entry:'记一笔','entry-detail':'账目详情','category-manager':'分类管理','category-owned':'钱包专属分类','category-detail':state.editingFinancialCategoryId?'编辑分类':'新增分类',github:'GitHub 备份'};
       const heading=`<h2 class="ks-title">${titles[state.page]}</h2>`;
-      const header=state.page==='home'?`<div class="ks-home-brand"><span class="ks-app-mark" role="img" aria-label="狐狸应用图标示意">🦊</span><div>${heading}<p class="ks-sub">11 月 17 日 · 星期二</p></div></div>`:form?`<button type="button" class="ks-icon-btn cursor-interaction" data-action="back" aria-label="返回">${icon('arrow-left')}</button>${heading}`:heading;
-      phone.innerHTML=`<div class="ks-status"><span>9:41</span><span class="ks-signal">${icon('signal')}${icon('wifi')}${icon('battery-full')}</span></div><div class="ks-page-motion"><header class="ks-top ${form?'ks-subpage':''}">${header}</header><main class="ks-main">${({home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,appearance:pageAppearance,'wallet-edit':pageWalletEdit,'meal-form':pageMealForm,'meal-filter':pageMealFilter,entry:pageEntry,'entry-detail':pageEntryDetail,'category-manager':pageCategoryManager})[state.page]()}${state.notice?`<p class="ks-success" role="status">${escapeText(state.notice)}</p>`:''}</main></div>${state.page==='ledger'?`<div class="ks-ledger-action"><button type="button" class="ks-primary ks-full cursor-interaction" data-action="add-entry">${icon('plus')}记一笔</button></div>`:''}${form?'':`<nav class="ks-nav" aria-label="主导航">${navs.map(([id,name,ic])=>`<button type="button" data-page="${id}" class="cursor-interaction" ${state.page===id?'aria-current="page"':''}><span>${icon(ic)}</span>${name}</button>`).join('')}</nav>`}<div class="ks-home-indicator" aria-hidden="true"></div>`;
-      if(state.calcOpen){phone.insertAdjacentHTML('beforeend',calculatorSheet());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-calc-expression]').focus({preventScroll:true});}
+      const header=state.page==='home'?`<div class="ks-home-brand"><span class="ks-app-mark"><img src="__KITSUNE_FOX_MARK__" alt=""></span><div>${heading}<p class="ks-sub">11 月 17 日 · 星期二</p></div></div>`:form?`<button type="button" class="ks-icon-btn cursor-interaction" data-action="back" aria-label="返回">${icon('arrow-left')}</button>${heading}`:heading;
+      const pages={home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,appearance:pageAppearance,'csv-mapping':pageCsvMapping,'wallet-edit':pageWalletEdit,'meal-form':pageMealForm,'meal-filter':pageMealFilter,entry:pageEntry,'entry-detail':pageEntryDetail,'category-manager':pageCategoryManager,'category-owned':pageOwnedCategories,'category-detail':pageCategoryDetail,github:pageGitHubBackup};
+      const ledger=state.page==='ledger',fab=ledger&&state.ledgerTab==='流水';
+      const settingsScreen=state.page==='settings'||state.page==='github'?`ks-${state.page}-screen`:'';
+      const top=`<header class="ks-top ${form?'ks-subpage':''}">${header}</header>`;
+      phone.innerHTML=`<div class="ks-status"><span>9:41</span><span class="ks-signal">${icon('signal')}${icon('wifi')}${icon('battery-full')}</span></div><div class="ks-page-motion ${settingsScreen} ${ledger?'ks-ledger-screen':''} ${fab?'ks-ledger-with-fab':''}">${ledger?`<div class="ks-ledger-collapsible">${top}</div>${ledgerTabs()}${ledgerFilters()}`:top}<main class="ks-main">${pages[state.page]()}${state.notice?`<p class="ks-success" role="status">${escapeText(state.notice)}</p>`:''}</main>${fab?`<button type="button" class="ks-primary ks-ledger-fab" data-action="add-entry" aria-label="记一笔">${icon('plus')}<span>记一笔</span></button>`:''}</div>${form?'':`<nav class="ks-nav" aria-label="主导航">${navs.map(([id,name,ic])=>`<button type="button" data-page="${id}" class="cursor-interaction" ${state.page===id?'aria-current="page"':''}><span>${icon(ic)}</span>${name}</button>`).join('')}</nav>`}<div class="ks-home-indicator" aria-hidden="true"></div>`;
+      if(state.calcOpen){phone.insertAdjacentHTML('beforeend',calculatorSheet());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-calc-action=cancel]').focus({preventScroll:true});}
       if(state.deletePending){phone.insertAdjacentHTML('beforeend',deleteConfirmation());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-delete-action=cancel]').focus({preventScroll:true});}
-      if(state.walletPickerOpen){phone.insertAdjacentHTML('beforeend',walletPickerSheet());for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;const all=phone.querySelector('[data-wallet-all]');all.indeterminate=state.walletDraftIds.length>0&&state.walletDraftIds.length<wallets.length;all.focus({preventScroll:true});}
+      if(state.walletPickerOpen||state.ledgerFilterDraft||state.singleSelection){
+        const panel=state.walletPickerOpen?walletRangeDialog():state.ledgerFilterDraft?ledgerFiltersDialog():singleSelectionPanel();
+        phone.insertAdjacentHTML('beforeend',panel);
+        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
+        phone.querySelector('.ks-selection-panel [data-select-close]').focus({preventScroll:true});
+      }
+      if(state.periodDraft){
+        phone.insertAdjacentHTML('beforeend',periodDialog());
+        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
+        if(previous?.modal!==kind)phone.querySelector('[data-period-mode][aria-pressed=true],[data-period-month][aria-pressed=true]').focus({preventScroll:true});
+      }
+      if(state.githubDemo.review){
+        phone.insertAdjacentHTML('beforeend',githubDemoDialog());
+        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
+        phone.querySelector('[data-github-action=cancel]').focus({preventScroll:true});
+      }
+      if(state.mealCalendar){
+        phone.insertAdjacentHTML('beforeend',mealCalendarDialog());
+        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
+        if(previous?.modal!==kind)phone.querySelector('[data-calendar-action=jump],[data-calendar-text]').focus({preventScroll:true});
+      }
+      if(state.entryTimeDraft){
+        phone.insertAdjacentHTML('beforeend',entryTimeDialog());
+        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
+        const focus=state.entryTimeDraft.clock?'[data-time-part][aria-pressed=true]':'[data-entry-time] [name=hour]';
+        phone.querySelector(focus).focus({preventScroll:true});
+      }
+      if(state.addingEntryCategory){
+        phone.insertAdjacentHTML('beforeend',entryCategoryDialog());
+        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
+        phone.querySelector('[data-entry-category] [name=categoryName]').focus({preventScroll:true});
+      }
+      if(state.page==='settings')phone.querySelector('.ks-settings-screen .ks-main').scrollTop=settingsScrollTop;
+      if(keepingForm)phone.querySelector('.ks-main').scrollTop=formPosition;
+      if(state.addingMealOption){
+        phone.insertAdjacentHTML('beforeend',mealOptionDialog());
+        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
+        phone.querySelector('[data-meal-option-form] input').focus({preventScroll:true});
+      }
       if(state.page==='appearance')updateAppearancePreview();
       globalThis.lucide?.createIcons({root:phone,attrs:{width:18,height:18}});
+      if(ledger)attachLedgerScroll(ledgerPosition,ledgerCollapse,ledgerCompact);
       rendering=false;
-      rendered={page:state.page,modal:kind,local:key};
+      const previousStack=previous?.stack??[],pageIndex=previousStack.indexOf(state.page);
+      const stack=primary(state.page)?[state.page]:pageIndex<0?[...previousStack,state.page]:previousStack.slice(0,pageIndex+1);
+      rendered={page:state.page,modal:kind,local:key,stack};
       if(!reducedMotion.matches){
-        if(changingPage)animatePage(previous,oldPage,sourceRect);
+        if(changingPage)animatePage(previous,rendered,oldPage,sourceRect,oldNav,oldHeight);
         if(localChanged){attachGhost(oldLocal);play(oldLocal,outFade,motion.local,discard(oldLocal));for(const node of localNodes())play(node,inFade,motion.local);}
         animateModal(previous?.modal||null,oldModal);
         if(previous?.page==='appearance'&&state.page==='appearance'){
@@ -37,7 +95,39 @@
       if(changingPage&&primary(state.page))recordOrigin=null;
       if(changingPage&&!kind){const header=phone.querySelector('.ks-top');header.setAttribute('tabindex','-1');header.focus({preventScroll:true});}
     }
-    function capture(){const form=phone.querySelector('[data-meal-form]');if(form){state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);}const entry=phone.querySelector('[data-entry-form]');if(entry){state.amount=entry.elements.amount.value;state.entryDraft={dateTime:entry.elements.dateTime.value,note:entry.elements.note.value,category:entry.elements.category.value,walletId:entry.elements.wallet.value};}}
+    function capture(){
+      const form=phone.querySelector('[data-meal-form]');
+      if(form){
+        state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;
+        state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);
+      }
+      const entry=phone.querySelector('[data-entry-form]');
+      if(entry){
+        state.entryDraft.dateTime=entry.elements.date.value+state.entryDraft.dateTime.slice(-6);
+        state.entryDraft.note=entry.elements.note.value;
+      }
+      const meal=phone.querySelector('[data-meal-filter-form]');
+      if(meal){
+        const {from,to,slot,atHome,keyword}=meal.elements;
+        state.mealFilterDraft={...state.mealFilterDraft,from:from.value,to:to.value,slot:slot.value,atHome:atHome.value,
+          keyword:keyword.value,preparations:[...meal.querySelectorAll('[name=preparation]:checked')].map(e=>e.value)};
+      }
+      if(state.page==='wallet-edit'){
+        const draft=state.walletEditDraft;
+        draft.separateAccounting=phone.querySelector('[data-wallet-independent]').checked;
+        draft.defaultWallet=phone.querySelector('[data-wallet-default]').checked;
+        draft.defaultToIncome=phone.querySelector('[data-wallet-income-default]').checked;
+      }
+    }
+    function closeEntryTime(apply){
+      const {hour,minute}=state.entryTimeDraft;
+      if(apply){
+        if(!validTimePart(hour,'hour')||!validTimePart(minute,'minute'))return;
+        state.entryDraft.dateTime=state.entryDraft.dateTime.slice(0,-6)+'T'+hour+':'+minute;
+      }
+      state.entryTimeDraft=null;render();
+      phone.querySelector('[data-action=open-entry-time]').focus({preventScroll:true});
+    }
     function error(message){phone.querySelector('.ks-error').textContent=message;}
     function updateAppearancePreview(){
       const editor=phone.querySelector('[data-appearance-editor]');
@@ -56,15 +146,103 @@
       const preferredMode=draft.mode==='system'?(systemDark.matches?'dark':'light'):draft.mode;
       const mode=state.previewMode||preferredMode;
       preview.style.colorScheme=mode;
-      paintColors(preview,colorSeed(draft),draft.colorSource==='SYSTEM');
+      paintColors(preview,colorSeed(draft),draft.colorSource);
       for(const button of editor.querySelectorAll('[data-preview-mode]'))button.setAttribute('aria-pressed',String(button.dataset.previewMode===mode));
     }
-    function pageEntryDetail(){const e=financialEntries().find(e=>e.id===state.selectedEntryId);if(!e)return '<p class="ks-empty-state">这笔账目已不存在</p>';const w=walletById(e.walletId);return `<section class="ks-entry-detail"><div class="ks-detail-amount"><span class="ks-note">${e.type} · ${w.code}</span><div class="ks-amount">${e.type==='支出'?'-':'+'}¥${money(e.cents,w.code)}</div></div><dl class="ks-detail-list">${[['日期时间',`${e.date} ${e.time}`],['钱包',`${w.name} · ${w.code}`],['分类',entryCategory(e)],['备注',e.note||'无']].map(([label,value])=>`<div><dt>${label}</dt><dd>${escapeText(value)}</dd></div>`).join('')}</dl>${deleteButton('entry','删除这笔账目')}<p class="ks-footnote">交互预览 · 示例数据</p></section>`;}
+    function pageEntryDetail(){const e=financialEntries().find(e=>e.id===state.selectedEntryId);if(!e)return '<p class="ks-empty-state">这笔账目已不存在</p>';const w=walletById(e.walletId);return `<section class="ks-entry-detail"><div class="ks-detail-amount"><span class="ks-note">${e.type} · ${w.code}</span><div class="ks-amount ${e.type==='支出'?'ks-expense':'ks-income'}">${e.type==='支出'?'−':'+'}${money(e.cents,w.code)}</div></div><dl class="ks-detail-list">${[['日期时间',`${e.date} ${e.time}`],['钱包',`${w.name} · ${w.code}`],['分类',entryCategory(e)],['备注',e.note||'无']].map(([label,value])=>`<div><dt>${label}</dt><dd>${escapeText(value)}</dd></div>`).join('')}</dl>${deleteButton('entry','删除这笔账目')}<p class="ks-footnote">交互预览 · 示例数据</p></section>`;}
     function deleteConfirmation(){const p=state.deletePending;return `<div class="ks-modal-overlay ks-delete-overlay"><section class="ks-delete-sheet" role="alertdialog" aria-modal="true" aria-label="确认删除记录"><h3>${p.kind==='meal'?'删除这条用餐记录？':'删除这笔账目？'}</h3><p class="ks-delete-summary">${escapeText(p.summary)}</p><p class="ks-note">${p.kind==='meal'?'删除后，将更新今日进度、月度及全部记录统计。':'删除后，将更新流水、收支统计和钱包余额。'}</p><p class="ks-error" role="alert" data-delete-error></p><div class="ks-calc-actions"><button type="button" class="ks-choice cursor-interaction" data-delete-action="cancel">取消</button><button type="button" class="ks-primary ks-danger-confirm cursor-interaction" data-delete-action="confirm">确认删除</button></div></section></div>`;}
     function cancelDelete(){const action=state.deletePending.kind==='meal'?'delete-meal':'delete-entry';state.deletePending=null;render();phone.querySelector(`[data-action=${action}]`)?.focus({preventScroll:true});}
     function confirmDelete(){const p=state.deletePending;if(p.kind==='meal'){if(state.records[p.date])state.records[p.date][p.slot]=null;state.date=p.date;state.page=state.mealReturn;state.editing=false;}else{if(financialEntries().some(e=>e.originalExpenseId===p.id)){phone.querySelector('[data-delete-error]').textContent='请先删除这笔支出关联的退款，再删除原支出。';return;}state.deletedEntryIds.add(p.id);state.page='ledger';state.ledgerTab='流水';}state.deletePending=null;state.notice='已从当前演示删除记录。';render();}
-    function closeCalculator(apply){if(apply){try{state.amount=inputAmount(calcCents(phone.querySelector('[data-calc-expression]').value));}catch(e){phone.querySelector('.ks-calc-error').textContent=e.message;return;}}state.calcOpen=false;render();phone.querySelector('[data-action=open-calculator]').focus({preventScroll:true});}
-    function closeWalletPicker(action){if(action==='apply'){if(!state.walletDraftIds.length)return;state.walletFilterIds=state.walletDraftIds.length===wallets.length?'ALL':[...state.walletDraftIds];}else if(action==='default')state.walletFilterIds=null;state.walletPickerOpen=false;render();persist();phone.querySelector('[data-action=choose-wallets]')?.focus({preventScroll:true});}
+    function closeCalculator(apply){if(apply){try{state.amount=inputAmount(calcCents(state.calcExpression));}catch(e){phone.querySelector('.ks-calc-error').textContent=e.message;return;}}state.calcOpen=false;render();phone.querySelector('[data-action=open-calculator]').focus({preventScroll:true});}
+    function closeLedgerFilters(apply){
+      if(apply){
+        const note=phone.querySelector('[data-ledger-filters] [name=note]').value;
+        state.ledgerFilters={...state.ledgerFilterDraft,note};
+      }
+      state.ledgerFilterDraft=null;render();
+      phone.querySelector('[data-action=open-ledger-filters]')?.focus({preventScroll:true});
+    }
+    function closeWalletPicker(action){
+      if(action==='apply'){
+        const mode=state.walletDraftMode;
+        if(mode==='MANUAL'&&!state.walletDraftIds.length)return;
+        state.walletFilterIds=mode==='MANUAL'?[...state.walletDraftIds]:mode==='ALL'?'ALL':null;
+      }
+      state.walletPickerOpen=false;render();persist();phone.querySelector('[data-action=choose-wallets]')?.focus({preventScroll:true});
+    }
+    function closeSingleSelection(value){
+      const kind=state.singleSelection;
+      if(value!==undefined){
+        switch(kind){
+          case 'entry-wallet': {
+            const {category,walletId}=state.entryDraft;
+            if(walletId!==value){
+              state.entryDraft.walletId=value;
+              const nextType=state.followsWalletType?defaultEntryType(entryWallet()):state.entryType;
+              state.entryDraft.category=nextType!==state.entryType||!category
+                ?initialEntryCategory(value,nextType):chooseFinancialCategory(value,nextType,category);
+              state.entryType=nextType;
+            }
+            break;
+          }
+          case 'entry-category':
+            state.entryDraft.category=value;state.followsWalletType=false;break;
+          case 'meal-method':
+            state.mealFilterDraft.method=value;break;
+          case 'category-wallet':
+            state.categoryWalletId=value;state.editingFinancialCategoryId=null;break;
+          case 'csv-method':
+            state.csvMethod=value;break;
+          case 'csv-wallet':
+            state.csvWallet=value;break;
+          case 'currency':
+            state.walletEditDraft.code=value;break;
+        }
+      }
+      state.singleSelection=null;render();
+      phone.querySelector(`[data-select-open="${kind}"]`)?.focus({preventScroll:true});
+    }
+    function cancelSelection(){
+      if(state.singleSelection)closeSingleSelection();
+      else if(state.walletPickerOpen)closeWalletPicker('cancel');
+      else if(state.ledgerFilterDraft)closeLedgerFilters(false);
+    }
+    function closeMealOption(){
+      const kind=state.addingMealOption;
+      state.addingMealOption=null;render();
+      phone.querySelector(`[data-add-meal-option="${kind}"]`)?.focus({preventScroll:true});
+    }
+    function closeEntryCategory(){
+      state.addingEntryCategory=false;render();
+      phone.querySelector('[data-select-open=entry-category]')?.focus({preventScroll:true});
+    }
+    function closeMealCalendar(apply){
+      const d=state.mealCalendar;
+      if(apply){
+        const date=d.mode==='text'?d.text:d.selected;
+        if(d.mode==='jump'||!isDate(date))return;
+        state.date=date;
+      }
+      state.mealCalendar=null;render();
+      phone.querySelector('[data-action=open-meal-calendar]').focus({preventScroll:true});
+    }
+    function closePeriod(apply){
+      const draft=state.periodDraft,mealStats=draft.target==='meals';
+      if(apply){
+        if(!canApplyPeriod(draft))return;
+        if(draft.mode==='month'){
+          const month=`${String(Number(draft.year)).padStart(4,'0')}-${draft.month.padStart(2,'0')}`;
+          if(mealStats)state.mealStatsFilters={...state.mealStatsFilters,...mealMonthDates(month)};
+          else{
+            state.ledgerMonth=month;
+            state.ledgerRange=null;
+          }
+        }else state.ledgerRange={from:draft.from,to:draft.to};
+      }
+      state.periodDraft=null;render();
+      phone.querySelector(mealStats?'[data-action=choose-meal-month]':'[data-action=choose-ledger-period]')?.focus({preventScroll:true});
+      if(apply)persist();
+    }
         function calcCents(expression){
       const source=expression.replace(/×/g,'*').replace(/[−–]/g,'-').replace(/÷/g,'/').replace(/\s/g,'');
       if(source.length>80||!/^\d+(?:\.\d*)?(?:[+*/-]\d+(?:\.\d*)?)*$/.test(source))throw Error('请补全金额或计算式，例如 12+8×2。');

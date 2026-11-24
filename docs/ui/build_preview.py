@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import re
@@ -13,6 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 SOURCE_MARKER = "<!-- KITSUNE_UI_SOURCE -->"
 ICON_MARKER = "/* KITSUNE_UI_ICONS */"
+FOX_MARKER = "__KITSUNE_FOX_MARK__"
 
 # Ordered source fragments. Each fragment is an exact contiguous slice of the original
 # unified design. The .inc files are not standalone scripts or CSS documents.
@@ -58,6 +60,10 @@ def main() -> None:
 
     source_path = ROOT / "kitsune-ui.fragment.html"
     source = "".join((ROOT / name).read_text(encoding="utf-8") for name in SOURCE_PARTS)
+    fox = ROOT / "src/assets/fox-mark.webp"
+    if source.count(FOX_MARKER) != 1:
+        raise ValueError("The design source must contain one fox image marker")
+    source = source.replace(FOX_MARKER, "data:image/webp;base64," + base64.b64encode(fox.read_bytes()).decode("ascii"))
     # Keep the historical monolithic path as a generated compatibility artifact.
     source_path.write_text(source, encoding="utf-8", newline="\n")
     source = source.strip()
@@ -78,12 +84,13 @@ def main() -> None:
     output_path = ROOT / "index.html"
     output_path.write_text(output, encoding="utf-8", newline="\n")
     manifest = {
-        "designDate": "2026-11-22",
+        "designDate": "2026-11-23",
         "source": source_path.name,
         "sourceSha256": sha256(source_path),
         "preview": output_path.name,
         "previewSha256": sha256(output_path),
         "icons": {"library": "lucide", "version": "1.8.0", "sha256": sha256(library_path)},
+        "foxMarkSha256": sha256(fox),
         "data": "fictional demonstration records; not Android application storage",
     }
     (ROOT / "manifest.json").write_text(

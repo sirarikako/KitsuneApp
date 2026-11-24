@@ -12,11 +12,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kitsuneapp.AppViewModel
+import com.kitsuneapp.R
 import com.kitsuneapp.RestorePreview
 import com.kitsuneapp.backup.CLOUD_LIMIT
 import com.kitsuneapp.backup.FolderOption
 import com.kitsuneapp.backup.input
 import com.kitsuneapp.backup.output
+import com.kitsuneapp.backup.suggestedBackupFilename
 import com.kitsuneapp.data.*
 import com.kitsuneapp.ui.*
 
@@ -48,15 +50,19 @@ fun DataManagementPage(records: Records, model: AppViewModel, back: () -> Unit) 
 
     Column {
         Header("导入与导出", back = back)
-        Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Form {
             Section("完整 JSON")
             Paper {
-                Setting("导出完整备份") { if (!busy) exportJson.launch("kitsune-manual.json") }
+                Setting("导出完整备份", designIcon(R.drawable.ks_files)) {
+                    if (!busy) exportJson.launch(suggestedBackupFilename(BackupKind.MANUAL))
+                }
                 HorizontalDivider()
-                Setting("从 JSON 恢复") { if (!busy) importJson.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }
+                Setting("从 JSON 恢复", designIcon(R.drawable.ks_undo2)) {
+                    if (!busy) importJson.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
+                }
                 if (configured) {
                     HorizontalDivider()
-                    Setting("从文件夹备份恢复") {
+                    Setting("从文件夹备份恢复", designIcon(R.drawable.ks_hard_drive)) {
                         if (!busy) model.backup {
                             val options = folderOptions()
                             require(options.isNotEmpty()) { "目录中没有已发布的自动备份" }
@@ -98,7 +104,7 @@ fun DataManagementPage(records: Records, model: AppViewModel, back: () -> Unit) 
     localRestore?.let { source ->
         RestoreDialog(source.snapshot, records.state.revision != 0L, configured, busy, error,
             { model.discardRestorePreview(source) }, { model.restoreBackup(source, null) },
-            { protect.launch("kitsune-pre-restore.json") })
+            { protect.launch(suggestedBackupFilename(BackupKind.PRE_RESTORE)) })
     }
 }
 
@@ -107,7 +113,7 @@ internal fun RestoreDialog(staged: StagedSnapshot, needsProtection: Boolean, fol
                            error: String?, dismiss: () -> Unit, apply: () -> Unit, chooseProtection: () -> Unit) {
     AlertDialog(onDismissRequest = { if (!busy) dismiss() }, title = { Text("确认完整恢复") }, shape = DialogShape,
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("备份时间 · ${staged.info.exportedAt}")
                 Text("用餐 ${staged.counts.meals} 条 · 钱包 ${staged.counts.wallets} 个 · 账目 ${staged.counts.entries} 笔")
                 Text("恢复将替换本机全部业务数据与外观。")
@@ -190,18 +196,18 @@ private fun CsvPanel(records: Records, model: AppViewModel, message: (String) ->
                     }
                     source.methods().filter { name -> records.methods.none { it.normalizedName == normalizedName(name) } }
                         .forEach { name ->
-                            Select("映射 $name", mappings.methods[name], records.methods.map { it.id }, records::methodName,
+                            SheetSelect("映射 $name", mappings.methods[name], records.methods.map { it.id }, records::methodName,
                                 { recheck(mappings.copy(methods = mappings.methods + (name to it))) }, enabled = !busy)
                         }
                     source.wallets().filter { (name, code) -> records.wallets.none {
                         it.normalizedName == normalizedName(name) && it.currencyCode == code
                     } }.forEach { (name, code) ->
-                        val choices = records.wallets.filter { it.currencyCode == code }
+                        val choices = records.wallets.filter { it.currencyCode == code }.associateBy { it.id }
                         if (choices.isEmpty()) Secondary("请先新建 $code 钱包，再重新导入。")
-                        else Select("映射 $name · $code", mappings.wallets[name to code], choices.map { it.id },
-                            { id -> choices.find { it.id == id }?.name.orEmpty() }, { id ->
+                        else SheetSelect("映射 $name · $code", mappings.wallets[name to code], choices.keys.toList(),
+                            { id -> choices[id]?.name.orEmpty() }, { id ->
                                 recheck(mappings.copy(wallets = mappings.wallets + ((name to code) to id)))
-                            }, enabled = !busy)
+                            }, enabled = !busy, secondary = { id -> choices[id]?.let(::walletSelectionDetails) })
                     }
                     error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                     if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -235,7 +241,7 @@ fun FolderPage(records: Records, model: AppViewModel, open: (String) -> Unit, ba
     }
     Column {
         Header("本地文件夹备份", back = back)
-        Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Form {
             Paper {
                 Text(when {
                     folder != null && (directory == null || directory.generation == state.generation && directory.revision > state.revision) ->
@@ -246,7 +252,7 @@ fun FolderPage(records: Records, model: AppViewModel, open: (String) -> Unit, ba
                     current -> "最新修订已备份"
                     else -> "最新修订等待备份"
                 })
-                directory?.succeededAt?.let { Secondary("上次成功 · $it") }
+                backupStatusTime(directory?.succeededAt)?.let { Secondary("上次成功 · $it") }
                 if (directory?.cleanupPending == true) Secondary("已发布新备份，正在等待清理旧文件。")
                 Secondary("使用 Android 文件夹授权。新备份校验发布后才清理之前的自动备份。")
             }

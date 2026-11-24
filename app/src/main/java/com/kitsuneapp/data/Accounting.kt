@@ -18,6 +18,14 @@ data class LedgerPeriod(val month: String, val start: String? = null, val end: S
     val label get() = if (start != null && end != null) "$start 至 $end" else YearMonth.parse(month).let { "${it.year} 年 ${it.monthValue} 月" }
 }
 
+data class LedgerEntryFilters(
+    val types: Set<EntryType>? = null,
+    val categoryNames: Set<String>? = null,
+    val note: String = "",
+) : Serializable {
+    val isActive get() = types != null || categoryNames != null || note.isNotBlank()
+}
+
 data class Totals(
     val currency: String,
     val scale: Int,
@@ -38,15 +46,28 @@ class Ledger(records: Records) {
 
     fun wallet(id: String?) = walletById[id]
     fun entry(id: String?) = entriesById[id]
+    fun category(id: String?) = categoryById[id]
     fun walletLabel(id: String?) = wallet(id)?.let { it.name + " · " + it.currencyCode } ?: "未选择"
     fun categoryId(entry: FinancialEntry) = entry.categoryId ?: entry.originalExpenseId?.let { entriesById[it]?.categoryId }
-    fun categoryLabel(id: String?): String = categoryById[id]?.let { category ->
+    fun categoryLabel(id: String?): String = category(id)?.let { category ->
         if (categoryNameCounts.getValue(category.scope to category.normalizedName) > 1) {
             category.name + " · " + (wallet(category.walletId)?.name ?: "通用")
         } else category.name
     } ?: ""
+    fun filterCategories(wallets: List<Wallet>): List<Category> {
+        val walletIds = wallets.mapTo(mutableSetOf()) { it.id }
+        val historical = entries.asSequence().filter { it.walletId in walletIds }.mapNotNull(::categoryId).toSet()
+        return categories.filter {
+            it.scope != Scope.PREPARATION &&
+                ((it.walletId == null && !it.archived) || it.walletId in walletIds || it.id in historical)
+        }.distinctBy(Category::normalizedName)
+    }
+
     fun availableWallets() = wallets.filterNot { it.archived }
+    val defaultWallet = wallet(records.state.defaultWalletId)?.takeUnless { it.archived }
+
     fun preferredWallet(): Wallet? {
+        defaultWallet?.let { return it }
         val regular = availableWallets().filterNot { it.separateAccounting }.associateBy { it.id }
         val latest = entries.asSequence().filter { it.walletId in regular }.maxByOrNull { it.updatedAt }
         return regular[latest?.walletId] ?: regular.values.firstOrNull()
@@ -66,9 +87,16 @@ class Ledger(records: Records) {
         return sums
     }
 
-    fun filtered(period: LedgerPeriod, range: WalletRange): List<FinancialEntry> {
+    fun filtered(period: LedgerPeriod, range: WalletRange, filters: LedgerEntryFilters = LedgerEntryFilters()): List<FinancialEntry> {
         val ids = range.selected(wallets).map { it.id }.toSet()
-        return entries.filter { period.matches(it.date) && (it.walletId in ids || it.toWalletId in ids) }
+        val query = filters.note.trim()
+        return entries.filter {
+            period.matches(it.date) && (it.walletId in ids || it.toWalletId in ids) &&
+                (filters.types == null || it.type in filters.types) &&
+                (filters.categoryNames == null || categoryById[categoryId(it)]?.normalizedName
+                    ?.let { name -> name in filters.categoryNames } == true) &&
+                it.note.contains(query, ignoreCase = true)
+        }
     }
 
     fun statistics(period: LedgerPeriod, range: WalletRange): List<Totals> {

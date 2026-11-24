@@ -38,11 +38,13 @@ class SnapshotTest {
     fun documentedFixtureRoundTripsWithHistoricalFieldsAndAccurateBalances() = runBlocking {
         store.stage(sample.byteInputStream()).use { staged ->
             assertEquals(SnapshotCounts(1, 2, 3), staged.counts)
+            assertEquals("2026-11-16T20:00:00.000+08:00", staged.info.exportedAt)
             store.restore(staged) { fail("Fresh database should not require protection") }
             assertEquals(1L, repository.read().state.revision)
             assertEquals(staged.info.datasetId, repository.read().state.datasetId)
         }
         val records = repository.read()
+        assertTrue(records.categories.all { it.icon == null })
         val ledger = Ledger(records)
         val wallets = records.wallets.associateBy { it.currencyCode }
         assertEquals("8000", ledger.balance()[wallets.getValue("CNY").id].toString())
@@ -52,6 +54,76 @@ class SnapshotTest {
         store.export(BackupKind.MANUAL, output)
         assertTrue(output.toString("UTF-8").contains("\"openingBalanceMinor\": \"10000\""))
         store.stage(output.toByteArray().inputStream()).use { assertEquals(SnapshotCounts(1, 2, 3), it.counts) }
+    }
+
+    @Test
+    fun categoryIconsRoundTripThroughFullBackup() = runBlocking {
+        val preparation = repository.read().categories.first { it.scope == Scope.PREPARATION }
+        assertNull(preparation.icon)
+        repository.saveCategory(null, Scope.INCOME, null, "工资", null, false, CategoryIcon.WORK)
+        val category = repository.read().categories.single { it.name == "工资" }
+        val output = ByteArrayOutputStream()
+        store.export(BackupKind.MANUAL, output)
+        val backup = output.toString("UTF-8")
+        assertTrue(backup.contains("\"formatVersion\": 2"))
+        assertTrue(backup.contains("\"icon\": \"WORK\""))
+        store.stage(backup.byteInputStream()).use { staged ->
+            assertEquals(category, staged.db.records().category(category.id))
+        }
+    }
+
+    @Test
+    fun incomePreferenceStaysLocalAndSurvivesRestoringTheSameDataset() = runBlocking {
+        store.stage(sample.byteInputStream()).use { store.restore(it) { error("Unexpected protection backup") } }
+        val wallet = repository.read().wallets.single { it.currencyCode == "JPY" }
+        repository.saveWallet(WalletDraft(wallet.id, wallet.name, wallet.currencyCode,
+            money(wallet.openingBalanceMinor, wallet.currencyScale), wallet.sortOrder, wallet.archived,
+            wallet.separateAccounting, defaultToIncome = true))
+        assertTrue(repository.read().wallets.single { it.id == wallet.id }.defaultToIncome)
+
+        val output = ByteArrayOutputStream()
+        val info = store.export(BackupKind.MANUAL, output)
+        val backup = output.toString("UTF-8")
+        assertFalse(backup.contains("defaultToIncome"))
+        store.stage(backup.byteInputStream()).use { store.restore(it) {} }
+        assertTrue(repository.read().wallets.single { it.id == wallet.id }.defaultToIncome)
+
+        store.stage(backup.replace(info.datasetId, newId()).byteInputStream()).use { store.restore(it) {} }
+        assertFalse(repository.read().wallets.single { it.id == wallet.id }.defaultToIncome)
+    }
+
+    @Test
+    fun allBackupKindsStorePlusEightAndRestoreCanonicalUtc() = runBlocking {
+        val sha = "ab".repeat(32)
+        val fixture = sample.replace("\"importReceipts\": []", """"importReceipts": [
+            {"kind":"LEDGER","sha256":"$sha","importedAt":"2026-11-16T20:30:00.456Z"}
+        ]""")
+        store.stage(fixture.byteInputStream()).use { store.restore(it) { error("Unexpected protection backup") } }
+        val source = repository.read()
+        val absoluteTime = Regex(""""(?:exportedAt|createdAt|updatedAt|importedAt)": "([^"]+)"""")
+
+        for (kind in BackupKind.entries) {
+            val output = ByteArrayOutputStream()
+            val info = store.export(kind, output)
+            val json = output.toString("UTF-8")
+            val times = absoluteTime.findAll(json).map { it.groupValues[1] }.toList()
+            assertEquals(24, times.size)
+            assertEquals(info.exportedAt, times.first())
+            assertTrue(times.all { it.endsWith("+08:00") })
+            assertTrue(json.contains("\"importedAt\": \"2026-11-17T04:30:00.456+08:00\""))
+            if (kind == BackupKind.AUTO) assertEquals(output.size().toLong(), store.measure())
+
+            store.stage(output.toByteArray().inputStream()).use { staged ->
+                val dao = staged.db.records()
+                assertEquals(info, staged.info)
+                assertEquals(source.categories, dao.categories())
+                assertEquals(source.methods, dao.methods())
+                assertEquals(source.meals, dao.meals())
+                assertEquals(source.wallets, dao.wallets())
+                assertEquals(source.entries, dao.entries())
+                assertEquals(repository.dao.receipts(), dao.receipts())
+            }
+        }
     }
 
     @Test

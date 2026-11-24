@@ -1,9 +1,9 @@
 name: Android
 on:
   push:
-    branches: [main, 'feat/**']
+    branches: [main, 'feat/**', 'codex/android-16']
   pull_request:
-    branches: [main]
+    branches: [main, 'feat/android-full-implementation']
   workflow_dispatch:
 permissions:
   contents: read
@@ -19,7 +19,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+          packages: 'platform-tools platforms;android-36 build-tools;35.0.0'
       - run: ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:assembleDebugAndroidTest
       - uses: actions/upload-artifact@v4
         with:
@@ -35,8 +35,15 @@ jobs:
     if: >-
       github.repository == 'sirarikako/KitsuneApp' &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/android-full-implementation')
-    needs: verify
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/android-full-implementation' ||
+      github.ref == 'refs/heads/feat/android-default-wallet' ||
+      github.ref == 'refs/heads/feat/ledger-time-picker' ||
+      github.ref == 'refs/heads/feat/meal-statistics-month' ||
+      github.ref == 'refs/heads/feat/filter-action-alignment' ||
+      github.ref == 'refs/heads/feat/selection-sheet-hierarchy' ||
+      github.ref == 'refs/heads/feat/category-icons' ||
+      github.ref == 'refs/heads/feat/github-backup-ui-pauses' || github.ref == 'refs/heads/codex/android-16')
+    needs: [verify, device-tests]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -50,22 +57,20 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           packages: 'build-tools;35.0.0'
-      - id: sign
-        name: Sign and verify the fixed test APK
+      - name: Sign and verify the fixed test APK
         env:
           KITSUNE_TEST_KEYSTORE_BASE64: ${{ secrets.KITSUNE_TEST_KEYSTORE_BASE64 }}
         shell: bash
         run: |
-          if [[ -z "$KITSUNE_TEST_KEYSTORE_BASE64" ]]; then
-            echo "::notice::KITSUNE_TEST_KEYSTORE_BASE64 is missing. Only the temporary CI APK is available."
-            exit 0
-          fi
+          set -euo pipefail
+          : "${KITSUNE_TEST_KEYSTORE_BASE64:?Missing fixed test signing key in Actions Secrets}"
           umask 077
           keystore="$(mktemp "$RUNNER_TEMP/kitsune-test-keystore.XXXXXX")"
           trap 'rm -f -- "$keystore"' EXIT
           printf '%s' "$KITSUNE_TEST_KEYSTORE_BASE64" | base64 --decode > "$keystore"
           unset KITSUNE_TEST_KEYSTORE_BASE64
-          apksigner="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          build_tools="$ANDROID_HOME/build-tools/35.0.0"
+          apksigner="$build_tools/apksigner"
           mkdir -p apk-signed
           "$apksigner" sign --ks "$keystore" --ks-key-alias androiddebugkey \
             --ks-pass pass:android --v4-signing-enabled false \
@@ -77,15 +82,23 @@ jobs:
             exit 1
           fi
           printf 'Test signing certificate SHA-256: %s\n' "$fingerprint"
-          echo 'signed=true' >> "$GITHUB_OUTPUT"
+          badging="$("$build_tools/aapt2" dump badging apk-signed/app-debug.apk)"
+          grep -Fq "package: name='com.kitsuneapp' " <<< "$badging"
+          grep -Eq "^(minSdkVersion|sdkVersion):'26'$" <<< "$badging"
+          grep -Fxq "targetSdkVersion:'36'" <<< "$badging"
+          "$build_tools/zipalign" -c -P 16 4 apk-signed/app-debug.apk
+          sha256sum apk-signed/app-debug.apk
       - uses: actions/upload-artifact@v4
-        if: steps.sign.outputs.signed == 'true'
         with:
           name: kitsune-debug
           path: apk-signed/app-debug.apk
           if-no-files-found: error
   device-tests:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [35, 36]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -95,7 +108,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+          packages: 'platform-tools platforms;android-36 build-tools;35.0.0'
       - name: Enable KVM for the emulator
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -103,24 +116,40 @@ jobs:
           sudo udevadm trigger --name-match=kvm
       - uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: ${{ matrix.api-level }}
           arch: x86_64
           target: google_apis
+          profile: pixel_2
           disable-animations: true
           script: |
+            adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.gestural
+            adb shell settings put secure show_ime_with_hard_keyboard 1
             ./gradlew :app:connectedDebugAndroidTest
             adb install -r app/build/outputs/apk/debug/app-debug.apk
             adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-            adb shell am instrument -w -e class 'com.kitsuneapp.NavigationTest#opensAppearanceFromSettings,com.kitsuneapp.LedgerLayoutTest' com.kitsuneapp.test/androidx.test.runner.AndroidJUnitRunner
             mkdir -p captures
+            adb shell am instrument -w -e class 'com.kitsuneapp.NavigationTest#opensAppearanceFromSettings,com.kitsuneapp.NavigationTest#checksRequiredMealPlanAndReturnsAfterSave,com.kitsuneapp.LedgerLayoutTest' com.kitsuneapp.test/androidx.test.runner.AndroidJUnitRunner | tee captures/instrumentation.log
+            grep -Eq '^OK \([1-9][0-9]* tests?\)' captures/instrumentation.log
             adb exec-out run-as com.kitsuneapp cat cache/kitsune-home.png > captures/home.png
             adb exec-out run-as com.kitsuneapp cat cache/kitsune-settings.png > captures/settings.png
+            adb exec-out run-as com.kitsuneapp cat cache/kitsune-meals.png > captures/meals.png
+            adb exec-out run-as com.kitsuneapp cat cache/kitsune-meal-form.png > captures/meal-form.png
             adb exec-out run-as com.kitsuneapp cat cache/kitsune-ledger-narrow-dark.png > captures/ledger-narrow-dark.png
-            python3 -c 'from pathlib import Path; assert all((Path("captures") / name).read_bytes().startswith(bytes.fromhex("89504e470d0a1a0a")) for name in ("home.png", "settings.png", "ledger-narrow-dark.png"))'
+            adb exec-out run-as com.kitsuneapp cat cache/kitsune-wallets-narrow-dark.png > captures/wallets-narrow-dark.png
+            adb exec-out run-as com.kitsuneapp cat cache/kitsune-calculator.png > captures/calculator.png
+            adb exec-out run-as com.kitsuneapp cat cache/kitsune-wallet-range-regular.png > captures/wallet-range-regular.png
+            adb exec-out run-as com.kitsuneapp cat cache/kitsune-wallet-range-manual.png > captures/wallet-range-manual.png
+            adb exec-out run-as com.kitsuneapp cat cache/kitsune-calendar-year-month.png > captures/calendar-year-month.png
+            adb exec-out run-as com.kitsuneapp cat cache/kitsune-calendar-leap-day.png > captures/calendar-leap-day.png
+            adb exec-out run-as com.kitsuneapp cat cache/kitsune-time-input.png > captures/time-input.png
+            adb exec-out run-as com.kitsuneapp cat cache/kitsune-time-clock.png > captures/time-clock.png
+            python3 -c 'from pathlib import Path; files = list(Path("captures").glob("*.png")); assert len(files) == 13 and all(f.read_bytes().startswith(bytes.fromhex("89504e470d0a1a0a")) for f in files)'
+            SELECTION_VISUAL_REVIEW='${{ matrix.api-level == 36 && github.ref == 'refs/heads/feat/selection-sheet-hierarchy' }}' bash .github/scripts/capture-selection-sheets.sh captures/selection-sheets
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: connected-test-reports
+          name: connected-test-reports-api-${{ matrix.api-level }}
           path: |
             app/build/reports/androidTests/
+            app/build/outputs/connected_android_test_additional_output/
             captures/

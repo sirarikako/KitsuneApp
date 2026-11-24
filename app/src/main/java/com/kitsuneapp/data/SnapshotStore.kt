@@ -17,6 +17,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 enum class BackupKind { AUTO, MANUAL, PRE_RESTORE }
+private const val BACKUP_FORMAT_VERSION = 2
 
 data class SnapshotInfo(val datasetId: String, val snapshotId: String, val revision: Long, val exportedAt: String, val kind: BackupKind)
 data class SnapshotCounts(val meals: Int, val wallets: Int, val entries: Int)
@@ -45,12 +46,12 @@ class SnapshotStore(private val context: Context, private val repository: Reposi
         repository.database.withTransaction {
             val data = repository.ownedState()
             require(data.arrayElements <= MAX_ARRAY_ELEMENTS) { "当前数据超过完整备份的记录上限" }
-            val info = SnapshotInfo(data.datasetId, newId(), data.revision, utcNow(), kind)
+            val info = SnapshotInfo(data.datasetId, newId(), data.revision, backupTimestamp(), kind)
             val dao = repository.dao
             jsonWriter(output).use { writer ->
                 writer.beginObject()
                 writer.field("format", "kitsune-backup")
-                writer.field("formatVersion", 1)
+                writer.field("formatVersion", BACKUP_FORMAT_VERSION)
                 writer.field("datasetId", info.datasetId)
                 writer.field("snapshotId", info.snapshotId)
                 writer.field("revision", info.revision.toString())
@@ -58,11 +59,13 @@ class SnapshotStore(private val context: Context, private val repository: Reposi
                 writer.field("backupKind", info.kind)
                 writer.name("data").beginObject()
                 writer.array("categories", dao::categoryPage, Category::id) {
-                    row(categoryFields, it.id, it.scope, it.walletId, it.name, it.sortOrder, it.archived, it.isDefault, it.createdAt, it.updatedAt)
+                    row(categoryFields, it.id, it.scope, it.walletId, it.name, it.sortOrder, it.archived, it.isDefault,
+                        it.icon?.name, it.createdAt, it.updatedAt)
                 }
                 writer.name("meals").beginObject()
                 writer.array("methods", dao::methodPage, MealMethod::id) {
-                    row(methodFields, it.id, it.name, it.sortOrder, it.archived, it.showPreparationCategories, it.createdAt, it.updatedAt)
+                    row(methodFields, it.id, it.name, it.sortOrder, it.archived, it.showPreparationCategories,
+                        it.createdAt, it.updatedAt)
                 }
                 writer.array("records", dao::mealPage, MealRecord::id) {
                     row(mealFields, it.id, it.date, it.mealSlot, it.plannedAtHome, it.mealMethodId, dao.preparationIds(it.id),
@@ -72,11 +75,13 @@ class SnapshotStore(private val context: Context, private val repository: Reposi
                 writer.name("ledger").beginObject()
                 writer.array("wallets", dao::walletPage, Wallet::id) {
                     row(walletFields, it.id, it.name, it.currencyCode, it.currencyScale, it.openingBalanceMinor.toString(),
-                        it.sortOrder, it.archived, it.separateAccounting, it.incomeCategoryMode, it.expenseCategoryMode, it.createdAt, it.updatedAt)
+                        it.sortOrder, it.archived, it.separateAccounting, it.incomeCategoryMode, it.expenseCategoryMode,
+                        it.createdAt, it.updatedAt)
                 }
                 writer.array("entries", dao::entryPage, FinancialEntry::id) {
                     row(entryFields, it.id, it.date, it.time, it.type, it.walletId, it.amountMinor.toString(), it.categoryId,
-                        it.toWalletId, it.toAmountMinor?.toString(), it.originalExpenseId, it.note, it.createdAt, it.updatedAt)
+                        it.toWalletId, it.toAmountMinor?.toString(), it.originalExpenseId, it.note,
+                        it.createdAt, it.updatedAt)
                 }
                 writer.endObject()
                 writer.name("settings").beginObject()
@@ -134,6 +139,8 @@ class SnapshotStore(private val context: Context, private val repository: Reposi
             val target = repository.dao
             repository.database.withTransaction {
                 check(repository.ownedState() == state) { "本机数据已变化，请重新确认恢复" }
+                val sameDataset = state.datasetId == staged.info.datasetId
+                val incomeDefaultWalletIds = if (sameDataset) target.incomeDefaultWalletIds().toSet() else emptySet()
                 target.clearEntries()
                 target.clearPreparation()
                 target.clearMeals()
@@ -141,7 +148,9 @@ class SnapshotStore(private val context: Context, private val repository: Reposi
                 target.clearCategories()
                 target.clearWallets()
                 target.clearReceipts()
-                walk(source::walletPage, Wallet::id) { target.insertWallet(it) }
+                walk(source::walletPage, Wallet::id) { wallet ->
+                    target.insertWallet(wallet.copy(defaultToIncome = wallet.id in incomeDefaultWalletIds))
+                }
                 walk(source::categoryPage, Category::id) { target.insertCategory(it) }
                 walk(source::methodPage, MealMethod::id) { target.insertMethod(it) }
                 walk(source::mealPage, MealRecord::id) { meal ->
@@ -153,9 +162,12 @@ class SnapshotStore(private val context: Context, private val repository: Reposi
                 walk(source::entryPage, FinancialEntry::id) { target.insertEntry(it) }
                 walkReceipts(source) { target.insert(it) }
                 target.put(checkNotNull(source.theme()))
+                val defaultWalletId = state.defaultWalletId?.takeIf {
+                    sameDataset && target.wallet(it)?.archived == false
+                }
                 target.put(state.copy(datasetId = staged.info.datasetId,
                     revision = Math.addExact(state.revision, 1L), generation = Math.addExact(state.generation, 1L),
-                    arrayElements = target.countElements()))
+                    arrayElements = target.countElements(), defaultWalletId = defaultWalletId))
             }
             repository.notifyChanged()
         }
@@ -163,25 +175,36 @@ class SnapshotStore(private val context: Context, private val repository: Reposi
 
     private suspend fun parse(input: JsonInput, dao: RecordsDao): SnapshotInfo = with(input) {
         val values = mutableMapOf<String, String>()
+        var version = 0
+        var hasCategoryIcons = false
         val envelope = setOf("format", "formatVersion", "datasetId", "snapshotId", "revision", "exportedAt", "backupKind", "data")
         obj(envelope) { key ->
             when (key) {
                 "format" -> require(string() == "kitsune-backup") { "文件不是 Kitsune 完整备份" }
-                "formatVersion" -> require(int() == 1) { "不支持此备份格式版本" }
-                "data" -> readData(this, dao)
+                "formatVersion" -> {
+                    version = int()
+                    require(version in 1..BACKUP_FORMAT_VERSION) { "不支持此备份格式版本" }
+                }
+                "data" -> hasCategoryIcons = readData(this, dao)
                 else -> values[key] = string()
             }
         }
+        require(version != 1 || !hasCategoryIcons) { "备份版本 1 不支持分类图标字段" }
         require(reader.peek() == JsonToken.END_DOCUMENT) { "备份文件末尾包含多余内容" }
         SnapshotInfo(validateId(values.getValue("datasetId")), validateId(values.getValue("snapshotId")),
             parseLongString(values.getValue("revision")).also { require(it >= 0) { "修订号不能为负数" } },
-            canonicalTimestamp(values.getValue("exportedAt")), BackupKind.valueOf(values.getValue("backupKind")))
+            backupTimestamp(values.getValue("exportedAt")), BackupKind.valueOf(values.getValue("backupKind")))
     }
 
-    private suspend fun readData(input: JsonInput, dao: RecordsDao): Unit = with(input) {
+    private suspend fun readData(input: JsonInput, dao: RecordsDao): Boolean = with(input) {
+        var hasCategoryIcons = false
         obj(setOf("categories", "meals", "ledger", "settings", "importReceipts")) { key ->
             when (key) {
-                "categories" -> list { dao.insertCategory(row(categoryFields).category()) }
+                "categories" -> list {
+                    val category = row(categoryFields)
+                    if (category.has("icon")) hasCategoryIcons = true
+                    dao.insertCategory(category.category())
+                }
                 "meals" -> obj(setOf("methods", "records")) { field ->
                     if (field == "methods") list { dao.insertMethod(row(methodFields).method()) }
                     else list {
@@ -201,6 +224,7 @@ class SnapshotStore(private val context: Context, private val repository: Reposi
                 "importReceipts" -> list { dao.insert(row(receiptFields).receipt()) }
             }
         }
+        hasCategoryIcons
     }
 }
 

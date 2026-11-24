@@ -1,5 +1,6 @@
 package com.kitsuneapp.data
 
+import androidx.room.AutoMigration
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Insert
@@ -10,8 +11,9 @@ import androidx.room.Upsert
 @Database(
     entities = [MealMethod::class, Category::class, MealRecord::class, MealPreparationCategory::class,
         Wallet::class, FinancialEntry::class, ThemePreferences::class, ImportReceipt::class, DataState::class],
-    version = 1,
+    version = 4,
     exportSchema = true,
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4)],
 )
 abstract class KitsuneDatabase : RoomDatabase() {
     abstract fun records(): RecordsDao
@@ -21,10 +23,15 @@ abstract class KitsuneDatabase : RoomDatabase() {
 interface RecordsDao {
     @Query("SELECT * FROM DataState WHERE `key` = 0") suspend fun state(): DataState?
     @Upsert suspend fun put(state: DataState)
+    @Query("UPDATE DataState SET revision = :revision, arrayElements = :count WHERE `key` = 0")
+    suspend fun updateRevision(revision: Long, count: Int)
+    @Query("UPDATE DataState SET defaultWalletId = :id WHERE `key` = 0")
+    suspend fun setDefaultWallet(id: String?)
     @Query("SELECT * FROM ThemePreferences WHERE `key` = 0") suspend fun theme(): ThemePreferences?
     @Upsert suspend fun put(theme: ThemePreferences)
 
     @Query("SELECT * FROM MealMethod ORDER BY sortOrder, id") suspend fun methods(): List<MealMethod>
+    @Query("SELECT MAX(sortOrder) FROM MealMethod") suspend fun maxMethodOrder(): Int?
     @Query("SELECT * FROM MealMethod WHERE id = :id") suspend fun method(id: String): MealMethod?
     @Query("SELECT * FROM MealMethod WHERE normalizedName = :name") suspend fun methodByName(name: String): MealMethod?
     @Upsert suspend fun put(method: MealMethod)
@@ -58,6 +65,7 @@ interface RecordsDao {
     @Query("DELETE FROM MealRecord WHERE id = :id") suspend fun deleteMeal(id: String): Int
 
     @Query("SELECT * FROM Wallet ORDER BY sortOrder, id") suspend fun wallets(): List<Wallet>
+    @Query("SELECT id FROM Wallet WHERE defaultToIncome = 1") suspend fun incomeDefaultWalletIds(): List<String>
     @Query("SELECT * FROM Wallet WHERE id = :id") suspend fun wallet(id: String): Wallet?
     @Query("SELECT * FROM Wallet WHERE normalizedName = :name AND currencyCode = :code")
     suspend fun walletByName(name: String, code: String): Wallet?

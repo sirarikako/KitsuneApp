@@ -23,5 +23,7 @@ class MoneyTest {
         assertThrows(IllegalArgumentException::class.java) { decimalMinor("1.0", 0) }
         assertThrows(IllegalArgumentException::class.java) { decimalMinor("1.001", 2) }
         assertEquals("92233720368547758.08", money(Long.MAX_VALUE.toBigInteger() + 1.toBigInteger(), 2))
+        assertEquals("-92,233,720,368,547,758.08", displayMoney(Long.MIN_VALUE, 2))
+        assertEquals("9,223,372,036,854,775,808", displayMoney(Long.MAX_VALUE.toBigInteger() + 1.toBigInteger(), 0))
     }
 }

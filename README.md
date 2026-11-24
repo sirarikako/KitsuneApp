@@ -6,7 +6,9 @@
 
 ## 当前状态
 
-Android 工程、Room v1、首页、用餐、钱包、记账、分类管理和外观设置已接入。JSON、CSV、文件夹及 GitHub 私有库备份已接入。开发与验证证据见 [开发进度](docs/IMPLEMENTATION_PROGRESS.md)。
+Android 工程、Room v3、首页、用餐、钱包、记账、分类管理和外观设置已接入。JSON、CSV、文件夹及 GitHub 私有库备份已接入。开发与验证证据见 [开发进度](docs/IMPLEMENTATION_PROGRESS.md)。
+
+首页两张摘要卡片采用统一的卡内标题、详情入口和全宽按钮，本月收支有 CNY 时优先显示 CNY。记账页支持滚动折叠标题和筛选，点击账目金额即可在应用内计算器输入并回填。详见 [首页和记账交互](docs/ui/README.md#首页双卡片布局2026-11-23)。
 
 ## 保留的狐狸图标
 
@@ -15,7 +17,7 @@ Android 工程、Room v1、首页、用餐、钱包、记账、分类管理和�
 - [artwork/README.md](artwork/README.md)：资产来源、原始提示词、接入步骤及验证边界。
 - [artwork/SHA256SUMS](artwork/SHA256SUMS)：图标文件摘要。
 
-图标保留验证仅覆盖文件一致性、PNG 透明度、XML 语法及资源引用；新版已接入，实际启动器显示尚待验收。网页预览仍使用狐狸 emoji 示意，Android 复用上述资产。
+Android 首页和离线网页预览使用同源狐狸图标。资产验证覆盖文件一致性、透明度、XML 语法及资源引用。实际启动器显示尚待验收。
 
 ## 文档入口
 
@@ -24,7 +26,7 @@ Android 工程、Room v1、首页、用餐、钱包、记账、分类管理和�
 | [AGENTS.md](AGENTS.md) | 开发前必读：文档入口、协作规则、验证要求 |
 | [docs/README.md](docs/README.md) | 按功能与数据契约的设计入口、维护职责 |
 | [docs/PLAN.md](docs/PLAN.md) | 产品范围、实施阶段和历史章节导航 |
-| [docs/DATA_FORMAT.md](docs/DATA_FORMAT.md) | v1 数据契约总索引，详细规范位于 docs/data |
+| [docs/DATA_FORMAT.md](docs/DATA_FORMAT.md) | 数据契约总索引，详细规范位于 docs/data |
 | [docs/ui/README.md](docs/ui/README.md) | UI 设计交接、现行文件索引与已验证／未实现边界 |
 
 ## UI 设计预览
@@ -48,16 +50,20 @@ python docs/ui/build_preview.py
 ### 用餐
 
 - 按日期记录早餐、午餐、晚餐；同一天同一餐唯一。
-- “是否计划在家吃”必选是／否；为是时必须单选一种用餐方式，为否时方式可不填。
+- 新记录默认计划在家吃、方式为下厨。计划在家吃为是时必须单选一种用餐方式，为否时方式可不填。
 - 用餐方式在设置中管理，默认下厨、外卖；每种方式可决定是否显示多选制作分类。
-- 制作分类支持下拉选择和录入时新增，例如炒菜、预制菜。
-- 菜品与备注使用多行文本，支持历史搜索、复制和月度统计。
+- 用餐方式和制作分类支持从现有选项后的加号弹窗新增。
+- 菜品与备注使用多行文本，支持历史搜索、复制和用餐统计。统计默认显示本月，可直接切换月份，也可通过筛选选择日期范围或“所有时间”。
 
 ### 记账
 
 - 多钱包，每个钱包独立币种及初始余额；可标记为“独立核算”，默认不进入各项收支统计与流水筛选，仍可手动选择。
+- 新建或编辑钱包时可设为本机默认记账钱包，独立核算钱包也适用。钱包卡片右上角提供分类管理和编辑入口。
+- 每个钱包可设为默认记收入，新建账目时优先使用钱包的默认类型。
+- 流水可多选类型和分类，同名分类合并筛选。当前币种组均为默认收入钱包时，流水合计优先显示收入。
 - 通用收入／支出分类，以及可按钱包分别配置的专属收入／支出分类；未配置时使用通用分类。支持计算器输入、钱包转账、部分／全部退款。
-- 所有账目记录发生日期与时间（精确到分钟），默认当前日期时间，可手动补录与修改。
+- 记账时可在分类标题旁打开新增弹窗，保存后自动选中。记账下拉框和分类管理显示分类图标，完整 JSON 备份保留图标。
+- 所有账目记录发生日期与时间（精确到分钟），默认当前日期时间。点按时间后弹出系统数字键盘，连续输入四位即可覆盖小时和分钟，也可切换到 24 小时时钟。
 - 跨币种转账手填两侧金额，按币种分别统计，不做自动汇率或统一资产折算。
 
 ### 数据与外观
@@ -81,9 +87,9 @@ python docs/ui/build_preview.py
 
 ## 环境、构建与安装
 
-- JDK 21，Gradle 8.11.1，AGP 8.9.2，Kotlin 2.1.21，Room 2.7.2；依赖定义集中在 `gradle/libs.versions.toml`。
-- compileSdk／targetSdk 35，minSdk 26，Build Tools 35.0.0。
-- 应用标识 `com.kitsuneapp`，版本 `1.0.0`（versionCode 1）。调试 APK 由 Android 调试密钥签名。
+- JDK 21，Gradle 8.11.1，AGP 8.10.1，Kotlin 2.1.21，Room 2.7.2。依赖定义集中在 `gradle/libs.versions.toml`。
+- compileSdk／targetSdk 36（Android 16），minSdk 26，Build Tools 35.0.0。
+- 应用标识 `com.kitsuneapp`，版本 `1.0.1`（versionCode 2）。本地调试 APK 使用本机调试密钥。
 
 安装 JDK 和 Android SDK 后，在仓库根目录运行。Windows PowerShell 将 `./gradlew` 换为 `.\gradlew.bat`。
 
@@ -97,7 +103,7 @@ python docs/ui/build_preview.py
 
 调试 APK 生成在 `app/build/outputs/apk/debug/app-debug.apk`。安装到设备可使用 `adb install -r app/build/outputs/apk/debug/app-debug.apk`。发布签名需由持有发布密钥的维护者另行配置。测试和 lint 报告位于 `app/build/reports/`。
 
-GitHub Actions 的 `kitsune-debug` 使用固定测试证书，适合连续覆盖安装。它由 `main` 或 `feat/android-full-implementation` 的推送构建或手动运行生成，需在仓库 Actions Secrets 中配置 `KITSUNE_TEST_KEYSTORE_BASE64`，值为已核对的原工作区调试 keystore 的 Base64。签名作业校验证书 SHA-256 后才上传。各次验证构建还提供使用运行器临时签名的 `kitsune-debug-ci`，供当次测试使用。旧测试包切换证书时，先导出完整 JSON 备份，再安装固定签名包并恢复。
+GitHub Actions 在构建、lint、单元测试及 Android 15／16 设备测试通过后，使用 `KITSUNE_TEST_KEYSTORE_BASE64` 中的现有固定测试密钥签名。在受信任分支上，签名作业核对证书 SHA-256、包名、SDK 和 APK 对齐，再上传 `kitsune-debug`。已安装同证书版本的设备可覆盖安装。旧包使用其他证书时，先导出完整 JSON 备份，再安装固定签名包并恢复。`kitsune-debug-ci` 使用当次运行器的临时签名。迁移差异和验证范围见[开发进度](docs/IMPLEMENTATION_PROGRESS.md#android-16-迁移)。
 
 持有原工作区调试 keystore 且有仓库 Secret 管理权限时，可通过标准输入配置密钥。
 
@@ -109,7 +115,7 @@ base64 -w0 /path/to/debug.keystore | gh secret set KITSUNE_TEST_KEYSTORE_BASE64 
 
 - **本地记录**：没有网络、没有配置 GitHub，也能记录和查询。
 - **文件夹备份**可在设置中通过系统选择器授权目录。目录暂时不可用时可继续录入，恢复访问后备份最新数据。备份按 UTC 日期时间加序号命名，校验并发布后才替换上一份。
-- **GitHub** 使用单独配置的私有仓库、分支和限定仓库权限的 Token。自动上传合并连续修改，后台写入至少间隔 30 分钟。需要时可点“立即备份”。发现远端备份有变化会暂停上传，用户可选择恢复云端、确认以本机数据覆盖，或取消并保持暂停。详见 [GitHub 备份规则](docs/features/09-backup.md#94-github-私有库)。
+- **GitHub** 使用单独配置的私有仓库、分支和限定仓库权限的 Token。自动上传合并连续修改，后台写入至少间隔 30 分钟。设置中可分别选择「立即备份」与「从 GitHub 恢复」。自动备份暂停时，设置行会提示，并可从 GitHub 备份页按原因处理；远端版本变化时，覆盖须二次确认。详见 [GitHub 备份规则](docs/features/09-backup.md#94-github-私有库)。
 - **完整恢复**会在校验后整体替换业务数据。新装空库可直接恢复；已有用户数据时，先把保护文件保存到授权目录或通过系统选择器单次导出。已绑定 GitHub 时，恢复后由用户单独确认是否更新云端备份。
 - **CSV**：用于批量记录和表格查看，导入前预览与校验；钱包、完整设置和全量迁移使用 JSON。
 - **备份形式**：JSON 内容本身不加密；Token 不包含在其中。不要把个人备份作为源码提交。

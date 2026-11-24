@@ -3,7 +3,7 @@ package com.kitsuneapp.data
 import com.google.gson.stream.JsonToken
 import com.google.gson.stream.JsonWriter
 
-internal enum class FieldType { TEXT, OPTIONAL_TEXT, FLAG, INT, IDS }
+internal enum class FieldType { TEXT, TIMESTAMP, OPTIONAL_TEXT, FLAG, INT, IDS }
 internal data class BackupField(val key: String, val type: FieldType = FieldType.TEXT, val absent: Boolean = false)
 internal fun text(key: String) = BackupField(key)
 internal fun reference(key: String, absent: Boolean = false) = BackupField(key, FieldType.OPTIONAL_TEXT, absent)
@@ -11,11 +11,12 @@ internal fun flag(key: String, absent: Boolean = false) = BackupField(key, Field
 internal fun number(key: String) = BackupField(key, FieldType.INT)
 internal fun ids(key: String) = BackupField(key, FieldType.IDS)
 internal fun legacy(key: String) = BackupField(key, absent = true)
-private val audit = listOf(text("createdAt"), text("updatedAt"))
+private fun timestamp(key: String) = BackupField(key, FieldType.TIMESTAMP)
+private val audit = listOf(timestamp("createdAt"), timestamp("updatedAt"))
 
 internal val methodFields = listOf(text("id"), text("name"), number("sortOrder"), flag("archived"), flag("showPreparationCategories")) + audit
 internal val categoryFields = listOf(text("id"), text("scope"), reference("walletId", true), text("name"),
-    number("sortOrder"), flag("archived"), flag("isDefault")) + audit
+    number("sortOrder"), flag("archived"), flag("isDefault"), reference("icon", true)) + audit
 internal val mealFields = listOf(text("id"), text("date"), text("mealSlot"), flag("plannedAtHome"), reference("mealMethodId"),
     ids("preparationCategoryIds"), text("dishes"), text("note")) + audit
 internal val walletFields = listOf(text("id"), text("name"), text("currencyCode"), number("currencyScale"), text("openingBalanceMinor"),
@@ -24,9 +25,10 @@ internal val walletFields = listOf(text("id"), text("name"), text("currencyCode"
 internal val entryFields = listOf(text("id"), text("date"), text("time"), text("type"), text("walletId"), text("amountMinor"),
     reference("categoryId"), reference("toWalletId"), reference("toAmountMinor"), reference("originalExpenseId"), text("note")) + audit
 internal val themeFields = listOf(text("themeMode"), text("colorSource"), text("presetId"), text("customSeedColor"))
-internal val receiptFields = listOf(text("kind"), text("sha256"), text("importedAt"))
+internal val receiptFields = listOf(text("kind"), text("sha256"), timestamp("importedAt"))
 
 internal class RowReader(private val fields: Map<String, Any?>) {
+    fun has(key: String) = fields.containsKey(key)
     fun text(key: String) = fields.getValue(key) as String
     fun optional(key: String) = fields[key] as String?
     fun flag(key: String) = fields[key] as? Boolean ?: false
@@ -51,7 +53,7 @@ internal suspend fun JsonInput.row(specification: List<BackupField>): RowReader 
     val values = mutableMapOf<String, Any?>()
     obj(required, spec.keys - required) { key ->
         values[key] = when (spec.getValue(key).type) {
-            FieldType.TEXT -> string().also { validateField(key, it) }
+            FieldType.TEXT, FieldType.TIMESTAMP -> string().also { validateField(key, it) }
             FieldType.OPTIONAL_TEXT -> nullable { string().also { validateField(key, it) } }
             FieldType.FLAG -> bool()
             FieldType.INT -> int()
@@ -75,7 +77,7 @@ internal fun JsonWriter.row(spec: List<BackupField>, vararg values: Any?) {
             endArray()
         } else {
             if (value is String) validateField(field.key, value)
-            field(field.key, value)
+            field(field.key, if (field.type == FieldType.TIMESTAMP) backupTimestamp(value as String) else value)
         }
     }
     endObject()
@@ -91,11 +93,13 @@ internal fun RowReader.category(): Category {
     val name = name()
     val default = flag("isDefault")
     val archived = flag("archived")
+    val icon = optional("icon")?.let { enum<CategoryIcon>("icon") }
     require(wallet == null || scope != Scope.PREPARATION) { "制作分类必须是通用分类" }
     require(!default || (scope != Scope.PREPARATION && name == "未分类" && !archived && wallet == null)) { "兜底分类无效" }
     require(scope == Scope.PREPARATION || name != "未分类" || default) { "分类名称“未分类”已经保留" }
+    require(icon == null || (!default && scope != Scope.PREPARATION)) { "分类图标无效" }
     return Category(id(), scope, wallet, wallet ?: GLOBAL_OWNER, name, normalizedName(name), order(), archived,
-        default, time("createdAt"), time("updatedAt"))
+        default, time("createdAt"), time("updatedAt"), icon)
 }
 
 internal fun RowReader.meal(): MealRecord {

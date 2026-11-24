@@ -1,6 +1,94 @@
+    function updateMealDatePresets(form){
+      const selected=mealDatePreset({from:form.elements.from.value,to:form.elements.to.value});
+      for(const button of form.querySelectorAll('[data-clear-meal-date]')){
+        button.hidden=!form.elements[button.dataset.clearMealDate].value;
+      }
+      for(const button of form.querySelectorAll('[data-meal-date-preset]')){
+        button.setAttribute('aria-pressed',String(button.dataset.mealDatePreset===selected));
+      }
+      form.querySelector('.ks-error').textContent='';
+    }
     phone.addEventListener('click',event=>{
+      if(event.target.matches('.ks-selection-overlay')){cancelSelection();return;}
+      if(event.target.matches('[data-entry-category-overlay]')){closeEntryCategory();return;}
+      if(event.target.matches('.ks-period-overlay')){closePeriod(false);return;}
+      if(event.target.matches('.ks-calendar-overlay')){closeMealCalendar(false);return;}
+      if(event.target.matches('.ks-time-overlay')){closeEntryTime(false);return;}
+      if(event.target.matches('[data-meal-option-overlay]')){closeMealOption();return;}
       const b=event.target.closest('button');if(!b)return;
       capture();state.notice='';
+      if(b.hasAttribute('data-select-close')){cancelSelection();return;}
+      if(b.dataset.selectOpen){state.singleSelection=b.dataset.selectOpen;render();return;}
+      if(b.dataset.selectValue!==undefined){closeSingleSelection(b.dataset.selectValue);return;}
+      if(b.dataset.action==='add-entry-category'){state.singleSelection=null;state.addingEntryCategory=true;render();return;}
+      if(b.dataset.action==='open-csv-mapping'){state.page='csv-mapping';render();return;}
+      if(b.dataset.action==='cancel-entry-category'){closeEntryCategory();return;}
+      if(b.dataset.action==='open-entry-time'){
+        const [hour,minute]=state.entryDraft.dateTime.slice(-5).split(':');
+        state.entryTimeDraft={hour,minute,clock:false,part:'hour',clockTime:{hour,minute}};
+        render();return;
+      }
+      if(b.closest('[data-entry-time]')){
+        const d=state.entryTimeDraft;
+        if(b.dataset.timeAction==='cancel'){closeEntryTime(false);return;}
+        if(b.dataset.timeAction==='mode'){
+          if(!d.clock){
+            for(const part of ['hour','minute'])d[part]=d.clockTime[part]=validTimePart(d[part],part)?d[part]:d.clockTime[part];
+            d.part='hour';
+          }
+          d.clock=!d.clock;
+        }else if(b.dataset.timePart){
+          d.part=b.dataset.timePart;
+        }else if(b.dataset.timeValue!==undefined){
+          d[d.part]=d.clockTime[d.part]=timeDigits(b.dataset.timeValue);
+          d.part='minute';
+        }else return;
+        render();return;
+      }
+      if(b.dataset.action==='open-meal-calendar'){
+        const compact=phone.clientWidth<360;
+        state.mealCalendar={selected:state.date,month:state.date.slice(0,7),text:state.date,year:'',mode:compact?'text':'calendar',compact};
+        render();return;
+      }
+      if(b.closest('.ks-calendar-dialog')){
+        const d=state.mealCalendar,action=b.dataset.calendarAction;
+        if(action==='cancel'||action==='apply'){closeMealCalendar(action==='apply');return;}
+        let focus='[data-calendar-action=jump]';
+        if(action==='jump'){
+          d.mode=d.mode==='jump'?'calendar':'jump';d.year=String(Number(d.month.slice(0,4)));
+        }else if(action==='mode'){
+          if(d.mode==='text'){
+            if(isDate(d.text)){d.selected=d.text;d.month=d.text.slice(0,7);}
+            d.mode='calendar';
+          }else{d.mode='text';d.text=d.selected;}
+          focus='[data-calendar-action=mode]';
+        }else if(b.dataset.calendarMonth){
+          d.month=`${d.year.padStart(4,'0')}-${b.dataset.calendarMonth.padStart(2,'0')}`;d.mode='calendar';
+        }else if(b.dataset.calendarStep){
+          const month=new Date(`${d.month}-01T00:00:00Z`);month.setUTCMonth(month.getUTCMonth()+Number(b.dataset.calendarStep));
+          d.month=month.toISOString().slice(0,7);
+          focus=`[data-calendar-step="${b.dataset.calendarStep}"]:not(:disabled)`;
+        }else if(b.dataset.calendarDay){
+          d.selected=b.dataset.calendarDay;focus=`[data-calendar-day="${d.selected}"]`;
+        }
+        render();(phone.querySelector(focus)??phone.querySelector('[data-calendar-action=jump]'))?.focus({preventScroll:true});return;
+      }
+      if(b.dataset.githubAction){
+        const action=b.dataset.githubAction,demo=state.githubDemo;
+        if(action==='open'||action==='handle'){state.page='github';demo.review=null;}
+        else if(action==='backup'||action==='apply-upload'){
+          demo.uploading=true;demo.review=null;
+          setTimeout(()=>{if(demo.uploading){demo.uploading=false;demo.scenario='normal';demo.backedUp=true;render();}},600);
+        }
+        else if(action==='apply-restore'){demo.scenario='restored';demo.review='notice';}
+        else if(action==='configure'){demo.editing=true;demo.draftWifi=demo.wifi;}
+        else if(action==='save-connection'){demo.wifi=demo.draftWifi;demo.editing=false;demo.scenario='review';}
+        else if(action==='cancel-connection')demo.editing=false;
+        else demo.review=action==='cancel'?null:action;
+        render();
+        if(!demo.review)phone.querySelector('[data-github-action=restore-preview]')?.focus({preventScroll:true});
+        return;
+      }
       if(b.dataset.previewMode){state.previewMode=b.dataset.previewMode;updateAppearancePreview();return;}
       if(b.dataset.action==='open-appearance'){resetAppearance();state.page='appearance';render();return;}
       if(b.dataset.action==='reset-appearance'){state.appearanceDraft={...defaultAppearance};render();return;}
@@ -11,66 +99,289 @@
         if(next.customColor===null){phone.querySelector('[data-appearance-error]').textContent='请输入六位 HEX 颜色，例如 #C47A4A。';return;}
         applyAnimatedAppearance(next);state.notice='已应用外观。';render();persist();return;
       }
-      if(b.dataset.action==='edit-ledger-range'){
-        state.ledgerRangeOpen=!state.ledgerRangeOpen;render();
-        phone.querySelector(state.ledgerRangeOpen?'[data-ledger-range-form] [name=from]':'[data-action=edit-ledger-range]').focus();
+      if(b.dataset.action==='open-ledger-filters'){state.ledgerFilterDraft={...state.ledgerFilters};render();return;}
+      if(b.dataset.filterBulk){
+        const group=b.closest('[data-filter-group]'),key=group.dataset.filterGroup;
+        const all=b.dataset.filterBulk==='all';
+        state.ledgerFilterDraft[key]=all?null:[];
+        group.querySelectorAll('input').forEach(input=>{input.checked=all;});
+        updateLedgerFilterCount(group);
         return;
       }
-      if(b.dataset.action==='cancel-ledger-range'){state.ledgerRangeOpen=false;render();phone.querySelector('[data-action=edit-ledger-range]').focus();return;}
-      if(b.dataset.action==='ledger-month-mode'){state.ledgerRange=null;state.ledgerRangeOpen=false;render();phone.querySelector('[data-month-input=ledgerMonth]').focus();persist();return;}
-      if(b.dataset.action==='meal-filter'){state.mealFilterDraft={...state.mealFilters,preparations:[...state.mealFilters.preparations]};state.page='meal-filter';render();return;}
-      if(b.dataset.action==='reset-meal-filter'){state.mealFilterDraft=blankMealFilters();render();return;}
+      if(b.dataset.action==='choose-ledger-period'){
+        const range=state.ledgerRange,[year,month]=state.ledgerMonth.split('-').map(n=>String(Number(n)));
+        state.periodDraft={target:'ledger',mode:range?'range':'month',year,month,from:range?.from||'',to:range?.to||''};
+        render();return;
+      }
+      if(b.dataset.action==='choose-meal-month'){
+        const {from,to}=state.mealStatsFilters;
+        const [year,month]=(from||to||demoToday).slice(0,7).split('-').map(n=>String(Number(n)));
+        state.periodDraft={target:'meals',mode:'month',year,month};
+        render();return;
+      }
+      if(b.dataset.action==='cancel-period'){closePeriod(false);return;}
+      if(b.dataset.periodMode){
+        state.periodDraft.mode=b.dataset.periodMode;render();
+        phone.querySelector('[data-period-mode][aria-pressed=true]').focus({preventScroll:true});return;
+      }
+      if(b.dataset.periodStep){
+        const d=state.periodDraft,ordinal=Number(d.year)*12+Number(d.month)-1+Number(b.dataset.periodStep);
+        d.year=String(Math.floor(ordinal/12));
+        d.month=String(ordinal%12+1);
+        render();
+        (phone.querySelector(`[data-period-step="${b.dataset.periodStep}"]:not(:disabled)`)??phone.querySelector('[name=year]')).focus({preventScroll:true});
+        return;
+      }
+      if(b.dataset.periodMonth){
+        state.periodDraft.month=b.dataset.periodMonth;render();
+        phone.querySelector('[data-period-month][aria-pressed=true]').focus({preventScroll:true});return;
+      }
+      if(b.dataset.action==='meal-filter'){
+        state.mealFilterDraft=state.mealTab==='统计'?state.mealStatsFilters:state.mealFilters;
+        state.page='meal-filter';render();return;
+      }
+      if(b.dataset.mealDatePreset){
+        const dates=mealDatePresets[b.dataset.mealDatePreset];
+        b.form.elements.from.value=dates.from;
+        b.form.elements.to.value=dates.to;
+        updateMealDatePresets(b.form);
+        return;
+      }
+      if(b.dataset.clearMealDate){
+        const date=b.form.elements[b.dataset.clearMealDate];
+        date.value='';
+        updateMealDatePresets(b.form);
+        date.focus({preventScroll:true});
+        return;
+      }
+      if(b.dataset.action==='reset-meal-filter'){
+        state.mealFilterDraft=blankMealFilters(state.mealTab==='统计'?mealDatePresets.month:mealDatePresets.all);
+        render();return;
+      }
       if(b.dataset.action==='meal-daily'){state.mealListMode=false;render();persist();return;}
       if(b.dataset.action==='clear-meal-filters'){state.mealFilters=blankMealFilters();render();persist();return;}
       if(b.dataset.action==='manage-categories'){state.categoryReturn=state.page;state.categoryWalletId=b.dataset.categoryWallet||'GLOBAL';state.financialScope='EXPENSE';state.editingFinancialCategoryId=null;state.page='category-manager';render();return;}
       if(b.dataset.financialScope){state.financialScope=b.dataset.financialScope;state.editingFinancialCategoryId=null;render();return;}
-      if(b.dataset.editFinancialCategory){state.editingFinancialCategoryId=b.dataset.editFinancialCategory;render();phone.querySelector('[data-financial-category-form] [name=categoryName]')?.focus({preventScroll:true});return;}
-      if(b.dataset.archiveFinancialCategory){const c=categoryById(b.dataset.archiveFinancialCategory);if(c&&!c.isDefault){c.archived=!c.archived;state.editingFinancialCategoryId=null;render();}return;}
-      if(b.dataset.action==='cancel-category-edit'){state.editingFinancialCategoryId=null;render();return;}
-      if(b.dataset.action==='edit-general-categories'){state.categoryWalletId='GLOBAL';state.editingFinancialCategoryId=null;render();return;}
-      if(b.dataset.action==='choose-wallets'){state.walletDraftIds=selectedWallets().map(w=>w.id);state.walletPickerOpen=true;render();return;}
-      if(b.dataset.editWallet){state.editingWalletId=b.dataset.editWallet;state.page='wallet-edit';render();return;}
-      if(b.dataset.action==='save-wallet'){walletById(state.editingWalletId).separateAccounting=phone.querySelector('[data-wallet-independent]').checked;state.page='ledger';render();persist();return;}
+      if(b.dataset.editFinancialCategory){
+        state.editingFinancialCategoryId=b.dataset.editFinancialCategory==='new'?null:b.dataset.editFinancialCategory;
+        state.categoryDetailReturn=state.page;state.page='category-detail';render();return;
+      }
+      if(b.dataset.action==='edit-owned-categories'){state.page='category-owned';render();return;}
+      if(b.dataset.action==='choose-wallets'){
+        const scope=state.walletFilterIds;
+        state.walletDraftMode=Array.isArray(scope)?'MANUAL':scope==='ALL'?'ALL':'REGULAR';
+        state.walletDraftIds=Array.isArray(scope)?[...scope]:regularWallets().map(w=>w.id);
+        state.walletPickerOpen=true;render();return;
+      }
+      if(b.dataset.editWallet){
+        const wallet=walletById(b.dataset.editWallet);
+        state.editingWalletId=wallet.id;state.page='wallet-edit';
+        state.walletEditDraft={code:wallet.code,separateAccounting:wallet.separateAccounting,
+          defaultToIncome:wallet.defaultToIncome,defaultWallet:state.defaultWalletId===wallet.id};
+        render();return;
+      }
+      if(b.dataset.action==='save-wallet'){
+        const wallet=walletById(state.editingWalletId),draft=state.walletEditDraft;
+        wallet.separateAccounting=draft.separateAccounting;
+        wallet.defaultToIncome=draft.defaultToIncome;
+        if(wallet.code!==draft.code){
+          wallet.code=draft.code;
+          wallet.scale=new Intl.NumberFormat('zh-CN',{style:'currency',currency:wallet.code}).resolvedOptions().maximumFractionDigits;
+        }
+        if(!wallet.archived&&draft.defaultWallet)state.defaultWalletId=wallet.id;
+        else if(state.defaultWalletId===wallet.id)state.defaultWalletId=null;
+        state.page='ledger';render();persist();return;
+      }
+      if(b.dataset.walletMode){
+        state.walletDraftMode=b.dataset.walletMode;render();
+        phone.querySelector('[data-wallet-mode][aria-pressed=true]').focus({preventScroll:true});return;
+      }
+      if(b.dataset.walletAction==='default'){
+        state.walletDraftMode='REGULAR';state.walletDraftIds=regularWallets().map(w=>w.id);render();
+        phone.querySelector('[data-wallet-action=default]').focus({preventScroll:true});return;
+      }
       if(b.dataset.walletAction){closeWalletPicker(b.dataset.walletAction);return;}
       if(b.dataset.entryId){if(!financialEntries().some(e=>e.id===b.dataset.entryId))return;recordOrigin={page:state.page,id:b.dataset.entryId};entrance=visible(b)?rect(b):null;state.selectedEntryId=b.dataset.entryId;state.page='entry-detail';render();return;}
       if(b.dataset.action==='delete-meal'){const meal=state.records[state.editingDate]?.[state.editingSlot];if(!meal)return;state.deletePending={kind:'meal',date:state.editingDate,slot:state.editingSlot,summary:`${state.editingDate} · ${slots[state.editingSlot]}\n${meal.dishes||'无菜品内容'}`};render();return;}
-      if(b.dataset.action==='delete-entry'){const e=financialEntries().find(e=>e.id===state.selectedEntryId);if(!e)return;const w=walletById(e.walletId);state.deletePending={kind:'entry',id:e.id,summary:`${e.date} ${e.time}\n${w.name} · ${w.code}\n${entryCategory(e)} · ${e.type} ¥${money(e.cents,w.code)}`};render();return;}
+      if(b.dataset.action==='delete-entry'){const e=financialEntries().find(e=>e.id===state.selectedEntryId);if(!e)return;const w=walletById(e.walletId);state.deletePending={kind:'entry',id:e.id,summary:`${e.date} ${e.time}\n${w.name} · ${w.code}\n${entryCategory(e)} · ${e.type} · ${e.type==='支出'?'−':'+'}${money(e.cents,w.code)} ${w.code}`};render();return;}
       if(b.dataset.deleteAction){if(b.dataset.deleteAction==='confirm')confirmDelete();else cancelDelete();return;}
       if(b.dataset.action==='open-calculator'){state.calcExpression=state.amount;state.calcOpen=true;render();return;}
       if(b.dataset.calcAction){closeCalculator(b.dataset.calcAction==='apply');return;}
-      if(b.dataset.monthStep){const key=b.dataset.monthKey;if(!['ledgerMonth','mealMonth'].includes(key))return;const [year,month]=state[key].split('-').map(Number),ordinal=year*12+month-1+Number(b.dataset.monthStep);if(ordinal<12||ordinal>=120000)return;state[key]=`${String(Math.floor(ordinal/12)).padStart(4,'0')}-${String(ordinal%12+1).padStart(2,'0')}`;if(key==='ledgerMonth')state.ledgerRangeOpen=false;render();persist();return;}
-      if(b.dataset.page){if(state.page===b.dataset.page)return;state.page=b.dataset.page;state.ledgerRangeOpen=false;if(state.page==='settings')resetAppearance();render();persist();return;}
-      if(b.dataset.date){state.date=b.dataset.date;render();return;}
-      if(b.dataset.meal!==undefined){if(state.page==='home')state.date='2026-11-17';else if(b.dataset.mealDate)state.date=b.dataset.mealDate;state.slot=Number(b.dataset.meal);state.mealReturn=state.page;const m=records()[state.slot];state.editing=!!m;if(m&&b.classList.contains('ks-record')){recordOrigin={page:state.page,date:state.date,slot:b.dataset.meal};entrance=visible(b)?rect(b):null;}else recordOrigin=null;state.editingDate=state.date;state.editingSlot=state.slot;state.atHome=m?.atHome??null;state.method=m?.method??null;state.categories=[...(m?.categories||[])];state.dishes=m?.dishes||'';state.note=m?.note||'';state.page='meal-form';render();return;}
+      if(b.dataset.page){if(state.page===b.dataset.page)return;state.page=b.dataset.page;if(state.page==='settings')resetAppearance();render();persist();return;}
+      if(b.dataset.date){
+        state.date=b.dataset.date;render();
+        if(b.dataset.weekStep)(phone.querySelector(`[data-week-step="${b.dataset.weekStep}"]:not(:disabled)`)||
+          phone.querySelector('.ks-day[aria-pressed=true]'))?.focus({preventScroll:true});
+        return;
+      }
+      if(b.dataset.meal!==undefined){if(state.page==='home')state.date='2026-11-17';else if(b.dataset.mealDate)state.date=b.dataset.mealDate;state.slot=Number(b.dataset.meal);state.mealReturn=state.page;const m=records()[state.slot];state.editing=!!m;if(m&&b.classList.contains('ks-record')){recordOrigin={page:state.page,date:state.date,slot:b.dataset.meal};entrance=visible(b)?rect(b):null;}else recordOrigin=null;state.editingDate=state.date;state.editingSlot=state.slot;state.atHome=m?m.atHome:true;state.method=m?m.method:'下厨';state.categories=[...(m?.categories||[])];state.dishes=m?.dishes||'';state.note=m?.note||'';state.page='meal-form';render();return;}
       if(b.dataset.homeChoice!==undefined){state.atHome=b.dataset.homeChoice==='true';render();return;}
       if(b.dataset.method){const m=b.dataset.method;state.method=state.method===m?null:m;if(state.method!=='下厨')state.categories=[];render();return;}
       if(b.dataset.category){const c=b.dataset.category;state.categories=state.categories.includes(c)?state.categories.filter(x=>x!==c):[...state.categories,c];render();return;}
       if(b.dataset.mealTab){state.mealTab=b.dataset.mealTab;render();return;}
-      if(b.dataset.ledgerTab){state.ledgerTab=b.dataset.ledgerTab;state.ledgerRangeOpen=false;render();return;}
-      if(b.dataset.entryType){state.entryType=b.dataset.entryType;state.entryDraft.category=chooseFinancialCategory(state.entryDraft.walletId,state.entryType,financialScopeOf(state.entryType)==='INCOME'?'gi-salary':'ge-food');render();return;}
-      if(b.dataset.key!==undefined){const input=phone.querySelector('[data-calc-expression]'),k=b.dataset.key;state.calcExpression=input.value;phone.querySelector('.ks-calc-error').textContent='';if(k==='C')state.calcExpression='';else if(k==='⌫')state.calcExpression=state.calcExpression.slice(0,-1);else if(k==='='){try{state.calcExpression=inputAmount(calcCents(state.calcExpression));}catch(e){phone.querySelector('.ks-calc-error').textContent=e.message;return;}}else if(state.calcExpression.length<80)state.calcExpression+=k;input.value=state.calcExpression;return;}
-      if(b.dataset.action==='add-entry'){state.page='entry';state.amount='';state.ledgerRangeOpen=false;state.entryType='支出';state.entryDraft={dateTime:`${demoToday}T09:41`,note:'',category:defaultEntryWallet()?'ge-food':'',walletId:defaultEntryWallet()?.id||''};render();return;}
-      if(b.dataset.action==='back'){state.page=state.page==='category-manager'?state.categoryReturn:state.page==='appearance'?'settings':state.page==='meal-filter'?'meals':state.page==='meal-form'?state.mealReturn:'ledger';render();return;}
-      if(b.dataset.action==='new-category'){phone.querySelector('[data-new-category]').hidden=false;phone.querySelector('[data-category-name]').focus();return;}
-      if(b.dataset.action==='confirm-category'){const c=phone.querySelector('[data-category-name]').value.trim();if(c&&!state.categories.includes(c))state.categories.push(c);render();}
+      if(b.dataset.ledgerTab){state.ledgerTab=b.dataset.ledgerTab;render();return;}
+      if(b.dataset.entryType){
+        state.followsWalletType=false;
+        if(b.dataset.entryType!==state.entryType){
+          state.entryType=b.dataset.entryType;
+          state.entryDraft.category=chooseFinancialCategory(state.entryDraft.walletId,state.entryType,
+            state.entryType==='收入'?'gi-salary':'ge-food');
+        }
+        render();return;
+      }
+      if(b.dataset.key!==undefined){
+        const display=phone.querySelector('[data-calc-expression]'),key=b.dataset.key;
+        const error=phone.querySelector('.ks-calc-error');
+        error.textContent='';
+        if(key==='C')state.calcExpression='';
+        else if(key==='⌫')state.calcExpression=state.calcExpression.slice(0,-1);
+        else if(key==='='){
+          try{state.calcExpression=inputAmount(calcCents(state.calcExpression));display.closest('.ks-calc-body').scrollTop=0;}
+          catch(failure){error.textContent=failure.message;return;}
+        }else if(state.calcExpression.length<80)state.calcExpression+=key;
+        display.textContent=state.calcExpression||(entryWallet()?.scale===0?'0':'0.00');
+        display.scrollLeft=display.scrollWidth;
+        return;
+      }
+      if(b.dataset.action==='add-entry'){
+        const wallet=defaultEntryWallet(),walletId=wallet?.id||'';
+        state.entryType=defaultEntryType(wallet);
+        state.followsWalletType=true;
+        const category=(state.entryType==='支出'?chooseFinancialCategory(walletId,'支出','ge-food'):'')
+          ||initialEntryCategory(walletId,state.entryType);
+        state.entryReturn=state.page;state.page='entry';state.amount='';
+        state.entryDraft={dateTime:`${demoToday}T09:41`,note:'',category,walletId};
+        render();return;
+      }
+      if(b.dataset.action==='back'){state.page=state.page==='entry'?state.entryReturn:state.page==='category-detail'?state.categoryDetailReturn:state.page==='category-owned'?'category-manager':state.page==='category-manager'?state.categoryReturn:['appearance','github','csv-mapping'].includes(state.page)?'settings':state.page==='meal-filter'?'meals':state.page==='meal-form'?state.mealReturn:'ledger';render();return;}
+      if(b.dataset.addMealOption){state.addingMealOption=b.dataset.addMealOption;render();return;}
+      if(b.dataset.action==='cancel-meal-option'){closeMealOption();return;}
     });
-    phone.addEventListener('keydown',event=>{if(!state.calcOpen&&!state.deletePending&&!state.walletPickerOpen)return;if(event.key==='Escape'){event.preventDefault();if(state.walletPickerOpen)closeWalletPicker('cancel');else if(state.deletePending)cancelDelete();else closeCalculator(false);}else if(state.calcOpen&&event.key==='Enter'&&event.target.matches('[data-calc-expression]')){event.preventDefault();closeCalculator(true);}else if(event.key==='Tab'){const dialog=phone.querySelector('[role=dialog],[role=alertdialog]'),controls=[...dialog.querySelectorAll('button,input')],first=controls[0],last=controls[controls.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}});
+    let selectionDrag=null;
+    phone.addEventListener('pointerdown',event=>{
+      const handle=event.target.closest('.ks-selection-handle');
+      if(!handle||!event.isPrimary)return;
+      selectionDrag={id:event.pointerId,x:event.clientX,y:event.clientY};
+      handle.setPointerCapture(event.pointerId);
+    });
+    phone.addEventListener('pointerup',event=>{
+      if(selectionDrag?.id!==event.pointerId)return;
+      const dy=event.clientY-selectionDrag.y,dx=event.clientX-selectionDrag.x;
+      selectionDrag=null;
+      if(dy>48&&dy>Math.abs(dx))cancelSelection();
+    });
+    phone.addEventListener('pointercancel',()=>{selectionDrag=null;});
+    phone.addEventListener('keydown',event=>{
+      if(!modalKind())return;
+      if(event.key==='Escape'){
+        event.preventDefault();
+        if(state.githubDemo.review){
+          state.githubDemo.review=null;render();phone.querySelector('[data-github-action=restore-preview]')?.focus({preventScroll:true});
+        }else if(state.addingMealOption)closeMealOption();
+        else if(state.mealCalendar)closeMealCalendar(false);
+        else if(state.entryTimeDraft)closeEntryTime(false);
+        else if(state.addingEntryCategory)closeEntryCategory();
+        else if(state.periodDraft)closePeriod(false);
+        else if(state.singleSelection||state.ledgerFilterDraft||state.walletPickerOpen)cancelSelection();
+        else if(state.deletePending)cancelDelete();
+        else closeCalculator(false);
+      }else if(event.key==='Enter'&&event.target.matches('[data-ledger-filters] [name=note]')){
+        event.preventDefault();
+      }else if(event.key==='Enter'&&event.target.matches('[data-entry-time] [name=hour]')){
+        event.preventDefault();event.target.form.elements.minute.focus();
+      }else if(event.key==='Tab'){
+        const dialog=modalNode().firstElementChild,controls=[...dialog.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled)')],first=controls[0],last=controls[controls.length-1];
+        if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+        else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+      }
+    });
+    phone.addEventListener('focusin',event=>{
+      if(event.target.matches('[data-entry-time] input'))event.target.select();
+    });
     phone.addEventListener('change',event=>{
       const e=event.target;
-      if(e.matches('[data-category-wallet]')){state.categoryWalletId=e.value;state.editingFinancialCategoryId=null;render();return;}
+      if(e.matches('[data-filter-group] input[type=checkbox]')){
+        const group=e.closest('[data-filter-group]'),key=group.dataset.filterGroup;
+        const options=[...group.querySelectorAll('input')].map(input=>input.value);
+        const selected=new Set(state.ledgerFilterDraft[key]??options);
+        if(e.checked)selected.add(e.value);else selected.delete(e.value);
+        state.ledgerFilterDraft[key]=selected.size===options.length&&options.every(value=>selected.has(value))
+          ?null:[...selected];
+        updateLedgerFilterCount(group);
+        return;
+      }
+      if(e.matches('[data-github-wifi]')){state.githubDemo.wifi=e.checked;return;}
+      if(e.matches('[data-github-wifi-draft]')){state.githubDemo.draftWifi=e.checked;return;}
+      if(e.matches('[data-github-scenario]')){
+        state.githubDemo.scenario=e.value;state.githubDemo.editing=false;state.githubDemo.uploading=false;
+        state.githubDemo.review=githubPause()?'notice':null;render();return;
+      }
       if(e.matches('[data-category-mode]')){const wallet=wallets.find(w=>w.id===state.categoryWalletId);if(wallet){wallet[state.financialScope==='INCOME'?'incomeCategoryMode':'expenseCategoryMode']=e.value;state.editingFinancialCategoryId=null;render();}return;}
-      if(e.matches('[data-wallet-all]')){state.walletDraftIds=e.checked?wallets.map(w=>w.id):[];render();return;}
-      if(e.matches('[data-wallet-option]')){const id=e.dataset.walletOption;state.walletDraftIds=e.checked?[...new Set([...state.walletDraftIds,id])]:state.walletDraftIds.filter(x=>x!==id);render();phone.querySelector(`[data-wallet-option=${id}]`).focus({preventScroll:true});return;}
-      if(e.matches('[data-entry-form] [name=wallet]')){capture();state.entryDraft.category=chooseFinancialCategory(state.entryDraft.walletId,state.entryType,state.entryDraft.category);render();return;}
-      if(e.matches('[data-month-input]')){const key=e.dataset.monthInput;if(['ledgerMonth','mealMonth'].includes(key)&&/^\d{4}-(0[1-9]|1[0-2])$/.test(e.value)&&e.value.slice(0,4)!=='0000'){state[key]=e.value;if(key==='ledgerMonth')state.ledgerRangeOpen=false;}render();persist();return;}
+      if(e.matches('[data-wallet-option]')){
+        const id=e.dataset.walletOption,scroll=e.closest('.ks-selection-body').scrollTop;
+        state.walletDraftIds=e.checked?[...new Set([...state.walletDraftIds,id])]:state.walletDraftIds.filter(x=>x!==id);
+        render();phone.querySelector('.ks-selection-body').scrollTop=scroll;
+        phone.querySelector(`[data-wallet-option=${id}]`).focus({preventScroll:true});return;
+      }
+      if(e.matches('[data-meal-filter-form] input[type=date]')){updateMealDatePresets(e.form);return;}
       if(e.matches('[data-theme]')){state.appearanceDraft.mode=e.value;updateAppearancePreview();return;}
       if(e.matches('[data-color-source]')){state.appearanceDraft.colorSource=e.value;render();return;}
       if(e.matches('[data-palette]')){state.appearanceDraft.presetColor=e.value;updateAppearancePreview();return;}
-      if(e.matches('[data-date-input]')){state.date=isDate(e.value)?e.value:demoToday;render();}
       if(e.matches('[data-meal-form] [name=slot]')){capture();render();}
     });
     phone.addEventListener('input',event=>{
       const e=event.target;
+      if(e.matches('[data-currency-search]')){
+        const body=e.closest('.ks-selection-panel').querySelector('.ks-selection-body');
+        body.innerHTML=currencyOptions(e.value);
+        body.scrollTop=0;
+        globalThis.lucide?.createIcons({root:body,attrs:{width:18,height:18}});
+        return;
+      }
+      if(e.matches('[data-entry-time] input')){
+        const d=state.entryTimeDraft;
+        e.value=e.value.replace(/\D/g,'');
+        d[e.name]=e.value;
+        const valid=validTimePart(e.value,e.name);
+        e.setAttribute('aria-invalid',String(e.value.length===2&&!valid));
+        e.form.querySelector('[type=submit]').disabled=!validTimePart(d.hour,'hour')||!validTimePart(d.minute,'minute');
+        if(e.name==='hour'&&valid)e.form.elements.minute.focus();
+        return;
+      }
+      if(e.matches('[data-meal-option-form] input')){
+        e.form.querySelector('[type=submit]').disabled=!e.value.trim();
+        e.form.querySelector('[data-meal-option-error]').textContent='';
+        return;
+      }
+      if(e.matches('[data-calendar-year],[data-calendar-text]')){
+        const d=state.mealCalendar,dialog=e.closest('.ks-calendar-dialog');
+        if(e.matches('[data-calendar-year]')){
+          d.year=e.value;const valid=validCalendarYear(d.year),[year,month]=d.month.split('-').map(Number);
+          for(const b of dialog.querySelectorAll('[data-calendar-month]')){
+            b.disabled=!valid;b.setAttribute('aria-pressed',valid&&Number(d.year)===year&&Number(b.dataset.calendarMonth)===month);
+          }
+          dialog.querySelector('[data-calendar-error]').textContent=valid?'':'请输入 1 至 9999 的年份';
+        }else{
+          d.text=e.value;const valid=isDate(d.text);
+          dialog.querySelector('[data-calendar-action=apply]').disabled=!valid;
+          dialog.querySelector('[data-calendar-error]').textContent=d.text&&!valid?'请输入有效日期':'';
+        }
+        return;
+      }
+      if(e.matches('[data-period-form] input')){
+        const draft=state.periodDraft,form=e.form;
+        draft[e.name]=e.value;
+        form.querySelector('[data-period-error]').textContent=periodError(draft);
+        const valid=canApplyPeriod(draft);
+        form.querySelector('[type=submit]').disabled=!valid;
+        if(e.name==='year'){
+          const ordinal=Number(draft.year)*12+Number(draft.month)-1;
+          form.querySelector('[data-period-step="-1"]').disabled=!valid||ordinal<=12;
+          form.querySelector('[data-period-step="1"]').disabled=!valid||ordinal>=119999;
+          form.querySelector('[data-period-month-label]').textContent=valid?`${Number(draft.year)}年${draft.month}月`:'';
+        }
+        return;
+      }
       if(!e.matches('[data-custom-picker],[data-custom-hex]'))return;
       state.appearanceDraft.customColor=e.value;
       const normalized=normalizeHex(e.value);
@@ -80,22 +391,55 @@
     });
     phone.addEventListener('submit',event=>{
       event.preventDefault();const f=event.target;capture();
-      if(f.matches('[data-financial-category-form]')){
-        const name=f.elements.categoryName.value.trim(),scope=state.financialScope,owner=state.categoryWalletId;
+      if(f.matches('[data-entry-time]')){closeEntryTime(true);return;}
+      if(f.matches('[data-meal-option-form]')){
+        const name=f.elements.optionName.value.trim(),method=state.addingMealOption==='method';
+        const list=method?mealMethods:mealPreparations;
+        const normalize=text=>text.normalize('NFC').toLowerCase();
+        const message=!name?'请填写名称':list.some(item=>normalize(item)===normalize(name))
+          ?method?'已有同名用餐方式':'此范围已有同名分类':'';
+        if(message){f.querySelector('[data-meal-option-error]').textContent=message;return;}
+        list.push(name);closeMealOption();return;
+      }
+      if(f.matches('[data-financial-category-form],[data-entry-category]')){
+        const fromEntry=f.matches('[data-entry-category]'),wallet=entryWallet();
+        if(fromEntry&&!wallet){closeEntryCategory();return;}
+        const scope=fromEntry?financialScopeOf(state.entryType):state.financialScope;
+        const owner=fromEntry?(scopeMode(wallet,scope)==='CUSTOM'?wallet.id:'GLOBAL'):state.categoryWalletId;
         const items=owner==='GLOBAL'?sharedFinancialCategories[scope]:walletFinancialCategories[owner][scope];
-        const edited=items.find(c=>c.id===state.editingFinancialCategoryId);
-        const normalized=name.toLocaleLowerCase();
-        if(!name||normalized==='未分类'||items.some(c=>c.id!==edited?.id&&c.name.trim().toLocaleLowerCase()===normalized)){error('分类名不能为空、不能使用“未分类”，且不能与本范围已有名称重复。');return;}
-        if(edited)edited.name=name;else items.push({id:'user-cat-'+state.nextFinancialCategoryId++,name,archived:false});
-        state.editingFinancialCategoryId=null;state.notice='演示分类已更新。';render();return;
+        const edited=fromEntry?null:items.find(c=>c.id===state.editingFinancialCategoryId);
+        const name=f.elements.categoryName.value.trim(),normalized=categoryNameKey({name});
+        if(!name||normalized==='未分类'||items.some(c=>c.id!==edited?.id&&categoryNameKey(c)===normalized)){
+          f.querySelector('.ks-error').textContent='分类名不能为空、不能使用“未分类”，且不能与本范围已有名称重复。';
+          return;
+        }
+        const icon=f.elements.categoryIcon.value;
+        const archived=fromEntry?false:f.elements.archived.checked;
+        const sortOrder=fromEntry?nextCategoryOrder(items):f.elements.sortOrder.valueAsNumber;
+        const category=edited??{id:'user-cat-'+state.nextFinancialCategoryId++};
+        Object.assign(category,{name,icon,archived,sortOrder});
+        if(!edited)items.push(category);
+        items.sort((a,b)=>a.sortOrder-b.sortOrder||a.name.localeCompare(b.name));
+        if(fromEntry){
+          state.entryDraft.category=category.id;
+          state.followsWalletType=false;
+          closeEntryCategory();return;
+        }
+        state.editingFinancialCategoryId=null;state.page=state.categoryDetailReturn;render();return;
       }
-      if(f.matches('[data-ledger-range-form]')){
-        const from=f.elements.from.value,to=f.elements.to.value;
-        if(!isDate(from)||!isDate(to)||from>to){error('请输入有效日期，开始日期不能晚于结束日期。');return;}
-        state.ledgerRange={from,to};state.ledgerRangeOpen=false;render();
-        phone.querySelector('[data-action=edit-ledger-range]').focus();persist();return;
+      if(f.matches('[data-ledger-filters]')){closeLedgerFilters(true);return;}
+      if(f.matches('[data-period-form]')){closePeriod(true);return;}
+      if(f.matches('[data-meal-filter-form]')){
+        const {from,to,slot,atHome,keyword}=f.elements;
+        if(from.value&&to.value&&from.value>to.value){error('开始日期不能晚于结束日期。');return;}
+        const applied={
+          from:from.value,to:to.value,slot:slot.value,atHome:atHome.value,method:state.mealFilterDraft.method,
+          preparations:[...f.querySelectorAll('[name=preparation]:checked')].map(e=>e.value),keyword:keyword.value.trim(),
+        };
+        if(state.mealTab==='统计')state.mealStatsFilters=applied;
+        else{state.mealFilters=applied;state.mealListMode=true;}
+        state.page='meals';render();persist();return;
       }
-      if(f.matches('[data-meal-filter-form]')){const from=f.elements.from.value,to=f.elements.to.value;if(from&&to&&from>to){error('开始日期不能晚于结束日期。');return;}state.mealFilters={from,to,slot:f.elements.slot.value,atHome:f.elements.atHome.value,method:f.elements.method.value,preparations:[...f.querySelectorAll('[name=preparation]:checked')].map(e=>e.value),keyword:f.elements.keyword.value.trim()};state.mealListMode=true;state.mealTab='记录';state.page='meals';render();persist();return;}
       if(f.matches('[data-meal-form]')){
         if(state.atHome===null){error('请先选择是否计划在家吃。');return;}
         if(state.atHome&&!state.method){error('计划在家吃时，请选择一种用餐方式。');return;}
@@ -105,11 +449,13 @@
       }
       if(f.matches('[data-entry-form]')){
         try{
-          if(!f.elements.wallet.value){error('请先选择钱包。');return;}const cents=calcCents(f.elements.amount.value),walletId=f.elements.wallet.value;
-          if(!effectiveFinancialCategories(walletId,state.entryType).some(c=>c.id===f.elements.category.value)){error('请选择当前钱包可用的分类。');return;}
-          const entry={id:`draft-${state.nextEntryId++}`,type:state.entryType,cents,walletId,category:f.elements.category.value,note:f.elements.note.value,date:f.elements.dateTime.value.slice(0,10),time:f.elements.dateTime.value.slice(11,16)};
-          state.entries.push(entry);if(!walletById(walletId).separateAccounting)state.lastWalletId=walletId;state.page='ledger';state.ledgerTab='流水';
-          state.notice=matchesLedgerScope(entry)?'已保存到当前演示。':'已保存到当前演示，该账目不在当前筛选范围内。';
+          const {walletId,category}=state.entryDraft;
+          if(!walletId)throw Error('请先选择钱包。');
+          const cents=calcCents(state.amount);
+          if(!effectiveFinancialCategories(walletId,state.entryType).some(c=>c.id===category))throw Error('请选择当前钱包可用的分类。');
+          const entry={id:`draft-${state.nextEntryId++}`,type:state.entryType,cents,walletId,category,note:f.elements.note.value,date:f.elements.date.value,time:state.entryDraft.dateTime.slice(-5)};
+          state.entries.push(entry);if(!walletById(walletId).separateAccounting)state.lastWalletId=walletId;state.page=state.entryReturn;
+          state.notice=state.page==='ledger'&&!matchesLedgerScope(entry)?'已保存到当前演示，该账目不在当前筛选范围内。':'已保存到当前演示。';
           render();
         }catch(e){error(e.message);}
       }

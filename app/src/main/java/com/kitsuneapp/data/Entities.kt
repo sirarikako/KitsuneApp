@@ -1,11 +1,10 @@
 package com.kitsuneapp.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import java.time.Instant
-import java.time.format.DateTimeFormatterBuilder
 import java.util.UUID
 
 enum class MealSlot(val label: String) { BREAKFAST("早餐"), LUNCH("午餐"), DINNER("晚餐") }
@@ -25,14 +24,6 @@ enum class ColorSource(val label: String) { PRESET("预设调色板"), CUSTOM("�
 enum class CsvKind { MEALS, LEDGER }
 
 fun newId(): String = UUID.randomUUID().toString()
-private val utcMillis = DateTimeFormatterBuilder().appendInstant(3).toFormatter()
-fun utcNow(): String = utcMillis.format(Instant.now())
-fun canonicalTimestamp(value: String): String {
-    require(value.matches(Regex("[0-9]{4}-[0-9]{2}-[0-9]{2}T(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]{1,9})?Z"))) {
-        "无效的 UTC 时间"
-    }
-    return utcMillis.format(Instant.parse(value))
-}
 
 @Entity(indices = [Index(value = ["normalizedName"], unique = true)])
 data class MealMethod(
@@ -62,7 +53,12 @@ data class Category(
     val isDefault: Boolean,
     val createdAt: String,
     val updatedAt: String,
+    val icon: CategoryIcon? = null,
 )
+
+enum class CategoryIcon {
+    FOOD, TRANSPORT, HOME, WORK, MONEY, SHOPPING, HEALTH, GIFT, EDUCATION, TRAVEL, ENTERTAINMENT,
+}
 
 @Entity(
     foreignKeys = [ForeignKey(entity = MealMethod::class, parentColumns = ["id"], childColumns = ["mealMethodId"], deferred = true)],
@@ -105,6 +101,7 @@ data class Wallet(
     val expenseCategoryMode: CategoryMode,
     val createdAt: String,
     val updatedAt: String,
+    @ColumnInfo(defaultValue = "0") val defaultToIncome: Boolean = false,
 ) {
     fun categoryMode(scope: Scope): CategoryMode = when (scope) {
         Scope.INCOME -> incomeCategoryMode
@@ -159,4 +156,5 @@ data class DataState(
     val revision: Long = 0,
     val generation: Long = 0,
     val arrayElements: Int,
+    val defaultWalletId: String? = null,
 )

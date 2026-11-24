@@ -4,7 +4,7 @@
 
 | 概念 | v1 约定 |
 | --- | --- |
-| Room 数据库 schemaVersion | 计划从 1 开始；当前没有已创建的数据库 |
+| Room 数据库 schemaVersion | 当前为 3，支持从 1 或 2 自动迁移 |
 | 完整 JSON formatVersion | 数字 `1` |
 | 完整 JSON format | 固定字符串 `kitsune-backup` |
 | CSV | 两套固定表头，称为 meals-v1 和 ledger-v1；不在文件开头插入非 CSV 注释 |
@@ -18,7 +18,7 @@
 
 - 实体 ID、datasetId、snapshotId 使用 UUID，导出为小写标准带连字符形式。每类实体的 ID 唯一，不从显示名称生成 ID。
 - datasetId 标识一套业务数据；恢复后采用恢复文件的数据集身份。本机任务代次和安装身份不属于业务备份。
-- 新建或修改实体保留 createdAt、updatedAt；导出使用 UTC 的 `YYYY-MM-DDTHH:mm:ss.SSSZ`。导入允许 UTC `Z` 结尾的有效 ISO 时间，包括没有小数秒的形式，然后统一规范化。
+- createdAt、updatedAt 在数据库中用 UTC 的 `YYYY-MM-DDTHH:mm:ss.SSSZ` 保存，按 [JSON 导出规则](02-json.md#41-顶层结构)写为 UTC+8。导入接受 `Z` 或 `+08:00` 结尾的有效 ISO 时间，包括没有小数秒的形式，再统一规范为 UTC 毫秒。
 - date 是严格有效的 `YYYY-MM-DD` 日历日期，不附加时区，不通过 UTC 日期推算餐次或月份。
 - 财务流水另有必填 time，使用本地业务时间字符串 `HH:mm`（24 小时制，00:00–23:59），不含秒或时区。数据库可使用严格校验的文本列，JSON／CSV 均保持相同形式；不用餐次、createdAt 或当前时间猜测缺失值。
 - date＋time 记录用户选择的发生日期时间，保存后不因设备时区变化自动转换；createdAt／updatedAt 仍为独立 UTC 审计时间。
@@ -82,6 +82,7 @@ Wallet 字段：`name,normalizedName,currencyCode,currencyScale,openingBalanceMi
 - 早期 v1 JSON 快照的字段缺省迁移及严格校验例外，统一按 [JSON v1 契约](02-json.md#41-顶层结构) 执行。
 - `incomeCategoryMode`／`expenseCategoryMode` 的枚举值为 DEFAULT／CUSTOM，分别决定该钱包收入／支出的可用类别集合，创建默认 DEFAULT；`separateAccounting` 与类别模式相互独立。
 - Category 新增 `walletId`：PREPARATION 及通用 INCOME／EXPENSE 分类的值为 null，专属收入／支出分类为存在的钱包 UUID。收入和支出各仅有一个 `walletId=null,isDefault=true` 的全局“未分类”兜底项；`walletId!=null` 的分类必须 `isDefault=false`，且不能使用保留显示名“未分类”。
+- Category 的可空 `icon` 仅适用于普通 INCOME／EXPENSE 分类。可选值为 `FOOD`、`TRANSPORT`、`HOME`、`WORK`、`MONEY`、`SHOPPING`、`HEALTH`、`GIFT`、`EDUCATION`、`TRAVEL`、`ENTERTAINMENT`；空值使用默认图标。更改图标不改变分类 ID。
 - 分类名称唯一键为 `(scope, walletId 或 GLOBAL, normalizedName)`，包含归档项，同名在不同钱包合法；不可用 NULL 的普通数据库 UNIQUE 比较代替 GLOBAL 规范化归属比较。此规则不影响 PREPARATION 的既有全局唯一性。
 - DEFAULT 的活动选项为该 scope 的未归档通用类别（含全局兜底）；CUSTOM 的活动选项为该钱包同 scope 的未归档专属类别及全局兜底。CUSTOM 即使当前没有专属类别也只提供全局兜底，绝不因空表自动切回 DEFAULT。切回 DEFAULT 时专属类别和历史关联不删除。
 - 分类以稳定 UUID 引用，流水历史即使所属钱包已切换模式、分类已停用／归档，仍合法保留并展示。新增分类自动归属当时选择的设置作用域；直接录入创建分类也按当前钱包与收支方向归属。退款分类来自原支出，不取到账钱包的候选类别。
@@ -148,6 +149,9 @@ ImportReceipt 字段：`kind,sha256,importedAt`，联合唯一键为 `(kind,sha2
 
 ### 3.6 仅本机内部状态
 
+- `DataState.defaultWalletId` 保存本机为当前数据集指定的默认记账钱包，空值表示按最近使用的常规钱包回退。它不随 JSON 或 CSV 迁移；恢复同一数据集时，只有该钱包仍存在且未归档才保留本机选择。
+- `Wallet.defaultToIncome` 保存钱包在本机的默认收支类型。新建和已迁移的钱包默认是支出（`false`）。恢复同一数据集时保留仍存在钱包的本机设置。换设备或恢复其他数据集时使用支出默认值。
+
 以下对象不进入完整备份：
 
 - 当前数据修订计数、备份任务代次、各目标的待处理和完成状态。
@@ -163,8 +167,8 @@ GitHub 另行持久化以下本机状态，调度和交互见 [GitHub 私有库�
 | 本机状态 | 用途 |
 | --- | --- |
 | 数据集 ID、仓库 ID、分支、路径及 `lastAcceptedRemoteSha` | 界定可更新的目标。基准分别表示未确认、已确认文件不存在或已确认的文件 blob SHA。切换目标或数据集时不得沿用旧基准。 |
-| 合并窗口、最近一次写入和重试的计时状态 | 保存系统开机标识、单调计时起点及对应等待时长。最近一次写入按仓库、分支、路径记录，包含手动写入。UTC 时间用于显示和记录，设备重启后的计时按[GitHub 任务接续规则](../features/09-backup.md#任务接续计时与联网)重新核对。 |
+| 合并窗口、最近一次写入和重试的计时状态 | 保存系统开机标识、单调计时起点及对应等待时长。最近一次写入按仓库、分支、路径记录，包含手动写入。记录使用 UTC，界面按 UTC+8 显示，设备重启后的计时按[GitHub 任务接续规则](../features/09-backup.md#任务接续计时与联网)重新核对。 |
 | 任务代次、目标、数据集 ID、写入的远端前置条件、本机修订、snapshotId、内容 SHA-256、未确认写入状态 | 在写入可能发出前一并持久化，供超时、取消或进程终止后核对。内容 SHA-256 对实际发送的 JSON 原始字节计算。 |
-| 冲突或恢复后暂停状态 | 在用户确认对应远端版本并成功发布前阻止自动上传。取消、重启或“立即备份”不解除暂停。 |
+| 暂停原因、事件标识与已处理提醒 | 冲突、连接异常和恢复待授权持久化为本机状态。用户确认对应远端版本并成功发布后解除暂停。提醒的选择随本次事件保存，取消、重启或「立即备份」不会解除暂停。 |
 | 仓库容量提醒阈值、仓库 ID、最近有效容量（KB）与检查时间、检查状态、待提醒状态、上次已提示容量 | 阈值为本机设置，随 App 重启保留。读数和提醒按仓库 ID 归属。查询失败不使用零值替代。计量与去重见 [仓库容量提醒规则](../features/09-backup.md#仓库容量提醒)。 |
 

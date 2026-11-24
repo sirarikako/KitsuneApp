@@ -13,12 +13,13 @@
       for(const animation of [...running])animation.cancel();
       running.clear();
       phone.querySelectorAll('.ks-motion-copy,.ks-motion-appearance-copy').forEach(node=>node.remove());
+      phone.style.minHeight='';
     };
     reducedMotion.addEventListener('change',()=>{if(reducedMotion.matches){stopMotion();themeAnimation?.cancel();}});
     const rect=node=>{
       if(!node)return null;
       const r=node.getBoundingClientRect(),p=phone.getBoundingClientRect();
-      return r.width&&r.height?{x:r.left-p.left,y:r.top-p.top,w:r.width,h:r.height}:null;
+      return r.width&&r.height?{x:r.left-p.left-phone.clientLeft,y:r.top-p.top-phone.clientTop,w:r.width,h:r.height}:null;
     };
     const visible=node=>{
       if(!node)return false;
@@ -43,22 +44,33 @@
         const r=rect(node);if(!r)continue;
         const copy=cloneVisual(node);
         Object.assign(copy.style,{position:'absolute',inset:'auto',left:r.x+'px',top:r.y+'px',width:r.w+'px',height:r.h+'px',margin:'0',boxSizing:'border-box'});
+        const ledgerViewport=rect(node.closest('.ks-ledger-screen .ks-main'));
+        if(ledgerViewport)copy.style.clipPath=clip(r,ledgerViewport,0);
+        if(node.matches('.ks-ledger-screen,.ks-settings-screen,.ks-github-screen')){
+          group.pageScrollTop=node.querySelector('.ks-main').scrollTop;
+        }
         group.append(copy);
       }
       return group.childElementCount?group:null;
     };
-    const attachGhost=group=>{if(group)phone.append(group);return group;};
+    const attachGhost=group=>{
+      if(group){
+        phone.append(group);
+        if(group.pageScrollTop)group.querySelector('.ks-main').scrollTop=group.pageScrollTop;
+      }
+      return group;
+    };
     const discard=group=>()=>group?.remove();
     const pageNode=()=>phone.querySelector(':scope > .ks-page-motion');
     const modalNode=()=>phone.querySelector(':scope > .ks-modal-overlay');
-    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.walletPickerOpen?'wallet':null;
+    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.singleSelection?'single-selection':state.walletPickerOpen?'wallet':state.periodDraft?'period':state.ledgerFilterDraft?'ledger-filters':state.githubDemo.review?'github-review':state.mealCalendar?'date-calendar':state.entryTimeDraft?'entry-time':state.addingEntryCategory?'entry-category':state.addingMealOption?'meal-option':null;
     const primary=page=>navs.some(n=>n[0]===page);
-    const localKey=()=>state.page==='meals'?JSON.stringify([state.mealTab,state.date,state.mealMonth,state.mealListMode,state.mealFilters]):state.page==='ledger'?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds]):'';
+    const localKey=()=>state.page==='meals'?JSON.stringify([state.mealTab,state.date,state.mealStatsFilters,state.mealListMode,state.mealFilters]):state.page==='ledger'?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds,state.ledgerFilters]):'';
     const localNodes=()=>{
       const main=phone.querySelector('.ks-main');if(!main)return [];
-      const explicit=main.querySelector('[data-monthly-meals],[data-monthly-ledger],[data-ledger-statistics],[data-meal-results]');
+      const explicit=main.querySelector('[data-meal-statistics],[data-monthly-ledger],[data-ledger-statistics],[data-meal-results]');
       if(explicit)return [explicit];
-      return [...main.children].filter(n=>n.matches('.ks-record-list,.ks-currency-group'));
+      return [...main.children].filter(n=>n.matches('.ks-record-list,.ks-currency-group,.ks-wallet-cards'));
     };
     const inFade=[{opacity:0,offset:0},{opacity:0,offset:.3},{opacity:1,offset:1}];
     const outFade=[{opacity:1,offset:0},{opacity:0,offset:.45},{opacity:0,offset:1}];
@@ -70,15 +82,26 @@
       if(state.date!==recordOrigin.date&&!state.mealListMode)return null;
       return [...phone.querySelectorAll('.ks-record[data-meal]')].find(n=>n.dataset.meal===recordOrigin.slot&&(n.dataset.mealDate||state.date)===recordOrigin.date&&!n.classList.contains('ks-empty'));
     };
-    function animatePage(previous,oldPage,sourceRect){
-      const node=pageNode(),next=state.page;
+    function animatePage(previous,current,oldPage,sourceRect,oldNav,oldHeight){
+      const node=pageNode(),next=current.page;
       if(!node||!previous||previous.page===next){oldPage?.remove();return;}
       const oldIsPrimary=primary(previous.page),newIsPrimary=primary(next);
       if(oldIsPrimary&&newIsPrimary){
         attachGhost(oldPage);play(oldPage,outFade,motion.primary,discard(oldPage));
         play(node,[{opacity:0,transform:'scale(.96)'},{opacity:0,offset:.25,transform:'scale(.96)'},{opacity:1,transform:'scale(1)'}],motion.primary);return;
       }
-      const entering=oldIsPrimary&&!newIsPrimary;
+      const entering=current.stack.length>previous.stack.length;
+      // Keep the departing bar under the page layer at its last measured position.
+      if(oldNav){phone.style.minHeight=oldHeight+'px';oldNav.style.zIndex='0';attachGhost(oldNav);}
+      const finishEnter=()=>{
+        if(oldNav?.isConnected){oldNav.remove();phone.style.minHeight='';}
+        node.style.zIndex='';node.style.position='';
+      };
+      // The preview grows with its content. Extend a shorter outgoing subpage over the restored bar.
+      if(newIsPrimary&&oldPage){
+        const nav=rect(phone.querySelector(':scope > .ks-nav')),copy=oldPage.firstElementChild;
+        if(nav)copy.style.height=Math.max(parseFloat(copy.style.height),nav.y+nav.h-parseFloat(copy.style.top))+'px';
+      }
       const box=rect(node),target=!entering?originNode():null;
       // Use the real card only when visible and inside the destination page; never guess its position.
       const card=entering?sourceRect:visible(target)?rect(target):null;
@@ -87,7 +110,7 @@
         if(entering){
           attachGhost(oldPage);oldPage.style.zIndex='0';node.style.position='relative';node.style.zIndex='1';
           play(oldPage,[{opacity:1},{opacity:0}],motion.card,discard(oldPage));
-          play(node,[{clipPath:clip(card,box,radius)},{clipPath:fullClip}],motion.card,()=>{node.style.zIndex='';node.style.position='';});
+          play(node,[{clipPath:clip(card,box,radius)},{clipPath:fullClip}],motion.card,finishEnter);
         }else{
           const oldBox={x:parseFloat(copy.style.left),y:parseFloat(copy.style.top),w:parseFloat(copy.style.width),h:parseFloat(copy.style.height)};
           // If the original row moved outside the old page's bounds, fall back to the standard pop.
@@ -100,7 +123,7 @@
       attachGhost(oldPage);
       if(entering){
         if(oldPage){oldPage.style.zIndex='0';node.style.position='relative';node.style.zIndex='1';play(oldPage,[{transform:'translateX(0)'},{transform:'translateX(-12%)'}],motion.push,discard(oldPage));}
-        play(node,[{transform:'translateX(100%)'},{transform:'translateX(0)'}],motion.push,()=>{node.style.zIndex='';node.style.position='';});
+        play(node,[{transform:'translateX(100%)'},{transform:'translateX(0)'}],motion.push,finishEnter);
       }else{
         play(oldPage,[{transform:'translateX(0)'},{transform:'translateX(100%)'}],motion.pop,discard(oldPage));play(node,[{transform:'translateX(-12%)'},{transform:'translateX(0)'}],motion.pop);
       }
@@ -111,7 +134,7 @@
       const opening=!!kind,group=opening?node:attachGhost(oldModal);
       const overlay=opening?node:group?.firstElementChild;
       if(!overlay)return;
-      const panel=overlay.firstElementChild,dialog=(opening?kind:previous)==='dialog',duration=dialog?motion.dialog:motion.sheet;
+      const panel=overlay.firstElementChild,variant=opening?kind:previous,dialog=!['calculator','single-selection','wallet','ledger-filters'].includes(variant),duration=dialog?motion.dialog:motion.sheet;
       play(overlay,opening?[{opacity:0},{opacity:1}]:[{opacity:1},{opacity:0}],duration,opening?()=>{}:discard(group));
       play(panel,dialog?(opening?[{transform:'scale(.96)'},{transform:'scale(1)'}]:[{transform:'scale(1)'},{transform:'scale(.96)'}]):(opening?[{transform:'translateY(100%)'},{transform:'translateY(0)'}]:[{transform:'translateY(0)'},{transform:'translateY(100%)'}]),duration);
     }

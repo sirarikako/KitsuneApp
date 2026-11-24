@@ -2,6 +2,7 @@ package com.kitsuneapp.backup
 
 import android.content.Context
 import android.net.ConnectivityManager
+import android.net.Network
 import android.net.NetworkCapabilities
 import com.google.gson.Gson
 import com.google.gson.JsonObject
@@ -39,7 +40,10 @@ internal data class RemoteVersion(val repo: RepositoryInfo, val backup: RemoteBa
     val condition get() = backup?.sha.orEmpty()
 }
 
-internal class GitHubFailure(val status: Int, val waitMs: Long?, text: String) : IOException(text)
+internal class GitHubFailure(val status: Int, val waitMs: Long?, text: String) : IOException(text) {
+    val requiresConnection get() = waitMs == null && status in listOf(401, 403, 404)
+}
+internal class GitHubConnectionInvalid(message: String) : IllegalArgumentException(message)
 internal class WifiUnavailable : IOException("等待连接到 Wi-Fi")
 
 internal class GitHubClient(
@@ -59,9 +63,8 @@ internal class GitHubClient(
 
     suspend fun repository(): RepositoryInfo = get(url()) { response ->
         val json = response.objectBody()
-        require(json.get("private")?.let { it.isJsonPrimitive && it.asJsonPrimitive.isBoolean && it.asBoolean } == true) {
-            "GitHub 备份只支持私有仓库"
-        }
+        if (json.get("private")?.let { it.isJsonPrimitive && it.asJsonPrimitive.isBoolean && it.asBoolean } != true)
+            throw GitHubConnectionInvalid("GitHub 备份只支持私有仓库")
         RepositoryInfo(json.get("id").asLong, json.get("size").asLong.also { require(it >= 0) { "GitHub 仓库容量无效" } })
     }
 
@@ -84,9 +87,8 @@ internal class GitHubClient(
             val folder = treeItem(root, "backups")
             if (folder != null) {
                 require(folder.get("type").asString == "tree") { "GitHub backups 路径不是目录" }
-                require(treeItem(folder.get("sha").asString.checkGitSha(), "latest.json") == null) {
-                    "备份文件存在但无法读取，请检查权限"
-                }
+                if (treeItem(folder.get("sha").asString.checkGitSha(), "latest.json") != null)
+                    throw GitHubConnectionInvalid("备份文件存在但无法读取，请检查权限")
             }
         }
         return RemoteVersion(repository, file)
@@ -215,8 +217,7 @@ internal class GitHubClient(
         fun connection(context: Context, wifi: Boolean): Call.Factory {
             if (!wifi) return http
             val manager = requireNotNull(context.getSystemService(ConnectivityManager::class.java))
-            val network = manager.activeNetwork ?: throw WifiUnavailable()
-            verifyWifi(context, true)
+            val network = manager.activeWifi() ?: throw WifiUnavailable()
             return http.newBuilder().socketFactory(network.socketFactory)
                 .dns(object : Dns {
                     override fun lookup(hostname: String) = network.getAllByName(hostname).toList()
@@ -226,13 +227,17 @@ internal class GitHubClient(
         fun verifyWifi(context: Context, wifi: Boolean) {
             if (!wifi) return
             val manager = requireNotNull(context.getSystemService(ConnectivityManager::class.java))
-            val current = manager.activeNetwork ?: throw WifiUnavailable()
-            val capabilities = manager.getNetworkCapabilities(current) ?: throw WifiUnavailable()
-            if (!capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) throw WifiUnavailable()
+            if (manager.activeWifi() == null) throw WifiUnavailable()
         }
     }
 }
+
+internal fun ConnectivityManager.activeWifi(): Network? = activeNetwork?.takeIf { network ->
+    getNetworkCapabilities(network)?.isBackupWifi() == true
+}
+
+internal fun NetworkCapabilities.isBackupWifi(): Boolean =
+    hasTransport(NetworkCapabilities.TRANSPORT_WIFI) && !hasTransport(NetworkCapabilities.TRANSPORT_VPN)
 
 private fun String.checkGitSha(): String = also { require(matches(Regex("[0-9a-f]{40}"))) { "GitHub 返回无效的版本摘要" } }
 

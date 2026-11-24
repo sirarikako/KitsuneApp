@@ -14,7 +14,7 @@
   const systemDark=window.matchMedia('(prefers-color-scheme: dark)');
   const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
   const motion={primary:200,push:240,pop:220,card:280,sheet:250,dialog:180,local:150,appearance:200,theme:250,easing:'cubic-bezier(0.2, 0, 0, 1)'};
-  const themeRoles=['--ks-bg','--ks-paper','--ks-soft','--ks-line','--ks-accent-bg','--ks-accent','--ks-ink','--ks-dim','--ks-good','--ks-danger','--ks-action-bg','--ks-action-text','--ks-on-danger','--ks-card-surface'];
+  const themeRoles=['--ks-bg','--ks-paper','--ks-soft','--ks-line','--ks-accent-bg','--ks-accent','--ks-ink','--ks-dim','--ks-good','--ks-expense','--ks-danger','--ks-action-bg','--ks-action-text','--ks-on-danger','--ks-card-surface'];
   // Registered color roles interpolate on the existing phone rather than rebuilding its theme on each animation frame.
   const typedTheme=typeof CSS!=='undefined'&&typeof CSS.registerProperty==='function';
   if(typedTheme)for(const name of themeRoles){try{CSS.registerProperty({name,syntax:'<color>',inherits:true,initialValue:'#000000'});}catch{}}
@@ -25,19 +25,46 @@
     const cardRadius=17;
     const defaultAppearance={mode:'system',colorSource:'PRESET',presetColor:'#c47a4a',customColor:'#C47A4A'};
     const style = {accent:'#c47a4a',mealHour:'auto',...defaultAppearance};
-    const state = {page:'home', date:'2026-11-17', ledgerMonth:'2026-11',mealMonth:'2026-11',ledgerTab:'流水', mealTab:'记录', slot:2, atHome:null, method:null, categories:[], amount:'',calcOpen:false,calcExpression:'',entryType:'支出',entryDraft:{dateTime:'2026-11-17T09:41',note:'',category:'ge-food',walletId:'daily'},notice:'', mealReturn:'home', entries:[], records:{}};
-    state.ledgerRange=null;state.ledgerRangeOpen=false;state.previewMode=null;
-    const blankMealFilters=()=>({from:'',to:'',slot:'any',atHome:'any',method:'any',preparations:[],keyword:''});
+    const state = {page:'home', date:'2026-11-17', ledgerMonth:'2026-11',ledgerTab:'流水', mealTab:'记录', slot:2, atHome:null, method:null, categories:[], amount:'',calcOpen:false,calcExpression:'',entryType:'支出',entryDraft:{dateTime:'2026-11-17T09:41',note:'',category:'ge-food',walletId:'daily'},notice:'', mealReturn:'home', entries:[], records:{}};
+    state.ledgerRange=null;state.periodDraft=null;state.entryTimeDraft=null;state.previewMode=null;
+    const blankLedgerFilters=()=>({types:null,categoryNames:null,note:''});
+    state.ledgerFilters=blankLedgerFilters();state.ledgerFilterDraft=null;
+    state.githubDemo={backedUp:false,review:null,scenario:'normal',wifi:false,draftWifi:false,editing:false,uploading:false};
+    const demoMealMonth=demoToday.slice(0,7);
+    function mealMonthDates(month){
+      const from=month+'-01',end=new Date(from+'T00:00:00Z');
+      end.setUTCMonth(end.getUTCMonth()+1,0);
+      return {from,to:end.toISOString().slice(0,10)};
+    }
+    const mealDatePresets={month:mealMonthDates(demoMealMonth),all:{from:'',to:''}};
+    const blankMealFilters=(dates=mealDatePresets.all)=>({...dates,slot:'any',atHome:'any',method:'any',preparations:[],keyword:''});
+    const mealDatePreset=({from,to})=>Object.keys(mealDatePresets).find(key=>{
+      const dates=mealDatePresets[key];
+      return dates.from===from&&dates.to===to;
+    });
     state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
+    state.mealStatsFilters=blankMealFilters(mealDatePresets.month);
+    const mealMethods=['下厨','外卖'],mealPreparations=['炒菜','预制菜'];
+    const mealOptionLabels={method:'用餐方式',preparation:'制作分类'};
     const wallets=[{id:'daily',name:'日常钱包',code:'CNY',scale:2,opening:0n,separateAccounting:false},{id:'pocket',name:'零钱钱包',code:'CNY',scale:2,opening:50000n,separateAccounting:false},{id:'travel',name:'旅行钱包',code:'JPY',scale:0,opening:20000n,separateAccounting:true}];
     const walletById=id=>wallets.find(w=>w.id===id)||wallets[0];
     const entryWallet=()=>wallets.find(w=>w.id===state.entryDraft.walletId)||null;
-    const defaultEntryWallet=()=>wallets.find(w=>w.id===state.lastWalletId&&!w.separateAccounting)||wallets.find(w=>!w.separateAccounting)||null;
-    state.walletFilterIds=null;state.walletPickerOpen=false;state.walletDraftIds=[];state.lastWalletId='daily';
+    const defaultEntryType=wallet=>wallet?.defaultToIncome?'收入':'支出';
+    const defaultEntryWallet=()=>wallets.find(w=>w.id===state.defaultWalletId&&!w.archived)
+      ||wallets.find(w=>w.id===state.lastWalletId&&!w.archived&&!w.separateAccounting)
+      ||wallets.find(w=>!w.archived&&!w.separateAccounting)||null;
+    state.walletFilterIds=null;state.walletPickerOpen=false;state.walletDraftMode='REGULAR';state.walletDraftIds=[];state.lastWalletId='daily';
     // Financial categories are scoped by type and optional wallet; meal preparation categories are separate.
+    const categoryIcons={
+      '':['默认','tags'],FOOD:['餐饮','utensils'],TRANSPORT:['交通','train-front'],HOME:['居家','house'],
+      WORK:['工作','briefcase-business'],MONEY:['财务','wallet'],SHOPPING:['购物','shopping-bag'],HEALTH:['健康','heart-pulse'],
+      GIFT:['礼物','gift'],EDUCATION:['教育','graduation-cap'],TRAVEL:['旅行','plane'],ENTERTAINMENT:['娱乐','gamepad-2'],
+    };
+    const categoryIconName=key=>(categoryIcons[key]||categoryIcons[''])[1];
+    const categoryGlyph=key=>icon(categoryIconName(key));
     const sharedFinancialCategories={
-      EXPENSE:[{id:'ge-food',name:'餐饮',archived:false},{id:'ge-transport',name:'交通',archived:false},{id:'ge-daily',name:'日用',archived:false}],
-      INCOME:[{id:'gi-salary',name:'工资',archived:false}]
+      EXPENSE:[{id:'ge-food',name:'餐饮',icon:'FOOD',archived:false,sortOrder:0},{id:'ge-transport',name:'交通',icon:'TRANSPORT',archived:false,sortOrder:1},{id:'ge-daily',name:'日用',icon:'SHOPPING',archived:false,sortOrder:2}],
+      INCOME:[{id:'gi-salary',name:'工资',icon:'MONEY',archived:false,sortOrder:0}]
     };
     const fallbackFinancialCategories={
       EXPENSE:{id:'ge-none',name:'未分类',archived:false,isDefault:true},
@@ -45,11 +72,15 @@
     };
     const walletFinancialCategories=Object.fromEntries(wallets.map(w=>[w.id,{EXPENSE:[],INCOME:[]}]));
     wallets.forEach(w=>{w.incomeCategoryMode='DEFAULT';w.expenseCategoryMode='DEFAULT';});
-    state.categoryWalletId='GLOBAL';state.financialScope='EXPENSE';state.editingFinancialCategoryId=null;state.categoryReturn='settings';state.nextFinancialCategoryId=1;
+    state.categoryWalletId='GLOBAL';state.financialScope='EXPENSE';state.editingFinancialCategoryId=null;
+    state.categoryReturn='settings';state.categoryDetailReturn='category-manager';state.nextFinancialCategoryId=1;
+    state.addingEntryCategory=false;
     const financialScopeOf=type=>type==='收入'?'INCOME':'EXPENSE';
     const scopeMode=(wallet,scope)=>wallet?.[scope==='INCOME'?'incomeCategoryMode':'expenseCategoryMode']||'DEFAULT';
     const allFinancialCategories=()=>[...sharedFinancialCategories.EXPENSE,...sharedFinancialCategories.INCOME,...Object.values(walletFinancialCategories).flatMap(v=>[...v.EXPENSE,...v.INCOME]),...Object.values(fallbackFinancialCategories)];
     const categoryById=id=>allFinancialCategories().find(c=>c.id===id)||null;
+    const categoryNameKey=category=>category?.name.trim().normalize('NFC').toLowerCase()??null;
+    const nextCategoryOrder=items=>Math.min(2147483647,Math.max(-1,...items.map(c=>c.sortOrder))+1);
     const effectiveFinancialCategories=(walletId,type)=>{
       const wallet=wallets.find(w=>w.id===walletId);if(!wallet)return [];
       const scope=financialScopeOf(type);
@@ -63,15 +94,20 @@
       return owner?categoryNameForId(id)+' · '+owner.name:categoryNameForId(id);
     };
     const chooseFinancialCategory=(walletId,type,old)=>effectiveFinancialCategories(walletId,type).some(c=>c.id===old)?old:'';
+    const initialEntryCategory=(walletId,type)=>walletId
+      ?fallbackFinancialCategories[financialScopeOf(type)].id:'';
 
     const savedState=window.openai?.widgetState?.privateContent?.kitsune;
     // Accept only the original primary preview preferences from old saved arrays.
     const saved=Array.isArray(savedState)?savedState[0]:savedState;
+    state.defaultWalletId=wallets.find(w=>w.id===saved?.defaultWalletId&&!w.archived)?.id??null;
+    if(Array.isArray(saved?.incomeDefaultWalletIds))wallets.forEach(w=>{w.defaultToIncome=saved.incomeDefaultWalletIds.includes(w.id);});
     state.deletedEntryIds=new Set();state.nextEntryId=1;state.deletePending=null;
-    if(saved){const s=saved;if(['light','dark','system'].includes(s.mode))style.mode=s.mode;for(const key of ['ledgerMonth','mealMonth'])if(/^\d{4}-(0[1-9]|1[0-2])$/.test(s[key]||'')&&s[key].slice(0,4)!=='0000')state[key]=s[key];if(s.walletFilterIds==='ALL')state.walletFilterIds='ALL';else if(Array.isArray(s.walletFilterIds)){const ids=wallets.filter(w=>s.walletFilterIds.includes(w.id)).map(w=>w.id);if(ids.length)state.walletFilterIds=ids;}if(Array.isArray(s.separateWalletIds))wallets.forEach(w=>{w.separateAccounting=s.separateWalletIds.includes(w.id);});const f=s.mealFilters;if(f&&typeof f==='object'){for(const key of ['from','to'])if(typeof f[key]==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(f[key]))state.mealFilters[key]=f[key];if(['any','0','1','2'].includes(f.slot))state.mealFilters.slot=f.slot;if(['any','yes','no'].includes(f.atHome))state.mealFilters.atHome=f.atHome;if(typeof f.method==='string')state.mealFilters.method=f.method.slice(0,80);if(typeof f.keyword==='string')state.mealFilters.keyword=f.keyword.slice(0,100);if(Array.isArray(f.preparations))state.mealFilters.preparations=f.preparations.filter(x=>typeof x==='string').slice(0,30).map(x=>x.slice(0,80));state.mealListMode=s.mealListMode===true;}}
+    if(saved){const s=saved;if(['light','dark','system'].includes(s.mode))style.mode=s.mode;if(/^\d{4}-(0[1-9]|1[0-2])$/.test(s.ledgerMonth||'')&&s.ledgerMonth.slice(0,4)!=='0000')state.ledgerMonth=s.ledgerMonth;if(s.walletFilterIds==='ALL')state.walletFilterIds='ALL';else if(Array.isArray(s.walletFilterIds)){const ids=wallets.filter(w=>s.walletFilterIds.includes(w.id)).map(w=>w.id);if(ids.length)state.walletFilterIds=ids;}if(Array.isArray(s.separateWalletIds))wallets.forEach(w=>{w.separateAccounting=s.separateWalletIds.includes(w.id);});const f=s.mealFilters;if(f&&typeof f==='object'){for(const key of ['from','to'])if(typeof f[key]==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(f[key]))state.mealFilters[key]=f[key];if(['any','0','1','2'].includes(f.slot))state.mealFilters.slot=f.slot;if(['any','yes','no'].includes(f.atHome))state.mealFilters.atHome=f.atHome;if(typeof f.method==='string')state.mealFilters.method=f.method.slice(0,80);if(typeof f.keyword==='string')state.mealFilters.keyword=f.keyword.slice(0,100);if(Array.isArray(f.preparations))state.mealFilters.preparations=f.preparations.filter(x=>typeof x==='string').slice(0,30).map(x=>x.slice(0,80));state.mealListMode=s.mealListMode===true;}}
     state.records['2026-11-17'] = [{atHome:true,method:'下厨',categories:[],dishes:'燕麦粥、煎蛋',note:''},{atHome:false,method:'外卖',categories:[],dishes:'照烧鸡腿饭',note:''},null];
     if(saved){const s=saved;if(['PRESET','CUSTOM','SYSTEM'].includes(s.colorSource))style.colorSource=s.colorSource;if(normalizeHex(s.presetColor))style.presetColor=s.presetColor.toLowerCase();if(normalizeHex(s.customColor))style.customColor=normalizeHex(s.customColor);}
     const isDate=value=>/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(value)&&value.slice(0,4)!=='0000'&&new Date(value).toJSON()?.slice(0,10)===value;
+    const validCalendarYear=value=>/^[0-9]{1,4}$/.test(value)&&Number(value)>=1;
     const savedRange=saved?.ledgerRange;
     if(savedRange&&isDate(savedRange.from)&&isDate(savedRange.to)&&savedRange.from<=savedRange.to)state.ledgerRange={from:savedRange.from,to:savedRange.to};
     const appliedAppearance=()=>({mode:style.mode,colorSource:style.colorSource,presetColor:style.presetColor,customColor:style.customColor});
@@ -117,6 +153,22 @@
     const entryCategory=entry=>categoryNameForId(categoryForEntry(entry));
     const regularWallets=()=>wallets.filter(w=>!w.separateAccounting);
     const selectedWallets=()=>state.walletFilterIds===null?regularWallets():state.walletFilterIds==='ALL'?[...wallets]:wallets.filter(w=>state.walletFilterIds.includes(w.id));
+    function ledgerFilterCategories(){
+      const selected=selectedWallets(),ids=new Set(selected.map(w=>w.id));
+      const historical=financialEntries().filter(e=>ids.has(e.walletId)).map(e=>categoryById(categoryForEntry(e))).filter(Boolean);
+      const candidates=[
+        ...Object.values(sharedFinancialCategories).flat().filter(c=>!c.archived),
+        ...Object.values(fallbackFinancialCategories),
+        ...selected.flatMap(w=>Object.values(walletFinancialCategories[w.id]).flat()),
+        ...historical,
+      ];
+      const names=new Map();
+      for(const category of candidates){
+        const key=categoryNameKey(category);
+        if(!names.has(key))names.set(key,[key,category.name,categoryGlyph(category.icon)]);
+      }
+      return [...names.values()];
+    }
     const matchesLedgerScope=entry=>{
       const range=state.ledgerRange;
       const dateMatches=range?range.from<=entry.date&&entry.date<=range.to:entry.date.startsWith(state.ledgerMonth);
@@ -124,36 +176,80 @@
     };
     const currencyGroups=(entries,scope)=>[...new Set(scope.map(w=>w.code))].map(code=>({code,entries:entries.filter(e=>walletById(e.walletId).code===code)}));
     const allMeals = () => Object.entries(state.records).flatMap(([date,records])=>records.flatMap((record,slot)=>record?[{...record,date,slot}]:[]));
-    const mealFilterLabels=()=>{const f=state.mealFilters,labels=[];if(f.from||f.to)labels.push(`${f.from||'最早'} ～ ${f.to||'至今'}`);if(f.slot!=='any')labels.push(slots[Number(f.slot)]);if(f.atHome!=='any')labels.push(`计划在家：${f.atHome==='yes'?'是':'否'}`);if(f.method!=='any')labels.push(f.method==='none'?'方式未填写':f.method);labels.push(...f.preparations);if(f.keyword)labels.push(`关键词：${f.keyword}`);return labels;};
-    const filteredMeals=()=>{const f=state.mealFilters,keyword=f.keyword.toLocaleLowerCase();return allMeals().filter(m=>(!f.from||m.date>=f.from)&&(!f.to||m.date<=f.to)&&(f.slot==='any'||m.slot===Number(f.slot))&&(f.atHome==='any'||m.atHome===(f.atHome==='yes'))&&(f.method==='any'||(f.method==='none'?!m.method:m.method===f.method))&&(!f.preparations.length||f.preparations.some(c=>m.categories.includes(c)))&&(!keyword||`${m.dishes}\n${m.note}`.toLocaleLowerCase().includes(keyword))).sort((a,b)=>b.date.localeCompare(a.date)||a.slot-b.slot);};
+    function mealDateSummary(f){
+      const preset=mealDatePreset(f);
+      if(preset==='month')return '本月';
+      if(preset==='all')return '所有时间';
+      if(!f.from)return '截至 '+f.to;
+      if(!f.to)return '从 '+f.from+' 起';
+      const month=f.from.slice(0,7),dates=mealMonthDates(month);
+      if(f.from===dates.from&&f.to===dates.to){
+        const [year,number]=month.split('-').map(Number);
+        return `${year}年${number}月`;
+      }
+      return f.from+' 至 '+f.to;
+    }
+    function mealFilterLabels(f,includeDates=true){
+      const labels=[];
+      if(includeDates&&(f.from||f.to))labels.push(`${f.from||'最早'} ～ ${f.to||'至今'}`);
+      if(f.slot!=='any')labels.push(slots[Number(f.slot)]);
+      if(f.atHome!=='any')labels.push(`计划在家：${f.atHome==='yes'?'是':'否'}`);
+      if(f.method!=='any')labels.push(f.method==='none'?'方式未填写':f.method);
+      labels.push(...f.preparations);
+      if(f.keyword)labels.push(`关键词：${f.keyword}`);
+      return labels;
+    }
+    function filteredMeals(f){
+      const keyword=f.keyword.toLocaleLowerCase();
+      return allMeals().filter(m=>(!f.from||m.date>=f.from)&&(!f.to||m.date<=f.to)&&
+        (f.slot==='any'||m.slot===Number(f.slot))&&(f.atHome==='any'||m.atHome===(f.atHome==='yes'))&&
+        (f.method==='any'||(f.method==='none'?!m.method:m.method===f.method))&&
+        (!f.preparations.length||f.preparations.some(c=>m.categories.includes(c)))&&
+        (!keyword||m.dishes.toLocaleLowerCase().includes(keyword)||m.note.toLocaleLowerCase().includes(keyword)));
+    }
     const records = () => state.records[state.date] || [null,null,null];
     const persist = () => {
       const snapshot=phone.ksSnapshot();
       window.openai?.setWidgetState?.({modelContent:{当前页面:snapshot.page,用餐筛选:snapshot.mealListMode?snapshot.mealFilters:null},privateContent:{kitsune:snapshot}})?.catch(()=>{});
     };
-    phone.ksSnapshot=()=>({page:navs.some(n=>n[0]===state.page)?state.page:'home',...appliedAppearance(),ledgerMonth:state.ledgerMonth,ledgerRange:state.ledgerRange,mealMonth:state.mealMonth,walletFilterIds:state.walletFilterIds,separateWalletIds:wallets.filter(w=>w.separateAccounting).map(w=>w.id),mealListMode:state.mealListMode,mealFilters:state.mealFilters});
-    function makePalette(seed,system){
+    phone.ksSnapshot=()=>({page:navs.some(n=>n[0]===state.page)?state.page:'home',...appliedAppearance(),ledgerMonth:state.ledgerMonth,ledgerRange:state.ledgerRange,walletFilterIds:state.walletFilterIds,defaultWalletId:state.defaultWalletId,separateWalletIds:wallets.filter(w=>w.separateAccounting).map(w=>w.id),incomeDefaultWalletIds:wallets.filter(w=>w.defaultToIncome).map(w=>w.id),mealListMode:state.mealListMode,mealFilters:state.mealFilters});
+    // Android applies these same presentation roles for preset and custom seeds.
+    function makePalette(seed,source){
       const rgb=h=>h.replace("#","").match(/../g).map(x=>parseInt(x,16));
       const mix=(a,b,t)=>"#"+rgb(a).map((v,i)=>Math.round(v*t+rgb(b)[i]*(1-t)).toString(16).padStart(2,"0")).join("");
       const luminance=h=>rgb(h).map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4}).reduce((s,v,i)=>s+v*[.2126,.7152,.0722][i],0);
       const contrast=(a,b)=>(Math.max(luminance(a),luminance(b))+.05)/(Math.min(luminance(a),luminance(b))+.05);
       const safe=(color,backgrounds,light)=>{const end=light?"#000000":"#ffffff";for(let i=0;i<=100;i++){const candidate=mix(color,end,1-i/100);if(backgrounds.every(bg=>contrast(candidate,bg)>=4.6))return candidate;}throw Error("unreachable contrast");};
+      function surfaceTones(light){
+        if(source==='PRESET')return [
+          mix(seed,light?"#fafafa":"#151515",light?.12:.10),
+          mix(seed,light?"#ffffff":"#1f1f1f",light?.045:.14),
+          mix(seed,light?"#f3f3f3":"#292929",light?.15:.17),
+          mix(seed,light?"#e5e5e5":"#343434",light?.18:.19)
+        ];
+        // The wallpaper demo uses illustrative colors for the tones Android gets from the system.
+        if(source==='SYSTEM')return [
+          mix(seed,light?"#fbfcf7":"#191c17",light?.06:.12),
+          mix(seed,light?"#ffffff":"#262921",light?.03:.16),
+          mix(seed,light?"#f5f6ed":"#292d24",light?.15:.22),
+          mix(seed,light?"#e3e5d9":"#41463a",light?.21:.24)
+        ];
+        return light?["#f6f3ed","#fffcf7","#eee7dc","#e5ded4"]:["#201e1b","#2a2723","#383129","#443c34"];
+      }
       const modes=[true,false].map(light=>{
-        const bg=system?mix(seed,light?"#fbfcf7":"#191c17",light?.06:.12):light?"#f6f3ed":"#201e1b";
-        const paper=system?mix(seed,light?"#ffffff":"#262921",light?.03:.16):light?"#fffcf7":"#2a2723";
-        const soft=system?mix(seed,light?"#f5f6ed":"#292d24",light?.15:.22):light?"#eee7dc":"#383129";
-        const line=system?mix(seed,light?"#e3e5d9":"#41463a",light?.21:.24):light?"#e5ded4":"#443c34";
-        const selected=mix(seed,light?"#fffcf7":"#211e1a",light?.18:.23);
+        const [bg,paper,soft,line]=surfaceTones(light);
+        const selected=mix(seed,light?(source==='SYSTEM'?"#fffcf7":paper):"#211e1a",light?.18:.23);
         const surfaces=[bg,paper,soft,selected];
         const accent=safe(mix(seed,light?"#342c23":"#fff4e6",light?.72:.45),surfaces,light);
-        return {bg,paper,soft,line,selected,accent,ink:safe(light?"#302b26":"#f3eae1",surfaces,light),dim:safe(light?"#76695e":"#baaea2",surfaces,light),good:safe(light?"#46624a":"#b7d0ae",surfaces,light),danger:safe(light?"#a63832":"#ffb4ab",surfaces,light),onAction:paper,onDanger:safe(light?"#fff8f7":"#451714",[safe(light?"#a63832":"#ffb4ab",surfaces,light)],!light)};
+        const expense=safe(light?"#82551f":"#e8b276",[bg,paper],light);
+        return {bg,paper,soft,line,selected,accent,expense,ink:safe(light?"#302b26":"#f3eae1",surfaces,light),dim:safe(light?"#76695e":"#baaea2",surfaces,light),good:safe(light?"#46624a":"#b7d0ae",surfaces,light),danger:safe(light?"#a63832":"#ffb4ab",surfaces,light),onAction:paper,onDanger:safe(light?"#fff8f7":"#451714",[safe(light?"#a63832":"#ffb4ab",surfaces,light)],!light)};
       });
       return modes;
     }
-    const paintColors=(target,seed,system=false)=>{
-      const [light,dark]=makePalette(seed,system);
+    const paintColors=(target,seed,source)=>{
+      const [light,dark]=makePalette(seed,source);
       const value=key=>`light-dark(${light[key]},${dark[key]})`;
-      const roles={'--ks-bg':'bg','--ks-paper':'paper','--ks-soft':'soft','--ks-line':'line','--ks-accent-bg':'selected','--ks-accent':'accent','--ks-ink':'ink','--ks-dim':'dim','--ks-good':'good','--ks-danger':'danger','--ks-action-bg':'accent','--ks-action-text':'onAction','--ks-on-danger':'onDanger','--ks-card-surface':'paper'};
+      const roles={'--ks-bg':'bg','--ks-paper':'paper','--ks-soft':'soft','--ks-line':'line','--ks-accent-bg':'selected','--ks-accent':'accent','--ks-ink':'ink','--ks-dim':'dim','--ks-good':'good','--ks-expense':'expense','--ks-danger':'danger','--ks-action-bg':'accent','--ks-action-text':'onAction','--ks-on-danger':'onDanger','--ks-card-surface':'paper'};
       target.style.setProperty('--ks-seed',seed);
       for(const [key,role] of Object.entries(roles))target.style.setProperty(key,value(role));
       target.style.setProperty('--ks-card-border','1px solid var(--ks-line)');
@@ -161,7 +257,7 @@
     const applyStyle = () => {
       style.accent=colorSeed(style);
       phone.style.setProperty('--ks-radius',`${cardRadius}px`);
-      paintColors(phone,style.accent,style.colorSource==='SYSTEM');
+      paintColors(phone,style.accent,style.colorSource);
       phone.style.colorScheme=style.mode==='system'?'inherit':style.mode;
     };
     const recordIcon = glyph => `<span class="ks-record-icon">${icon(glyph)}</span>`;
@@ -172,51 +268,58 @@
       const m=records()[i];
       return `<button type="button" class="ks-record ${m?'':'ks-empty'} cursor-interaction" data-meal="${i}">${recordIcon(slotIcons[i])}<span class="ks-record-copy"><span class="ks-record-title">${slot}${m?`<span class="ks-pill">${escapeText(m.method||'方式未填写')}</span>`:''}</span><span class="ks-record-meta">${m?escapeText(m.dishes||'未填写菜品'):'添加记录'}</span></span>${icon(m?'chevron-right':'plus')}</button>`;
     }).join('')}</div>`;
-    function moneyCard(code,entries){
+    function moneyCard(code,entries,incomeFirst){
       const period=state.ledgerRange?'所选期间':`${Number(state.ledgerMonth.slice(5))} 月`;
+      const income=money(total(entries,'收入'),code),expense=money(netExpense(entries),code);
       return `<div class="ks-money-card" data-currency="${code}">
-        <span class="ks-money-caption">${period}净支出 · ${code}</span>
-        <div class="ks-amount" data-expense>${money(netExpense(entries),code)}</div>
-        <div class="ks-money-meta"><span>收入 <span data-income>${money(total(entries,'收入'),code)}</span></span></div>
+        <span class="ks-money-caption">${period}${incomeFirst?'收入':'净支出'} · ${code}</span>
+        <div class="ks-amount" ${incomeFirst?'data-income':'data-expense'}>${incomeFirst?income:expense}</div>
+        <div class="ks-money-meta"><span>${incomeFirst?'净支出':'收入'} <span ${incomeFirst?'data-expense':'data-income'}>${incomeFirst?expense:income}</span></span></div>
       </div>`;
     }
     function week(){
       const selected=new Date(state.date+'T00:00:00Z');
       const monday=selected.getUTCDate()-(selected.getUTCDay()+6)%7;
+      const step=(offset,label,glyph)=>{
+        const day=new Date(selected);day.setUTCDate(day.getUTCDate()+offset*7);
+        const iso=day.toISOString().split('T')[0],marker=icon(glyph);
+        return `<button type="button" class="ks-text-btn cursor-interaction" data-week-step="${offset}" data-date="${iso}" ${isDate(iso)?'':'disabled'}>${offset<0?marker+label:label+marker}</button>`;
+      };
       const days=['一','二','三','四','五','六','日'].map((label,i)=>{
         const day=new Date(selected);day.setUTCDate(monday+i);
         const month=day.getUTCMonth()+1,number=day.getUTCDate(),iso=day.toISOString().split('T')[0];
         const available=day.getUTCFullYear()>=1&&day.getUTCFullYear()<=9999;
         return `<button class="ks-day cursor-interaction" data-date="${iso}" type="button" ${available?'':'disabled'} aria-label="${month} 月 ${number} 日，星期${label}" aria-pressed="${state.date===iso}"><small>${label}</small><span>${number}</span></button>`;
       }).join('');
-      return `<div class="ks-week" role="group" aria-label="选择日期">${days}</div>`;
+      return `<div class="ks-week">
+        <div class="ks-week-nav">${step(-1,'上一周','chevron-left')}${step(1,'下一周','chevron-right')}</div>
+        <div class="ks-week-days" role="group" aria-label="选择日期">${days}</div>
+      </div>`;
     }
     const section = (title,extra='') => `<div class="ks-section ks-row"><h3>${title}</h3>${extra}</div>`;
     const choice = (label,value,current,action) => `<button type="button" class="ks-choice cursor-interaction" data-${action}="${escapeText(value)}" aria-pressed="${current===value}">${label}</button>`;
-    const monthPicker = (key,label) => `<div class="ks-month-picker" role="group" aria-label="${label}月份选择"><button type="button" class="ks-icon-btn cursor-interaction" data-month-step="-1" data-month-key="${key}" aria-label="${label}上个月">${icon('chevron-left')}</button><label class="ks-month-field"><input type="month" value="${state[key]}" data-month-input="${key}" aria-label="${label}月份" min="0001-01" max="9999-12"></label><button type="button" class="ks-icon-btn cursor-interaction" data-month-step="1" data-month-key="${key}" aria-label="${label}下个月">${icon('chevron-right')}</button></div>`;
-    function ledgerDatePicker(){
-      const range=state.ledgerRange;
-      const label=state.ledgerTab==='流水'?'流水':'收支统计';
-      return `<div>
-        ${range?'':monthPicker('ledgerMonth',label)}
-        <div class="ks-toolbar"><button type="button" class="ks-toolbar-action ks-scope" data-action="edit-ledger-range" aria-expanded="${state.ledgerRangeOpen}">
-          <span>${icon('calendar-range')}日期范围</span>
-          <span>${range?`${range.from} 至 ${range.to}`:'自定义'}${icon('chevron-down')}</span>
-        </button></div>
-        ${state.ledgerRangeOpen?`<form class="ks-form ks-ledger-range-form" data-ledger-range-form>
-          <div class="ks-field-row">
-            <label><span class="ks-label">开始日期</span><input type="date" name="from" class="ks-control" value="${range?.from||''}" min="0001-01-01" max="9999-12-31" required></label>
-            <label><span class="ks-label">结束日期</span><input type="date" name="to" class="ks-control" value="${range?.to||''}" min="0001-01-01" max="9999-12-31" required></label>
-          </div>
-          ${formFooter(`<div class="ks-form-actions"><button type="button" class="ks-choice" data-action="cancel-ledger-range">取消</button>${saveButton('应用日期')}</div>`)}
-        </form>`:''}
-        ${range?`<button type="button" class="ks-text-btn" data-action="ledger-month-mode">${icon('calendar-days')}返回按月</button>`:''}
-      </div>`;
+    function ledgerPeriodControl(){
+      const range=state.ledgerRange,[year,month]=state.ledgerMonth.split('-').map(Number);
+      const display=range?`${range.from.replaceAll('-','/')} ～ ${range.to.replaceAll('-','/')}`:`${year}年${month}月`;
+      return `<button type="button" class="ks-choice ks-ledger-filter" data-action="choose-ledger-period" aria-haspopup="dialog" aria-label="选择日期范围：${display}"><span>${display}</span>${icon('chevron-down')}</button>`;
     }
-    const walletScope=()=>{const chosen=selectedWallets(),label=state.walletFilterIds===null?'常规钱包':state.walletFilterIds==='ALL'?'全部钱包（含独立核算）':chosen.length===1?`${chosen[0].name} · ${chosen[0].code}`:`已选 ${chosen.length} 个钱包`;return `<div class="ks-toolbar"><button type="button" class="ks-toolbar-action ks-scope cursor-interaction" data-action="choose-wallets" aria-label="选择统计与流水的钱包范围"><span>${icon('wallet')}钱包范围</span><span>${escapeText(label)}${icon('chevron-down')}</span></button></div>${state.walletFilterIds&&chosen.length>1?`<p class="ks-filter-context">${chosen.map(w=>`${escapeText(w.name)} · ${w.code}`).join('、')}</p>`:''}`;};
-    const methodCounts = meals => [...new Set(['下厨','外卖','未填写',...meals.map(m=>m.method||'未填写')])].map(method=>({method,count:meals.filter(m=>(m.method||'未填写')===method).length}));
+    const canApplyPeriod=draft=>draft.mode==='month'?/^\d{1,4}$/.test(draft.year)&&Number(draft.year)>0:
+      isDate(draft.from)&&isDate(draft.to)&&draft.from<=draft.to;
+    const periodError=draft=>draft.mode==='month'&&!canApplyPeriod(draft)?'请输入 1 至 9999 的年份':
+      draft.mode==='range'&&draft.from&&draft.to&&draft.from>draft.to?'开始日期不能晚于结束日期':'';
+    const walletScope=()=>{
+      const chosen=selectedWallets(),single=Array.isArray(state.walletFilterIds)&&chosen.length===1;
+      const label=state.walletFilterIds===null?'常规钱包':state.walletFilterIds==='ALL'?'全部钱包':
+        single?`${chosen[0].name} · ${chosen[0].code}`:`已选 ${chosen.length} 个钱包`;
+      return `<button type="button" class="ks-choice ks-ledger-filter ${single?'ks-ledger-wallet':''}" data-action="choose-wallets" aria-haspopup="dialog" aria-label="钱包范围：${escapeText(label)}"><span>${escapeText(label)}</span>${icon('chevron-down')}</button>`;
+    };
+    const methodCounts = meals => [...new Set([...mealMethods,'未填写',...meals.map(m=>m.method||'未填写')])].map(method=>({method,count:meals.filter(m=>(m.method||'未填写')===method).length}));
     const recommendedSlot = () => {const hour=style.mealHour==='auto'?new Date().getHours():Number(style.mealHour);return hour<11?0:hour<17?1:2;};
-    const countBar = (label,count,denominator,unit='餐') => {const percent=denominator?Math.round(count/denominator*100):0;return `<div class="ks-stat-row"><div class="ks-row"><span>${escapeText(label)}</span><span><strong>${count} ${unit}</strong><small>${percent}%</small></span></div><div class="ks-bar-track" role="meter" aria-label="${escapeText(label)}：${count}${unit}，占${percent}%" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><div class="ks-bar-fill" style="width:${denominator?count/denominator*100:0}%"></div></div></div>`;};
+    const statBar=(label,ratio,tone='')=>`<div class="ks-bar-track ${tone}" role="meter" aria-label="${escapeText(label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(ratio*100)}"><div class="ks-bar-fill" style="width:${ratio*100}%"></div></div>`;
+    const countBar = (label,count,denominator,unit='餐') => {
+      const ratio=denominator?count/denominator:0,percent=Math.round(ratio*100);
+      return `<div class="ks-stat-row"><div class="ks-row"><span>${escapeText(label)}</span><span><strong>${count} ${unit}</strong><small>${percent}%</small></span></div>${statBar(`${label}：${count}${unit}，占${percent}%`,ratio)}</div>`;
+    };
     const mealResult=m=>{
       const method=m.method||'方式未填写',dishes=m.dishes||'未填写菜品';
       const meta=[`计划在家：${m.atHome?'是':'否'}`,...m.categories,m.note?`备注：${m.note.replace(/\s+/g,' ')}`:''].filter(Boolean).join(' · ');
