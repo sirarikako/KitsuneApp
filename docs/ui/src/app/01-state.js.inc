@@ -55,9 +55,15 @@
       ||wallets.find(w=>!w.archived&&!w.separateAccounting)||null;
     state.walletFilterIds=null;state.walletPickerOpen=false;state.walletDraftMode='REGULAR';state.walletDraftIds=[];state.lastWalletId='daily';
     // Financial categories are scoped by type and optional wallet; meal preparation categories are separate.
+    const categoryIcons={
+      '':['默认','tags'],FOOD:['餐饮','utensils'],TRANSPORT:['交通','train-front'],HOME:['居家','house'],
+      WORK:['工作','briefcase-business'],MONEY:['财务','wallet'],SHOPPING:['购物','shopping-bag'],HEALTH:['健康','heart-pulse'],
+      GIFT:['礼物','gift'],EDUCATION:['教育','graduation-cap'],TRAVEL:['旅行','plane'],ENTERTAINMENT:['娱乐','gamepad-2'],
+    };
+    const categoryGlyph=key=>icon((categoryIcons[key]||categoryIcons[''])[1]);
     const sharedFinancialCategories={
-      EXPENSE:[{id:'ge-food',name:'餐饮',archived:false,sortOrder:0},{id:'ge-transport',name:'交通',archived:false,sortOrder:1},{id:'ge-daily',name:'日用',archived:false,sortOrder:2}],
-      INCOME:[{id:'gi-salary',name:'工资',archived:false,sortOrder:0}]
+      EXPENSE:[{id:'ge-food',name:'餐饮',icon:'FOOD',archived:false,sortOrder:0},{id:'ge-transport',name:'交通',icon:'TRANSPORT',archived:false,sortOrder:1},{id:'ge-daily',name:'日用',icon:'SHOPPING',archived:false,sortOrder:2}],
+      INCOME:[{id:'gi-salary',name:'工资',icon:'MONEY',archived:false,sortOrder:0}]
     };
     const fallbackFinancialCategories={
       EXPENSE:{id:'ge-none',name:'未分类',archived:false,isDefault:true},
@@ -67,11 +73,13 @@
     wallets.forEach(w=>{w.incomeCategoryMode='DEFAULT';w.expenseCategoryMode='DEFAULT';});
     state.categoryWalletId='GLOBAL';state.financialScope='EXPENSE';state.editingFinancialCategoryId=null;
     state.categoryReturn='settings';state.categoryDetailReturn='category-manager';state.nextFinancialCategoryId=1;
+    state.addingEntryCategory=false;
     const financialScopeOf=type=>type==='收入'?'INCOME':'EXPENSE';
     const scopeMode=(wallet,scope)=>wallet?.[scope==='INCOME'?'incomeCategoryMode':'expenseCategoryMode']||'DEFAULT';
     const allFinancialCategories=()=>[...sharedFinancialCategories.EXPENSE,...sharedFinancialCategories.INCOME,...Object.values(walletFinancialCategories).flatMap(v=>[...v.EXPENSE,...v.INCOME]),...Object.values(fallbackFinancialCategories)];
     const categoryById=id=>allFinancialCategories().find(c=>c.id===id)||null;
     const categoryNameKey=category=>category?.name.trim().normalize('NFC').toLowerCase()??null;
+    const nextCategoryOrder=items=>Math.min(2147483647,Math.max(-1,...items.map(c=>c.sortOrder))+1);
     const effectiveFinancialCategories=(walletId,type)=>{
       const wallet=wallets.find(w=>w.id===walletId);if(!wallet)return [];
       const scope=financialScopeOf(type);

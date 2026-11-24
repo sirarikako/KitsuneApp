@@ -63,6 +63,11 @@
         const focus=state.entryTimeDraft.clock?'[data-time-part][aria-pressed=true]':'[data-entry-time] [name=hour]';
         phone.querySelector(focus).focus({preventScroll:true});
       }
+      if(state.addingEntryCategory){
+        phone.insertAdjacentHTML('beforeend',entryCategoryDialog());
+        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
+        phone.querySelector('[data-entry-category] [name=categoryName]').focus({preventScroll:true});
+      }
       if(state.page==='settings')phone.querySelector('.ks-settings-screen .ks-main').scrollTop=settingsScrollTop;
       if(keepingMealForm)phone.querySelector('.ks-main').scrollTop=mealPosition;
       if(state.addingMealOption){
@@ -146,6 +151,10 @@
       const kind=state.addingMealOption;
       state.addingMealOption=null;render();
       phone.querySelector(`[data-add-meal-option="${kind}"]`)?.focus({preventScroll:true});
+    }
+    function closeEntryCategory(){
+      state.addingEntryCategory=false;render();
+      phone.querySelector('[data-action=add-entry-category]')?.focus({preventScroll:true});
     }
     function closeMealCalendar(apply){
       const d=state.mealCalendar;

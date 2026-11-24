@@ -82,6 +82,7 @@ Wallet 字段：`name,normalizedName,currencyCode,currencyScale,openingBalanceMi
 - 早期 v1 JSON 快照的字段缺省迁移及严格校验例外，统一按 [JSON v1 契约](02-json.md#41-顶层结构) 执行。
 - `incomeCategoryMode`／`expenseCategoryMode` 的枚举值为 DEFAULT／CUSTOM，分别决定该钱包收入／支出的可用类别集合，创建默认 DEFAULT；`separateAccounting` 与类别模式相互独立。
 - Category 新增 `walletId`：PREPARATION 及通用 INCOME／EXPENSE 分类的值为 null，专属收入／支出分类为存在的钱包 UUID。收入和支出各仅有一个 `walletId=null,isDefault=true` 的全局“未分类”兜底项；`walletId!=null` 的分类必须 `isDefault=false`，且不能使用保留显示名“未分类”。
+- Category 的可空 `icon` 仅适用于普通 INCOME／EXPENSE 分类。可选值为 `FOOD`、`TRANSPORT`、`HOME`、`WORK`、`MONEY`、`SHOPPING`、`HEALTH`、`GIFT`、`EDUCATION`、`TRAVEL`、`ENTERTAINMENT`；空值使用默认图标。更改图标不改变分类 ID。
 - 分类名称唯一键为 `(scope, walletId 或 GLOBAL, normalizedName)`，包含归档项，同名在不同钱包合法；不可用 NULL 的普通数据库 UNIQUE 比较代替 GLOBAL 规范化归属比较。此规则不影响 PREPARATION 的既有全局唯一性。
 - DEFAULT 的活动选项为该 scope 的未归档通用类别（含全局兜底）；CUSTOM 的活动选项为该钱包同 scope 的未归档专属类别及全局兜底。CUSTOM 即使当前没有专属类别也只提供全局兜底，绝不因空表自动切回 DEFAULT。切回 DEFAULT 时专属类别和历史关联不删除。
 - 分类以稳定 UUID 引用，流水历史即使所属钱包已切换模式、分类已停用／归档，仍合法保留并展示。新增分类自动归属当时选择的设置作用域；直接录入创建分类也按当前钱包与收支方向归属。退款分类来自原支出，不取到账钱包的候选类别。

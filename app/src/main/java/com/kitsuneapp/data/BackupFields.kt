@@ -16,7 +16,7 @@ private val audit = listOf(timestamp("createdAt"), timestamp("updatedAt"))
 
 internal val methodFields = listOf(text("id"), text("name"), number("sortOrder"), flag("archived"), flag("showPreparationCategories")) + audit
 internal val categoryFields = listOf(text("id"), text("scope"), reference("walletId", true), text("name"),
-    number("sortOrder"), flag("archived"), flag("isDefault")) + audit
+    number("sortOrder"), flag("archived"), flag("isDefault"), reference("icon", true)) + audit
 internal val mealFields = listOf(text("id"), text("date"), text("mealSlot"), flag("plannedAtHome"), reference("mealMethodId"),
     ids("preparationCategoryIds"), text("dishes"), text("note")) + audit
 internal val walletFields = listOf(text("id"), text("name"), text("currencyCode"), number("currencyScale"), text("openingBalanceMinor"),
@@ -28,6 +28,7 @@ internal val themeFields = listOf(text("themeMode"), text("colorSource"), text("
 internal val receiptFields = listOf(text("kind"), text("sha256"), timestamp("importedAt"))
 
 internal class RowReader(private val fields: Map<String, Any?>) {
+    fun has(key: String) = fields.containsKey(key)
     fun text(key: String) = fields.getValue(key) as String
     fun optional(key: String) = fields[key] as String?
     fun flag(key: String) = fields[key] as? Boolean ?: false
@@ -92,11 +93,13 @@ internal fun RowReader.category(): Category {
     val name = name()
     val default = flag("isDefault")
     val archived = flag("archived")
+    val icon = optional("icon")?.let { enum<CategoryIcon>("icon") }
     require(wallet == null || scope != Scope.PREPARATION) { "制作分类必须是通用分类" }
     require(!default || (scope != Scope.PREPARATION && name == "未分类" && !archived && wallet == null)) { "兜底分类无效" }
     require(scope == Scope.PREPARATION || name != "未分类" || default) { "分类名称“未分类”已经保留" }
+    require(icon == null || (!default && scope != Scope.PREPARATION)) { "分类图标无效" }
     return Category(id(), scope, wallet, wallet ?: GLOBAL_OWNER, name, normalizedName(name), order(), archived,
-        default, time("createdAt"), time("updatedAt"))
+        default, time("createdAt"), time("updatedAt"), icon)
 }
 
 internal fun RowReader.meal(): MealRecord {

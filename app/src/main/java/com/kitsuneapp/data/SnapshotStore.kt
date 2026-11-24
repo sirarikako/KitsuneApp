@@ -17,6 +17,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 enum class BackupKind { AUTO, MANUAL, PRE_RESTORE }
+private const val BACKUP_FORMAT_VERSION = 2
 
 data class SnapshotInfo(val datasetId: String, val snapshotId: String, val revision: Long, val exportedAt: String, val kind: BackupKind)
 data class SnapshotCounts(val meals: Int, val wallets: Int, val entries: Int)
@@ -50,7 +51,7 @@ class SnapshotStore(private val context: Context, private val repository: Reposi
             jsonWriter(output).use { writer ->
                 writer.beginObject()
                 writer.field("format", "kitsune-backup")
-                writer.field("formatVersion", 1)
+                writer.field("formatVersion", BACKUP_FORMAT_VERSION)
                 writer.field("datasetId", info.datasetId)
                 writer.field("snapshotId", info.snapshotId)
                 writer.field("revision", info.revision.toString())
@@ -59,7 +60,7 @@ class SnapshotStore(private val context: Context, private val repository: Reposi
                 writer.name("data").beginObject()
                 writer.array("categories", dao::categoryPage, Category::id) {
                     row(categoryFields, it.id, it.scope, it.walletId, it.name, it.sortOrder, it.archived, it.isDefault,
-                        it.createdAt, it.updatedAt)
+                        it.icon?.name, it.createdAt, it.updatedAt)
                 }
                 writer.name("meals").beginObject()
                 writer.array("methods", dao::methodPage, MealMethod::id) {
@@ -174,25 +175,36 @@ class SnapshotStore(private val context: Context, private val repository: Reposi
 
     private suspend fun parse(input: JsonInput, dao: RecordsDao): SnapshotInfo = with(input) {
         val values = mutableMapOf<String, String>()
+        var version = 0
+        var hasCategoryIcons = false
         val envelope = setOf("format", "formatVersion", "datasetId", "snapshotId", "revision", "exportedAt", "backupKind", "data")
         obj(envelope) { key ->
             when (key) {
                 "format" -> require(string() == "kitsune-backup") { "文件不是 Kitsune 完整备份" }
-                "formatVersion" -> require(int() == 1) { "不支持此备份格式版本" }
-                "data" -> readData(this, dao)
+                "formatVersion" -> {
+                    version = int()
+                    require(version in 1..BACKUP_FORMAT_VERSION) { "不支持此备份格式版本" }
+                }
+                "data" -> hasCategoryIcons = readData(this, dao)
                 else -> values[key] = string()
             }
         }
+        require(version != 1 || !hasCategoryIcons) { "备份版本 1 不支持分类图标字段" }
         require(reader.peek() == JsonToken.END_DOCUMENT) { "备份文件末尾包含多余内容" }
         SnapshotInfo(validateId(values.getValue("datasetId")), validateId(values.getValue("snapshotId")),
             parseLongString(values.getValue("revision")).also { require(it >= 0) { "修订号不能为负数" } },
             backupTimestamp(values.getValue("exportedAt")), BackupKind.valueOf(values.getValue("backupKind")))
     }
 
-    private suspend fun readData(input: JsonInput, dao: RecordsDao): Unit = with(input) {
+    private suspend fun readData(input: JsonInput, dao: RecordsDao): Boolean = with(input) {
+        var hasCategoryIcons = false
         obj(setOf("categories", "meals", "ledger", "settings", "importReceipts")) { key ->
             when (key) {
-                "categories" -> list { dao.insertCategory(row(categoryFields).category()) }
+                "categories" -> list {
+                    val category = row(categoryFields)
+                    if (category.has("icon")) hasCategoryIcons = true
+                    dao.insertCategory(category.category())
+                }
                 "meals" -> obj(setOf("methods", "records")) { field ->
                     if (field == "methods") list { dao.insertMethod(row(methodFields).method()) }
                     else list {
@@ -212,6 +224,7 @@ class SnapshotStore(private val context: Context, private val repository: Reposi
                 "importReceipts" -> list { dao.insert(row(receiptFields).receipt()) }
             }
         }
+        hasCategoryIcons
     }
 }
 

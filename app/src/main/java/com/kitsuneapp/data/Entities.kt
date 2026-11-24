@@ -53,7 +53,12 @@ data class Category(
     val isDefault: Boolean,
     val createdAt: String,
     val updatedAt: String,
+    val icon: CategoryIcon? = null,
 )
+
+enum class CategoryIcon {
+    FOOD, TRANSPORT, HOME, WORK, MONEY, SHOPPING, HEALTH, GIFT, EDUCATION, TRAVEL, ENTERTAINMENT,
+}
 
 @Entity(
     foreignKeys = [ForeignKey(entity = MealMethod::class, parentColumns = ["id"], childColumns = ["mealMethodId"], deferred = true)],

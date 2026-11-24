@@ -11,9 +11,9 @@ import androidx.room.Upsert
 @Database(
     entities = [MealMethod::class, Category::class, MealRecord::class, MealPreparationCategory::class,
         Wallet::class, FinancialEntry::class, ThemePreferences::class, ImportReceipt::class, DataState::class],
-    version = 3,
+    version = 4,
     exportSchema = true,
-    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3)],
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4)],
 )
 abstract class KitsuneDatabase : RoomDatabase() {
     abstract fun records(): RecordsDao

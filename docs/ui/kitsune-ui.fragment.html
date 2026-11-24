@@ -250,11 +250,24 @@
   #kitsune-preview .ks-category-manager .ks-category-rows{background:var(--ks-card-surface);border:var(--ks-card-border);border-radius:var(--ks-radius);padding:0 var(--ks-space-3)}
   #kitsune-preview .ks-category-manager .ks-setting{gap:var(--ks-space-1)}
   #kitsune-preview .ks-category-rows .ks-setting-link{border-bottom:var(--ks-card-border)}
-  #kitsune-preview .ks-category-rows .ks-setting-link svg{margin-left:auto}
+  #kitsune-preview .ks-category-rows .ks-setting span{flex:1}
+  #kitsune-preview .ks-category-rows .ks-setting svg{flex:none}
   #kitsune-preview .ks-backup-status{font-size:20px;font-weight:500;margin:0}
   #kitsune-preview .ks-backup-status~p{margin:var(--ks-space-1) 0 0}
   #kitsune-preview .ks-category-form{margin-top:4px}
   #kitsune-preview .ks-category-form .ks-form-actions{align-items:center}
+  #kitsune-preview .ks-entry-category{align-items:center;row-gap:var(--ks-space-1)}
+  #kitsune-preview .ks-category-icons .ks-choice{display:inline-flex;align-items:center;gap:var(--ks-space-1);position:relative;cursor:pointer}
+  #kitsune-preview .ks-category-icons input{position:absolute;opacity:0;width:1px;height:1px}
+  #kitsune-preview .ks-category-icons .ks-choice:has(input:checked){background:var(--ks-accent-bg);border-color:var(--ks-accent);color:var(--ks-accent)}
+  #kitsune-preview .ks-category-icons .ks-choice:focus-within{outline:2px solid var(--ks-accent);outline-offset:2px}
+  @supports (appearance:base-select){
+    #kitsune-preview .ks-category-select,#kitsune-preview .ks-category-select::picker(select){appearance:base-select}
+    #kitsune-preview .ks-category-select{display:flex;align-items:center}
+    #kitsune-preview .ks-category-select::picker(select){background:var(--ks-paper);color:var(--ks-ink);border:var(--ks-card-border);border-radius:var(--ks-control-radius)}
+    #kitsune-preview .ks-category-select :is(selectedcontent,option){display:flex;align-items:center;gap:var(--ks-space-2)}
+    #kitsune-preview .ks-category-select svg{flex:none}
+  }
   #kitsune-preview .ks-wallet-check>span{flex:1}
   #kitsune-preview .ks-wallet-check small{font-size:var(--ks-font-note);color:var(--ks-accent)}
   #kitsune-preview .ks-filter-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 15px}
@@ -373,9 +386,15 @@
       ||wallets.find(w=>!w.archived&&!w.separateAccounting)||null;
     state.walletFilterIds=null;state.walletPickerOpen=false;state.walletDraftMode='REGULAR';state.walletDraftIds=[];state.lastWalletId='daily';
     // Financial categories are scoped by type and optional wallet; meal preparation categories are separate.
+    const categoryIcons={
+      '':['默认','tags'],FOOD:['餐饮','utensils'],TRANSPORT:['交通','train-front'],HOME:['居家','house'],
+      WORK:['工作','briefcase-business'],MONEY:['财务','wallet'],SHOPPING:['购物','shopping-bag'],HEALTH:['健康','heart-pulse'],
+      GIFT:['礼物','gift'],EDUCATION:['教育','graduation-cap'],TRAVEL:['旅行','plane'],ENTERTAINMENT:['娱乐','gamepad-2'],
+    };
+    const categoryGlyph=key=>icon((categoryIcons[key]||categoryIcons[''])[1]);
     const sharedFinancialCategories={
-      EXPENSE:[{id:'ge-food',name:'餐饮',archived:false,sortOrder:0},{id:'ge-transport',name:'交通',archived:false,sortOrder:1},{id:'ge-daily',name:'日用',archived:false,sortOrder:2}],
-      INCOME:[{id:'gi-salary',name:'工资',archived:false,sortOrder:0}]
+      EXPENSE:[{id:'ge-food',name:'餐饮',icon:'FOOD',archived:false,sortOrder:0},{id:'ge-transport',name:'交通',icon:'TRANSPORT',archived:false,sortOrder:1},{id:'ge-daily',name:'日用',icon:'SHOPPING',archived:false,sortOrder:2}],
+      INCOME:[{id:'gi-salary',name:'工资',icon:'MONEY',archived:false,sortOrder:0}]
     };
     const fallbackFinancialCategories={
       EXPENSE:{id:'ge-none',name:'未分类',archived:false,isDefault:true},
@@ -385,11 +404,13 @@
     wallets.forEach(w=>{w.incomeCategoryMode='DEFAULT';w.expenseCategoryMode='DEFAULT';});
     state.categoryWalletId='GLOBAL';state.financialScope='EXPENSE';state.editingFinancialCategoryId=null;
     state.categoryReturn='settings';state.categoryDetailReturn='category-manager';state.nextFinancialCategoryId=1;
+    state.addingEntryCategory=false;
     const financialScopeOf=type=>type==='收入'?'INCOME':'EXPENSE';
     const scopeMode=(wallet,scope)=>wallet?.[scope==='INCOME'?'incomeCategoryMode':'expenseCategoryMode']||'DEFAULT';
     const allFinancialCategories=()=>[...sharedFinancialCategories.EXPENSE,...sharedFinancialCategories.INCOME,...Object.values(walletFinancialCategories).flatMap(v=>[...v.EXPENSE,...v.INCOME]),...Object.values(fallbackFinancialCategories)];
     const categoryById=id=>allFinancialCategories().find(c=>c.id===id)||null;
     const categoryNameKey=category=>category?.name.trim().normalize('NFC').toLowerCase()??null;
+    const nextCategoryOrder=items=>Math.min(2147483647,Math.max(-1,...items.map(c=>c.sortOrder))+1);
     const effectiveFinancialCategories=(walletId,type)=>{
       const wallet=wallets.find(w=>w.id===walletId);if(!wallet)return [];
       const scope=financialScopeOf(type);
@@ -920,11 +941,11 @@
     function financialCategoryRows(categories,editable,showFallback){
       return `<div class="ks-settings ks-category-rows">
         ${categories.map(c=>{
-          const label=`<span>${escapeText(c.name)}${c.archived?'<small class="ks-note"> · 已停用</small>':''}</span>`;
+          const label=`${categoryGlyph(c.icon)}<span>${escapeText(c.name)}${c.archived?'<small class="ks-note"> · 已停用</small>':''}</span>`;
           return editable?`<button type="button" class="ks-setting ks-setting-link cursor-interaction" data-edit-financial-category="${c.id}">${label}${icon('chevron-right')}</button>`:
             `<div class="ks-setting">${label}<small>通用</small></div>`;
         }).join('')}
-        ${showFallback?'<div class="ks-setting"><span>未分类 <small class="ks-note">· 固定兜底</small></span><small>所有钱包可用</small></div>':''}
+        ${showFallback?`<div class="ks-setting">${categoryGlyph()}<span>未分类 <small class="ks-note">· 固定兜底</small></span><small>所有钱包可用</small></div>`:''}
       </div>`;
     }
     function newFinancialCategoryButton(){
@@ -938,10 +959,10 @@
       const current=state.editingFinancialCategoryId?categoryById(state.editingFinancialCategoryId):null;
       const owner=state.categoryWalletId,scope=state.financialScope;
       const categories=owner==='GLOBAL'?sharedFinancialCategories[scope]:walletFinancialCategories[owner][scope];
-      const nextOrder=Math.min(2147483647,Math.max(-1,...categories.map(c=>c.sortOrder))+1);
       return `<form class="ks-form ks-category-form" data-financial-category-form>
         <label><span class="ks-label">名称</span><input name="categoryName" class="ks-control" value="${escapeText(current?.name||'')}" placeholder="输入名称" maxlength="30" required></label>
-        <label><span class="ks-label">排序（数字越小越靠前）</span><input name="sortOrder" class="ks-control" type="number" min="0" max="2147483647" step="1" required value="${current?.sortOrder??nextOrder}"></label>
+        ${categoryIconPicker(current?.icon)}
+        <label><span class="ks-label">排序（数字越小越靠前）</span><input name="sortOrder" class="ks-control" type="number" min="0" max="2147483647" step="1" required value="${current?.sortOrder??nextCategoryOrder(categories)}"></label>
         <label class="ks-wallet-check"><input name="archived" type="checkbox" ${current?.archived?'checked':''}>停用</label>
         ${formFooter(saveButton('保存'),'交互预览 · 使用示例分类')}
       </form>`;
@@ -1056,6 +1077,28 @@
           </div>
         </form></div>`;
     }
+    function categoryIconPicker(selected=''){
+      return `<fieldset><legend class="ks-label">分类图标</legend><div class="ks-choices ks-category-icons">
+        ${Object.entries(categoryIcons).map(([key,[label]])=>`<label class="ks-choice">
+          <input type="radio" name="categoryIcon" value="${key}" ${selected===key?'checked':''}>
+          ${categoryGlyph(key)}<span>${label}</span></label>`).join('')}
+      </div></fieldset>`;
+    }
+    function entryCategoryDialog(){
+      return `<div class="ks-modal-overlay ks-period-overlay" data-entry-category-overlay>
+        <form class="ks-period-dialog ks-form" data-entry-category role="dialog" aria-modal="true" aria-label="新增分类">
+          <h3>新增分类</h3>
+          <div class="ks-period-body">
+            <label><span class="ks-label">分类名称</span><input name="categoryName" class="ks-control" placeholder="输入分类名称" maxlength="30" required></label>
+            ${categoryIconPicker()}
+            <p class="ks-error" role="alert"></p>
+          </div>
+          <div class="ks-period-actions">
+            <button type="button" class="ks-text-btn" data-action="cancel-entry-category">取消</button>
+            <button type="submit" class="ks-text-btn">保存</button>
+          </div>
+        </form></div>`;
+    }
     function pageEntry(){return `<form data-entry-form class="ks-form">
       <fieldset><legend class="ks-label">收支类型</legend><div class="ks-choices">${['支出','收入'].map(t=>choice(t,t,state.entryType,'entry-type')).join('')}</div></fieldset>
       <div><span class="ks-label" id="ks-amount-label">金额 · ${entryWallet()?.code||'请选择钱包'}</span>
@@ -1066,7 +1109,18 @@
         <input type="date" name="date" value="${escapeText(state.entryDraft.dateTime.slice(0,10))}" class="ks-control" aria-label="日期" required>
         <button type="button" class="ks-control" data-action="open-entry-time" aria-haspopup="dialog" aria-label="时间 ${state.entryDraft.dateTime.slice(-5)}">${state.entryDraft.dateTime.slice(-5)}</button>
       </div></fieldset>
-      <div class="ks-field-row"><label><span class="ks-label">钱包</span><select name="wallet" class="ks-control" required><option value="" ${!entryWallet()?'selected':''} disabled>请选择钱包</option>${wallets.map(w=>`<option value="${w.id}" ${entryWallet()?.id===w.id?'selected':''}>${w.name} · ${w.code}${w.separateAccounting?'（独立核算）':''}</option>`).join('')}</select></label><label><span class="ks-label">分类</span><select name="category" class="ks-control" required><option value="" ${!state.entryDraft.category?'selected':''} disabled>请选择分类</option>${effectiveFinancialCategories(state.entryDraft.walletId,state.entryType).map(c=>`<option value="${c.id}" ${state.entryDraft.category===c.id?'selected':''}>${escapeText(c.name)}</option>`).join('')}</select></label></div>
+      <div class="ks-field-row ks-entry-category">
+        <label class="ks-label" for="entry-wallet">钱包</label>
+        <div class="ks-filter-field-heading"><label class="ks-label" for="entry-category">分类</label>
+          ${entryWallet()?'<button type="button" class="ks-text-btn" data-action="add-entry-category" aria-haspopup="dialog">新增分类</button>':''}
+        </div>
+        <select id="entry-wallet" name="wallet" class="ks-control" required><option value="" ${!entryWallet()?'selected':''} disabled>请选择钱包</option>${wallets.map(w=>`<option value="${w.id}" ${entryWallet()?.id===w.id?'selected':''}>${w.name} · ${w.code}${w.separateAccounting?'（独立核算）':''}</option>`).join('')}</select>
+        <select id="entry-category" name="category" class="ks-control ks-category-select" required ${entryWallet()?'':'disabled'}>
+          <button><selectedcontent></selectedcontent></button>
+          <option value="" ${!state.entryDraft.category?'selected':''} disabled>请选择分类</option>
+          ${effectiveFinancialCategories(state.entryDraft.walletId,state.entryType).map(c=>`<option value="${c.id}" ${state.entryDraft.category===c.id?'selected':''}>${categoryGlyph(c.icon)}<span>${escapeText(c.name)}</span></option>`).join('')}
+        </select>
+      </div>
       <p class="ks-note">分类来源：${entryWallet()?scopeMode(entryWallet(),financialScopeOf(state.entryType))==='CUSTOM'?'本钱包专属分类':'通用分类':'请先选择钱包'}。切换钱包后如无对应分类，请重新选择。</p>
       <label><span class="ks-label">备注</span><input name="note" class="ks-control" placeholder="这笔钱用在了哪里？" value="${escapeText(state.entryDraft.note)}"></label>
       ${formFooter(saveButton(`保存${state.entryType}`),'交互预览 · 仅保存到当前演示')}
@@ -1266,7 +1320,7 @@
     const discard=group=>()=>group?.remove();
     const pageNode=()=>phone.querySelector(':scope > .ks-page-motion');
     const modalNode=()=>phone.querySelector(':scope > .ks-modal-overlay');
-    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.walletPickerOpen?'wallet':state.periodDraft?'period':state.ledgerFilterDraft?'ledger-filters':state.githubDemo.review?'github-review':state.mealCalendar?'date-calendar':state.entryTimeDraft?'entry-time':state.addingMealOption?'meal-option':null;
+    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.walletPickerOpen?'wallet':state.periodDraft?'period':state.ledgerFilterDraft?'ledger-filters':state.githubDemo.review?'github-review':state.mealCalendar?'date-calendar':state.entryTimeDraft?'entry-time':state.addingEntryCategory?'entry-category':state.addingMealOption?'meal-option':null;
     const primary=page=>navs.some(n=>n[0]===page);
     const localKey=()=>state.page==='meals'?JSON.stringify([state.mealTab,state.date,state.mealStatsFilters,state.mealListMode,state.mealFilters]):state.page==='ledger'?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds,state.ledgerFilters]):'';
     const localNodes=()=>{
@@ -1428,6 +1482,11 @@
         const focus=state.entryTimeDraft.clock?'[data-time-part][aria-pressed=true]':'[data-entry-time] [name=hour]';
         phone.querySelector(focus).focus({preventScroll:true});
       }
+      if(state.addingEntryCategory){
+        phone.insertAdjacentHTML('beforeend',entryCategoryDialog());
+        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
+        phone.querySelector('[data-entry-category] [name=categoryName]').focus({preventScroll:true});
+      }
       if(state.page==='settings')phone.querySelector('.ks-settings-screen .ks-main').scrollTop=settingsScrollTop;
       if(keepingMealForm)phone.querySelector('.ks-main').scrollTop=mealPosition;
       if(state.addingMealOption){
@@ -1512,6 +1571,10 @@
       state.addingMealOption=null;render();
       phone.querySelector(`[data-add-meal-option="${kind}"]`)?.focus({preventScroll:true});
     }
+    function closeEntryCategory(){
+      state.addingEntryCategory=false;render();
+      phone.querySelector('[data-action=add-entry-category]')?.focus({preventScroll:true});
+    }
     function closeMealCalendar(apply){
       const d=state.mealCalendar;
       if(apply){
@@ -1565,12 +1628,15 @@
     phone.addEventListener('click',event=>{
       if(event.target.matches('.ks-wallet-overlay')){closeWalletPicker('cancel');return;}
       if(event.target.matches('[data-ledger-filter-overlay]')){closeLedgerFilters(false);return;}
+      if(event.target.matches('[data-entry-category-overlay]')){closeEntryCategory();return;}
       if(event.target.matches('.ks-period-overlay')){closePeriod(false);return;}
       if(event.target.matches('.ks-calendar-overlay')){closeMealCalendar(false);return;}
       if(event.target.matches('.ks-time-overlay')){closeEntryTime(false);return;}
       if(event.target.matches('[data-meal-option-overlay]')){closeMealOption();return;}
       const b=event.target.closest('button');if(!b)return;
       capture();state.notice='';
+      if(b.dataset.action==='add-entry-category'){state.addingEntryCategory=true;render();return;}
+      if(b.dataset.action==='cancel-entry-category'){closeEntryCategory();return;}
       if(b.dataset.action==='open-entry-time'){
         const [hour,minute]=state.entryDraft.dateTime.slice(-5).split(':');
         state.entryTimeDraft={hour,minute,clock:false,part:'hour',clockTime:{hour,minute}};
@@ -1797,6 +1863,7 @@
         }else if(state.addingMealOption)closeMealOption();
         else if(state.mealCalendar)closeMealCalendar(false);
         else if(state.entryTimeDraft)closeEntryTime(false);
+        else if(state.addingEntryCategory)closeEntryCategory();
         else if(state.periodDraft)closePeriod(false);
         else if(state.ledgerFilterDraft)closeLedgerFilters(false);
         else if(state.walletPickerOpen)closeWalletPicker('cancel');
@@ -1919,15 +1986,30 @@
         if(message){f.querySelector('[data-meal-option-error]').textContent=message;return;}
         list.push(name);closeMealOption();return;
       }
-      if(f.matches('[data-financial-category-form]')){
-        const name=f.elements.categoryName.value.trim(),scope=state.financialScope,owner=state.categoryWalletId;
+      if(f.matches('[data-financial-category-form],[data-entry-category]')){
+        const fromEntry=f.matches('[data-entry-category]'),wallet=entryWallet();
+        if(fromEntry&&!wallet){closeEntryCategory();return;}
+        const scope=fromEntry?financialScopeOf(state.entryType):state.financialScope;
+        const owner=fromEntry?(scopeMode(wallet,scope)==='CUSTOM'?wallet.id:'GLOBAL'):state.categoryWalletId;
         const items=owner==='GLOBAL'?sharedFinancialCategories[scope]:walletFinancialCategories[owner][scope];
-        const edited=items.find(c=>c.id===state.editingFinancialCategoryId);
-        const normalized=name.toLocaleLowerCase();
-        if(!name||normalized==='未分类'||items.some(c=>c.id!==edited?.id&&c.name.trim().toLocaleLowerCase()===normalized)){error('分类名不能为空、不能使用“未分类”，且不能与本范围已有名称重复。');return;}
-        const archived=f.elements.archived.checked,sortOrder=f.elements.sortOrder.valueAsNumber;
-        if(edited)Object.assign(edited,{name,archived,sortOrder});else items.push({id:'user-cat-'+state.nextFinancialCategoryId++,name,archived,sortOrder});
+        const edited=fromEntry?null:items.find(c=>c.id===state.editingFinancialCategoryId);
+        const name=f.elements.categoryName.value.trim(),normalized=categoryNameKey({name});
+        if(!name||normalized==='未分类'||items.some(c=>c.id!==edited?.id&&categoryNameKey(c)===normalized)){
+          f.querySelector('.ks-error').textContent='分类名不能为空、不能使用“未分类”，且不能与本范围已有名称重复。';
+          return;
+        }
+        const icon=f.elements.categoryIcon.value;
+        const archived=fromEntry?false:f.elements.archived.checked;
+        const sortOrder=fromEntry?nextCategoryOrder(items):f.elements.sortOrder.valueAsNumber;
+        const category=edited??{id:'user-cat-'+state.nextFinancialCategoryId++};
+        Object.assign(category,{name,icon,archived,sortOrder});
+        if(!edited)items.push(category);
         items.sort((a,b)=>a.sortOrder-b.sortOrder||a.name.localeCompare(b.name));
+        if(fromEntry){
+          state.entryDraft.category=category.id;
+          state.followsWalletType=false;
+          closeEntryCategory();return;
+        }
         state.editingFinancialCategoryId=null;state.page=state.categoryDetailReturn;render();return;
       }
       if(f.matches('[data-ledger-filters]')){closeLedgerFilters(true);return;}

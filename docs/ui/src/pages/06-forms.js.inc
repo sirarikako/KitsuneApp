@@ -21,6 +21,28 @@
           </div>
         </form></div>`;
     }
+    function categoryIconPicker(selected=''){
+      return `<fieldset><legend class="ks-label">分类图标</legend><div class="ks-choices ks-category-icons">
+        ${Object.entries(categoryIcons).map(([key,[label]])=>`<label class="ks-choice">
+          <input type="radio" name="categoryIcon" value="${key}" ${selected===key?'checked':''}>
+          ${categoryGlyph(key)}<span>${label}</span></label>`).join('')}
+      </div></fieldset>`;
+    }
+    function entryCategoryDialog(){
+      return `<div class="ks-modal-overlay ks-period-overlay" data-entry-category-overlay>
+        <form class="ks-period-dialog ks-form" data-entry-category role="dialog" aria-modal="true" aria-label="新增分类">
+          <h3>新增分类</h3>
+          <div class="ks-period-body">
+            <label><span class="ks-label">分类名称</span><input name="categoryName" class="ks-control" placeholder="输入分类名称" maxlength="30" required></label>
+            ${categoryIconPicker()}
+            <p class="ks-error" role="alert"></p>
+          </div>
+          <div class="ks-period-actions">
+            <button type="button" class="ks-text-btn" data-action="cancel-entry-category">取消</button>
+            <button type="submit" class="ks-text-btn">保存</button>
+          </div>
+        </form></div>`;
+    }
     function pageEntry(){return `<form data-entry-form class="ks-form">
       <fieldset><legend class="ks-label">收支类型</legend><div class="ks-choices">${['支出','收入'].map(t=>choice(t,t,state.entryType,'entry-type')).join('')}</div></fieldset>
       <div><span class="ks-label" id="ks-amount-label">金额 · ${entryWallet()?.code||'请选择钱包'}</span>
@@ -31,7 +53,18 @@
         <input type="date" name="date" value="${escapeText(state.entryDraft.dateTime.slice(0,10))}" class="ks-control" aria-label="日期" required>
         <button type="button" class="ks-control" data-action="open-entry-time" aria-haspopup="dialog" aria-label="时间 ${state.entryDraft.dateTime.slice(-5)}">${state.entryDraft.dateTime.slice(-5)}</button>
       </div></fieldset>
-      <div class="ks-field-row"><label><span class="ks-label">钱包</span><select name="wallet" class="ks-control" required><option value="" ${!entryWallet()?'selected':''} disabled>请选择钱包</option>${wallets.map(w=>`<option value="${w.id}" ${entryWallet()?.id===w.id?'selected':''}>${w.name} · ${w.code}${w.separateAccounting?'（独立核算）':''}</option>`).join('')}</select></label><label><span class="ks-label">分类</span><select name="category" class="ks-control" required><option value="" ${!state.entryDraft.category?'selected':''} disabled>请选择分类</option>${effectiveFinancialCategories(state.entryDraft.walletId,state.entryType).map(c=>`<option value="${c.id}" ${state.entryDraft.category===c.id?'selected':''}>${escapeText(c.name)}</option>`).join('')}</select></label></div>
+      <div class="ks-field-row ks-entry-category">
+        <label class="ks-label" for="entry-wallet">钱包</label>
+        <div class="ks-filter-field-heading"><label class="ks-label" for="entry-category">分类</label>
+          ${entryWallet()?'<button type="button" class="ks-text-btn" data-action="add-entry-category" aria-haspopup="dialog">新增分类</button>':''}
+        </div>
+        <select id="entry-wallet" name="wallet" class="ks-control" required><option value="" ${!entryWallet()?'selected':''} disabled>请选择钱包</option>${wallets.map(w=>`<option value="${w.id}" ${entryWallet()?.id===w.id?'selected':''}>${w.name} · ${w.code}${w.separateAccounting?'（独立核算）':''}</option>`).join('')}</select>
+        <select id="entry-category" name="category" class="ks-control ks-category-select" required ${entryWallet()?'':'disabled'}>
+          <button><selectedcontent></selectedcontent></button>
+          <option value="" ${!state.entryDraft.category?'selected':''} disabled>请选择分类</option>
+          ${effectiveFinancialCategories(state.entryDraft.walletId,state.entryType).map(c=>`<option value="${c.id}" ${state.entryDraft.category===c.id?'selected':''}>${categoryGlyph(c.icon)}<span>${escapeText(c.name)}</span></option>`).join('')}
+        </select>
+      </div>
       <p class="ks-note">分类来源：${entryWallet()?scopeMode(entryWallet(),financialScopeOf(state.entryType))==='CUSTOM'?'本钱包专属分类':'通用分类':'请先选择钱包'}。切换钱包后如无对应分类，请重新选择。</p>
       <label><span class="ks-label">备注</span><input name="note" class="ks-control" placeholder="这笔钱用在了哪里？" value="${escapeText(state.entryDraft.note)}"></label>
       ${formFooter(saveButton(`保存${state.entryType}`),'交互预览 · 仅保存到当前演示')}
