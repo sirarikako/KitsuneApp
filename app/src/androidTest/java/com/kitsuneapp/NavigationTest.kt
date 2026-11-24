@@ -15,10 +15,12 @@ import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -246,6 +248,11 @@ class NavigationTest {
             repository.read().wallets.single { it.name == walletName }
         }
         try {
+            // Wait for the activity's records flow to display the seeded wallet before opening a new entry.
+            compose.onNodeWithText("记账").performClick()
+            compose.onNodeWithText("钱包").performClick()
+            compose.waitUntilAtLeastOneExists(hasText("$walletName · CNY"), 20_000)
+            compose.onNodeWithText("首页").performClick()
             compose.onNodeWithText("记一笔").performScrollTo().performClick()
             compose.waitUntilAtLeastOneExists(hasContentDescription("分类"), 10_000)
             compose.onNodeWithContentDescription("备注").performScrollTo().performTextReplacement("保留备注")
@@ -271,7 +278,9 @@ class NavigationTest {
                 .fetchSemanticsNode().config[SemanticsProperties.InputText].text)
             assertEquals(CategoryIcon.GIFT, runBlocking { repository.read().categories.single { it.name == categoryName }.icon })
             category.performClick()
-            compose.onNodeWithText(categoryName).assertIsSelected()
+            val dialogContent = hasAnyAncestor(isDialog())
+            compose.onNode(hasScrollToNodeAction() and dialogContent).performScrollToNode(hasText(categoryName))
+            compose.onNode(hasText(categoryName) and dialogContent).assertIsSelected()
             compose.onNodeWithContentDescription("关闭").performClick()
             compose.onNode(selected).assertExists()
         } finally {

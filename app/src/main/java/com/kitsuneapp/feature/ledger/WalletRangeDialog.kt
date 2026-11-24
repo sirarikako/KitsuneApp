@@ -24,22 +24,20 @@ internal fun WalletRangeDialog(
     applied: WalletRange, wallets: List<Wallet>, dismiss: () -> Unit, apply: (WalletRange) -> Unit,
 ) {
     val regularIds = remember(wallets) { WalletRange().selected(wallets).map(Wallet::id) }
-    var mode by rememberSaveable { mutableStateOf(applied.mode) }
-    var manualIds by rememberSaveable {
-        mutableStateOf(ArrayList(if (applied.mode == RangeMode.MANUAL) applied.walletIds else regularIds))
+    var draft by rememberSaveable {
+        val initialIds = if (applied.mode == RangeMode.MANUAL) applied.walletIds else regularIds
+        mutableStateOf(WalletRange(applied.mode, initialIds))
     }
-    val checkedIds = remember(manualIds) { manualIds.toSet() }
+    val mode = draft.mode
+    val checkedIds = remember(draft.walletIds) { draft.walletIds.toSet() }
     val canApply = mode != RangeMode.MANUAL || wallets.any { it.id in checkedIds }
 
     SelectionSheet("钱包范围", dismiss, footer = {
         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton({
-                mode = RangeMode.REGULAR
-                manualIds = ArrayList(regularIds)
-            }) { Text("恢复默认") }
+            TextButton({ draft = WalletRange(walletIds = regularIds) }) { Text("恢复默认") }
             TextButton(dismiss) { Text("取消") }
             TextButton(
-                { apply(WalletRange(mode, if (mode == RangeMode.MANUAL) manualIds else emptyList())) },
+                { apply(if (mode == RangeMode.MANUAL) draft else WalletRange(mode)) },
                 enabled = canApply,
             ) { Text("应用") }
         }
@@ -52,7 +50,7 @@ internal fun WalletRangeDialog(
                         RangeMode.ALL -> "全部钱包"
                         RangeMode.MANUAL -> "手动选择"
                     }
-                    SelectionRow(label, option == mode, { mode = option })
+                    SelectionRow(label, option == mode, { draft = draft.copy(mode = option) })
                 }
             }
         }
@@ -66,7 +64,8 @@ internal fun WalletRangeDialog(
         if (mode == RangeMode.MANUAL) {
             items(wallets, key = Wallet::id) { wallet ->
                 MultiSelectionRow(wallet.name, wallet.id in checkedIds, { checked ->
-                    manualIds = ArrayList(if (checked) manualIds + wallet.id else manualIds - wallet.id)
+                    val ids = draft.walletIds
+                    draft = draft.copy(walletIds = if (checked) ids + wallet.id else ids - wallet.id)
                 }, walletSelectionDetails(wallet))
             }
         }

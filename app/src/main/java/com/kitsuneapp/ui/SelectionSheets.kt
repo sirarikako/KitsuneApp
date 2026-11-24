@@ -96,7 +96,7 @@ internal fun MultiSelectionRow(
 
 @Composable
 private fun SelectionOption(
-    label: String, selected: Boolean, interaction: Modifier,
+    label: String, selected: Boolean, modifier: Modifier,
     secondary: String?, icon: ImageVector?, indicator: @Composable () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -105,7 +105,7 @@ private fun SelectionOption(
     Row(
         Modifier.fillMaxWidth().heightIn(min = if (secondary == null) 48.dp else 64.dp)
             .clip(ControlShape).background(if (selected) colors.primaryContainer else Color.Transparent)
-            .then(interaction).padding(horizontal = 12.dp, vertical = 8.dp),
+            .then(modifier).padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
