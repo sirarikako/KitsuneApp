@@ -72,6 +72,7 @@ import java.io.File
 import java.time.LocalDate
 import java.time.YearMonth
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -156,6 +157,43 @@ class LedgerLayoutTest {
     }
 
     @Test
+    fun ledgerRowsRefreshTheirCategoryGlyphsById() {
+        val now = "2026-11-17T12:00:00Z"
+        val date = LocalDate.now().toString()
+        val wallet = Wallet("regular", "日常钱包", "日常钱包", "CNY", 2, 0, 0, false, false,
+            CategoryMode.DEFAULT, CategoryMode.DEFAULT, now, now)
+        val other = wallet.copy(id = "other", name = "出行钱包")
+        val shared = Category("shared", Scope.EXPENSE, null, "", "交通", "交通", 0,
+            false, false, now, now, CategoryIcon.TRANSPORT)
+        val custom = shared.copy(id = "custom", walletId = other.id, ownerKey = other.id,
+            archived = true, icon = CategoryIcon.GIFT)
+        val expense = FinancialEntry("expense", date, "12:02", EntryType.EXPENSE, other.id,
+            500, custom.id, null, null, null, "专属支出", now, now)
+        val refund = FinancialEntry("refund", date, "12:03", EntryType.REFUND, wallet.id,
+            200, null, null, null, expense.id, "关联退款", now, now)
+        val unrelated = expense.copy(id = "unrelated", time = "12:01", walletId = wallet.id,
+            categoryId = shared.id, note = "同名通用支出")
+        var records by mutableStateOf(Records(DataState(installationId = "test", datasetId = "test", arrayElements = 0),
+            ThemePreferences(), emptyList(), listOf(shared, custom), emptyList(), emptyMap(),
+            listOf(wallet, other), listOf(expense, refund, unrelated)))
+        compose.setContent { KitsuneTheme(records.theme, forceDark = false) { LedgerPage(records, {}, {}) } }
+
+        fun rowImage(note: String): Bitmap {
+            val row = hasText(note, substring = true)
+            compose.onNode(hasScrollToNodeAction()).performScrollToNode(row)
+            return compose.onNode(row).assertIsDisplayed().captureToImage().asAndroidBitmap()
+        }
+
+        val expenseBefore = rowImage(expense.note)
+        val refundBefore = rowImage(refund.note)
+        val sharedBefore = rowImage(unrelated.note)
+        compose.runOnIdle { records = records.copy(categories = listOf(shared, custom.copy(icon = CategoryIcon.HOME))) }
+        assertFalse("The historical expense uses its updated category glyph", expenseBefore.sameAs(rowImage(expense.note)))
+        assertFalse("The refund uses the original expense's updated category glyph", refundBefore.sameAs(rowImage(refund.note)))
+        assertTrue("The separate category with the same name keeps its glyph", sharedBefore.sameAs(rowImage(unrelated.note)))
+    }
+
+    @Test
     fun showsExpenseColorAndCompactWalletActionsOnNarrowDarkLayout() {
         val now = "2026-11-17T12:00:00Z"
         val regular = Wallet("regular", "日常钱包", "日常钱包", "CNY", 2, 10_000, 0, false, false,
@@ -164,7 +202,8 @@ class LedgerLayoutTest {
             separateAccounting = true, archived = true)
         val entry = FinancialEntry("expense", LocalDate.now().toString(), "12:00", EntryType.EXPENSE,
             regular.id, 1_250, "expense-category", null, null, null, "", now, now)
-        val category = Category("expense-category", Scope.EXPENSE, null, "", "餐饮", "餐饮", 0, false, false, now, now)
+        val category = Category("expense-category", Scope.EXPENSE, null, "", "餐饮", "餐饮", 0,
+            false, false, now, now, CategoryIcon.FOOD)
         val records = Records(DataState(installationId = "test", datasetId = "test", arrayElements = 0, defaultWalletId = regular.id),
             ThemePreferences(), emptyList(), listOf(category), emptyList(), emptyMap(), listOf(regular, separate), listOf(entry))
         var detail: String? = null

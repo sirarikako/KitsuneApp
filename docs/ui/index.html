@@ -2320,7 +2320,8 @@ html&gt;body{padding:0}&lt;/style&gt;
       WORK:[&#x27;工作&#x27;,&#x27;briefcase-business&#x27;],MONEY:[&#x27;财务&#x27;,&#x27;wallet&#x27;],SHOPPING:[&#x27;购物&#x27;,&#x27;shopping-bag&#x27;],HEALTH:[&#x27;健康&#x27;,&#x27;heart-pulse&#x27;],
       GIFT:[&#x27;礼物&#x27;,&#x27;gift&#x27;],EDUCATION:[&#x27;教育&#x27;,&#x27;graduation-cap&#x27;],TRAVEL:[&#x27;旅行&#x27;,&#x27;plane&#x27;],ENTERTAINMENT:[&#x27;娱乐&#x27;,&#x27;gamepad-2&#x27;],
     };
-    const categoryGlyph=key=&gt;icon((categoryIcons[key]||categoryIcons[&#x27;&#x27;])[1]);
+    const categoryIconName=key=&gt;(categoryIcons[key]||categoryIcons[&#x27;&#x27;])[1];
+    const categoryGlyph=key=&gt;icon(categoryIconName(key));
     const sharedFinancialCategories={
       EXPENSE:[{id:&#x27;ge-food&#x27;,name:&#x27;餐饮&#x27;,icon:&#x27;FOOD&#x27;,archived:false,sortOrder:0},{id:&#x27;ge-transport&#x27;,name:&#x27;交通&#x27;,icon:&#x27;TRANSPORT&#x27;,archived:false,sortOrder:1},{id:&#x27;ge-daily&#x27;,name:&#x27;日用&#x27;,icon:&#x27;SHOPPING&#x27;,archived:false,sortOrder:2}],
       INCOME:[{id:&#x27;gi-salary&#x27;,name:&#x27;工资&#x27;,icon:&#x27;MONEY&#x27;,archived:false,sortOrder:0}]
@@ -2789,11 +2790,11 @@ html&gt;body{padding:0}&lt;/style&gt;
         ${section(`${period}流水`,filters)}
         &lt;div class=&quot;ks-record-list&quot;&gt;
         ${visibleEntries.map(entry=&gt;{
-          const wallet=walletById(entry.walletId),category=entryCategory(entry);
-          const lineLabel=entry.type===&#x27;退款&#x27;?`退款 · ${category}`:category;
-          const glyph=entry.type===&#x27;退款&#x27;?&#x27;undo-2&#x27;:category===&#x27;交通&#x27;?&#x27;train-front&#x27;:category===&#x27;工资&#x27;?&#x27;briefcase-business&#x27;:&#x27;receipt-text&#x27;;
-          return `&lt;button type=&quot;button&quot; class=&quot;ks-record cursor-interaction&quot; data-entry-id=&quot;${entry.id}&quot; aria-label=&quot;查看${escapeText(wallet.name)} ${escapeText(category)} ${entry.type} ${wallet.code} ${money(entry.cents,wallet.code)}详情&quot;&gt;
-            ${recordIcon(glyph)}
+          const wallet=walletById(entry.walletId),category=categoryById(categoryForEntry(entry));
+          const categoryName=category?.name||&#x27;历史分类&#x27;;
+          const lineLabel=entry.type===&#x27;退款&#x27;?`退款 · ${categoryName}`:categoryName;
+          return `&lt;button type=&quot;button&quot; class=&quot;ks-record cursor-interaction&quot; data-entry-id=&quot;${entry.id}&quot; aria-label=&quot;查看${escapeText(wallet.name)} ${escapeText(categoryName)} ${entry.type} ${wallet.code} ${money(entry.cents,wallet.code)}详情&quot;&gt;
+            ${recordIcon(categoryIconName(category?.icon))}
             &lt;span class=&quot;ks-record-copy&quot;&gt;&lt;span class=&quot;ks-record-title&quot;&gt;${escapeText(lineLabel)}&lt;span class=&quot;ks-pill&quot;&gt;${escapeText(wallet.name)}&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;ks-record-meta ks-record-ellipsis&quot;&gt;${includeYear?entry.date:entry.date.slice(5)} ${entry.time}${entry.note?` · ${escapeText(entry.note)}`:&#x27;&#x27;}&lt;/span&gt;&lt;/span&gt;
             &lt;span class=&quot;ks-currency-amount ${entry.type===&#x27;支出&#x27;?&#x27;ks-expense&#x27;:&#x27;ks-income&#x27;}&quot;&gt;&lt;strong&gt;${entry.type===&#x27;支出&#x27;?&#x27;−&#x27;:&#x27;+&#x27;}${money(entry.cents,wallet.code)}&lt;/strong&gt;&lt;small&gt;${wallet.code}&lt;/small&gt;&lt;/span&gt;${icon(&#x27;chevron-right&#x27;)}
           &lt;/button&gt;`;

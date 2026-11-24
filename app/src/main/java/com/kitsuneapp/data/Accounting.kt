@@ -46,9 +46,10 @@ class Ledger(records: Records) {
 
     fun wallet(id: String?) = walletById[id]
     fun entry(id: String?) = entriesById[id]
+    fun category(id: String?) = categoryById[id]
     fun walletLabel(id: String?) = wallet(id)?.let { it.name + " · " + it.currencyCode } ?: "未选择"
     fun categoryId(entry: FinancialEntry) = entry.categoryId ?: entry.originalExpenseId?.let { entriesById[it]?.categoryId }
-    fun categoryLabel(id: String?): String = categoryById[id]?.let { category ->
+    fun categoryLabel(id: String?): String = category(id)?.let { category ->
         if (categoryNameCounts.getValue(category.scope to category.normalizedName) > 1) {
             category.name + " · " + (wallet(category.walletId)?.name ?: "通用")
         } else category.name

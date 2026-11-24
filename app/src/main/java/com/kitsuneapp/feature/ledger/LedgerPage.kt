@@ -384,18 +384,14 @@ private fun EntryRow(ledger: Ledger, entry: FinancialEntry, includeYear: Boolean
     val transfer = entry.type == EntryType.TRANSFER
     val wallet = requireNotNull(ledger.wallet(entry.walletId))
     val names = if (transfer) wallet.name + " → " + requireNotNull(ledger.wallet(entry.toWalletId)).name else wallet.name
-    val category = ledger.categoryLabel(ledger.categoryId(entry)).ifBlank { entry.type.label }
+    val categoryId = ledger.categoryId(entry)
+    val category = ledger.categoryLabel(categoryId).ifBlank { entry.type.label }
     val date = if (includeYear) entry.date else entry.date.drop(5)
     val subtitle = listOf("$date ${entry.time}", entry.note).filter(String::isNotBlank).joinToString(" · ")
     val title = if (entry.type == EntryType.REFUND) "退款 · $category" else category
-    val icon = when {
-        transfer -> R.drawable.ks_arrow_right_left
-        entry.type == EntryType.REFUND -> R.drawable.ks_undo2
-        category == "交通" -> R.drawable.ks_train_front
-        category == "工资" -> R.drawable.ks_briefcase_business
-        else -> R.drawable.ks_receipt_text
-    }
-    RecordRow(title, subtitle, icon = designIcon(icon), onClick = onClick,
+    val icon = if (transfer) designIcon(R.drawable.ks_arrow_right_left)
+        else categoryGlyph(ledger.category(categoryId)?.icon)
+    RecordRow(title, subtitle, icon = icon, onClick = onClick,
         amount = if (transfer) ledger.entryAmount(entry) else signedAmount(entry, wallet.currencyScale),
         currency = wallet.currencyCode.takeUnless { transfer }, amountColor = entry.type.amountColor(),
         badge = names, sharedId = entry.id)

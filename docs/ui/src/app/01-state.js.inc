@@ -60,7 +60,8 @@
       WORK:['工作','briefcase-business'],MONEY:['财务','wallet'],SHOPPING:['购物','shopping-bag'],HEALTH:['健康','heart-pulse'],
       GIFT:['礼物','gift'],EDUCATION:['教育','graduation-cap'],TRAVEL:['旅行','plane'],ENTERTAINMENT:['娱乐','gamepad-2'],
     };
-    const categoryGlyph=key=>icon((categoryIcons[key]||categoryIcons[''])[1]);
+    const categoryIconName=key=>(categoryIcons[key]||categoryIcons[''])[1];
+    const categoryGlyph=key=>icon(categoryIconName(key));
     const sharedFinancialCategories={
       EXPENSE:[{id:'ge-food',name:'餐饮',icon:'FOOD',archived:false,sortOrder:0},{id:'ge-transport',name:'交通',icon:'TRANSPORT',archived:false,sortOrder:1},{id:'ge-daily',name:'日用',icon:'SHOPPING',archived:false,sortOrder:2}],
       INCOME:[{id:'gi-salary',name:'工资',icon:'MONEY',archived:false,sortOrder:0}]

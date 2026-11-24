@@ -33,6 +33,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
+import androidx.compose.ui.test.waitUntilDoesNotExist
 import androidx.compose.ui.test.waitUntilExactlyOneExists
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.core.view.ViewCompat
@@ -257,31 +258,48 @@ class NavigationTest {
             compose.waitUntilAtLeastOneExists(hasContentDescription("分类"), 10_000)
             compose.onNodeWithContentDescription("备注").performScrollTo().performTextReplacement("保留备注")
             val category = compose.onNodeWithContentDescription("分类")
-            category.performScrollTo().performClick()
-            compose.onNodeWithText("新增分类").assertIsDisplayed().performClick()
-            compose.onNodeWithContentDescription("分类名称").performTextReplacement(categoryName)
-            compose.onNodeWithText("取消").performClick()
-            compose.onNodeWithText("选择分类").assertDoesNotExist()
+            val dialogContent = hasAnyAncestor(isDialog())
+            val sheetTitle = hasText("选择分类") and dialogContent
+            val categoryNameField = hasContentDescription("分类名称") and dialogContent
+            fun openPicker() {
+                category.performScrollTo().assertIsDisplayed().performSemanticsAction(SemanticsActions.OnClick)
+                compose.waitUntilExactlyOneExists(sheetTitle, 10_000)
+            }
+            fun openEditor() {
+                openPicker()
+                compose.onNode(hasText("新增分类") and dialogContent).assertIsDisplayed()
+                    .performSemanticsAction(SemanticsActions.OnClick)
+                compose.waitUntilExactlyOneExists(categoryNameField, 10_000)
+            }
+            openEditor()
+            compose.onNode(categoryNameField).performTextReplacement(categoryName)
+            compose.onNode(hasText("取消") and dialogContent).performSemanticsAction(SemanticsActions.OnClick)
+            compose.waitUntilDoesNotExist(categoryNameField, 10_000)
+            compose.onNode(sheetTitle).assertDoesNotExist()
             category.assertExists()
             assertTrue(runBlocking { repository.read().categories.none { it.name == categoryName } })
 
-            category.performScrollTo().performClick()
-            compose.onNodeWithText("新增分类").performClick()
-            compose.onNodeWithContentDescription("分类名称").performTextReplacement(categoryName)
+            openEditor()
+            compose.onNode(categoryNameField).performTextReplacement(categoryName)
             compose.onNodeWithText("礼物").performScrollTo().performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithText("保存").assertIsEnabled().performSemanticsAction(SemanticsActions.OnClick)
 
             val selected = hasContentDescription("分类") and hasText(categoryName)
             compose.waitUntilExactlyOneExists(selected, 10_000)
-            compose.onNode(selected).performScrollTo().assertIsDisplayed()
             assertEquals("保留备注", compose.onNodeWithContentDescription("备注")
                 .fetchSemanticsNode().config[SemanticsProperties.InputText].text)
             assertEquals(CategoryIcon.GIFT, runBlocking { repository.read().categories.single { it.name == categoryName }.icon })
-            category.performClick()
-            val dialogContent = hasAnyAncestor(isDialog())
-            compose.onNode(hasScrollToNodeAction() and dialogContent).performScrollToNode(hasText(categoryName))
+            // The saved value can appear before Android returns input focus from the dialog to the form.
+            compose.waitUntil(10_000) {
+                compose.runOnUiThread { compose.activity.window.decorView.hasWindowFocus() }
+            }
+            compose.onNode(selected).performScrollTo().assertIsDisplayed()
+            openPicker()
+            val categoryList = hasScrollToNodeAction() and dialogContent
+            compose.waitUntilExactlyOneExists(categoryList, 10_000)
+            compose.onNode(categoryList).performScrollToNode(hasText(categoryName))
             compose.onNode(hasText(categoryName) and dialogContent).assertIsSelected()
-            compose.onNodeWithContentDescription("关闭").performClick()
+            compose.onNode(hasContentDescription("关闭") and dialogContent).performSemanticsAction(SemanticsActions.OnClick)
             compose.onNode(selected).assertExists()
         } finally {
             runBlocking {
