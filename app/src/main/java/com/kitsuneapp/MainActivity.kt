@@ -121,9 +121,13 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
     val top = stack.last()
     val root = stack.first()
     fun open(path: String) {
-        if (model.isBusy || stack.last() == path) return
+        val current = stack.last()
+        val newEntry = path == NEW_ENTRY_ROUTE
+        if (model.isBusy || current == path || (newEntry && current.startsWith("$NEW_ENTRY_ROUTE/"))) return
         model.clearError()
         stack = when {
+            // A previous form can still be composed during its exit animation.
+            newEntry -> ArrayList(stack + "$path/${newId()}")
             path in roots -> arrayListOf(path)
             path in stack -> ArrayList(stack.take(stack.indexOf(path) + 1))
             else -> ArrayList(stack + path)

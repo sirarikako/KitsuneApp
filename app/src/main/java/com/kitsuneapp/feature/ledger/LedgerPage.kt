@@ -294,8 +294,10 @@ fun LedgerPage(records: Records, open: (String) -> Unit, openDetails: (String) -
     }
 }
 
+internal const val NEW_ENTRY_ROUTE = "entryForm/-"
+
 internal fun newEntryRoute(ledger: Ledger): String =
-    if (ledger.availableWallets().isEmpty()) "wallet/-" else "entryForm/-"
+    if (ledger.availableWallets().isEmpty()) "wallet/-" else NEW_ENTRY_ROUTE
 
 private fun Modifier.ledgerHeaderPart(
     hidden: Boolean,

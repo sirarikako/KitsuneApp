@@ -11,9 +11,11 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -32,6 +34,7 @@ import com.kitsuneapp.data.MealDraft
 import com.kitsuneapp.data.MealSlot
 import com.kitsuneapp.data.Scope
 import com.kitsuneapp.data.WalletDraft
+import com.kitsuneapp.data.removeEntry
 import com.kitsuneapp.data.removeWallet
 import com.kitsuneapp.data.saveWallet
 import java.io.File
@@ -120,6 +123,58 @@ class NavigationTest {
             compose.onNodeWithText("收入").assertIsSelected()
         } finally {
             runBlocking { walletIds.forEach { repository.removeWallet(it) } }
+        }
+    }
+
+    @Test
+    fun savingThenQuicklyRecordingAgainOpensAFreshDraft() {
+        compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
+        val repository = runBlocking { (compose.activity.application as KitsuneApplication).repository() }
+        val name = "收款" + UUID.randomUUID().toString().take(6)
+        val walletId = runBlocking {
+            repository.saveWallet(WalletDraft(null, name, "JPY", "0", 0, false, false,
+                setAsDefault = true, defaultToIncome = true))
+            repository.read().wallets.single { it.name == name }.id
+        }
+        val fab = compose.onNodeWithContentDescription("记一笔")
+        val amount = hasContentDescription("金额 · JPY")
+        val note = compose.onNodeWithContentDescription("备注")
+        try {
+            compose.onNodeWithText("记账").performClick()
+            compose.onNodeWithText("钱包").performClick()
+            compose.waitUntilAtLeastOneExists(hasText("$name · JPY"), 20_000)
+            compose.onNodeWithText("流水").performClick()
+            fab.performClick()
+            compose.onNode(amount).performClick()
+            compose.onNodeWithText("3").performScrollTo().performClick()
+            compose.onNodeWithText("7").performScrollTo().performClick()
+            compose.onNodeWithText("使用此金额").performClick()
+            note.performScrollTo().performTextReplacement("上一笔的备注")
+
+            val save = compose.onNodeWithText("保存收入").performScrollTo()
+            compose.mainClock.autoAdvance = false
+            save.performClick()
+            compose.waitUntil(10_000) {
+                compose.mainClock.advanceTimeByFrame()
+                compose.onAllNodesWithContentDescription("记一笔").fetchSemanticsNodes().isNotEmpty()
+            }
+            // Reopen while the saved form is still leaving the screen.
+            fab.performSemanticsAction(SemanticsActions.OnClick)
+            compose.mainClock.autoAdvance = true
+
+            compose.onNodeWithText("收入").assertIsSelected()
+            compose.onNodeWithText("$name · JPY").assertExists()
+            compose.onNode(amount and hasText("0")).assertExists()
+            assertEquals("", note.fetchSemanticsNode().config[SemanticsProperties.EditableText].text)
+            val stored = runBlocking { repository.read().entries.single { it.walletId == walletId } }
+            assertEquals(37L, stored.amountMinor)
+            assertEquals("上一笔的备注", stored.note)
+        } finally {
+            compose.mainClock.autoAdvance = true
+            runBlocking {
+                repository.read().entries.filter { it.walletId == walletId }.forEach { repository.removeEntry(it.id) }
+                repository.removeWallet(walletId)
+            }
         }
     }
 
