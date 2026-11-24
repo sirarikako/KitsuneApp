@@ -90,6 +90,9 @@
   #kitsune-preview .ks-appearance-preview .ks-primary{margin-top:var(--ks-space-2)}
   #kitsune-preview .ks-phone{overflow:clip}
   #kitsune-preview .ks-page-motion{display:flex;flex:1;flex-direction:column;min-width:0;background:var(--ks-bg)}
+  #kitsune-preview .ks-phone:has(>:is(.ks-settings-screen,.ks-github-screen)){height:clamp(450px,92vh,776px);min-height:0}
+  #kitsune-preview :is(.ks-settings-screen,.ks-github-screen){min-height:0}
+  #kitsune-preview :is(.ks-settings-screen,.ks-github-screen) .ks-main{min-height:0;overflow-y:auto;overscroll-behavior:contain}
   #kitsune-preview .ks-motion-copy{position:absolute;inset:0;z-index:8;pointer-events:none;overflow:hidden;border-radius:30px}
   #kitsune-preview .ks-motion-copy *{pointer-events:none!important}
   #kitsune-preview .ks-motion-modal-copy{z-index:21}

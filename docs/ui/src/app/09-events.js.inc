@@ -79,12 +79,6 @@
         group.querySelectorAll('input').forEach(input=>{input.checked=all;});
         return;
       }
-      if(b.dataset.action==='reset-ledger-filters'){
-        state.ledgerFilterDraft=blankLedgerFilters();
-        b.form.querySelectorAll('input[type=checkbox]').forEach(input=>{input.checked=true;});
-        b.form.elements.note.value='';
-        return;
-      }
       if(b.dataset.action==='choose-ledger-period'){
         const range=state.ledgerRange,[year,month]=state.ledgerMonth.split('-').map(n=>String(Number(n)));
         state.periodDraft={target:'ledger',mode:range?'range':'month',year,month,from:range?.from||'',to:range?.to||''};

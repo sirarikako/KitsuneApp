@@ -86,7 +86,6 @@
             ${group('类型','types',['收入','支出','转账','退款'].map(value=>[value,value]))}
             ${group('分类','categoryNames',ledgerFilterCategories())}
             <label><span class="ks-label">备注关键词</span><input name="note" class="ks-control" value="${escapeText(draft.note)}"></label>
-            <button type="button" class="ks-text-btn" data-action="reset-ledger-filters">重置条件</button>
           </div>
           <div class="ks-period-actions">
             <button type="button" class="ks-text-btn" data-action="cancel-ledger-filters">取消</button>

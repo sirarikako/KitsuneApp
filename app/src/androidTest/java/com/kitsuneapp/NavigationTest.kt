@@ -12,6 +12,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
@@ -324,6 +325,42 @@ class NavigationTest {
             compose.mainClock.advanceTimeBy(260)
             appearance.assertIsDisplayed()
             assertEquals(navPosition, mainNav.fetchSemanticsNode().positionInRoot)
+        } finally {
+            compose.mainClock.autoAdvance = true
+        }
+    }
+
+    @Test
+    fun returningFromGitHubBackupKeepsTheSettingsRowAboveMainNavigation() {
+        compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
+        compose.onNodeWithText("设置").performClick()
+        val backup = compose.onNode(hasText("GitHub 备份") and hasClickAction())
+        val mainNav = compose.onNodeWithTag("main-navigation", useUnmergedTree = true)
+        backup.performScrollTo().assertIsDisplayed()
+        val initialRow = backup.fetchSemanticsNode()
+        val rowTop = initialRow.positionInRoot.y
+        val rowHeight = initialRow.size.height
+        val barTop = mainNav.fetchSemanticsNode().positionInRoot.y
+
+        compose.mainClock.autoAdvance = false
+        try {
+            fun checkReturn(back: () -> Unit) {
+                backup.performClick()
+                compose.mainClock.advanceTimeBy(300)
+                mainNav.assertDoesNotExist()
+                back()
+                compose.mainClock.advanceTimeBy(96)
+                assertEquals(rowTop, backup.fetchSemanticsNode().positionInRoot.y, 1f)
+                assertEquals(barTop, mainNav.fetchSemanticsNode().positionInRoot.y, 1f)
+                compose.mainClock.advanceTimeBy(260)
+                backup.assertIsDisplayed()
+                val returnedTop = backup.fetchSemanticsNode().positionInRoot.y
+                assertEquals(rowTop, returnedTop, 1f)
+                assertTrue("The backup row should fit above the main navigation", returnedTop + rowHeight <= barTop + 1f)
+            }
+
+            checkReturn { compose.onNodeWithContentDescription("返回").performClick() }
+            checkReturn { compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() } }
         } finally {
             compose.mainClock.autoAdvance = true
         }

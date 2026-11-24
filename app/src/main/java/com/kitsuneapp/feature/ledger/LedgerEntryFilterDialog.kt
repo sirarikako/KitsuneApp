@@ -56,7 +56,6 @@ internal fun LedgerEntryFilterDialog(
                     }
                 }
                 Field("备注关键词", draft.note, { draft = draft.copy(note = it) })
-                TextButton({ draft = LedgerEntryFilters() }) { Text("重置条件") }
             }
         },
         confirmButton = { Primary("应用", { apply(draft) }) },

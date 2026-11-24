@@ -46,7 +46,9 @@
         Object.assign(copy.style,{position:'absolute',inset:'auto',left:r.x+'px',top:r.y+'px',width:r.w+'px',height:r.h+'px',margin:'0',boxSizing:'border-box'});
         const ledgerViewport=rect(node.closest('.ks-ledger-screen .ks-main'));
         if(ledgerViewport)copy.style.clipPath=clip(r,ledgerViewport,0);
-        if(node.matches('.ks-ledger-screen'))group.ledgerPosition=node.querySelector('.ks-main').scrollTop;
+        if(node.matches('.ks-ledger-screen,.ks-settings-screen,.ks-github-screen')){
+          group.pageScrollTop=node.querySelector('.ks-main').scrollTop;
+        }
         group.append(copy);
       }
       return group.childElementCount?group:null;
@@ -54,7 +56,7 @@
     const attachGhost=group=>{
       if(group){
         phone.append(group);
-        if(group.ledgerPosition)group.querySelector('.ks-ledger-screen .ks-main').scrollTop=group.ledgerPosition;
+        if(group.pageScrollTop)group.querySelector('.ks-main').scrollTop=group.pageScrollTop;
       }
       return group;
     };
