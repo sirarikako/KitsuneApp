@@ -273,13 +273,18 @@ class NavigationTest {
 
             val selected = hasContentDescription("分类") and hasText(categoryName)
             compose.waitUntilExactlyOneExists(selected, 10_000)
-            compose.onNode(selected).performScrollTo().assertIsDisplayed()
             assertEquals("保留备注", compose.onNodeWithContentDescription("备注")
                 .fetchSemanticsNode().config[SemanticsProperties.InputText].text)
             assertEquals(CategoryIcon.GIFT, runBlocking { repository.read().categories.single { it.name == categoryName }.icon })
-            category.performClick()
+            // The saved value can appear before Android returns input focus from the dialog to the form.
+            compose.waitUntil(10_000) {
+                compose.runOnUiThread { compose.activity.window.decorView.hasWindowFocus() }
+            }
+            compose.onNode(selected).performScrollTo().assertIsDisplayed().performClick()
             val dialogContent = hasAnyAncestor(isDialog())
-            compose.onNode(hasScrollToNodeAction() and dialogContent).performScrollToNode(hasText(categoryName))
+            val categoryList = hasScrollToNodeAction() and dialogContent
+            compose.waitUntilExactlyOneExists(categoryList, 10_000)
+            compose.onNode(categoryList).performScrollToNode(hasText(categoryName))
             compose.onNode(hasText(categoryName) and dialogContent).assertIsSelected()
             compose.onNodeWithContentDescription("关闭").performClick()
             compose.onNode(selected).assertExists()
