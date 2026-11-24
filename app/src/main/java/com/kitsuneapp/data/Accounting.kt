@@ -46,7 +46,10 @@ class Ledger(records: Records) {
         } else category.name
     } ?: ""
     fun availableWallets() = wallets.filterNot { it.archived }
+    val defaultWallet = wallet(records.state.defaultWalletId)?.takeUnless { it.archived }
+
     fun preferredWallet(): Wallet? {
+        defaultWallet?.let { return it }
         val regular = availableWallets().filterNot { it.separateAccounting }.associateBy { it.id }
         val latest = entries.asSequence().filter { it.walletId in regular }.maxByOrNull { it.updatedAt }
         return regular[latest?.walletId] ?: regular.values.firstOrNull()

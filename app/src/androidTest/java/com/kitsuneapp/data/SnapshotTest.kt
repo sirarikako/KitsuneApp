@@ -56,6 +56,26 @@ class SnapshotTest {
     }
 
     @Test
+    fun incomePreferenceStaysLocalAndSurvivesRestoringTheSameDataset() = runBlocking {
+        store.stage(sample.byteInputStream()).use { store.restore(it) { error("Unexpected protection backup") } }
+        val wallet = repository.read().wallets.single { it.currencyCode == "JPY" }
+        repository.saveWallet(WalletDraft(wallet.id, wallet.name, wallet.currencyCode,
+            money(wallet.openingBalanceMinor, wallet.currencyScale), wallet.sortOrder, wallet.archived,
+            wallet.separateAccounting, defaultToIncome = true))
+        assertTrue(repository.read().wallets.single { it.id == wallet.id }.defaultToIncome)
+
+        val output = ByteArrayOutputStream()
+        val info = store.export(BackupKind.MANUAL, output)
+        val backup = output.toString("UTF-8")
+        assertFalse(backup.contains("defaultToIncome"))
+        store.stage(backup.byteInputStream()).use { store.restore(it) {} }
+        assertTrue(repository.read().wallets.single { it.id == wallet.id }.defaultToIncome)
+
+        store.stage(backup.replace(info.datasetId, newId()).byteInputStream()).use { store.restore(it) {} }
+        assertFalse(repository.read().wallets.single { it.id == wallet.id }.defaultToIncome)
+    }
+
+    @Test
     fun allBackupKindsStorePlusEightAndRestoreCanonicalUtc() = runBlocking {
         val sha = "ab".repeat(32)
         val fixture = sample.replace("\"importReceipts\": []", """"importReceipts": [

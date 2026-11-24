@@ -42,7 +42,7 @@
       return `<div class="ks-category-manager">
         <p class="ks-note">钱包没有设置专属分类时，自动使用通用分类；收入与支出分别设置。</p>
         <label><span class="ks-label">管理对象</span><select class="ks-control" data-category-wallet>
-          <option value="GLOBAL" ${!wallet?'selected':''}>通用分类（所有默认钱包）</option>
+          <option value="GLOBAL" ${!wallet?'selected':''}>通用分类</option>
           ${wallets.map(w=>`<option value="${w.id}" ${wallet?.id===w.id?'selected':''}>${escapeText(w.name)} · ${w.code}</option>`).join('')}
         </select></label>
         <fieldset><legend class="ks-label">收支类型</legend><div class="ks-choices">

@@ -97,12 +97,14 @@
           const label=escapeText(wallet.name+' · '+wallet.code);
           return `<div class="ks-money-card" data-wallet-balance="${wallet.id}">
             <div class="ks-wallet-card-heading">
-              <div class="ks-money-caption ks-wallet-card-label"><span>${label}</span>${wallet.separateAccounting?'<span class="ks-pill">独立核算</span>':''}${wallet.archived?'<span class="ks-pill">已归档</span>':''}</div>
-              <button type="button" class="ks-icon-btn cursor-interaction" data-edit-wallet="${wallet.id}" title="编辑钱包" aria-label="编辑钱包：${label}">${icon('pencil')}</button>
+              <div class="ks-money-caption ks-wallet-card-label"><span>${label}</span>${state.defaultWalletId===wallet.id?'<span class="ks-pill">默认钱包</span>':''}${wallet.separateAccounting?'<span class="ks-pill">独立核算</span>':''}${wallet.archived?'<span class="ks-pill">已归档</span>':''}</div>
+              <div class="ks-wallet-card-actions">
+                <button type="button" class="ks-icon-btn cursor-interaction" data-action="manage-categories" data-category-wallet="${wallet.id}" title="管理本钱包分类" aria-label="管理本钱包分类：${label}">${icon('tags')}</button>
+                <button type="button" class="ks-icon-btn cursor-interaction" data-edit-wallet="${wallet.id}" title="编辑钱包" aria-label="编辑钱包：${label}">${icon('pencil')}</button>
+              </div>
             </div>
             <div class="ks-amount">${money(balance,wallet.code)}</div>
             <div class="ks-note">初始余额 ${money(wallet.opening,wallet.code)} · 全部流水</div>
-            <button type="button" class="ks-text-btn cursor-interaction" data-action="manage-categories" data-category-wallet="${wallet.id}">管理本钱包分类${icon('chevron-right')}</button>
           </div>`;
         }).join('')}</div><p class="ks-footnote">交互预览 · 示例数据</p>`;
       const entries=allEntries.filter(matchesLedgerScope).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
@@ -152,6 +154,8 @@
       return `<section class="ks-money-card">
         <div class="ks-money-caption">${escapeText(wallet.name)} · ${wallet.code}</div>
         <label class="ks-wallet-setting"><span>独立核算<small>开启后默认排除本钱包的收支和流水。余额与历史记录保留，可在账本手动选择。</small></span><input type="checkbox" data-wallet-independent ${wallet.separateAccounting?'checked':''}></label>
+        <label class="ks-wallet-setting"><span>设为默认钱包</span><input type="checkbox" data-wallet-default ${state.defaultWalletId===wallet.id?'checked':''} ${wallet.archived?'disabled':''}></label>
+        <label class="ks-wallet-setting"><span>默认记为收入</span><input type="checkbox" data-wallet-income-default ${wallet.defaultToIncome?'checked':''}></label>
         <button type="button" class="ks-primary ks-full cursor-interaction" data-action="save-wallet">保存</button>
-      </section><p class="ks-footnote">交互预览 · 仅演示独立核算</p>`;
+      </section><p class="ks-footnote">交互预览 · 示例数据</p>`;
     }

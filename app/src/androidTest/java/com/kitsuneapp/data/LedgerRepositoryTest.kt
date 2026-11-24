@@ -1,6 +1,7 @@
 package com.kitsuneapp.data
 
 import androidx.room.Room
+import androidx.room.testing.MigrationTestHelper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.async
@@ -45,6 +46,75 @@ class LedgerRepositoryTest {
                       original: String? = null, category: String? = null, date: String = "2026-11-21") =
         EntryDraft(null, date, "18:30", type, wallet.id, amount, category, "",
             other?.id, toAmount, original, "")
+
+    @Test
+    fun olderDatabasesKeepWalletsAndDefaultsWhenAddingIncomePreference() = runBlocking {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val state = repo.read().state
+        val migration = MigrationTestHelper(instrumentation, KitsuneDatabase::class.java)
+        for (version in 1..2) {
+            val name = "wallet-migration-" + newId()
+            val defaultWalletId = a.id.takeIf { version == 2 }
+            try {
+                migration.createDatabase(name, version).use { old ->
+                    old.execSQL(
+                        "INSERT INTO DataState (`key`, installationId, datasetId, revision, generation, arrayElements) VALUES (0, ?, ?, ?, ?, ?)",
+                        arrayOf<Any>(state.installationId, state.datasetId, state.revision, state.generation, state.arrayElements),
+                    )
+                    old.execSQL(
+                        """INSERT INTO Wallet (id, name, normalizedName, currencyCode, currencyScale, openingBalanceMinor,
+                            sortOrder, archived, separateAccounting, incomeCategoryMode, expenseCategoryMode, createdAt, updatedAt)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?)""",
+                        arrayOf<Any>(a.id, a.name, a.normalizedName, a.currencyCode, a.currencyScale, a.openingBalanceMinor,
+                            a.sortOrder, a.incomeCategoryMode.name, a.expenseCategoryMode.name, a.createdAt, a.updatedAt),
+                    )
+                    if (defaultWalletId != null) old.execSQL("UPDATE DataState SET defaultWalletId = ?", arrayOf(defaultWalletId))
+                }
+                val upgraded = Room.databaseBuilder(context, KitsuneDatabase::class.java, name).build()
+                try {
+                    assertEquals(state.copy(defaultWalletId = defaultWalletId), upgraded.records().state())
+                    assertEquals(a, upgraded.records().wallet(a.id))
+                } finally {
+                    upgraded.close()
+                }
+            } finally {
+                context.deleteDatabase(name)
+            }
+        }
+    }
+
+    @Test
+    fun explicitDefaultTakesPrecedenceAndClearsWhenArchivedOrDeleted() = runBlocking {
+        fun draft(wallet: Wallet, default: Boolean? = null, archived: Boolean = false) =
+            WalletDraft(wallet.id, wallet.name, wallet.currencyCode, "0", wallet.sortOrder, archived,
+                wallet.separateAccounting, setAsDefault = default)
+
+        repo.saveEntry(entry(EntryType.EXPENSE, a, "1", category = expenseCategory.id))
+        assertEquals(a.id, Ledger(repo.read()).preferredWallet()?.id)
+        repo.saveWallet(draft(b, default = true))
+        assertEquals(b.id, Ledger(repo.read()).preferredWallet()?.id)
+        assertEquals(listOf(a.id), WalletRange().selected(repo.read().wallets).map { it.id })
+
+        repo.saveWallet(draft(jpy, default = true))
+        repo.saveWallet(draft(b, default = false))
+        assertEquals(jpy.id, Ledger(repo.read()).defaultWallet?.id)
+        repo.saveWallet(draft(jpy, archived = true))
+        assertNull(repo.read().state.defaultWalletId)
+        repo.saveWallet(draft(jpy))
+        assertEquals(a.id, Ledger(repo.read()).preferredWallet()?.id)
+
+        repo.saveWallet(draft(b, default = true))
+        repo.removeWallet(b.id)
+        assertNull(repo.read().state.defaultWalletId)
+        assertEquals(a.id, Ledger(repo.read()).preferredWallet()?.id)
+
+        repo.saveWallet(draft(a, archived = true))
+        assertNull(Ledger(repo.read()).preferredWallet())
+        repo.saveWallet(WalletDraft(null, "新默认钱包", "JPY", "0", 3,
+            archived = false, separateAccounting = true, setAsDefault = true))
+        assertEquals("新默认钱包", Ledger(repo.read()).preferredWallet()?.name)
+    }
 
     @Test
     fun refundsFollowDestinationAcrossWalletAndMonthWhileTransfersDoNotCount() = runBlocking {

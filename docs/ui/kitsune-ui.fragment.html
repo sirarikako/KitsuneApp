@@ -208,14 +208,16 @@
   #kitsune-preview .ks-wallet-setting{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--ks-line);font-size:13px}
   #kitsune-preview .ks-wallet-setting small{display:block;color:var(--ks-dim);font-size:11px;margin-top:3px}
   #kitsune-preview .ks-wallet-setting input{width:19px;height:19px;accent-color:var(--ks-accent);flex-shrink:0}
+  #kitsune-preview .ks-wallet-setting+.ks-primary{margin-top:var(--ks-space-3)}
   #kitsune-preview .ks-setting-link{width:100%;font:inherit;color:var(--ks-ink);background:transparent;text-align:left;border:0;cursor:pointer}
   #kitsune-preview .ks-setting>.ks-backup-warning{color:var(--ks-danger);white-space:normal}
   #kitsune-preview .ks-setting-link>svg:last-child{flex-shrink:0}
   #kitsune-preview .ks-wallet-cards{display:grid;gap:var(--ks-space-2)}
-  #kitsune-preview .ks-wallet-card-heading{display:flex;align-items:center;justify-content:space-between;gap:var(--ks-space-2)}
-  #kitsune-preview .ks-wallet-card-label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--ks-space-1) 6px;min-width:0}
-  #kitsune-preview .ks-wallet-cards .ks-amount{margin:var(--ks-space-2) 0 2px}
-  #kitsune-preview .ks-wallet-cards .ks-text-btn{margin-top:var(--ks-space-2)}
+  #kitsune-preview .ks-wallet-cards .ks-money-card{padding:var(--ks-space-3)}
+  #kitsune-preview .ks-wallet-card-heading{display:flex;align-items:center;justify-content:space-between;gap:var(--ks-space-1)}
+  #kitsune-preview .ks-wallet-card-label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--ks-space-1) 6px;min-width:0;overflow-wrap:anywhere}
+  #kitsune-preview .ks-wallet-card-actions{display:flex;gap:var(--ks-space-1)}
+  #kitsune-preview .ks-wallet-cards .ks-amount{margin:2px 0}
   #kitsune-preview .ks-category-manager{display:flex;flex-direction:column;gap:var(--ks-space-3)}
   #kitsune-preview .ks-category-manager .ks-category-rows{background:var(--ks-card-surface);border:var(--ks-card-border);border-radius:var(--ks-radius);padding:0 var(--ks-space-3)}
   #kitsune-preview .ks-category-manager .ks-setting{gap:var(--ks-space-1)}
@@ -330,7 +332,10 @@
     const wallets=[{id:'daily',name:'日常钱包',code:'CNY',scale:2,opening:0n,separateAccounting:false},{id:'pocket',name:'零钱钱包',code:'CNY',scale:2,opening:50000n,separateAccounting:false},{id:'travel',name:'旅行钱包',code:'JPY',scale:0,opening:20000n,separateAccounting:true}];
     const walletById=id=>wallets.find(w=>w.id===id)||wallets[0];
     const entryWallet=()=>wallets.find(w=>w.id===state.entryDraft.walletId)||null;
-    const defaultEntryWallet=()=>wallets.find(w=>w.id===state.lastWalletId&&!w.separateAccounting)||wallets.find(w=>!w.separateAccounting)||null;
+    const defaultEntryType=wallet=>wallet?.defaultToIncome?'收入':'支出';
+    const defaultEntryWallet=()=>wallets.find(w=>w.id===state.defaultWalletId&&!w.archived)
+      ||wallets.find(w=>w.id===state.lastWalletId&&!w.archived&&!w.separateAccounting)
+      ||wallets.find(w=>!w.archived&&!w.separateAccounting)||null;
     state.walletFilterIds=null;state.walletPickerOpen=false;state.walletDraftMode='REGULAR';state.walletDraftIds=[];state.lastWalletId='daily';
     // Financial categories are scoped by type and optional wallet; meal preparation categories are separate.
     const sharedFinancialCategories={
@@ -362,10 +367,14 @@
       return owner?categoryNameForId(id)+' · '+owner.name:categoryNameForId(id);
     };
     const chooseFinancialCategory=(walletId,type,old)=>effectiveFinancialCategories(walletId,type).some(c=>c.id===old)?old:'';
+    const initialEntryCategory=(walletId,type)=>walletId
+      ?fallbackFinancialCategories[financialScopeOf(type)].id:'';
 
     const savedState=window.openai?.widgetState?.privateContent?.kitsune;
     // Accept only the original primary preview preferences from old saved arrays.
     const saved=Array.isArray(savedState)?savedState[0]:savedState;
+    state.defaultWalletId=wallets.find(w=>w.id===saved?.defaultWalletId&&!w.archived)?.id??null;
+    if(Array.isArray(saved?.incomeDefaultWalletIds))wallets.forEach(w=>{w.defaultToIncome=saved.incomeDefaultWalletIds.includes(w.id);});
     state.deletedEntryIds=new Set();state.nextEntryId=1;state.deletePending=null;
     if(saved){const s=saved;if(['light','dark','system'].includes(s.mode))style.mode=s.mode;if(/^\d{4}-(0[1-9]|1[0-2])$/.test(s.ledgerMonth||'')&&s.ledgerMonth.slice(0,4)!=='0000')state.ledgerMonth=s.ledgerMonth;if(s.walletFilterIds==='ALL')state.walletFilterIds='ALL';else if(Array.isArray(s.walletFilterIds)){const ids=wallets.filter(w=>s.walletFilterIds.includes(w.id)).map(w=>w.id);if(ids.length)state.walletFilterIds=ids;}if(Array.isArray(s.separateWalletIds))wallets.forEach(w=>{w.separateAccounting=s.separateWalletIds.includes(w.id);});const f=s.mealFilters;if(f&&typeof f==='object'){for(const key of ['from','to'])if(typeof f[key]==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(f[key]))state.mealFilters[key]=f[key];if(['any','0','1','2'].includes(f.slot))state.mealFilters.slot=f.slot;if(['any','yes','no'].includes(f.atHome))state.mealFilters.atHome=f.atHome;if(typeof f.method==='string')state.mealFilters.method=f.method.slice(0,80);if(typeof f.keyword==='string')state.mealFilters.keyword=f.keyword.slice(0,100);if(Array.isArray(f.preparations))state.mealFilters.preparations=f.preparations.filter(x=>typeof x==='string').slice(0,30).map(x=>x.slice(0,80));state.mealListMode=s.mealListMode===true;}}
     state.records['2026-11-17'] = [{atHome:true,method:'下厨',categories:[],dishes:'燕麦粥、煎蛋',note:''},{atHome:false,method:'外卖',categories:[],dishes:'照烧鸡腿饭',note:''},null];
@@ -455,7 +464,7 @@
       const snapshot=phone.ksSnapshot();
       window.openai?.setWidgetState?.({modelContent:{当前页面:snapshot.page,用餐筛选:snapshot.mealListMode?snapshot.mealFilters:null},privateContent:{kitsune:snapshot}})?.catch(()=>{});
     };
-    phone.ksSnapshot=()=>({page:navs.some(n=>n[0]===state.page)?state.page:'home',...appliedAppearance(),ledgerMonth:state.ledgerMonth,ledgerRange:state.ledgerRange,walletFilterIds:state.walletFilterIds,separateWalletIds:wallets.filter(w=>w.separateAccounting).map(w=>w.id),mealListMode:state.mealListMode,mealFilters:state.mealFilters});
+    phone.ksSnapshot=()=>({page:navs.some(n=>n[0]===state.page)?state.page:'home',...appliedAppearance(),ledgerMonth:state.ledgerMonth,ledgerRange:state.ledgerRange,walletFilterIds:state.walletFilterIds,defaultWalletId:state.defaultWalletId,separateWalletIds:wallets.filter(w=>w.separateAccounting).map(w=>w.id),incomeDefaultWalletIds:wallets.filter(w=>w.defaultToIncome).map(w=>w.id),mealListMode:state.mealListMode,mealFilters:state.mealFilters});
     // Android applies these same presentation roles for preset and custom seeds.
     function makePalette(seed,source){
       const rgb=h=>h.replace("#","").match(/../g).map(x=>parseInt(x,16));
@@ -722,12 +731,14 @@
           const label=escapeText(wallet.name+' · '+wallet.code);
           return `<div class="ks-money-card" data-wallet-balance="${wallet.id}">
             <div class="ks-wallet-card-heading">
-              <div class="ks-money-caption ks-wallet-card-label"><span>${label}</span>${wallet.separateAccounting?'<span class="ks-pill">独立核算</span>':''}${wallet.archived?'<span class="ks-pill">已归档</span>':''}</div>
-              <button type="button" class="ks-icon-btn cursor-interaction" data-edit-wallet="${wallet.id}" title="编辑钱包" aria-label="编辑钱包：${label}">${icon('pencil')}</button>
+              <div class="ks-money-caption ks-wallet-card-label"><span>${label}</span>${state.defaultWalletId===wallet.id?'<span class="ks-pill">默认钱包</span>':''}${wallet.separateAccounting?'<span class="ks-pill">独立核算</span>':''}${wallet.archived?'<span class="ks-pill">已归档</span>':''}</div>
+              <div class="ks-wallet-card-actions">
+                <button type="button" class="ks-icon-btn cursor-interaction" data-action="manage-categories" data-category-wallet="${wallet.id}" title="管理本钱包分类" aria-label="管理本钱包分类：${label}">${icon('tags')}</button>
+                <button type="button" class="ks-icon-btn cursor-interaction" data-edit-wallet="${wallet.id}" title="编辑钱包" aria-label="编辑钱包：${label}">${icon('pencil')}</button>
+              </div>
             </div>
             <div class="ks-amount">${money(balance,wallet.code)}</div>
             <div class="ks-note">初始余额 ${money(wallet.opening,wallet.code)} · 全部流水</div>
-            <button type="button" class="ks-text-btn cursor-interaction" data-action="manage-categories" data-category-wallet="${wallet.id}">管理本钱包分类${icon('chevron-right')}</button>
           </div>`;
         }).join('')}</div><p class="ks-footnote">交互预览 · 示例数据</p>`;
       const entries=allEntries.filter(matchesLedgerScope).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
@@ -777,8 +788,10 @@
       return `<section class="ks-money-card">
         <div class="ks-money-caption">${escapeText(wallet.name)} · ${wallet.code}</div>
         <label class="ks-wallet-setting"><span>独立核算<small>开启后默认排除本钱包的收支和流水。余额与历史记录保留，可在账本手动选择。</small></span><input type="checkbox" data-wallet-independent ${wallet.separateAccounting?'checked':''}></label>
+        <label class="ks-wallet-setting"><span>设为默认钱包</span><input type="checkbox" data-wallet-default ${state.defaultWalletId===wallet.id?'checked':''} ${wallet.archived?'disabled':''}></label>
+        <label class="ks-wallet-setting"><span>默认记为收入</span><input type="checkbox" data-wallet-income-default ${wallet.defaultToIncome?'checked':''}></label>
         <button type="button" class="ks-primary ks-full cursor-interaction" data-action="save-wallet">保存</button>
-      </section><p class="ks-footnote">交互预览 · 仅演示独立核算</p>`;
+      </section><p class="ks-footnote">交互预览 · 示例数据</p>`;
     }
     function pageSettings(){
       const item=(glyph,label,attrs='',detail='')=>`<${attrs?'button type="button"':'div'} class="ks-setting ${attrs?'ks-setting-link cursor-interaction':''}" ${attrs}>${icon(glyph)}<span>${label}</span>${detail}${icon('chevron-right')}</${attrs?'button':'div'}>`;
@@ -824,7 +837,7 @@
       return `<div class="ks-category-manager">
         <p class="ks-note">钱包没有设置专属分类时，自动使用通用分类；收入与支出分别设置。</p>
         <label><span class="ks-label">管理对象</span><select class="ks-control" data-category-wallet>
-          <option value="GLOBAL" ${!wallet?'selected':''}>通用分类（所有默认钱包）</option>
+          <option value="GLOBAL" ${!wallet?'selected':''}>通用分类</option>
           ${wallets.map(w=>`<option value="${w.id}" ${wallet?.id===w.id?'selected':''}>${escapeText(w.name)} · ${w.code}</option>`).join('')}
         </select></label>
         <fieldset><legend class="ks-label">收支类型</legend><div class="ks-choices">
@@ -1537,7 +1550,14 @@
         state.walletPickerOpen=true;render();return;
       }
       if(b.dataset.editWallet){state.editingWalletId=b.dataset.editWallet;state.page='wallet-edit';render();return;}
-      if(b.dataset.action==='save-wallet'){walletById(state.editingWalletId).separateAccounting=phone.querySelector('[data-wallet-independent]').checked;state.page='ledger';render();persist();return;}
+      if(b.dataset.action==='save-wallet'){
+        const wallet=walletById(state.editingWalletId);
+        wallet.separateAccounting=phone.querySelector('[data-wallet-independent]').checked;
+        wallet.defaultToIncome=phone.querySelector('[data-wallet-income-default]').checked;
+        if(!wallet.archived&&phone.querySelector('[data-wallet-default]').checked)state.defaultWalletId=wallet.id;
+        else if(state.defaultWalletId===wallet.id)state.defaultWalletId=null;
+        state.page='ledger';render();persist();return;
+      }
       if(b.dataset.walletMode){state.walletDraftMode=b.dataset.walletMode;render();return;}
       if(b.dataset.walletAction){closeWalletPicker(b.dataset.walletAction);return;}
       if(b.dataset.entryId){if(!financialEntries().some(e=>e.id===b.dataset.entryId))return;recordOrigin={page:state.page,id:b.dataset.entryId};entrance=visible(b)?rect(b):null;state.selectedEntryId=b.dataset.entryId;state.page='entry-detail';render();return;}
@@ -1559,7 +1579,15 @@
       if(b.dataset.category){const c=b.dataset.category;state.categories=state.categories.includes(c)?state.categories.filter(x=>x!==c):[...state.categories,c];render();return;}
       if(b.dataset.mealTab){state.mealTab=b.dataset.mealTab;render();return;}
       if(b.dataset.ledgerTab){state.ledgerTab=b.dataset.ledgerTab;render();return;}
-      if(b.dataset.entryType){state.entryType=b.dataset.entryType;state.entryDraft.category=chooseFinancialCategory(state.entryDraft.walletId,state.entryType,financialScopeOf(state.entryType)==='INCOME'?'gi-salary':'ge-food');render();return;}
+      if(b.dataset.entryType){
+        state.followsWalletType=false;
+        if(b.dataset.entryType!==state.entryType){
+          state.entryType=b.dataset.entryType;
+          state.entryDraft.category=chooseFinancialCategory(state.entryDraft.walletId,state.entryType,
+            state.entryType==='收入'?'gi-salary':'ge-food');
+        }
+        render();return;
+      }
       if(b.dataset.key!==undefined){
         const display=phone.querySelector('[data-calc-expression]'),key=b.dataset.key;
         const error=phone.querySelector('.ks-calc-error');
@@ -1574,7 +1602,16 @@
         display.scrollLeft=display.scrollWidth;
         return;
       }
-      if(b.dataset.action==='add-entry'){state.entryReturn=state.page;state.page='entry';state.amount='';state.entryType='支出';state.entryDraft={dateTime:`${demoToday}T09:41`,note:'',category:defaultEntryWallet()?'ge-food':'',walletId:defaultEntryWallet()?.id||''};render();return;}
+      if(b.dataset.action==='add-entry'){
+        const wallet=defaultEntryWallet(),walletId=wallet?.id||'';
+        state.entryType=defaultEntryType(wallet);
+        state.followsWalletType=true;
+        const category=(state.entryType==='支出'?chooseFinancialCategory(walletId,'支出','ge-food'):'')
+          ||initialEntryCategory(walletId,state.entryType);
+        state.entryReturn=state.page;state.page='entry';state.amount='';
+        state.entryDraft={dateTime:`${demoToday}T09:41`,note:'',category,walletId};
+        render();return;
+      }
       if(b.dataset.action==='back'){state.page=state.page==='entry'?state.entryReturn:state.page==='category-detail'?state.categoryDetailReturn:state.page==='category-owned'?'category-manager':state.page==='category-manager'?state.categoryReturn:['appearance','github'].includes(state.page)?'settings':state.page==='meal-filter'?'meals':state.page==='meal-form'?state.mealReturn:'ledger';render();return;}
       if(b.dataset.addMealOption){state.addingMealOption=b.dataset.addMealOption;render();return;}
       if(b.dataset.action==='cancel-meal-option'){closeMealOption();return;}
@@ -1614,7 +1651,16 @@
         render();phone.querySelector('.ks-wallet-body').scrollTop=scroll;
         phone.querySelector(`[data-wallet-option=${id}]`).focus({preventScroll:true});return;
       }
-      if(e.matches('[data-entry-form] [name=wallet]')){capture();state.entryDraft.category=chooseFinancialCategory(state.entryDraft.walletId,state.entryType,state.entryDraft.category);render();return;}
+      if(e.matches('[data-entry-form] [name=wallet]')){
+        capture();
+        const {walletId,category}=state.entryDraft;
+        const nextType=state.followsWalletType?defaultEntryType(entryWallet()):state.entryType;
+        state.entryDraft.category=nextType!==state.entryType||!category
+          ?initialEntryCategory(walletId,nextType):chooseFinancialCategory(walletId,nextType,category);
+        state.entryType=nextType;
+        render();return;
+      }
+      if(e.matches('[data-entry-form] [name=category]')){state.followsWalletType=false;return;}
       if(e.matches('[data-meal-filter-form] input[type=date]')){updateMealDatePresets(e.form);return;}
       if(e.matches('[data-theme]')){state.appearanceDraft.mode=e.value;updateAppearancePreview();return;}
       if(e.matches('[data-color-source]')){state.appearanceDraft.colorSource=e.value;render();return;}

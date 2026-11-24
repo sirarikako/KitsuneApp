@@ -82,7 +82,7 @@ class LedgerLayoutTest {
         val entry = FinancialEntry("expense", LocalDate.now().toString(), "12:00", EntryType.EXPENSE,
             regular.id, 1_250, "expense-category", null, null, null, "", now, now)
         val category = Category("expense-category", Scope.EXPENSE, null, "", "餐饮", "餐饮", 0, false, false, now, now)
-        val records = Records(DataState(installationId = "test", datasetId = "test", arrayElements = 0),
+        val records = Records(DataState(installationId = "test", datasetId = "test", arrayElements = 0, defaultWalletId = regular.id),
             ThemePreferences(), emptyList(), listOf(category), emptyList(), emptyMap(), listOf(regular, separate), listOf(entry))
         var detail: String? = null
         var route: String? = null
@@ -115,11 +115,13 @@ class LedgerLayoutTest {
         val name = compose.onNodeWithText("日常钱包 · CNY").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         val balance = compose.onNodeWithText("87.50").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         val edit = compose.onNodeWithContentDescription("编辑钱包：日常钱包 · CNY").assertIsDisplayed()
-        val categories = compose.onAllNodesWithText("管理本钱包分类")[0].assertIsDisplayed()
+        val categories = compose.onNodeWithContentDescription("管理本钱包分类：日常钱包 · CNY").assertIsDisplayed()
         val editBounds = edit.fetchSemanticsNode().boundsInRoot
         val categoryBounds = categories.fetchSemanticsNode().boundsInRoot
+        compose.onNodeWithText("默认钱包").assertIsDisplayed()
         assertTrue(editBounds.left > name.right && editBounds.bottom <= balance.top)
-        assertTrue(categoryBounds.top >= balance.bottom && categoryBounds.right < editBounds.right)
+        assertTrue(categoryBounds.left > name.right && categoryBounds.right <= editBounds.left)
+        assertEquals(editBounds.top, categoryBounds.top, 0.1f)
         edit.performClick()
         compose.runOnIdle { assertEquals("wallet/regular", route) }
         categories.performClick()

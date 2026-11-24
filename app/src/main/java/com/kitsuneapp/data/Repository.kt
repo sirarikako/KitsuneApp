@@ -88,13 +88,13 @@ class Repository internal constructor(
             dao.preparation().groupBy({ it.mealId }, { it.categoryId }), dao.wallets(), dao.entries())
     }
 
-    internal suspend fun change(block: suspend () -> Boolean): Boolean = writes.withLock {
+    internal suspend fun change(block: suspend (DataState) -> Boolean): Boolean = writes.withLock {
         val changed = database.withTransaction {
             val state = ownedState()
-            if (!block()) return@withTransaction false
+            if (!block(state)) return@withTransaction false
             val count = dao.countElements()
             require(count <= MAX_ARRAY_ELEMENTS || count < state.arrayElements) { "完整备份的记录和关联总数超过 200,000" }
-            dao.put(state.copy(revision = Math.addExact(state.revision, 1L), arrayElements = count))
+            dao.updateRevision(Math.addExact(state.revision, 1L), count)
             true
         }
         if (changed) notifyChanged()

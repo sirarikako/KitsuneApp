@@ -127,7 +127,14 @@
         state.walletPickerOpen=true;render();return;
       }
       if(b.dataset.editWallet){state.editingWalletId=b.dataset.editWallet;state.page='wallet-edit';render();return;}
-      if(b.dataset.action==='save-wallet'){walletById(state.editingWalletId).separateAccounting=phone.querySelector('[data-wallet-independent]').checked;state.page='ledger';render();persist();return;}
+      if(b.dataset.action==='save-wallet'){
+        const wallet=walletById(state.editingWalletId);
+        wallet.separateAccounting=phone.querySelector('[data-wallet-independent]').checked;
+        wallet.defaultToIncome=phone.querySelector('[data-wallet-income-default]').checked;
+        if(!wallet.archived&&phone.querySelector('[data-wallet-default]').checked)state.defaultWalletId=wallet.id;
+        else if(state.defaultWalletId===wallet.id)state.defaultWalletId=null;
+        state.page='ledger';render();persist();return;
+      }
       if(b.dataset.walletMode){state.walletDraftMode=b.dataset.walletMode;render();return;}
       if(b.dataset.walletAction){closeWalletPicker(b.dataset.walletAction);return;}
       if(b.dataset.entryId){if(!financialEntries().some(e=>e.id===b.dataset.entryId))return;recordOrigin={page:state.page,id:b.dataset.entryId};entrance=visible(b)?rect(b):null;state.selectedEntryId=b.dataset.entryId;state.page='entry-detail';render();return;}
@@ -149,7 +156,15 @@
       if(b.dataset.category){const c=b.dataset.category;state.categories=state.categories.includes(c)?state.categories.filter(x=>x!==c):[...state.categories,c];render();return;}
       if(b.dataset.mealTab){state.mealTab=b.dataset.mealTab;render();return;}
       if(b.dataset.ledgerTab){state.ledgerTab=b.dataset.ledgerTab;render();return;}
-      if(b.dataset.entryType){state.entryType=b.dataset.entryType;state.entryDraft.category=chooseFinancialCategory(state.entryDraft.walletId,state.entryType,financialScopeOf(state.entryType)==='INCOME'?'gi-salary':'ge-food');render();return;}
+      if(b.dataset.entryType){
+        state.followsWalletType=false;
+        if(b.dataset.entryType!==state.entryType){
+          state.entryType=b.dataset.entryType;
+          state.entryDraft.category=chooseFinancialCategory(state.entryDraft.walletId,state.entryType,
+            state.entryType==='收入'?'gi-salary':'ge-food');
+        }
+        render();return;
+      }
       if(b.dataset.key!==undefined){
         const display=phone.querySelector('[data-calc-expression]'),key=b.dataset.key;
         const error=phone.querySelector('.ks-calc-error');
@@ -164,7 +179,16 @@
         display.scrollLeft=display.scrollWidth;
         return;
       }
-      if(b.dataset.action==='add-entry'){state.entryReturn=state.page;state.page='entry';state.amount='';state.entryType='支出';state.entryDraft={dateTime:`${demoToday}T09:41`,note:'',category:defaultEntryWallet()?'ge-food':'',walletId:defaultEntryWallet()?.id||''};render();return;}
+      if(b.dataset.action==='add-entry'){
+        const wallet=defaultEntryWallet(),walletId=wallet?.id||'';
+        state.entryType=defaultEntryType(wallet);
+        state.followsWalletType=true;
+        const category=(state.entryType==='支出'?chooseFinancialCategory(walletId,'支出','ge-food'):'')
+          ||initialEntryCategory(walletId,state.entryType);
+        state.entryReturn=state.page;state.page='entry';state.amount='';
+        state.entryDraft={dateTime:`${demoToday}T09:41`,note:'',category,walletId};
+        render();return;
+      }
       if(b.dataset.action==='back'){state.page=state.page==='entry'?state.entryReturn:state.page==='category-detail'?state.categoryDetailReturn:state.page==='category-owned'?'category-manager':state.page==='category-manager'?state.categoryReturn:['appearance','github'].includes(state.page)?'settings':state.page==='meal-filter'?'meals':state.page==='meal-form'?state.mealReturn:'ledger';render();return;}
       if(b.dataset.addMealOption){state.addingMealOption=b.dataset.addMealOption;render();return;}
       if(b.dataset.action==='cancel-meal-option'){closeMealOption();return;}
@@ -204,7 +228,16 @@
         render();phone.querySelector('.ks-wallet-body').scrollTop=scroll;
         phone.querySelector(`[data-wallet-option=${id}]`).focus({preventScroll:true});return;
       }
-      if(e.matches('[data-entry-form] [name=wallet]')){capture();state.entryDraft.category=chooseFinancialCategory(state.entryDraft.walletId,state.entryType,state.entryDraft.category);render();return;}
+      if(e.matches('[data-entry-form] [name=wallet]')){
+        capture();
+        const {walletId,category}=state.entryDraft;
+        const nextType=state.followsWalletType?defaultEntryType(entryWallet()):state.entryType;
+        state.entryDraft.category=nextType!==state.entryType||!category
+          ?initialEntryCategory(walletId,nextType):chooseFinancialCategory(walletId,nextType,category);
+        state.entryType=nextType;
+        render();return;
+      }
+      if(e.matches('[data-entry-form] [name=category]')){state.followsWalletType=false;return;}
       if(e.matches('[data-meal-filter-form] input[type=date]')){updateMealDatePresets(e.form);return;}
       if(e.matches('[data-theme]')){state.appearanceDraft.mode=e.value;updateAppearancePreview();return;}
       if(e.matches('[data-color-source]')){state.appearanceDraft.colorSource=e.value;render();return;}
