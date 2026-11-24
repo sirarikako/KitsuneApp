@@ -8,7 +8,7 @@
     phone.addEventListener('click',event=>{
       if(event.target.matches('.ks-wallet-overlay')){closeWalletPicker('cancel');return;}
       if(event.target.matches('[data-ledger-filter-overlay]')){closeLedgerFilters(false);return;}
-      if(event.target.matches('.ks-period-overlay')){closeLedgerPeriod(false);return;}
+      if(event.target.matches('.ks-period-overlay')){closePeriod(false);return;}
       if(event.target.matches('.ks-calendar-overlay')){closeMealCalendar(false);return;}
       if(event.target.matches('[data-meal-option-overlay]')){closeMealOption();return;}
       const b=event.target.closest('button');if(!b)return;
@@ -76,16 +76,22 @@
       }
       if(b.dataset.action==='choose-ledger-period'){
         const range=state.ledgerRange,[year,month]=state.ledgerMonth.split('-').map(n=>String(Number(n)));
-        state.ledgerPeriodDraft={mode:range?'range':'month',year,month,from:range?.from||'',to:range?.to||''};
+        state.periodDraft={target:'ledger',mode:range?'range':'month',year,month,from:range?.from||'',to:range?.to||''};
         render();return;
       }
-      if(b.dataset.action==='cancel-ledger-period'){closeLedgerPeriod(false);return;}
+      if(b.dataset.action==='choose-meal-month'){
+        const {from,to}=state.mealStatsFilters;
+        const [year,month]=(from||to||demoToday).slice(0,7).split('-').map(n=>String(Number(n)));
+        state.periodDraft={target:'meals',mode:'month',year,month};
+        render();return;
+      }
+      if(b.dataset.action==='cancel-period'){closePeriod(false);return;}
       if(b.dataset.periodMode){
-        state.ledgerPeriodDraft.mode=b.dataset.periodMode;render();
+        state.periodDraft.mode=b.dataset.periodMode;render();
         phone.querySelector('[data-period-mode][aria-pressed=true]').focus({preventScroll:true});return;
       }
       if(b.dataset.periodStep){
-        const d=state.ledgerPeriodDraft,ordinal=Number(d.year)*12+Number(d.month)-1+Number(b.dataset.periodStep);
+        const d=state.periodDraft,ordinal=Number(d.year)*12+Number(d.month)-1+Number(b.dataset.periodStep);
         d.year=String(Math.floor(ordinal/12));
         d.month=String(ordinal%12+1);
         render();
@@ -93,7 +99,7 @@
         return;
       }
       if(b.dataset.periodMonth){
-        state.ledgerPeriodDraft.month=b.dataset.periodMonth;render();
+        state.periodDraft.month=b.dataset.periodMonth;render();
         phone.querySelector('[data-period-month][aria-pressed=true]').focus({preventScroll:true});return;
       }
       if(b.dataset.action==='meal-filter'){
@@ -201,7 +207,7 @@
           state.githubDemo.review=null;render();phone.querySelector('[data-github-action=restore-preview]')?.focus({preventScroll:true});
         }else if(state.addingMealOption)closeMealOption();
         else if(state.mealCalendar)closeMealCalendar(false);
-        else if(state.ledgerPeriodDraft)closeLedgerPeriod(false);
+        else if(state.periodDraft)closePeriod(false);
         else if(state.ledgerFiltersOpen)closeLedgerFilters(false);
         else if(state.walletPickerOpen)closeWalletPicker('cancel');
         else if(state.deletePending)cancelDelete();
@@ -266,11 +272,11 @@
         }
         return;
       }
-      if(e.matches('[data-ledger-period] input')){
-        const draft=state.ledgerPeriodDraft,form=e.form;
+      if(e.matches('[data-period-form] input')){
+        const draft=state.periodDraft,form=e.form;
         draft[e.name]=e.value;
-        form.querySelector('[data-period-error]').textContent=ledgerPeriodError(draft);
-        const valid=canApplyLedgerPeriod(draft);
+        form.querySelector('[data-period-error]').textContent=periodError(draft);
+        const valid=canApplyPeriod(draft);
         form.querySelector('[type=submit]').disabled=!valid;
         if(e.name==='year'){
           const ordinal=Number(draft.year)*12+Number(draft.month)-1;
@@ -310,7 +316,7 @@
         state.editingFinancialCategoryId=null;state.page=state.categoryDetailReturn;render();return;
       }
       if(f.matches('[data-ledger-filters]')){closeLedgerFilters(true);return;}
-      if(f.matches('[data-ledger-period]')){closeLedgerPeriod(true);return;}
+      if(f.matches('[data-period-form]')){closePeriod(true);return;}
       if(f.matches('[data-meal-filter-form]')){
         const {from,to,slot,atHome,method,keyword}=f.elements;
         if(from.value&&to.value&&from.value>to.value){error('开始日期不能晚于结束日期。');return;}

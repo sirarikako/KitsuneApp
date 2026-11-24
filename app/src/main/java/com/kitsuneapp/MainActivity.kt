@@ -225,6 +225,10 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
                                     clearConditions = { filter = MealFilter() },
                                     openFilter = { open("mealFilter") },
                                     openStatsFilter = { open("mealFilter/statistics") },
+                                    selectStatsMonth = { month ->
+                                        mealStatsFilter = (mealStatsFilter ?: currentMealMonth).withMonth(month)
+                                            .takeUnless { it == currentMealMonth }
+                                    },
                                     openMeal = ::openMeal,
                                 ) { meal ->
                                     openRecord("meal/${meal.date}/${meal.mealSlot.name}/${meal.id}", meal.id)

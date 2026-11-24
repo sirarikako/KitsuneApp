@@ -59,17 +59,19 @@ data class MealFilter(
 
     fun hasSameDates(other: MealFilter) = start == other.start && end == other.end
 
-    fun dateSummary(currentMonth: MealFilter): String = when {
-        hasSameDates(currentMonth) -> "本月"
-        start.isEmpty() && end.isEmpty() -> "所有时间"
-        start.isEmpty() -> "截至 $end"
-        end.isEmpty() -> "从 $start 起"
-        else -> "$start 至 $end"
+    fun dateSummary(currentMonth: MealFilter): String {
+        if (start.isEmpty() && end.isEmpty()) return "所有时间"
+        if (start.isEmpty()) return "截至 $end"
+        if (end.isEmpty()) return "从 $start 起"
+        if (hasSameDates(currentMonth)) return "本月"
+        val month = YearMonth.from(LocalDate.parse(start))
+        return if (hasSameDates(forMonth(month))) "${month.year}年${month.monthValue}月" else "$start 至 $end"
     }
 
+    fun withMonth(month: YearMonth) = copy(start = month.atDay(1).toString(), end = month.atEndOfMonth().toString())
+
     companion object {
-        fun forMonth(month: YearMonth) =
-            MealFilter(start = month.atDay(1).toString(), end = month.atEndOfMonth().toString())
+        fun forMonth(month: YearMonth) = MealFilter().withMonth(month)
     }
 }
 
@@ -96,11 +98,13 @@ fun MealsPage(
     clearConditions: () -> Unit,
     openFilter: () -> Unit,
     openStatsFilter: () -> Unit,
+    selectStatsMonth: (YearMonth) -> Unit,
     openMeal: (String, MealSlot, String?) -> Unit,
     openExisting: (MealRecord) -> Unit,
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var date by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
+    var statsMonthPicker by rememberSaveable { mutableStateOf(false) }
     val labels = filter?.labels(records).orEmpty()
     Column {
         Header("用餐")
@@ -118,8 +122,13 @@ fun MealsPage(
             } else {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(statsFilter.dateSummary(currentMonth), Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodyMedium)
+                    OutlinedAction({ statsMonthPicker = true },
+                        Modifier.weight(1f).semantics { contentDescription = "选择统计月份" }, spread = true) {
+                        Text(statsFilter.dateSummary(currentMonth), Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyMedium)
+                        Icon(designIcon(R.drawable.ks_chevron_down), null, Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.primary)
+                    }
                     Choice("筛选", openStatsFilter, icon = designIcon(R.drawable.ks_list_filter))
                 }
             }
@@ -168,6 +177,13 @@ fun MealsPage(
                     }
                 }
             }
+        }
+    }
+    if (statsMonthPicker) {
+        val dateInRange = statsFilter.start.ifEmpty { statsFilter.end }.ifEmpty { currentMonth.start }
+        MonthPickerDialog(YearMonth.from(LocalDate.parse(dateInRange)), { statsMonthPicker = false }) { month ->
+            statsMonthPicker = false
+            selectStatsMonth(month)
         }
     }
 }

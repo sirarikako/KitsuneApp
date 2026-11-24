@@ -26,13 +26,17 @@
     const defaultAppearance={mode:'system',colorSource:'PRESET',presetColor:'#c47a4a',customColor:'#C47A4A'};
     const style = {accent:'#c47a4a',mealHour:'auto',...defaultAppearance};
     const state = {page:'home', date:'2026-11-17', ledgerMonth:'2026-11',ledgerTab:'流水', mealTab:'记录', slot:2, atHome:null, method:null, categories:[], amount:'',calcOpen:false,calcExpression:'',entryType:'支出',entryDraft:{dateTime:'2026-11-17T09:41',note:'',category:'ge-food',walletId:'daily'},notice:'', mealReturn:'home', entries:[], records:{}};
-    state.ledgerRange=null;state.ledgerPeriodDraft=null;state.previewMode=null;
+    state.ledgerRange=null;state.periodDraft=null;state.previewMode=null;
     const blankLedgerFilters=()=>({type:'',category:'',note:''});
     state.ledgerFilters=blankLedgerFilters();state.ledgerFiltersOpen=false;
     state.githubDemo={backedUp:false,review:null,scenario:'normal',wifi:false,draftWifi:false,editing:false,uploading:false};
     const demoMealMonth=demoToday.slice(0,7);
-    const demoMonthEnd=new Date(Date.UTC(Number(demoMealMonth.slice(0,4)),Number(demoMealMonth.slice(5)),0));
-    const mealDatePresets={month:{from:demoMealMonth+'-01',to:demoMonthEnd.toISOString().slice(0,10)},all:{from:'',to:''}};
+    function mealMonthDates(month){
+      const from=month+'-01',end=new Date(from+'T00:00:00Z');
+      end.setUTCMonth(end.getUTCMonth()+1,0);
+      return {from,to:end.toISOString().slice(0,10)};
+    }
+    const mealDatePresets={month:mealMonthDates(demoMealMonth),all:{from:'',to:''}};
     const blankMealFilters=(dates=mealDatePresets.all)=>({...dates,slot:'any',atHome:'any',method:'any',preparations:[],keyword:''});
     const mealDatePreset=({from,to})=>Object.keys(mealDatePresets).find(key=>{
       const dates=mealDatePresets[key];
@@ -152,6 +156,11 @@
       if(preset==='all')return '所有时间';
       if(!f.from)return '截至 '+f.to;
       if(!f.to)return '从 '+f.from+' 起';
+      const month=f.from.slice(0,7),dates=mealMonthDates(month);
+      if(f.from===dates.from&&f.to===dates.to){
+        const [year,number]=month.split('-').map(Number);
+        return `${year}年${number}月`;
+      }
       return f.from+' 至 '+f.to;
     }
     function mealFilterLabels(f,includeDates=true){
@@ -267,9 +276,9 @@
       const display=range?`${range.from.replaceAll('-','/')} ～ ${range.to.replaceAll('-','/')}`:`${year}年${month}月`;
       return `<button type="button" class="ks-choice ks-ledger-filter" data-action="choose-ledger-period" aria-haspopup="dialog" aria-label="选择日期范围：${display}"><span>${display}</span>${icon('chevron-down')}</button>`;
     }
-    const canApplyLedgerPeriod=draft=>draft.mode==='month'?/^\d{1,4}$/.test(draft.year)&&Number(draft.year)>0:
+    const canApplyPeriod=draft=>draft.mode==='month'?/^\d{1,4}$/.test(draft.year)&&Number(draft.year)>0:
       isDate(draft.from)&&isDate(draft.to)&&draft.from<=draft.to;
-    const ledgerPeriodError=draft=>draft.mode==='month'&&!canApplyLedgerPeriod(draft)?'请输入 1 至 9999 的年份':
+    const periodError=draft=>draft.mode==='month'&&!canApplyPeriod(draft)?'请输入 1 至 9999 的年份':
       draft.mode==='range'&&draft.from&&draft.to&&draft.from>draft.to?'开始日期不能晚于结束日期':'';
     const walletScope=()=>{
       const chosen=selectedWallets(),single=Array.isArray(state.walletFilterIds)&&chosen.length===1;

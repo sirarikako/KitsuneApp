@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -19,6 +20,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
@@ -132,11 +134,12 @@ class NavigationTest {
     }
 
     @Test
-    fun mealStatisticsCanIncludeHistoricalMealsWhileKeepingTheKeywordFilter() {
+    fun mealStatisticsCanSelectAMonthOrAllTimeWhileKeepingTheKeywordFilter() {
         compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
         val repository = runBlocking { (compose.activity.application as KitsuneApplication).repository() }
         val keyword = "统计测试-" + UUID.randomUUID()
-        val date = LocalDate.now().minusMonths(1).withDayOfMonth(1).toString()
+        val previousMonth = java.time.YearMonth.now().minusMonths(1)
+        val date = previousMonth.atDay(1).toString()
         val mealId = runBlocking {
             repository.saveMeal(MealDraft(
                 date = date,
@@ -158,14 +161,35 @@ class NavigationTest {
             compose.onNodeWithText("本月").assertIsSelected()
             compose.onNodeWithContentDescription("菜品／备注关键词").performScrollTo().performTextReplacement(keyword)
             compose.onNodeWithText("应用筛选").performScrollTo().performClick()
+            val results = compose.onNode(hasScrollToNodeAction())
+            results.performScrollToNode(hasText("没有符合条件的用餐记录"))
             compose.onNodeWithText("没有符合条件的用餐记录").assertIsDisplayed()
+
+            val monthPicker = compose.onNodeWithContentDescription("选择统计月份")
+            monthPicker.performClick()
+            compose.onNodeWithContentDescription("上个月").performClick()
+            compose.onNodeWithText("取消").performClick()
+            compose.onNodeWithText("本月").assertIsDisplayed()
+
+            monthPicker.performClick()
+            compose.onNodeWithContentDescription("上个月").performClick()
+            compose.onNodeWithText("应用").performClick()
+            val previousMonthLabel = "${previousMonth.year}年${previousMonth.monthValue}月"
+            compose.onNodeWithText(previousMonthLabel).assertIsDisplayed()
+            results.performScrollToNode(hasText("关键词：$keyword"))
+            compose.onNodeWithText("关键词：$keyword").assertIsDisplayed()
+            results.performScrollToNode(hasText("否 1 餐"))
+            compose.onNodeWithText("否 1 餐").assertIsDisplayed()
 
             compose.onNodeWithText("筛选").performClick()
             compose.onNodeWithText("所有时间").performClick().assertIsSelected()
             compose.onNodeWithText("应用筛选").performScrollTo().performClick()
             compose.onNodeWithText("所有时间").assertIsDisplayed()
+            results.performScrollToNode(hasText("关键词：$keyword"))
             compose.onNodeWithText("关键词：$keyword").assertIsDisplayed()
+            results.performScrollToNode(hasText("否 1 餐"))
             compose.onNodeWithText("否 1 餐").assertIsDisplayed()
+            results.performScrollToNode(hasText("未填写"))
             compose.onNodeWithText("未填写").assertIsDisplayed()
 
             compose.onNodeWithText("记录").performClick()

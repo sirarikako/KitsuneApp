@@ -34,10 +34,10 @@
       if(state.calcOpen){phone.insertAdjacentHTML('beforeend',calculatorSheet());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-calc-action=cancel]').focus({preventScroll:true});}
       if(state.deletePending){phone.insertAdjacentHTML('beforeend',deleteConfirmation());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-delete-action=cancel]').focus({preventScroll:true});}
       if(state.walletPickerOpen){phone.insertAdjacentHTML('beforeend',walletRangeDialog());for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;phone.querySelector('[data-wallet-mode][aria-pressed=true]').focus({preventScroll:true});}
-      if(state.ledgerPeriodDraft){
-        phone.insertAdjacentHTML('beforeend',ledgerPeriodDialog());
+      if(state.periodDraft){
+        phone.insertAdjacentHTML('beforeend',periodDialog());
         for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
-        if(previous?.modal!==kind)phone.querySelector('[data-period-mode][aria-pressed=true]').focus({preventScroll:true});
+        if(previous?.modal!==kind)phone.querySelector('[data-period-mode][aria-pressed=true],[data-period-month][aria-pressed=true]').focus({preventScroll:true});
       }
       if(state.ledgerFiltersOpen){
         phone.insertAdjacentHTML('beforeend',ledgerFiltersDialog());
@@ -138,17 +138,21 @@
       state.mealCalendar=null;render();
       phone.querySelector('[data-action=open-meal-calendar]').focus({preventScroll:true});
     }
-    function closeLedgerPeriod(apply){
-      const draft=state.ledgerPeriodDraft;
+    function closePeriod(apply){
+      const draft=state.periodDraft,mealStats=draft.target==='meals';
       if(apply){
-        if(!canApplyLedgerPeriod(draft))return;
+        if(!canApplyPeriod(draft))return;
         if(draft.mode==='month'){
-          state.ledgerMonth=`${String(Number(draft.year)).padStart(4,'0')}-${draft.month.padStart(2,'0')}`;
-          state.ledgerRange=null;
+          const month=`${String(Number(draft.year)).padStart(4,'0')}-${draft.month.padStart(2,'0')}`;
+          if(mealStats)state.mealStatsFilters={...state.mealStatsFilters,...mealMonthDates(month)};
+          else{
+            state.ledgerMonth=month;
+            state.ledgerRange=null;
+          }
         }else state.ledgerRange={from:draft.from,to:draft.to};
       }
-      state.ledgerPeriodDraft=null;render();
-      phone.querySelector('[data-action=choose-ledger-period]')?.focus({preventScroll:true});
+      state.periodDraft=null;render();
+      phone.querySelector(mealStats?'[data-action=choose-meal-month]':'[data-action=choose-ledger-period]')?.focus({preventScroll:true});
       if(apply)persist();
     }
         function calcCents(expression){
