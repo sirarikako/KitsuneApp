@@ -146,11 +146,11 @@
         ${section(`${period}流水`,filters)}
         <div class="ks-record-list">
         ${visibleEntries.map(entry=>{
-          const wallet=walletById(entry.walletId),category=entryCategory(entry);
-          const lineLabel=entry.type==='退款'?`退款 · ${category}`:category;
-          const glyph=entry.type==='退款'?'undo-2':category==='交通'?'train-front':category==='工资'?'briefcase-business':'receipt-text';
-          return `<button type="button" class="ks-record cursor-interaction" data-entry-id="${entry.id}" aria-label="查看${escapeText(wallet.name)} ${escapeText(category)} ${entry.type} ${wallet.code} ${money(entry.cents,wallet.code)}详情">
-            ${recordIcon(glyph)}
+          const wallet=walletById(entry.walletId),category=categoryById(categoryForEntry(entry));
+          const categoryName=category?.name||'历史分类';
+          const lineLabel=entry.type==='退款'?`退款 · ${categoryName}`:categoryName;
+          return `<button type="button" class="ks-record cursor-interaction" data-entry-id="${entry.id}" aria-label="查看${escapeText(wallet.name)} ${escapeText(categoryName)} ${entry.type} ${wallet.code} ${money(entry.cents,wallet.code)}详情">
+            ${recordIcon(categoryIconName(category?.icon))}
             <span class="ks-record-copy"><span class="ks-record-title">${escapeText(lineLabel)}<span class="ks-pill">${escapeText(wallet.name)}</span></span><span class="ks-record-meta ks-record-ellipsis">${includeYear?entry.date:entry.date.slice(5)} ${entry.time}${entry.note?` · ${escapeText(entry.note)}`:''}</span></span>
             <span class="ks-currency-amount ${entry.type==='支出'?'ks-expense':'ks-income'}"><strong>${entry.type==='支出'?'−':'+'}${money(entry.cents,wallet.code)}</strong><small>${wallet.code}</small></span>${icon('chevron-right')}
           </button>`;
