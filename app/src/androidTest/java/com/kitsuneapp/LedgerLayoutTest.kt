@@ -29,6 +29,7 @@ import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
@@ -50,6 +51,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
+import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.Density
@@ -423,8 +425,14 @@ class LedgerLayoutTest {
 
         trigger.performClick()
         compose.onNodeWithContentDescription("使用时钟").performClick()
-        compose.onNodeWithContentDescription("17", substring = true).performSemanticsAction(SemanticsActions.OnClick)
-        compose.onNodeWithContentDescription("15", substring = true).performSemanticsAction(SemanticsActions.OnClick)
+        val hourOnDial = compose.activity.getString(androidx.compose.material3.R.string.m3c_time_picker_hour_24h_suffix, 17)
+        val minuteOnDial = compose.activity.getString(androidx.compose.material3.R.string.m3c_time_picker_minute_suffix, 15)
+        compose.onNodeWithContentDescription(hourOnDial).performScrollTo().performTouchInput { click() }
+        compose.waitUntilAtLeastOneExists(hasText("17"), 5_000)
+        compose.onNodeWithText("59").performClick()
+        compose.waitUntilAtLeastOneExists(hasContentDescription(minuteOnDial), 5_000)
+        compose.onNodeWithContentDescription(minuteOnDial).performScrollTo().performTouchInput { click() }
+        compose.waitUntilAtLeastOneExists(hasText("15"), 5_000)
         confirm.performClick()
         compose.runOnIdle { assertEquals("17:15", time) }
     }
