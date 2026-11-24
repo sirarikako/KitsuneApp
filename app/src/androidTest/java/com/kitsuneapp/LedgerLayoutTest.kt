@@ -73,6 +73,62 @@ class LedgerLayoutTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
     @Test
+    fun incomeWalletTotalsAndGroupedFiltersUseTheSelectedWalletRange() {
+        val now = "2026-11-17T12:00:00Z"
+        val source = Wallet("first", "收款钱包", "收款钱包", "CNY", 2, 0, 0, false, false,
+            CategoryMode.DEFAULT, CategoryMode.DEFAULT, now, now, defaultToIncome = true)
+        val second = source.copy(id = "second", name = "另一钱包")
+        val income = Category("income", Scope.INCOME, null, "", "奖金", "奖金", 0, false, false, now, now)
+        val expense = income.copy(id = "expense", scope = Scope.EXPENSE, walletId = second.id, ownerKey = second.id)
+        val other = expense.copy(id = "other", name = "日用", normalizedName = "日用")
+        fun entry(id: String, wallet: Wallet, type: EntryType, amount: Long, category: Category) =
+            FinancialEntry(id, LocalDate.now().toString(), "12:00", type, wallet.id, amount, category.id,
+                null, null, null, "", now, now)
+        val records = Records(DataState(installationId = "test", datasetId = "test", arrayElements = 0),
+            ThemePreferences(), emptyList(), listOf(income, expense, other), emptyList(), emptyMap(), listOf(source, second),
+            listOf(entry("one", source, EntryType.INCOME, 800, income),
+                entry("two", second, EntryType.EXPENSE, 200, expense),
+                entry("three", second, EntryType.EXPENSE, 100, other)))
+        compose.setContent {
+            KitsuneTheme(records.theme, forceDark = true) {
+                Surface(Modifier.width(320.dp).fillMaxHeight()) { LedgerPage(records, open = {}, openDetails = {}) }
+            }
+        }
+        val month = YearMonth.now().monthValue
+        compose.onNodeWithText("$month 月 收入 · CNY").assertIsDisplayed()
+        compose.onNodeWithText("8.00").assertIsDisplayed()
+        compose.onNodeWithText("净支出 3.00").assertIsDisplayed()
+
+        val inDialog = hasAnyAncestor(isDialog())
+        fun openFilters() = compose.onNodeWithText("筛选").performClick()
+        fun apply() = compose.onNode(hasText("应用") and inDialog).performClick()
+        fun bulk(description: String) = compose.onNodeWithContentDescription(description).performScrollTo()
+            .performSemanticsAction(SemanticsActions.OnClick)
+        fun choose(name: String) = compose.onNode(hasText(name) and inDialog).performScrollTo()
+            .performSemanticsAction(SemanticsActions.OnClick)
+        openFilters()
+        bulk("全不选类型")
+        choose("收入")
+        choose("支出")
+        bulk("全不选分类")
+        choose("奖金")
+        apply()
+        compose.onNodeWithText("2 笔").assertExists()
+        compose.onNodeWithText("净支出 3.00").assertIsDisplayed()
+
+        openFilters()
+        bulk("全不选分类")
+        apply()
+        compose.onNodeWithText("0 笔").assertExists()
+
+        openFilters()
+        bulk("全选类型")
+        bulk("全选分类")
+        apply()
+        compose.onNodeWithText("3 笔").assertExists()
+    }
+
+    @Test
     fun showsExpenseColorAndCompactWalletActionsOnNarrowDarkLayout() {
         val now = "2026-11-17T12:00:00Z"
         val regular = Wallet("regular", "日常钱包", "日常钱包", "CNY", 2, 10_000, 0, false, false,

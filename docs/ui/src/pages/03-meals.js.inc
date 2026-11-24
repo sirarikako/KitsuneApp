@@ -13,8 +13,9 @@
       const rows=methodCounts(matches).filter(row=>row.count>0);
       const preparationNames=[...new Set(matches.flatMap(m=>m.categories))];
       const planBar=total?`<div class="ks-plan-visual" aria-hidden="true"><span class="ks-plan-yes" style="width:${homeCount/total*100}%"></span><span class="ks-plan-no" style="width:${awayCount/total*100}%"></span></div>`:'';
+      const period=escapeText(mealDateSummary(filters));
       return `${tabs}
-        <div class="ks-toolbar"><span>${escapeText(mealDateSummary(filters))}</span><button type="button" class="ks-toolbar-action cursor-interaction" data-action="meal-filter">${icon('list-filter')}筛选</button></div>
+        <div class="ks-toolbar"><button type="button" class="ks-control ks-date-trigger cursor-interaction" data-action="choose-meal-month" aria-haspopup="dialog" aria-label="选择统计月份 ${period}"><span>${period}</span>${icon('chevron-down')}</button><button type="button" class="ks-toolbar-action cursor-interaction" data-action="meal-filter">${icon('list-filter')}筛选</button></div>
         <section data-meal-statistics aria-label="用餐统计" aria-live="polite">
           ${labels.length?`<div class="ks-filter-chips" aria-label="已应用的筛选条件">${labels.map(label=>`<span class="ks-filter-chip">${escapeText(label)}</span>`).join('')}</div>`:''}
           ${section('用餐概览')}

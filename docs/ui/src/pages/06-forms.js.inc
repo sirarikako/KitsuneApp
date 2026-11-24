@@ -63,15 +63,16 @@
         </div><div class="ks-period-actions"><button type="button" class="ks-text-btn" data-calendar-action="cancel">取消</button><button type="button" class="ks-text-btn" data-calendar-action="apply" ${jump||(text&&!isDate(d.text))?'disabled':''}>确定</button></div>
       </section></div>`;
     }
-    function ledgerPeriodDialog(){
-      const draft=state.ledgerPeriodDraft,validYear=/^\d{1,4}$/.test(draft.year)&&Number(draft.year)>0;
+    function periodDialog(){
+      const draft=state.periodDraft,validYear=/^\d{1,4}$/.test(draft.year)&&Number(draft.year)>0;
+      const mealStats=draft.target==='meals',title=mealStats?'选择统计月份':'日期范围';
       const ordinal=Number(draft.year)*12+Number(draft.month)-1;
       const step=(direction,label,iconName,enabled)=>`<button type="button" class="ks-icon-btn" data-period-step="${direction}" aria-label="${label}" ${enabled?'':'disabled'}>${icon(iconName)}</button>`;
 
-      return `<div class="ks-modal-overlay ks-period-overlay"><form class="ks-period-dialog" data-ledger-period role="dialog" aria-modal="true" aria-label="日期范围">
-        <h3>日期范围</h3>
+      return `<div class="ks-modal-overlay ks-period-overlay"><form class="ks-period-dialog" data-period-form role="dialog" aria-modal="true" aria-label="${title}">
+        <h3>${title}</h3>
         <div class="ks-period-body">
-          <div class="ks-period-modes" role="group" aria-label="日期范围模式">${choice('按月','month',draft.mode,'period-mode')}${choice('自定义日期','range',draft.mode,'period-mode')}</div>
+          ${mealStats?'':`<div class="ks-period-modes" role="group" aria-label="日期范围模式">${choice('按月','month',draft.mode,'period-mode')}${choice('自定义日期','range',draft.mode,'period-mode')}</div>`}
           ${draft.mode==='month'?`
             <label><span class="ks-label">年份</span><input type="text" inputmode="numeric" name="year" class="ks-control" value="${escapeText(draft.year)}"></label>
             <div class="ks-row">
@@ -84,11 +85,11 @@
             <label><span class="ks-label">开始日期</span><input type="date" name="from" class="ks-control" value="${draft.from}" min="0001-01-01" max="9999-12-31"></label>
             <label><span class="ks-label">结束日期</span><input type="date" name="to" class="ks-control" value="${draft.to}" min="0001-01-01" max="9999-12-31"></label>
           `}
-          <p class="ks-error" data-period-error role="alert">${ledgerPeriodError(draft)}</p>
+          <p class="ks-error" data-period-error role="alert">${periodError(draft)}</p>
         </div>
         <div class="ks-period-actions">
-          <button type="button" class="ks-text-btn" data-action="cancel-ledger-period">取消</button>
-          <button type="submit" class="ks-text-btn" ${canApplyLedgerPeriod(draft)?'':'disabled'}>应用</button>
+          <button type="button" class="ks-text-btn" data-action="cancel-period">取消</button>
+          <button type="submit" class="ks-text-btn" ${canApplyPeriod(draft)?'':'disabled'}>应用</button>
         </div></form></div>`;
     }
     function walletRangeDialog(){

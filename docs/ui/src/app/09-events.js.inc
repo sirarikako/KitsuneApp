@@ -8,7 +8,7 @@
     phone.addEventListener('click',event=>{
       if(event.target.matches('.ks-wallet-overlay')){closeWalletPicker('cancel');return;}
       if(event.target.matches('[data-ledger-filter-overlay]')){closeLedgerFilters(false);return;}
-      if(event.target.matches('.ks-period-overlay')){closeLedgerPeriod(false);return;}
+      if(event.target.matches('.ks-period-overlay')){closePeriod(false);return;}
       if(event.target.matches('.ks-calendar-overlay')){closeMealCalendar(false);return;}
       if(event.target.matches('[data-meal-option-overlay]')){closeMealOption();return;}
       const b=event.target.closest('button');if(!b)return;
@@ -67,25 +67,39 @@
         if(next.customColor===null){phone.querySelector('[data-appearance-error]').textContent='请输入六位 HEX 颜色，例如 #C47A4A。';return;}
         applyAnimatedAppearance(next);state.notice='已应用外观。';render();persist();return;
       }
-      if(b.dataset.action==='open-ledger-filters'){state.ledgerFiltersOpen=true;render();return;}
+      if(b.dataset.action==='open-ledger-filters'){state.ledgerFilterDraft={...state.ledgerFilters};render();return;}
       if(b.dataset.action==='cancel-ledger-filters'){closeLedgerFilters(false);return;}
+      if(b.dataset.filterBulk){
+        const group=b.closest('[data-filter-group]'),key=group.dataset.filterGroup;
+        const all=b.dataset.filterBulk==='all';
+        state.ledgerFilterDraft[key]=all?null:[];
+        group.querySelectorAll('input').forEach(input=>{input.checked=all;});
+        return;
+      }
       if(b.dataset.action==='reset-ledger-filters'){
-        const fields=b.form.elements;
-        for(const name of Object.keys(blankLedgerFilters()))fields[name].value='';
+        state.ledgerFilterDraft=blankLedgerFilters();
+        b.form.querySelectorAll('input[type=checkbox]').forEach(input=>{input.checked=true;});
+        b.form.elements.note.value='';
         return;
       }
       if(b.dataset.action==='choose-ledger-period'){
         const range=state.ledgerRange,[year,month]=state.ledgerMonth.split('-').map(n=>String(Number(n)));
-        state.ledgerPeriodDraft={mode:range?'range':'month',year,month,from:range?.from||'',to:range?.to||''};
+        state.periodDraft={target:'ledger',mode:range?'range':'month',year,month,from:range?.from||'',to:range?.to||''};
         render();return;
       }
-      if(b.dataset.action==='cancel-ledger-period'){closeLedgerPeriod(false);return;}
+      if(b.dataset.action==='choose-meal-month'){
+        const {from,to}=state.mealStatsFilters;
+        const [year,month]=(from||to||demoToday).slice(0,7).split('-').map(n=>String(Number(n)));
+        state.periodDraft={target:'meals',mode:'month',year,month};
+        render();return;
+      }
+      if(b.dataset.action==='cancel-period'){closePeriod(false);return;}
       if(b.dataset.periodMode){
-        state.ledgerPeriodDraft.mode=b.dataset.periodMode;render();
+        state.periodDraft.mode=b.dataset.periodMode;render();
         phone.querySelector('[data-period-mode][aria-pressed=true]').focus({preventScroll:true});return;
       }
       if(b.dataset.periodStep){
-        const d=state.ledgerPeriodDraft,ordinal=Number(d.year)*12+Number(d.month)-1+Number(b.dataset.periodStep);
+        const d=state.periodDraft,ordinal=Number(d.year)*12+Number(d.month)-1+Number(b.dataset.periodStep);
         d.year=String(Math.floor(ordinal/12));
         d.month=String(ordinal%12+1);
         render();
@@ -93,7 +107,7 @@
         return;
       }
       if(b.dataset.periodMonth){
-        state.ledgerPeriodDraft.month=b.dataset.periodMonth;render();
+        state.periodDraft.month=b.dataset.periodMonth;render();
         phone.querySelector('[data-period-month][aria-pressed=true]').focus({preventScroll:true});return;
       }
       if(b.dataset.action==='meal-filter'){
@@ -201,8 +215,8 @@
           state.githubDemo.review=null;render();phone.querySelector('[data-github-action=restore-preview]')?.focus({preventScroll:true});
         }else if(state.addingMealOption)closeMealOption();
         else if(state.mealCalendar)closeMealCalendar(false);
-        else if(state.ledgerPeriodDraft)closeLedgerPeriod(false);
-        else if(state.ledgerFiltersOpen)closeLedgerFilters(false);
+        else if(state.periodDraft)closePeriod(false);
+        else if(state.ledgerFilterDraft)closeLedgerFilters(false);
         else if(state.walletPickerOpen)closeWalletPicker('cancel');
         else if(state.deletePending)cancelDelete();
         else closeCalculator(false);
@@ -214,6 +228,15 @@
     });
     phone.addEventListener('change',event=>{
       const e=event.target;
+      if(e.matches('[data-filter-group] input[type=checkbox]')){
+        const group=e.closest('[data-filter-group]'),key=group.dataset.filterGroup;
+        const options=[...group.querySelectorAll('input')].map(input=>input.value);
+        const selected=new Set(state.ledgerFilterDraft[key]??options);
+        if(e.checked)selected.add(e.value);else selected.delete(e.value);
+        state.ledgerFilterDraft[key]=selected.size===options.length&&options.every(value=>selected.has(value))
+          ?null:[...selected];
+        return;
+      }
       if(e.matches('[data-github-wifi]')){state.githubDemo.wifi=e.checked;return;}
       if(e.matches('[data-github-wifi-draft]')){state.githubDemo.draftWifi=e.checked;return;}
       if(e.matches('[data-github-scenario]')){
@@ -266,11 +289,11 @@
         }
         return;
       }
-      if(e.matches('[data-ledger-period] input')){
-        const draft=state.ledgerPeriodDraft,form=e.form;
+      if(e.matches('[data-period-form] input')){
+        const draft=state.periodDraft,form=e.form;
         draft[e.name]=e.value;
-        form.querySelector('[data-period-error]').textContent=ledgerPeriodError(draft);
-        const valid=canApplyLedgerPeriod(draft);
+        form.querySelector('[data-period-error]').textContent=periodError(draft);
+        const valid=canApplyPeriod(draft);
         form.querySelector('[type=submit]').disabled=!valid;
         if(e.name==='year'){
           const ordinal=Number(draft.year)*12+Number(draft.month)-1;
@@ -310,7 +333,7 @@
         state.editingFinancialCategoryId=null;state.page=state.categoryDetailReturn;render();return;
       }
       if(f.matches('[data-ledger-filters]')){closeLedgerFilters(true);return;}
-      if(f.matches('[data-ledger-period]')){closeLedgerPeriod(true);return;}
+      if(f.matches('[data-period-form]')){closePeriod(true);return;}
       if(f.matches('[data-meal-filter-form]')){
         const {from,to,slot,atHome,method,keyword}=f.elements;
         if(from.value&&to.value&&from.value>to.value){error('开始日期不能晚于结束日期。');return;}

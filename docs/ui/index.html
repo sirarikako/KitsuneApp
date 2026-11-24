@@ -2080,6 +2080,13 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-period-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ks-space-2)}
   #kitsune-preview .ks-period-months{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--ks-space-2)}
   #kitsune-preview .ks-period-body .ks-error:empty{display:none}
+  #kitsune-preview [data-filter-group]{min-width:0;border:0;margin:0;padding:0}
+  #kitsune-preview .ks-ledger-filter-options{display:flex;flex-wrap:wrap;gap:var(--ks-space-1)}
+  #kitsune-preview [data-filter-group=categoryNames] .ks-ledger-filter-options{display:grid;max-height:216px;overflow:auto}
+  #kitsune-preview .ks-ledger-check{display:flex;align-items:center;justify-content:flex-start;gap:var(--ks-space-2);overflow-wrap:anywhere}
+  #kitsune-preview .ks-ledger-check input{width:18px;height:18px;accent-color:var(--ks-accent);flex:none}
+  #kitsune-preview .ks-ledger-check:has(input:checked){color:var(--ks-accent);border-color:var(--ks-accent);background:var(--ks-accent-bg)}
+  #kitsune-preview .ks-ledger-filter-bulk{display:flex;gap:var(--ks-space-2)}
   #kitsune-preview .ks-date-trigger{display:flex;justify-content:space-between;align-items:center;gap:var(--ks-space-2);text-align:left}
   #kitsune-preview .ks-calendar-dialog{max-width:360px;gap:var(--ks-space-2)}
   #kitsune-preview .ks-calendar-dialog h3{font-size:20px}
@@ -2204,13 +2211,17 @@ html&gt;body{padding:0}&lt;/style&gt;
     const defaultAppearance={mode:&#x27;system&#x27;,colorSource:&#x27;PRESET&#x27;,presetColor:&#x27;#c47a4a&#x27;,customColor:&#x27;#C47A4A&#x27;};
     const style = {accent:&#x27;#c47a4a&#x27;,mealHour:&#x27;auto&#x27;,...defaultAppearance};
     const state = {page:&#x27;home&#x27;, date:&#x27;2026-11-17&#x27;, ledgerMonth:&#x27;2026-11&#x27;,ledgerTab:&#x27;流水&#x27;, mealTab:&#x27;记录&#x27;, slot:2, atHome:null, method:null, categories:[], amount:&#x27;&#x27;,calcOpen:false,calcExpression:&#x27;&#x27;,entryType:&#x27;支出&#x27;,entryDraft:{dateTime:&#x27;2026-11-17T09:41&#x27;,note:&#x27;&#x27;,category:&#x27;ge-food&#x27;,walletId:&#x27;daily&#x27;},notice:&#x27;&#x27;, mealReturn:&#x27;home&#x27;, entries:[], records:{}};
-    state.ledgerRange=null;state.ledgerPeriodDraft=null;state.previewMode=null;
-    const blankLedgerFilters=()=&gt;({type:&#x27;&#x27;,category:&#x27;&#x27;,note:&#x27;&#x27;});
-    state.ledgerFilters=blankLedgerFilters();state.ledgerFiltersOpen=false;
+    state.ledgerRange=null;state.periodDraft=null;state.previewMode=null;
+    const blankLedgerFilters=()=&gt;({types:null,categoryNames:null,note:&#x27;&#x27;});
+    state.ledgerFilters=blankLedgerFilters();state.ledgerFilterDraft=null;
     state.githubDemo={backedUp:false,review:null,scenario:&#x27;normal&#x27;,wifi:false,draftWifi:false,editing:false,uploading:false};
     const demoMealMonth=demoToday.slice(0,7);
-    const demoMonthEnd=new Date(Date.UTC(Number(demoMealMonth.slice(0,4)),Number(demoMealMonth.slice(5)),0));
-    const mealDatePresets={month:{from:demoMealMonth+&#x27;-01&#x27;,to:demoMonthEnd.toISOString().slice(0,10)},all:{from:&#x27;&#x27;,to:&#x27;&#x27;}};
+    function mealMonthDates(month){
+      const from=month+&#x27;-01&#x27;,end=new Date(from+&#x27;T00:00:00Z&#x27;);
+      end.setUTCMonth(end.getUTCMonth()+1,0);
+      return {from,to:end.toISOString().slice(0,10)};
+    }
+    const mealDatePresets={month:mealMonthDates(demoMealMonth),all:{from:&#x27;&#x27;,to:&#x27;&#x27;}};
     const blankMealFilters=(dates=mealDatePresets.all)=&gt;({...dates,slot:&#x27;any&#x27;,atHome:&#x27;any&#x27;,method:&#x27;any&#x27;,preparations:[],keyword:&#x27;&#x27;});
     const mealDatePreset=({from,to})=&gt;Object.keys(mealDatePresets).find(key=&gt;{
       const dates=mealDatePresets[key];
@@ -2245,6 +2256,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     const scopeMode=(wallet,scope)=&gt;wallet?.[scope===&#x27;INCOME&#x27;?&#x27;incomeCategoryMode&#x27;:&#x27;expenseCategoryMode&#x27;]||&#x27;DEFAULT&#x27;;
     const allFinancialCategories=()=&gt;[...sharedFinancialCategories.EXPENSE,...sharedFinancialCategories.INCOME,...Object.values(walletFinancialCategories).flatMap(v=&gt;[...v.EXPENSE,...v.INCOME]),...Object.values(fallbackFinancialCategories)];
     const categoryById=id=&gt;allFinancialCategories().find(c=&gt;c.id===id)||null;
+    const categoryNameKey=category=&gt;category?.name.trim().normalize(&#x27;NFC&#x27;).toLowerCase()??null;
     const effectiveFinancialCategories=(walletId,type)=&gt;{
       const wallet=wallets.find(w=&gt;w.id===walletId);if(!wallet)return [];
       const scope=financialScopeOf(type);
@@ -2317,6 +2329,22 @@ html&gt;body{padding:0}&lt;/style&gt;
     const entryCategory=entry=&gt;categoryNameForId(categoryForEntry(entry));
     const regularWallets=()=&gt;wallets.filter(w=&gt;!w.separateAccounting);
     const selectedWallets=()=&gt;state.walletFilterIds===null?regularWallets():state.walletFilterIds===&#x27;ALL&#x27;?[...wallets]:wallets.filter(w=&gt;state.walletFilterIds.includes(w.id));
+    function ledgerFilterCategories(){
+      const selected=selectedWallets(),ids=new Set(selected.map(w=&gt;w.id));
+      const historical=financialEntries().filter(e=&gt;ids.has(e.walletId)).map(e=&gt;categoryById(categoryForEntry(e))).filter(Boolean);
+      const candidates=[
+        ...Object.values(sharedFinancialCategories).flat().filter(c=&gt;!c.archived),
+        ...Object.values(fallbackFinancialCategories),
+        ...selected.flatMap(w=&gt;Object.values(walletFinancialCategories[w.id]).flat()),
+        ...historical,
+      ];
+      const names=new Map();
+      for(const category of candidates){
+        const key=categoryNameKey(category);
+        if(!names.has(key))names.set(key,category.name);
+      }
+      return [...names];
+    }
     const matchesLedgerScope=entry=&gt;{
       const range=state.ledgerRange;
       const dateMatches=range?range.from&lt;=entry.date&amp;&amp;entry.date&lt;=range.to:entry.date.startsWith(state.ledgerMonth);
@@ -2330,6 +2358,11 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(preset===&#x27;all&#x27;)return &#x27;所有时间&#x27;;
       if(!f.from)return &#x27;截至 &#x27;+f.to;
       if(!f.to)return &#x27;从 &#x27;+f.from+&#x27; 起&#x27;;
+      const month=f.from.slice(0,7),dates=mealMonthDates(month);
+      if(f.from===dates.from&amp;&amp;f.to===dates.to){
+        const [year,number]=month.split(&#x27;-&#x27;).map(Number);
+        return `${year}年${number}月`;
+      }
       return f.from+&#x27; 至 &#x27;+f.to;
     }
     function mealFilterLabels(f,includeDates=true){
@@ -2411,12 +2444,13 @@ html&gt;body{padding:0}&lt;/style&gt;
       const m=records()[i];
       return `&lt;button type=&quot;button&quot; class=&quot;ks-record ${m?&#x27;&#x27;:&#x27;ks-empty&#x27;} cursor-interaction&quot; data-meal=&quot;${i}&quot;&gt;${recordIcon(slotIcons[i])}&lt;span class=&quot;ks-record-copy&quot;&gt;&lt;span class=&quot;ks-record-title&quot;&gt;${slot}${m?`&lt;span class=&quot;ks-pill&quot;&gt;${escapeText(m.method||&#x27;方式未填写&#x27;)}&lt;/span&gt;`:&#x27;&#x27;}&lt;/span&gt;&lt;span class=&quot;ks-record-meta&quot;&gt;${m?escapeText(m.dishes||&#x27;未填写菜品&#x27;):&#x27;添加记录&#x27;}&lt;/span&gt;&lt;/span&gt;${icon(m?&#x27;chevron-right&#x27;:&#x27;plus&#x27;)}&lt;/button&gt;`;
     }).join(&#x27;&#x27;)}&lt;/div&gt;`;
-    function moneyCard(code,entries){
+    function moneyCard(code,entries,incomeFirst){
       const period=state.ledgerRange?&#x27;所选期间&#x27;:`${Number(state.ledgerMonth.slice(5))} 月`;
+      const income=money(total(entries,&#x27;收入&#x27;),code),expense=money(netExpense(entries),code);
       return `&lt;div class=&quot;ks-money-card&quot; data-currency=&quot;${code}&quot;&gt;
-        &lt;span class=&quot;ks-money-caption&quot;&gt;${period}净支出 · ${code}&lt;/span&gt;
-        &lt;div class=&quot;ks-amount&quot; data-expense&gt;${money(netExpense(entries),code)}&lt;/div&gt;
-        &lt;div class=&quot;ks-money-meta&quot;&gt;&lt;span&gt;收入 &lt;span data-income&gt;${money(total(entries,&#x27;收入&#x27;),code)}&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+        &lt;span class=&quot;ks-money-caption&quot;&gt;${period}${incomeFirst?&#x27;收入&#x27;:&#x27;净支出&#x27;} · ${code}&lt;/span&gt;
+        &lt;div class=&quot;ks-amount&quot; ${incomeFirst?&#x27;data-income&#x27;:&#x27;data-expense&#x27;}&gt;${incomeFirst?income:expense}&lt;/div&gt;
+        &lt;div class=&quot;ks-money-meta&quot;&gt;&lt;span&gt;${incomeFirst?&#x27;净支出&#x27;:&#x27;收入&#x27;} &lt;span ${incomeFirst?&#x27;data-expense&#x27;:&#x27;data-income&#x27;}&gt;${incomeFirst?expense:income}&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
       &lt;/div&gt;`;
     }
     function week(){
@@ -2445,9 +2479,9 @@ html&gt;body{padding:0}&lt;/style&gt;
       const display=range?`${range.from.replaceAll(&#x27;-&#x27;,&#x27;/&#x27;)} ～ ${range.to.replaceAll(&#x27;-&#x27;,&#x27;/&#x27;)}`:`${year}年${month}月`;
       return `&lt;button type=&quot;button&quot; class=&quot;ks-choice ks-ledger-filter&quot; data-action=&quot;choose-ledger-period&quot; aria-haspopup=&quot;dialog&quot; aria-label=&quot;选择日期范围：${display}&quot;&gt;&lt;span&gt;${display}&lt;/span&gt;${icon(&#x27;chevron-down&#x27;)}&lt;/button&gt;`;
     }
-    const canApplyLedgerPeriod=draft=&gt;draft.mode===&#x27;month&#x27;?/^\d{1,4}$/.test(draft.year)&amp;&amp;Number(draft.year)&gt;0:
+    const canApplyPeriod=draft=&gt;draft.mode===&#x27;month&#x27;?/^\d{1,4}$/.test(draft.year)&amp;&amp;Number(draft.year)&gt;0:
       isDate(draft.from)&amp;&amp;isDate(draft.to)&amp;&amp;draft.from&lt;=draft.to;
-    const ledgerPeriodError=draft=&gt;draft.mode===&#x27;month&#x27;&amp;&amp;!canApplyLedgerPeriod(draft)?&#x27;请输入 1 至 9999 的年份&#x27;:
+    const periodError=draft=&gt;draft.mode===&#x27;month&#x27;&amp;&amp;!canApplyPeriod(draft)?&#x27;请输入 1 至 9999 的年份&#x27;:
       draft.mode===&#x27;range&#x27;&amp;&amp;draft.from&amp;&amp;draft.to&amp;&amp;draft.from&gt;draft.to?&#x27;开始日期不能晚于结束日期&#x27;:&#x27;&#x27;;
     const walletScope=()=&gt;{
       const chosen=selectedWallets(),single=Array.isArray(state.walletFilterIds)&amp;&amp;chosen.length===1;
@@ -2509,8 +2543,9 @@ html&gt;body{padding:0}&lt;/style&gt;
       const rows=methodCounts(matches).filter(row=&gt;row.count&gt;0);
       const preparationNames=[...new Set(matches.flatMap(m=&gt;m.categories))];
       const planBar=total?`&lt;div class=&quot;ks-plan-visual&quot; aria-hidden=&quot;true&quot;&gt;&lt;span class=&quot;ks-plan-yes&quot; style=&quot;width:${homeCount/total*100}%&quot;&gt;&lt;/span&gt;&lt;span class=&quot;ks-plan-no&quot; style=&quot;width:${awayCount/total*100}%&quot;&gt;&lt;/span&gt;&lt;/div&gt;`:&#x27;&#x27;;
+      const period=escapeText(mealDateSummary(filters));
       return `${tabs}
-        &lt;div class=&quot;ks-toolbar&quot;&gt;&lt;span&gt;${escapeText(mealDateSummary(filters))}&lt;/span&gt;&lt;button type=&quot;button&quot; class=&quot;ks-toolbar-action cursor-interaction&quot; data-action=&quot;meal-filter&quot;&gt;${icon(&#x27;list-filter&#x27;)}筛选&lt;/button&gt;&lt;/div&gt;
+        &lt;div class=&quot;ks-toolbar&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-control ks-date-trigger cursor-interaction&quot; data-action=&quot;choose-meal-month&quot; aria-haspopup=&quot;dialog&quot; aria-label=&quot;选择统计月份 ${period}&quot;&gt;&lt;span&gt;${period}&lt;/span&gt;${icon(&#x27;chevron-down&#x27;)}&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-toolbar-action cursor-interaction&quot; data-action=&quot;meal-filter&quot;&gt;${icon(&#x27;list-filter&#x27;)}筛选&lt;/button&gt;&lt;/div&gt;
         &lt;section data-meal-statistics aria-label=&quot;用餐统计&quot; aria-live=&quot;polite&quot;&gt;
           ${labels.length?`&lt;div class=&quot;ks-filter-chips&quot; aria-label=&quot;已应用的筛选条件&quot;&gt;${labels.map(label=&gt;`&lt;span class=&quot;ks-filter-chip&quot;&gt;${escapeText(label)}&lt;/span&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`:&#x27;&#x27;}
           ${section(&#x27;用餐概览&#x27;)}
@@ -2592,19 +2627,25 @@ html&gt;body{padding:0}&lt;/style&gt;
       parts.forEach(part=&gt;observer.observe(part.firstElementChild));
     }
     function ledgerFiltersDialog(){
-      const {type,category,note}=state.ledgerFilters;
-      const select=(label,name,value,options)=&gt;`&lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;${label}&lt;/span&gt;&lt;select class=&quot;ks-control&quot; name=&quot;${name}&quot;&gt;
-        &lt;option value=&quot;&quot;&gt;不限&lt;/option&gt;
-        ${options.map(([id,text])=&gt;`&lt;option value=&quot;${escapeText(id)}&quot; ${value===id?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${escapeText(text)}&lt;/option&gt;`).join(&#x27;&#x27;)}
-      &lt;/select&gt;&lt;/label&gt;`;
-      const categories=allFinancialCategories().map(c=&gt;[c.id,categoryDescriptionForId(c.id)]);
+      const draft=state.ledgerFilterDraft;
+      const group=(label,key,options)=&gt;`&lt;fieldset data-filter-group=&quot;${key}&quot;&gt;
+        &lt;legend class=&quot;ks-label&quot;&gt;${label}&lt;/legend&gt;
+        &lt;div class=&quot;ks-ledger-filter-options&quot;&gt;
+          ${options.map(([id,text])=&gt;`&lt;label class=&quot;ks-choice ks-ledger-check cursor-interaction&quot;&gt;&lt;input type=&quot;checkbox&quot; value=&quot;${escapeText(id)}&quot; ${draft[key]===null||draft[key].includes(id)?&#x27;checked&#x27;:&#x27;&#x27;}&gt;${escapeText(text)}&lt;/label&gt;`).join(&#x27;&#x27;)}
+          ${options.length?&#x27;&#x27;:&#x27;&lt;p class=&quot;ks-note&quot;&gt;当前钱包范围没有可选分类&lt;/p&gt;&#x27;}
+        &lt;/div&gt;
+        &lt;div class=&quot;ks-ledger-filter-bulk&quot;&gt;
+          &lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-filter-bulk=&quot;all&quot; aria-label=&quot;全选${label}&quot;&gt;全选&lt;/button&gt;
+          &lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-filter-bulk=&quot;none&quot; aria-label=&quot;全不选${label}&quot;&gt;全不选&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/fieldset&gt;`;
       return `&lt;div class=&quot;ks-modal-overlay ks-period-overlay&quot; data-ledger-filter-overlay&gt;
         &lt;form class=&quot;ks-period-dialog&quot; data-ledger-filters role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;流水筛选&quot;&gt;
           &lt;h3&gt;流水筛选&lt;/h3&gt;
           &lt;div class=&quot;ks-period-body&quot;&gt;
-            ${select(&#x27;类型&#x27;,&#x27;type&#x27;,type,[&#x27;支出&#x27;,&#x27;收入&#x27;,&#x27;转账&#x27;,&#x27;退款&#x27;].map(value=&gt;[value,value]))}
-            ${select(&#x27;分类&#x27;,&#x27;category&#x27;,category,categories)}
-            &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;备注关键词&lt;/span&gt;&lt;input name=&quot;note&quot; class=&quot;ks-control&quot; value=&quot;${escapeText(note)}&quot;&gt;&lt;/label&gt;
+            ${group(&#x27;类型&#x27;,&#x27;types&#x27;,[&#x27;收入&#x27;,&#x27;支出&#x27;,&#x27;转账&#x27;,&#x27;退款&#x27;].map(value=&gt;[value,value]))}
+            ${group(&#x27;分类&#x27;,&#x27;categoryNames&#x27;,ledgerFilterCategories())}
+            &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;备注关键词&lt;/span&gt;&lt;input name=&quot;note&quot; class=&quot;ks-control&quot; value=&quot;${escapeText(draft.note)}&quot;&gt;&lt;/label&gt;
             &lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-action=&quot;reset-ledger-filters&quot;&gt;重置条件&lt;/button&gt;
           &lt;/div&gt;
           &lt;div class=&quot;ks-period-actions&quot;&gt;
@@ -2633,7 +2674,7 @@ html&gt;body{padding:0}&lt;/style&gt;
           &lt;/div&gt;`;
         }).join(&#x27;&#x27;)}&lt;/div&gt;&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 示例数据&lt;/p&gt;`;
       const entries=allEntries.filter(matchesLedgerScope).sort((a,b)=&gt;(b.date+b.time).localeCompare(a.date+a.time));
-      const groups=currencyGroups(entries,selectedWallets());
+      const selected=selectedWallets(),groups=currencyGroups(entries,selected);
       const period=state.ledgerRange?&#x27;所选期间&#x27;:&#x27;本月&#x27;;
       const includeYear=state.ledgerRange&amp;&amp;state.ledgerRange.from.slice(0,4)!==state.ledgerRange.to.slice(0,4);
       const empty=&#x27;&lt;p class=&quot;ks-empty-state&quot;&gt;所选日期和钱包范围内没有账目&lt;/p&gt;&#x27;;
@@ -2649,15 +2690,16 @@ html&gt;body{padding:0}&lt;/style&gt;
             ${group.length?&#x27;&#x27;:empty}
           &lt;/section&gt;`).join(&#x27;&#x27;)}
       &lt;/div&gt;&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 各币种独立统计&lt;/p&gt;`;
-      const {type,category,note}=state.ledgerFilters;
+      const {types,categoryNames,note}=state.ledgerFilters;
       const keyword=note.trim().toLocaleLowerCase();
-      const visibleEntries=entries.filter(entry=&gt;(!type||type===entry.type)&amp;&amp;
-        (!category||category===categoryForEntry(entry))&amp;&amp;entry.note.toLocaleLowerCase().includes(keyword));
-      const activeFilters=Boolean(type||category||keyword);
+      const visibleEntries=entries.filter(entry=&gt;(types===null||types.includes(entry.type))&amp;&amp;
+        (categoryNames===null||categoryNames.includes(categoryNameKey(categoryById(categoryForEntry(entry)))))&amp;&amp;
+        entry.note.toLocaleLowerCase().includes(keyword));
+      const activeFilters=types!==null||categoryNames!==null||Boolean(keyword);
       const filters=`&lt;div class=&quot;ks-ledger-list-actions&quot;&gt;&lt;span class=&quot;ks-note&quot;&gt;${visibleEntries.length} 笔&lt;/span&gt;
         &lt;button type=&quot;button&quot; class=&quot;ks-choice ks-date&quot; data-action=&quot;open-ledger-filters&quot; aria-haspopup=&quot;dialog&quot; aria-pressed=&quot;${activeFilters}&quot;&gt;${icon(&#x27;list-filter&#x27;)}筛选&lt;/button&gt;&lt;/div&gt;`;
       return `&lt;section data-monthly-ledger aria-label=&quot;所选日期与钱包的流水&quot; aria-live=&quot;polite&quot;&gt;
-        ${groups.map(({code,entries:group})=&gt;`&lt;div class=&quot;ks-currency-group&quot;&gt;${moneyCard(code,group)}&lt;/div&gt;`).join(&#x27;&#x27;)}
+        ${groups.map(({code,entries:group})=&gt;`&lt;div class=&quot;ks-currency-group&quot;&gt;${moneyCard(code,group,selected.filter(w=&gt;w.code===code).every(w=&gt;w.defaultToIncome))}&lt;/div&gt;`).join(&#x27;&#x27;)}
         ${section(`${period}流水`,filters)}
         &lt;div class=&quot;ks-record-list&quot;&gt;
         ${visibleEntries.map(entry=&gt;{
@@ -2924,15 +2966,16 @@ html&gt;body{padding:0}&lt;/style&gt;
         &lt;/div&gt;&lt;div class=&quot;ks-period-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-calendar-action=&quot;cancel&quot;&gt;取消&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-calendar-action=&quot;apply&quot; ${jump||(text&amp;&amp;!isDate(d.text))?&#x27;disabled&#x27;:&#x27;&#x27;}&gt;确定&lt;/button&gt;&lt;/div&gt;
       &lt;/section&gt;&lt;/div&gt;`;
     }
-    function ledgerPeriodDialog(){
-      const draft=state.ledgerPeriodDraft,validYear=/^\d{1,4}$/.test(draft.year)&amp;&amp;Number(draft.year)&gt;0;
+    function periodDialog(){
+      const draft=state.periodDraft,validYear=/^\d{1,4}$/.test(draft.year)&amp;&amp;Number(draft.year)&gt;0;
+      const mealStats=draft.target===&#x27;meals&#x27;,title=mealStats?&#x27;选择统计月份&#x27;:&#x27;日期范围&#x27;;
       const ordinal=Number(draft.year)*12+Number(draft.month)-1;
       const step=(direction,label,iconName,enabled)=&gt;`&lt;button type=&quot;button&quot; class=&quot;ks-icon-btn&quot; data-period-step=&quot;${direction}&quot; aria-label=&quot;${label}&quot; ${enabled?&#x27;&#x27;:&#x27;disabled&#x27;}&gt;${icon(iconName)}&lt;/button&gt;`;
 
-      return `&lt;div class=&quot;ks-modal-overlay ks-period-overlay&quot;&gt;&lt;form class=&quot;ks-period-dialog&quot; data-ledger-period role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;日期范围&quot;&gt;
-        &lt;h3&gt;日期范围&lt;/h3&gt;
+      return `&lt;div class=&quot;ks-modal-overlay ks-period-overlay&quot;&gt;&lt;form class=&quot;ks-period-dialog&quot; data-period-form role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;${title}&quot;&gt;
+        &lt;h3&gt;${title}&lt;/h3&gt;
         &lt;div class=&quot;ks-period-body&quot;&gt;
-          &lt;div class=&quot;ks-period-modes&quot; role=&quot;group&quot; aria-label=&quot;日期范围模式&quot;&gt;${choice(&#x27;按月&#x27;,&#x27;month&#x27;,draft.mode,&#x27;period-mode&#x27;)}${choice(&#x27;自定义日期&#x27;,&#x27;range&#x27;,draft.mode,&#x27;period-mode&#x27;)}&lt;/div&gt;
+          ${mealStats?&#x27;&#x27;:`&lt;div class=&quot;ks-period-modes&quot; role=&quot;group&quot; aria-label=&quot;日期范围模式&quot;&gt;${choice(&#x27;按月&#x27;,&#x27;month&#x27;,draft.mode,&#x27;period-mode&#x27;)}${choice(&#x27;自定义日期&#x27;,&#x27;range&#x27;,draft.mode,&#x27;period-mode&#x27;)}&lt;/div&gt;`}
           ${draft.mode===&#x27;month&#x27;?`
             &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;年份&lt;/span&gt;&lt;input type=&quot;text&quot; inputmode=&quot;numeric&quot; name=&quot;year&quot; class=&quot;ks-control&quot; value=&quot;${escapeText(draft.year)}&quot;&gt;&lt;/label&gt;
             &lt;div class=&quot;ks-row&quot;&gt;
@@ -2945,11 +2988,11 @@ html&gt;body{padding:0}&lt;/style&gt;
             &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;开始日期&lt;/span&gt;&lt;input type=&quot;date&quot; name=&quot;from&quot; class=&quot;ks-control&quot; value=&quot;${draft.from}&quot; min=&quot;0001-01-01&quot; max=&quot;9999-12-31&quot;&gt;&lt;/label&gt;
             &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;结束日期&lt;/span&gt;&lt;input type=&quot;date&quot; name=&quot;to&quot; class=&quot;ks-control&quot; value=&quot;${draft.to}&quot; min=&quot;0001-01-01&quot; max=&quot;9999-12-31&quot;&gt;&lt;/label&gt;
           `}
-          &lt;p class=&quot;ks-error&quot; data-period-error role=&quot;alert&quot;&gt;${ledgerPeriodError(draft)}&lt;/p&gt;
+          &lt;p class=&quot;ks-error&quot; data-period-error role=&quot;alert&quot;&gt;${periodError(draft)}&lt;/p&gt;
         &lt;/div&gt;
         &lt;div class=&quot;ks-period-actions&quot;&gt;
-          &lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-action=&quot;cancel-ledger-period&quot;&gt;取消&lt;/button&gt;
-          &lt;button type=&quot;submit&quot; class=&quot;ks-text-btn&quot; ${canApplyLedgerPeriod(draft)?&#x27;&#x27;:&#x27;disabled&#x27;}&gt;应用&lt;/button&gt;
+          &lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-action=&quot;cancel-period&quot;&gt;取消&lt;/button&gt;
+          &lt;button type=&quot;submit&quot; class=&quot;ks-text-btn&quot; ${canApplyPeriod(draft)?&#x27;&#x27;:&#x27;disabled&#x27;}&gt;应用&lt;/button&gt;
         &lt;/div&gt;&lt;/form&gt;&lt;/div&gt;`;
     }
     function walletRangeDialog(){
@@ -3049,7 +3092,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     const discard=group=&gt;()=&gt;group?.remove();
     const pageNode=()=&gt;phone.querySelector(&#x27;:scope &gt; .ks-page-motion&#x27;);
     const modalNode=()=&gt;phone.querySelector(&#x27;:scope &gt; .ks-modal-overlay&#x27;);
-    const modalKind=()=&gt;state.deletePending?&#x27;dialog&#x27;:state.calcOpen?&#x27;calculator&#x27;:state.walletPickerOpen?&#x27;wallet&#x27;:state.ledgerPeriodDraft?&#x27;ledger-period&#x27;:state.ledgerFiltersOpen?&#x27;ledger-filters&#x27;:state.githubDemo.review?&#x27;github-review&#x27;:state.mealCalendar?&#x27;date-calendar&#x27;:state.addingMealOption?&#x27;meal-option&#x27;:null;
+    const modalKind=()=&gt;state.deletePending?&#x27;dialog&#x27;:state.calcOpen?&#x27;calculator&#x27;:state.walletPickerOpen?&#x27;wallet&#x27;:state.periodDraft?&#x27;period&#x27;:state.ledgerFilterDraft?&#x27;ledger-filters&#x27;:state.githubDemo.review?&#x27;github-review&#x27;:state.mealCalendar?&#x27;date-calendar&#x27;:state.addingMealOption?&#x27;meal-option&#x27;:null;
     const primary=page=&gt;navs.some(n=&gt;n[0]===page);
     const localKey=()=&gt;state.page===&#x27;meals&#x27;?JSON.stringify([state.mealTab,state.date,state.mealStatsFilters,state.mealListMode,state.mealFilters]):state.page===&#x27;ledger&#x27;?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds,state.ledgerFilters]):&#x27;&#x27;;
     const localNodes=()=&gt;{
@@ -3182,15 +3225,15 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(state.calcOpen){phone.insertAdjacentHTML(&#x27;beforeend&#x27;,calculatorSheet());phone.querySelector(&#x27;.ks-top&#x27;).inert=true;phone.querySelector(&#x27;.ks-main&#x27;).inert=true;phone.querySelector(&#x27;[data-calc-action=cancel]&#x27;).focus({preventScroll:true});}
       if(state.deletePending){phone.insertAdjacentHTML(&#x27;beforeend&#x27;,deleteConfirmation());phone.querySelector(&#x27;.ks-top&#x27;).inert=true;phone.querySelector(&#x27;.ks-main&#x27;).inert=true;phone.querySelector(&#x27;[data-delete-action=cancel]&#x27;).focus({preventScroll:true});}
       if(state.walletPickerOpen){phone.insertAdjacentHTML(&#x27;beforeend&#x27;,walletRangeDialog());for(const child of phone.children)if(!child.classList.contains(&#x27;ks-modal-overlay&#x27;))child.inert=true;phone.querySelector(&#x27;[data-wallet-mode][aria-pressed=true]&#x27;).focus({preventScroll:true});}
-      if(state.ledgerPeriodDraft){
-        phone.insertAdjacentHTML(&#x27;beforeend&#x27;,ledgerPeriodDialog());
+      if(state.periodDraft){
+        phone.insertAdjacentHTML(&#x27;beforeend&#x27;,periodDialog());
         for(const child of phone.children)if(!child.classList.contains(&#x27;ks-modal-overlay&#x27;))child.inert=true;
-        if(previous?.modal!==kind)phone.querySelector(&#x27;[data-period-mode][aria-pressed=true]&#x27;).focus({preventScroll:true});
+        if(previous?.modal!==kind)phone.querySelector(&#x27;[data-period-mode][aria-pressed=true],[data-period-month][aria-pressed=true]&#x27;).focus({preventScroll:true});
       }
-      if(state.ledgerFiltersOpen){
+      if(state.ledgerFilterDraft){
         phone.insertAdjacentHTML(&#x27;beforeend&#x27;,ledgerFiltersDialog());
         for(const child of phone.children)if(!child.classList.contains(&#x27;ks-modal-overlay&#x27;))child.inert=true;
-        phone.querySelector(&#x27;[data-ledger-filters] select&#x27;).focus({preventScroll:true});
+        phone.querySelector(&#x27;[data-ledger-filters] input&#x27;).focus({preventScroll:true});
       }
       if(state.githubDemo.review){
         phone.insertAdjacentHTML(&#x27;beforeend&#x27;,githubDemoDialog());
@@ -3257,10 +3300,10 @@ html&gt;body{padding:0}&lt;/style&gt;
     function closeCalculator(apply){if(apply){try{state.amount=inputAmount(calcCents(state.calcExpression));}catch(e){phone.querySelector(&#x27;.ks-calc-error&#x27;).textContent=e.message;return;}}state.calcOpen=false;render();phone.querySelector(&#x27;[data-action=open-calculator]&#x27;).focus({preventScroll:true});}
     function closeLedgerFilters(apply){
       if(apply){
-        const fields=phone.querySelector(&#x27;[data-ledger-filters]&#x27;).elements;
-        state.ledgerFilters={type:fields.type.value,category:fields.category.value,note:fields.note.value};
+        const note=phone.querySelector(&#x27;[data-ledger-filters] [name=note]&#x27;).value;
+        state.ledgerFilters={...state.ledgerFilterDraft,note};
       }
-      state.ledgerFiltersOpen=false;render();
+      state.ledgerFilterDraft=null;render();
       phone.querySelector(&#x27;[data-action=open-ledger-filters]&#x27;)?.focus({preventScroll:true});
     }
     function closeWalletPicker(action){
@@ -3286,17 +3329,21 @@ html&gt;body{padding:0}&lt;/style&gt;
       state.mealCalendar=null;render();
       phone.querySelector(&#x27;[data-action=open-meal-calendar]&#x27;).focus({preventScroll:true});
     }
-    function closeLedgerPeriod(apply){
-      const draft=state.ledgerPeriodDraft;
+    function closePeriod(apply){
+      const draft=state.periodDraft,mealStats=draft.target===&#x27;meals&#x27;;
       if(apply){
-        if(!canApplyLedgerPeriod(draft))return;
+        if(!canApplyPeriod(draft))return;
         if(draft.mode===&#x27;month&#x27;){
-          state.ledgerMonth=`${String(Number(draft.year)).padStart(4,&#x27;0&#x27;)}-${draft.month.padStart(2,&#x27;0&#x27;)}`;
-          state.ledgerRange=null;
+          const month=`${String(Number(draft.year)).padStart(4,&#x27;0&#x27;)}-${draft.month.padStart(2,&#x27;0&#x27;)}`;
+          if(mealStats)state.mealStatsFilters={...state.mealStatsFilters,...mealMonthDates(month)};
+          else{
+            state.ledgerMonth=month;
+            state.ledgerRange=null;
+          }
         }else state.ledgerRange={from:draft.from,to:draft.to};
       }
-      state.ledgerPeriodDraft=null;render();
-      phone.querySelector(&#x27;[data-action=choose-ledger-period]&#x27;)?.focus({preventScroll:true});
+      state.periodDraft=null;render();
+      phone.querySelector(mealStats?&#x27;[data-action=choose-meal-month]&#x27;:&#x27;[data-action=choose-ledger-period]&#x27;)?.focus({preventScroll:true});
       if(apply)persist();
     }
         function calcCents(expression){
@@ -3322,7 +3369,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     phone.addEventListener(&#x27;click&#x27;,event=&gt;{
       if(event.target.matches(&#x27;.ks-wallet-overlay&#x27;)){closeWalletPicker(&#x27;cancel&#x27;);return;}
       if(event.target.matches(&#x27;[data-ledger-filter-overlay]&#x27;)){closeLedgerFilters(false);return;}
-      if(event.target.matches(&#x27;.ks-period-overlay&#x27;)){closeLedgerPeriod(false);return;}
+      if(event.target.matches(&#x27;.ks-period-overlay&#x27;)){closePeriod(false);return;}
       if(event.target.matches(&#x27;.ks-calendar-overlay&#x27;)){closeMealCalendar(false);return;}
       if(event.target.matches(&#x27;[data-meal-option-overlay]&#x27;)){closeMealOption();return;}
       const b=event.target.closest(&#x27;button&#x27;);if(!b)return;
@@ -3381,25 +3428,39 @@ html&gt;body{padding:0}&lt;/style&gt;
         if(next.customColor===null){phone.querySelector(&#x27;[data-appearance-error]&#x27;).textContent=&#x27;请输入六位 HEX 颜色，例如 #C47A4A。&#x27;;return;}
         applyAnimatedAppearance(next);state.notice=&#x27;已应用外观。&#x27;;render();persist();return;
       }
-      if(b.dataset.action===&#x27;open-ledger-filters&#x27;){state.ledgerFiltersOpen=true;render();return;}
+      if(b.dataset.action===&#x27;open-ledger-filters&#x27;){state.ledgerFilterDraft={...state.ledgerFilters};render();return;}
       if(b.dataset.action===&#x27;cancel-ledger-filters&#x27;){closeLedgerFilters(false);return;}
+      if(b.dataset.filterBulk){
+        const group=b.closest(&#x27;[data-filter-group]&#x27;),key=group.dataset.filterGroup;
+        const all=b.dataset.filterBulk===&#x27;all&#x27;;
+        state.ledgerFilterDraft[key]=all?null:[];
+        group.querySelectorAll(&#x27;input&#x27;).forEach(input=&gt;{input.checked=all;});
+        return;
+      }
       if(b.dataset.action===&#x27;reset-ledger-filters&#x27;){
-        const fields=b.form.elements;
-        for(const name of Object.keys(blankLedgerFilters()))fields[name].value=&#x27;&#x27;;
+        state.ledgerFilterDraft=blankLedgerFilters();
+        b.form.querySelectorAll(&#x27;input[type=checkbox]&#x27;).forEach(input=&gt;{input.checked=true;});
+        b.form.elements.note.value=&#x27;&#x27;;
         return;
       }
       if(b.dataset.action===&#x27;choose-ledger-period&#x27;){
         const range=state.ledgerRange,[year,month]=state.ledgerMonth.split(&#x27;-&#x27;).map(n=&gt;String(Number(n)));
-        state.ledgerPeriodDraft={mode:range?&#x27;range&#x27;:&#x27;month&#x27;,year,month,from:range?.from||&#x27;&#x27;,to:range?.to||&#x27;&#x27;};
+        state.periodDraft={target:&#x27;ledger&#x27;,mode:range?&#x27;range&#x27;:&#x27;month&#x27;,year,month,from:range?.from||&#x27;&#x27;,to:range?.to||&#x27;&#x27;};
         render();return;
       }
-      if(b.dataset.action===&#x27;cancel-ledger-period&#x27;){closeLedgerPeriod(false);return;}
+      if(b.dataset.action===&#x27;choose-meal-month&#x27;){
+        const {from,to}=state.mealStatsFilters;
+        const [year,month]=(from||to||demoToday).slice(0,7).split(&#x27;-&#x27;).map(n=&gt;String(Number(n)));
+        state.periodDraft={target:&#x27;meals&#x27;,mode:&#x27;month&#x27;,year,month};
+        render();return;
+      }
+      if(b.dataset.action===&#x27;cancel-period&#x27;){closePeriod(false);return;}
       if(b.dataset.periodMode){
-        state.ledgerPeriodDraft.mode=b.dataset.periodMode;render();
+        state.periodDraft.mode=b.dataset.periodMode;render();
         phone.querySelector(&#x27;[data-period-mode][aria-pressed=true]&#x27;).focus({preventScroll:true});return;
       }
       if(b.dataset.periodStep){
-        const d=state.ledgerPeriodDraft,ordinal=Number(d.year)*12+Number(d.month)-1+Number(b.dataset.periodStep);
+        const d=state.periodDraft,ordinal=Number(d.year)*12+Number(d.month)-1+Number(b.dataset.periodStep);
         d.year=String(Math.floor(ordinal/12));
         d.month=String(ordinal%12+1);
         render();
@@ -3407,7 +3468,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         return;
       }
       if(b.dataset.periodMonth){
-        state.ledgerPeriodDraft.month=b.dataset.periodMonth;render();
+        state.periodDraft.month=b.dataset.periodMonth;render();
         phone.querySelector(&#x27;[data-period-month][aria-pressed=true]&#x27;).focus({preventScroll:true});return;
       }
       if(b.dataset.action===&#x27;meal-filter&#x27;){
@@ -3515,8 +3576,8 @@ html&gt;body{padding:0}&lt;/style&gt;
           state.githubDemo.review=null;render();phone.querySelector(&#x27;[data-github-action=restore-preview]&#x27;)?.focus({preventScroll:true});
         }else if(state.addingMealOption)closeMealOption();
         else if(state.mealCalendar)closeMealCalendar(false);
-        else if(state.ledgerPeriodDraft)closeLedgerPeriod(false);
-        else if(state.ledgerFiltersOpen)closeLedgerFilters(false);
+        else if(state.periodDraft)closePeriod(false);
+        else if(state.ledgerFilterDraft)closeLedgerFilters(false);
         else if(state.walletPickerOpen)closeWalletPicker(&#x27;cancel&#x27;);
         else if(state.deletePending)cancelDelete();
         else closeCalculator(false);
@@ -3528,6 +3589,15 @@ html&gt;body{padding:0}&lt;/style&gt;
     });
     phone.addEventListener(&#x27;change&#x27;,event=&gt;{
       const e=event.target;
+      if(e.matches(&#x27;[data-filter-group] input[type=checkbox]&#x27;)){
+        const group=e.closest(&#x27;[data-filter-group]&#x27;),key=group.dataset.filterGroup;
+        const options=[...group.querySelectorAll(&#x27;input&#x27;)].map(input=&gt;input.value);
+        const selected=new Set(state.ledgerFilterDraft[key]??options);
+        if(e.checked)selected.add(e.value);else selected.delete(e.value);
+        state.ledgerFilterDraft[key]=selected.size===options.length&amp;&amp;options.every(value=&gt;selected.has(value))
+          ?null:[...selected];
+        return;
+      }
       if(e.matches(&#x27;[data-github-wifi]&#x27;)){state.githubDemo.wifi=e.checked;return;}
       if(e.matches(&#x27;[data-github-wifi-draft]&#x27;)){state.githubDemo.draftWifi=e.checked;return;}
       if(e.matches(&#x27;[data-github-scenario]&#x27;)){
@@ -3580,11 +3650,11 @@ html&gt;body{padding:0}&lt;/style&gt;
         }
         return;
       }
-      if(e.matches(&#x27;[data-ledger-period] input&#x27;)){
-        const draft=state.ledgerPeriodDraft,form=e.form;
+      if(e.matches(&#x27;[data-period-form] input&#x27;)){
+        const draft=state.periodDraft,form=e.form;
         draft[e.name]=e.value;
-        form.querySelector(&#x27;[data-period-error]&#x27;).textContent=ledgerPeriodError(draft);
-        const valid=canApplyLedgerPeriod(draft);
+        form.querySelector(&#x27;[data-period-error]&#x27;).textContent=periodError(draft);
+        const valid=canApplyPeriod(draft);
         form.querySelector(&#x27;[type=submit]&#x27;).disabled=!valid;
         if(e.name===&#x27;year&#x27;){
           const ordinal=Number(draft.year)*12+Number(draft.month)-1;
@@ -3624,7 +3694,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         state.editingFinancialCategoryId=null;state.page=state.categoryDetailReturn;render();return;
       }
       if(f.matches(&#x27;[data-ledger-filters]&#x27;)){closeLedgerFilters(true);return;}
-      if(f.matches(&#x27;[data-ledger-period]&#x27;)){closeLedgerPeriod(true);return;}
+      if(f.matches(&#x27;[data-period-form]&#x27;)){closePeriod(true);return;}
       if(f.matches(&#x27;[data-meal-filter-form]&#x27;)){
         const {from,to,slot,atHome,method,keyword}=f.elements;
         if(from.value&amp;&amp;to.value&amp;&amp;from.value&gt;to.value){error(&#x27;开始日期不能晚于结束日期。&#x27;);return;}

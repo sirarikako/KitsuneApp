@@ -67,19 +67,25 @@
       parts.forEach(part=>observer.observe(part.firstElementChild));
     }
     function ledgerFiltersDialog(){
-      const {type,category,note}=state.ledgerFilters;
-      const select=(label,name,value,options)=>`<label><span class="ks-label">${label}</span><select class="ks-control" name="${name}">
-        <option value="">不限</option>
-        ${options.map(([id,text])=>`<option value="${escapeText(id)}" ${value===id?'selected':''}>${escapeText(text)}</option>`).join('')}
-      </select></label>`;
-      const categories=allFinancialCategories().map(c=>[c.id,categoryDescriptionForId(c.id)]);
+      const draft=state.ledgerFilterDraft;
+      const group=(label,key,options)=>`<fieldset data-filter-group="${key}">
+        <legend class="ks-label">${label}</legend>
+        <div class="ks-ledger-filter-options">
+          ${options.map(([id,text])=>`<label class="ks-choice ks-ledger-check cursor-interaction"><input type="checkbox" value="${escapeText(id)}" ${draft[key]===null||draft[key].includes(id)?'checked':''}>${escapeText(text)}</label>`).join('')}
+          ${options.length?'':'<p class="ks-note">当前钱包范围没有可选分类</p>'}
+        </div>
+        <div class="ks-ledger-filter-bulk">
+          <button type="button" class="ks-text-btn" data-filter-bulk="all" aria-label="全选${label}">全选</button>
+          <button type="button" class="ks-text-btn" data-filter-bulk="none" aria-label="全不选${label}">全不选</button>
+        </div>
+      </fieldset>`;
       return `<div class="ks-modal-overlay ks-period-overlay" data-ledger-filter-overlay>
         <form class="ks-period-dialog" data-ledger-filters role="dialog" aria-modal="true" aria-label="流水筛选">
           <h3>流水筛选</h3>
           <div class="ks-period-body">
-            ${select('类型','type',type,['支出','收入','转账','退款'].map(value=>[value,value]))}
-            ${select('分类','category',category,categories)}
-            <label><span class="ks-label">备注关键词</span><input name="note" class="ks-control" value="${escapeText(note)}"></label>
+            ${group('类型','types',['收入','支出','转账','退款'].map(value=>[value,value]))}
+            ${group('分类','categoryNames',ledgerFilterCategories())}
+            <label><span class="ks-label">备注关键词</span><input name="note" class="ks-control" value="${escapeText(draft.note)}"></label>
             <button type="button" class="ks-text-btn" data-action="reset-ledger-filters">重置条件</button>
           </div>
           <div class="ks-period-actions">
@@ -108,7 +114,7 @@
           </div>`;
         }).join('')}</div><p class="ks-footnote">交互预览 · 示例数据</p>`;
       const entries=allEntries.filter(matchesLedgerScope).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
-      const groups=currencyGroups(entries,selectedWallets());
+      const selected=selectedWallets(),groups=currencyGroups(entries,selected);
       const period=state.ledgerRange?'所选期间':'本月';
       const includeYear=state.ledgerRange&&state.ledgerRange.from.slice(0,4)!==state.ledgerRange.to.slice(0,4);
       const empty='<p class="ks-empty-state">所选日期和钱包范围内没有账目</p>';
@@ -124,15 +130,16 @@
             ${group.length?'':empty}
           </section>`).join('')}
       </div><p class="ks-footnote">交互预览 · 各币种独立统计</p>`;
-      const {type,category,note}=state.ledgerFilters;
+      const {types,categoryNames,note}=state.ledgerFilters;
       const keyword=note.trim().toLocaleLowerCase();
-      const visibleEntries=entries.filter(entry=>(!type||type===entry.type)&&
-        (!category||category===categoryForEntry(entry))&&entry.note.toLocaleLowerCase().includes(keyword));
-      const activeFilters=Boolean(type||category||keyword);
+      const visibleEntries=entries.filter(entry=>(types===null||types.includes(entry.type))&&
+        (categoryNames===null||categoryNames.includes(categoryNameKey(categoryById(categoryForEntry(entry)))))&&
+        entry.note.toLocaleLowerCase().includes(keyword));
+      const activeFilters=types!==null||categoryNames!==null||Boolean(keyword);
       const filters=`<div class="ks-ledger-list-actions"><span class="ks-note">${visibleEntries.length} 笔</span>
         <button type="button" class="ks-choice ks-date" data-action="open-ledger-filters" aria-haspopup="dialog" aria-pressed="${activeFilters}">${icon('list-filter')}筛选</button></div>`;
       return `<section data-monthly-ledger aria-label="所选日期与钱包的流水" aria-live="polite">
-        ${groups.map(({code,entries:group})=>`<div class="ks-currency-group">${moneyCard(code,group)}</div>`).join('')}
+        ${groups.map(({code,entries:group})=>`<div class="ks-currency-group">${moneyCard(code,group,selected.filter(w=>w.code===code).every(w=>w.defaultToIncome))}</div>`).join('')}
         ${section(`${period}流水`,filters)}
         <div class="ks-record-list">
         ${visibleEntries.map(entry=>{
