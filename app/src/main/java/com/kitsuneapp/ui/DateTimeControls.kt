@@ -244,7 +244,9 @@ private fun PickerCard(title: String, dismiss: () -> Unit, confirm: () -> Unit, 
         Surface(Modifier.padding(horizontal = sideMargin).widthIn(max = maxWidth).fillMaxWidth(), shape = DialogShape, color = colors.surface,
             border = BorderStroke(1.dp, colors.outlineVariant)) {
             Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(title, Modifier.padding(horizontal = 20.dp), style = MaterialTheme.typography.titleLarge)
+                val titleStyle = if (leadingAction == null) MaterialTheme.typography.titleLarge
+                    else MaterialTheme.typography.bodyMedium
+                Text(title, Modifier.padding(horizontal = 20.dp), style = titleStyle)
                 Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()), content = content)
                 Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     leadingAction?.invoke()

@@ -1,9 +1,9 @@
 {
   "designDate": "2026-11-23",
   "source": "kitsune-ui.fragment.html",
-  "sourceSha256": "06ec6479b022bca1507a8c695fd58d8fc8f940d051556917240328eb34be8ab8",
+  "sourceSha256": "387ce992aef9f2f2d37fdb6af8e42e3a926126422731a5c4e1c8507cda8c5078",
   "preview": "index.html",
-  "previewSha256": "1f022fdc09930e6b6a32045ee50614dfaffff71c919da5ebdffcad3116979c46",
+  "previewSha256": "bfc57f089414959a58371673315cba266b6d40f14450f061fcbd8787c8522a2f",
   "icons": {
     "library": "lucide",
     "version": "1.8.0",
