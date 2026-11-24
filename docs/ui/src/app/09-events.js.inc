@@ -11,12 +11,15 @@
     phone.addEventListener('click',event=>{
       if(event.target.matches('.ks-wallet-overlay')){closeWalletPicker('cancel');return;}
       if(event.target.matches('[data-ledger-filter-overlay]')){closeLedgerFilters(false);return;}
+      if(event.target.matches('[data-entry-category-overlay]')){closeEntryCategory();return;}
       if(event.target.matches('.ks-period-overlay')){closePeriod(false);return;}
       if(event.target.matches('.ks-calendar-overlay')){closeMealCalendar(false);return;}
       if(event.target.matches('.ks-time-overlay')){closeEntryTime(false);return;}
       if(event.target.matches('[data-meal-option-overlay]')){closeMealOption();return;}
       const b=event.target.closest('button');if(!b)return;
       capture();state.notice='';
+      if(b.dataset.action==='add-entry-category'){state.addingEntryCategory=true;render();return;}
+      if(b.dataset.action==='cancel-entry-category'){closeEntryCategory();return;}
       if(b.dataset.action==='open-entry-time'){
         const [hour,minute]=state.entryDraft.dateTime.slice(-5).split(':');
         state.entryTimeDraft={hour,minute,clock:false,part:'hour',clockTime:{hour,minute}};
@@ -243,6 +246,7 @@
         }else if(state.addingMealOption)closeMealOption();
         else if(state.mealCalendar)closeMealCalendar(false);
         else if(state.entryTimeDraft)closeEntryTime(false);
+        else if(state.addingEntryCategory)closeEntryCategory();
         else if(state.periodDraft)closePeriod(false);
         else if(state.ledgerFilterDraft)closeLedgerFilters(false);
         else if(state.walletPickerOpen)closeWalletPicker('cancel');
@@ -365,15 +369,30 @@
         if(message){f.querySelector('[data-meal-option-error]').textContent=message;return;}
         list.push(name);closeMealOption();return;
       }
-      if(f.matches('[data-financial-category-form]')){
-        const name=f.elements.categoryName.value.trim(),scope=state.financialScope,owner=state.categoryWalletId;
+      if(f.matches('[data-financial-category-form],[data-entry-category]')){
+        const fromEntry=f.matches('[data-entry-category]'),wallet=entryWallet();
+        if(fromEntry&&!wallet){closeEntryCategory();return;}
+        const scope=fromEntry?financialScopeOf(state.entryType):state.financialScope;
+        const owner=fromEntry?(scopeMode(wallet,scope)==='CUSTOM'?wallet.id:'GLOBAL'):state.categoryWalletId;
         const items=owner==='GLOBAL'?sharedFinancialCategories[scope]:walletFinancialCategories[owner][scope];
-        const edited=items.find(c=>c.id===state.editingFinancialCategoryId);
-        const normalized=name.toLocaleLowerCase();
-        if(!name||normalized==='未分类'||items.some(c=>c.id!==edited?.id&&c.name.trim().toLocaleLowerCase()===normalized)){error('分类名不能为空、不能使用“未分类”，且不能与本范围已有名称重复。');return;}
-        const archived=f.elements.archived.checked,sortOrder=f.elements.sortOrder.valueAsNumber;
-        if(edited)Object.assign(edited,{name,archived,sortOrder});else items.push({id:'user-cat-'+state.nextFinancialCategoryId++,name,archived,sortOrder});
+        const edited=fromEntry?null:items.find(c=>c.id===state.editingFinancialCategoryId);
+        const name=f.elements.categoryName.value.trim(),normalized=categoryNameKey({name});
+        if(!name||normalized==='未分类'||items.some(c=>c.id!==edited?.id&&categoryNameKey(c)===normalized)){
+          f.querySelector('.ks-error').textContent='分类名不能为空、不能使用“未分类”，且不能与本范围已有名称重复。';
+          return;
+        }
+        const icon=f.elements.categoryIcon.value;
+        const archived=fromEntry?false:f.elements.archived.checked;
+        const sortOrder=fromEntry?nextCategoryOrder(items):f.elements.sortOrder.valueAsNumber;
+        const category=edited??{id:'user-cat-'+state.nextFinancialCategoryId++};
+        Object.assign(category,{name,icon,archived,sortOrder});
+        if(!edited)items.push(category);
         items.sort((a,b)=>a.sortOrder-b.sortOrder||a.name.localeCompare(b.name));
+        if(fromEntry){
+          state.entryDraft.category=category.id;
+          state.followsWalletType=false;
+          closeEntryCategory();return;
+        }
         state.editingFinancialCategoryId=null;state.page=state.categoryDetailReturn;render();return;
       }
       if(f.matches('[data-ledger-filters]')){closeLedgerFilters(true);return;}

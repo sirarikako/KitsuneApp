@@ -170,17 +170,32 @@ class Repository internal constructor(
         return buildCategory(null, scope, walletId, clean, nextOrder, false).also { dao.put(it) }
     }
 
-    suspend fun saveCategory(id: String?, scope: Scope, walletId: String?, name: String, order: Int?, archived: Boolean) = change {
+    suspend fun saveCategory(
+        id: String?, scope: Scope, walletId: String?, name: String, order: Int?, archived: Boolean, icon: CategoryIcon? = null,
+    ) = change {
         val original = id?.let { requireNotNull(dao.category(it)) { "分类已不存在" } }
         val sortOrder = order ?: original?.sortOrder ?: nextSortOrder(dao.maxCategoryOrder(scope, walletId ?: GLOBAL_OWNER))
-        val category = buildCategory(original, scope, walletId, name, sortOrder, archived)
+        val category = buildCategory(original, scope, walletId, name, sortOrder, archived, icon)
         if (original != null && category.copy(updatedAt = original.updatedAt) == original) return@change false
         dao.put(category)
         true
     }
 
-    private suspend fun buildCategory(original: Category?, scope: Scope, walletId: String?, name: String, order: Int, archived: Boolean): Category {
+    suspend fun addEntryCategory(id: String, scope: Scope, walletId: String, name: String, icon: CategoryIcon?) = change {
+        require(scope != Scope.PREPARATION)
+        require(dao.category(validateId(id)) == null)
+        val wallet = requireNotNull(dao.wallet(walletId)) { "钱包已不存在" }
+        val owner = wallet.id.takeIf { wallet.categoryMode(scope) == CategoryMode.CUSTOM }
+        val order = nextSortOrder(dao.maxCategoryOrder(scope, owner ?: GLOBAL_OWNER))
+        dao.put(buildCategory(null, scope, owner, name, order, false, icon).copy(id = id))
+        true
+    }
+
+    private suspend fun buildCategory(
+        original: Category?, scope: Scope, walletId: String?, name: String, order: Int, archived: Boolean, icon: CategoryIcon? = null,
+    ): Category {
         require(order >= 0) { "排序必须为非负整数" }
+        require(icon == null || scope != Scope.PREPARATION) { "制作分类不支持收支分类图标" }
         require(walletId == null || (scope != Scope.PREPARATION && dao.wallet(walletId) != null)) { "分类归属无效" }
         val clean = cleanName(name)
         require(scope == Scope.PREPARATION || clean != "未分类") { "“未分类”是保留名称" }
@@ -194,7 +209,7 @@ class Repository internal constructor(
         }
         val now = utcNow()
         return Category(original?.id ?: newId(), scope, walletId, owner, clean, normalized, order, archived,
-            false, original?.createdAt ?: now, now)
+            false, original?.createdAt ?: now, now, icon)
     }
 
     suspend fun deleteCategory(id: String) = change {

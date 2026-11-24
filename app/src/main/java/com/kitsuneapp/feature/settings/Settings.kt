@@ -141,8 +141,11 @@ fun VocabularyPage(
                         categories.forEachIndexed { i, category ->
                             if (i > 0) HorizontalDivider()
                             if (category.isDefault) FixedCategory(category.name)
-                            else Setting(category.name, hint = if (category.archived) "已停用" else null) {
-                                navigate("$path/" + category.id)
+                            else {
+                                val icon = if (scope == Scope.PREPARATION) null else categoryGlyph(category.icon)
+                                Setting(category.name, icon, hint = if (category.archived) "已停用" else null) {
+                                    navigate("$path/" + category.id)
+                                }
                             }
                         }
                     }
@@ -161,6 +164,7 @@ fun VocabularyForm(records: Records, id: String?, scope: Scope?, owner: String?,
     val next = if (scope == null) records.methods.maxOfOrNull { it.sortOrder }
         else records.categories.filter { it.scope == scope && it.walletId == owner }.maxOfOrNull { it.sortOrder }
     var name by rememberSaveable { mutableStateOf(category?.name ?: method?.name.orEmpty()) }
+    var icon by rememberSaveable { mutableStateOf(category?.icon) }
     var order by rememberSaveable { mutableStateOf((category?.sortOrder ?: method?.sortOrder
         ?: ((next ?: -1).coerceAtMost(Int.MAX_VALUE - 1) + 1)).toString()) }
     var archived by rememberSaveable { mutableStateOf(category?.archived ?: method?.archived ?: false) }
@@ -172,6 +176,7 @@ fun VocabularyForm(records: Records, id: String?, scope: Scope?, owner: String?,
         Header((if (id == null) "新增" else "编辑") + title, back = back)
         Form {
             Field("名称", name, { name = it }, placeholder = "输入名称")
+            if (scope == Scope.INCOME || scope == Scope.EXPENSE) CategoryIconPicker(icon, { icon = it }, enabled = !busy)
             Field("排序（数字越小越靠前）", order, { order = it }, keyboard = KeyboardOptions(keyboardType = KeyboardType.Number))
             if (scope == null) Toggle("显示制作分类", show) { show = it }
             Toggle("停用", archived) { archived = it }
@@ -179,7 +184,7 @@ fun VocabularyForm(records: Records, id: String?, scope: Scope?, owner: String?,
                 model.save(back) {
                     val position = requireNotNull(order.toIntOrNull()) { "排序必须为非负整数" }
                     if (scope == null) saveMethod(id, name, position, archived, show)
-                    else saveCategory(id, scope, owner, name, position, archived)
+                    else saveCategory(id, scope, owner, name, position, archived, icon)
                 }
             }, id?.let { "删除$title" }, { delete = true })
         }
@@ -233,10 +238,13 @@ fun CategorySettings(records: Records, model: AppViewModel, specific: Boolean, w
                             choices.forEach { category ->
                                 val status = if (category.archived) "已停用" else null
                                 if (editable) {
-                                    Setting(category.name, hint = status, enabled = !busy) { open("$draft/${category.id}") }
+                                    Setting(category.name, categoryGlyph(category.icon), hint = status, enabled = !busy) {
+                                        open("$draft/${category.id}")
+                                    }
                                 } else {
                                     Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).padding(vertical = 8.dp),
                                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Icon(categoryGlyph(category.icon), null, Modifier.size(18.dp))
                                         Column(Modifier.weight(1f)) {
                                             Text(category.name)
                                             if (status != null) Secondary(status)
@@ -266,6 +274,7 @@ fun CategorySettings(records: Records, model: AppViewModel, specific: Boolean, w
 private fun FixedCategory(name: String) {
     Row(Modifier.fillMaxWidth().heightIn(min = 55.dp).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Icon(categoryGlyph(null), null, Modifier.size(18.dp))
         Column(Modifier.weight(1f)) {
             Text(name)
             Secondary("固定兜底")

@@ -44,6 +44,7 @@ class SnapshotTest {
             assertEquals(staged.info.datasetId, repository.read().state.datasetId)
         }
         val records = repository.read()
+        assertTrue(records.categories.all { it.icon == null })
         val ledger = Ledger(records)
         val wallets = records.wallets.associateBy { it.currencyCode }
         assertEquals("8000", ledger.balance()[wallets.getValue("CNY").id].toString())
@@ -53,6 +54,22 @@ class SnapshotTest {
         store.export(BackupKind.MANUAL, output)
         assertTrue(output.toString("UTF-8").contains("\"openingBalanceMinor\": \"10000\""))
         store.stage(output.toByteArray().inputStream()).use { assertEquals(SnapshotCounts(1, 2, 3), it.counts) }
+    }
+
+    @Test
+    fun categoryIconsRoundTripThroughFullBackup() = runBlocking {
+        val preparation = repository.read().categories.first { it.scope == Scope.PREPARATION }
+        assertNull(preparation.icon)
+        repository.saveCategory(null, Scope.INCOME, null, "工资", null, false, CategoryIcon.WORK)
+        val category = repository.read().categories.single { it.name == "工资" }
+        val output = ByteArrayOutputStream()
+        store.export(BackupKind.MANUAL, output)
+        val backup = output.toString("UTF-8")
+        assertTrue(backup.contains("\"formatVersion\": 2"))
+        assertTrue(backup.contains("\"icon\": \"WORK\""))
+        store.stage(backup.byteInputStream()).use { staged ->
+            assertEquals(category, staged.db.records().category(category.id))
+        }
     }
 
     @Test

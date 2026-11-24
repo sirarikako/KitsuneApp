@@ -301,20 +301,29 @@ fun Field(label: String, value: String, set: (String) -> Unit, modifier: Modifie
 fun <T> Select(
     title: String, value: T?, options: List<T>, label: (T) -> String, onSelect: (T) -> Unit,
     modifier: Modifier = Modifier, placeholder: String = "请选择", enabled: Boolean = true,
+    showLabel: Boolean = true, optionIcon: (@Composable (T) -> ImageVector)? = null,
 ) {
     var open by remember { mutableStateOf(false) }
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        FieldLabel(title)
+        if (showLabel) FieldLabel(title)
         Box {
             OutlinedAction({ open = true }, Modifier.fillMaxWidth().semantics { contentDescription = title },
                 enabled = enabled, spread = true) {
+                if (value != null && optionIcon != null) Icon(optionIcon(value), null, Modifier.size(16.dp))
                 Text(value?.let(label) ?: placeholder, Modifier.weight(1f), color =
                     if (enabled) LocalContentColor.current else MaterialTheme.colorScheme.onSurfaceVariant)
                 Icon(designIcon(R.drawable.ks_chevron_down), null, Modifier.size(14.dp))
             }
             DropdownMenu(open, { open = false }, modifier = Modifier.heightIn(max = 360.dp)) {
                 options.forEach { option ->
-                    DropdownMenuItem(text = { Text(label(option)) }, onClick = { open = false; onSelect(option) })
+                    val leadingIcon: (@Composable () -> Unit)? = if (optionIcon != null) {
+                        { Icon(optionIcon(option), null, Modifier.size(18.dp)) }
+                    } else null
+                    DropdownMenuItem(
+                        text = { Text(label(option)) },
+                        onClick = { open = false; onSelect(option) },
+                        leadingIcon = leadingIcon,
+                    )
                 }
             }
         }

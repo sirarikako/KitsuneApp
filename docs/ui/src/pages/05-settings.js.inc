@@ -60,11 +60,11 @@
     function financialCategoryRows(categories,editable,showFallback){
       return `<div class="ks-settings ks-category-rows">
         ${categories.map(c=>{
-          const label=`<span>${escapeText(c.name)}${c.archived?'<small class="ks-note"> · 已停用</small>':''}</span>`;
+          const label=`${categoryGlyph(c.icon)}<span>${escapeText(c.name)}${c.archived?'<small class="ks-note"> · 已停用</small>':''}</span>`;
           return editable?`<button type="button" class="ks-setting ks-setting-link cursor-interaction" data-edit-financial-category="${c.id}">${label}${icon('chevron-right')}</button>`:
             `<div class="ks-setting">${label}<small>通用</small></div>`;
         }).join('')}
-        ${showFallback?'<div class="ks-setting"><span>未分类 <small class="ks-note">· 固定兜底</small></span><small>所有钱包可用</small></div>':''}
+        ${showFallback?`<div class="ks-setting">${categoryGlyph()}<span>未分类 <small class="ks-note">· 固定兜底</small></span><small>所有钱包可用</small></div>`:''}
       </div>`;
     }
     function newFinancialCategoryButton(){
@@ -78,10 +78,10 @@
       const current=state.editingFinancialCategoryId?categoryById(state.editingFinancialCategoryId):null;
       const owner=state.categoryWalletId,scope=state.financialScope;
       const categories=owner==='GLOBAL'?sharedFinancialCategories[scope]:walletFinancialCategories[owner][scope];
-      const nextOrder=Math.min(2147483647,Math.max(-1,...categories.map(c=>c.sortOrder))+1);
       return `<form class="ks-form ks-category-form" data-financial-category-form>
         <label><span class="ks-label">名称</span><input name="categoryName" class="ks-control" value="${escapeText(current?.name||'')}" placeholder="输入名称" maxlength="30" required></label>
-        <label><span class="ks-label">排序（数字越小越靠前）</span><input name="sortOrder" class="ks-control" type="number" min="0" max="2147483647" step="1" required value="${current?.sortOrder??nextOrder}"></label>
+        ${categoryIconPicker(current?.icon)}
+        <label><span class="ks-label">排序（数字越小越靠前）</span><input name="sortOrder" class="ks-control" type="number" min="0" max="2147483647" step="1" required value="${current?.sortOrder??nextCategoryOrder(categories)}"></label>
         <label class="ks-wallet-check"><input name="archived" type="checkbox" ${current?.archived?'checked':''}>停用</label>
         ${formFooter(saveButton('保存'),'交互预览 · 使用示例分类')}
       </form>`;

@@ -53,9 +53,9 @@ class LedgerRepositoryTest {
         val context = instrumentation.targetContext
         val state = repo.read().state
         val migration = MigrationTestHelper(instrumentation, KitsuneDatabase::class.java)
-        for (version in 1..2) {
+        for (version in 1..3) {
             val name = "wallet-migration-" + newId()
-            val defaultWalletId = a.id.takeIf { version == 2 }
+            val defaultWalletId = a.id.takeIf { version >= 2 }
             try {
                 migration.createDatabase(name, version).use { old ->
                     old.execSQL(
@@ -70,11 +70,18 @@ class LedgerRepositoryTest {
                             a.sortOrder, a.incomeCategoryMode.name, a.expenseCategoryMode.name, a.createdAt, a.updatedAt),
                     )
                     if (defaultWalletId != null) old.execSQL("UPDATE DataState SET defaultWalletId = ?", arrayOf(defaultWalletId))
+                    old.execSQL(
+                        """INSERT INTO Category (id, scope, ownerKey, name, normalizedName, sortOrder,
+                            archived, isDefault, createdAt, updatedAt) VALUES (?, 'EXPENSE', '', ?, ?, ?, 0, 1, ?, ?)""",
+                        arrayOf<Any>(expenseCategory.id, expenseCategory.name, expenseCategory.normalizedName,
+                            expenseCategory.sortOrder, expenseCategory.createdAt, expenseCategory.updatedAt),
+                    )
                 }
                 val upgraded = Room.databaseBuilder(context, KitsuneDatabase::class.java, name).build()
                 try {
                     assertEquals(state.copy(defaultWalletId = defaultWalletId), upgraded.records().state())
                     assertEquals(a, upgraded.records().wallet(a.id))
+                    assertEquals(expenseCategory, upgraded.records().category(expenseCategory.id))
                 } finally {
                     upgraded.close()
                 }
@@ -82,6 +89,26 @@ class LedgerRepositoryTest {
                 context.deleteDatabase(name)
             }
         }
+    }
+
+    @Test
+    fun createsEntryCategoriesInTheActiveScopeAndKeepsIconsOnExistingEntries() = runBlocking {
+        repo.setCategoryMode(b.id, Scope.EXPENSE, CategoryMode.CUSTOM)
+        val sharedId = newId()
+        val customId = newId()
+        repo.addEntryCategory(sharedId, Scope.EXPENSE, a.id, "咖啡", CategoryIcon.FOOD)
+        repo.addEntryCategory(customId, Scope.EXPENSE, b.id, "咖啡", CategoryIcon.GIFT)
+        val shared = repo.read().categories.single { it.id == sharedId }
+        val custom = repo.read().categories.single { it.id == customId }
+        assertNull(shared.walletId)
+        assertEquals(b.id, custom.walletId)
+        assertEquals(CategoryIcon.FOOD, shared.icon)
+        assertEquals(CategoryIcon.GIFT, custom.icon)
+
+        repo.saveEntry(entry(EntryType.EXPENSE, b, "1", category = customId))
+        repo.saveCategory(customId, Scope.EXPENSE, b.id, "礼物", null, false, CategoryIcon.SHOPPING)
+        assertEquals(customId, repo.read().entries.single().categoryId)
+        assertEquals(CategoryIcon.SHOPPING, repo.read().categories.single { it.id == customId }.icon)
     }
 
     @Test

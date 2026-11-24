@@ -34,10 +34,12 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.test.platform.app.InstrumentationRegistry
+import com.kitsuneapp.data.CategoryIcon
 import com.kitsuneapp.data.MealDraft
 import com.kitsuneapp.data.MealSlot
 import com.kitsuneapp.data.Scope
 import com.kitsuneapp.data.WalletDraft
+import com.kitsuneapp.data.money
 import com.kitsuneapp.data.removeEntry
 import com.kitsuneapp.data.removeWallet
 import com.kitsuneapp.data.saveWallet
@@ -191,6 +193,48 @@ class NavigationTest {
         screenshot("kitsune-settings")
         compose.onNodeWithText("外观与调色板").performClick()
         compose.onNodeWithText("恢复默认").assertIsDisplayed()
+    }
+
+    @Test
+    fun creatingAnEntryCategorySelectsItAndKeepsTheEntryDraft() {
+        compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
+        val repository = runBlocking { (compose.activity.application as KitsuneApplication).repository() }
+        val token = UUID.randomUUID().toString().take(8)
+        val walletName = "分类测试-$token"
+        val categoryName = "礼金-$token"
+        val previousDefault = runBlocking { repository.read().state.defaultWalletId }
+        val wallet = runBlocking {
+            repository.saveWallet(WalletDraft(null, walletName, "CNY", "0", 0, false, false, setAsDefault = true))
+            repository.read().wallets.single { it.name == walletName }
+        }
+        try {
+            compose.onNodeWithText("记一笔").performScrollTo().performClick()
+            compose.waitUntilAtLeastOneExists(hasContentDescription("分类"), 10_000)
+            compose.onNodeWithContentDescription("备注").performScrollTo().performTextReplacement("保留备注")
+            compose.onNodeWithText("新增分类").performScrollTo().performClick()
+            compose.onNodeWithContentDescription("分类名称").performTextReplacement(categoryName)
+            compose.onNodeWithText("礼物").performScrollTo().performSemanticsAction(SemanticsActions.OnClick)
+            compose.onNodeWithText("保存").assertIsEnabled().performSemanticsAction(SemanticsActions.OnClick)
+
+            val selected = hasContentDescription("分类") and hasText(categoryName)
+            compose.waitUntilExactlyOneExists(selected, 10_000)
+            compose.onNode(selected).performScrollTo().assertIsDisplayed()
+            assertEquals("保留备注", compose.onNodeWithContentDescription("备注")
+                .fetchSemanticsNode().config[SemanticsProperties.InputText].text)
+            assertEquals(CategoryIcon.GIFT, runBlocking { repository.read().categories.single { it.name == categoryName }.icon })
+        } finally {
+            runBlocking {
+                repository.read().categories.find { it.name == categoryName }?.let { repository.deleteCategory(it.id) }
+                repository.removeWallet(wallet.id)
+                previousDefault?.let { id ->
+                    repository.read().wallets.find { it.id == id }?.let {
+                        repository.saveWallet(WalletDraft(it.id, it.name, it.currencyCode,
+                            money(it.openingBalanceMinor, it.currencyScale), it.sortOrder,
+                            it.archived, it.separateAccounting, setAsDefault = true))
+                    }
+                }
+            }
+        }
     }
 
     @Test
