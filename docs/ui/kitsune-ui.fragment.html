@@ -197,6 +197,24 @@
   #kitsune-preview .ks-ledger-check:has(input:checked){color:var(--ks-accent);border-color:var(--ks-accent);background:var(--ks-accent-bg)}
   #kitsune-preview .ks-ledger-filter-bulk{display:flex;gap:var(--ks-space-2)}
   #kitsune-preview .ks-date-trigger{display:flex;justify-content:space-between;align-items:center;gap:var(--ks-space-2);text-align:left}
+  #kitsune-preview .ks-entry-date-time{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+  #kitsune-preview .ks-time-dialog{max-width:280px}
+  #kitsune-preview .ks-time-dialog h3{font-size:var(--ks-font-body);font-weight:400}
+  #kitsune-preview .ks-time-clock{max-width:320px}
+  #kitsune-preview .ks-time-fields{align-self:center;width:min(100%,216px);display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:6px}
+  #kitsune-preview .ks-time-fields label{display:grid;gap:4px;min-width:0}
+  #kitsune-preview .ks-time-digits,#kitsune-preview .ks-time-colon{font:400 54px/80px system-ui,sans-serif;font-variant-numeric:tabular-nums;text-align:center}
+  #kitsune-preview .ks-time-digits{width:100%;min-width:0;height:80px;padding:0;border:0;border-radius:var(--ks-control-radius);background:var(--ks-soft);color:var(--ks-ink)}
+  #kitsune-preview .ks-time-digits:is(:focus,[aria-pressed=true]){background:var(--ks-accent-bg);color:var(--ks-accent)}
+  #kitsune-preview .ks-time-digits:focus{outline:2px solid var(--ks-accent);outline-offset:-2px}
+  #kitsune-preview .ks-time-digits::selection{background:color-mix(in srgb,var(--ks-accent) 20%,var(--ks-accent-bg));color:var(--ks-ink)}
+  #kitsune-preview .ks-time-digits[aria-invalid=true]{color:var(--ks-danger);box-shadow:inset 0 0 0 2px var(--ks-danger)}
+  #kitsune-preview .ks-time-dialog .ks-icon-btn{margin-inline-end:auto;border:0;background:transparent}
+  #kitsune-preview .ks-time-face{position:relative;align-self:center;width:min(100%,256px);aspect-ratio:1;border-radius:50%;background:var(--ks-soft)}
+  #kitsune-preview .ks-time-face button{position:absolute;transform:translate(-50%,-50%);display:grid;place-items:center;width:16%;aspect-ratio:1;padding:0;border:0;border-radius:50%;background:transparent}
+  #kitsune-preview .ks-time-face button[aria-pressed=true]{background:var(--ks-accent);color:var(--ks-paper)}
+  #kitsune-preview .ks-time-hand{position:absolute;bottom:50%;left:calc(50% - 1px);width:2px;background:var(--ks-accent);transform-origin:center bottom}
+  #kitsune-preview .ks-time-hand::after{content:'';position:absolute;bottom:-3px;left:-2px;width:6px;height:6px;border-radius:50%;background:inherit}
   #kitsune-preview .ks-calendar-dialog{max-width:360px;gap:var(--ks-space-2)}
   #kitsune-preview .ks-calendar-dialog h3{font-size:20px}
   #kitsune-preview .ks-calendar-dialog .ks-period-body{padding:2px}
@@ -320,7 +338,7 @@
     const defaultAppearance={mode:'system',colorSource:'PRESET',presetColor:'#c47a4a',customColor:'#C47A4A'};
     const style = {accent:'#c47a4a',mealHour:'auto',...defaultAppearance};
     const state = {page:'home', date:'2026-11-17', ledgerMonth:'2026-11',ledgerTab:'流水', mealTab:'记录', slot:2, atHome:null, method:null, categories:[], amount:'',calcOpen:false,calcExpression:'',entryType:'支出',entryDraft:{dateTime:'2026-11-17T09:41',note:'',category:'ge-food',walletId:'daily'},notice:'', mealReturn:'home', entries:[], records:{}};
-    state.ledgerRange=null;state.periodDraft=null;state.previewMode=null;
+    state.ledgerRange=null;state.periodDraft=null;state.entryTimeDraft=null;state.previewMode=null;
     const blankLedgerFilters=()=>({types:null,categoryNames:null,note:''});
     state.ledgerFilters=blankLedgerFilters();state.ledgerFilterDraft=null;
     state.githubDemo={backedUp:false,review:null,scenario:'normal',wifi:false,draftWifi:false,editing:false,uploading:false};
@@ -1039,12 +1057,45 @@
         <button type="button" class="ks-amount-input ks-amount-trigger" data-action="open-calculator" aria-labelledby="ks-amount-label ks-amount-value" ${entryWallet()?'':'disabled'}>
           <span id="ks-amount-value">${escapeText(state.amount|| (entryWallet()?.scale===0?'0':'0.00'))}</span></button>
       </div>
-      <label><span class="ks-label">日期时间</span><input type="datetime-local" name="dateTime" value="${escapeText(state.entryDraft.dateTime)}" class="ks-control" required></label>
+      <fieldset><legend class="ks-label">日期时间</legend><div class="ks-field-row ks-entry-date-time">
+        <input type="date" name="date" value="${escapeText(state.entryDraft.dateTime.slice(0,10))}" class="ks-control" aria-label="日期" required>
+        <button type="button" class="ks-control" data-action="open-entry-time" aria-haspopup="dialog" aria-label="时间 ${state.entryDraft.dateTime.slice(-5)}">${state.entryDraft.dateTime.slice(-5)}</button>
+      </div></fieldset>
       <div class="ks-field-row"><label><span class="ks-label">钱包</span><select name="wallet" class="ks-control" required><option value="" ${!entryWallet()?'selected':''} disabled>请选择钱包</option>${wallets.map(w=>`<option value="${w.id}" ${entryWallet()?.id===w.id?'selected':''}>${w.name} · ${w.code}${w.separateAccounting?'（独立核算）':''}</option>`).join('')}</select></label><label><span class="ks-label">分类</span><select name="category" class="ks-control" required><option value="" ${!state.entryDraft.category?'selected':''} disabled>请选择分类</option>${effectiveFinancialCategories(state.entryDraft.walletId,state.entryType).map(c=>`<option value="${c.id}" ${state.entryDraft.category===c.id?'selected':''}>${escapeText(c.name)}</option>`).join('')}</select></label></div>
       <p class="ks-note">分类来源：${entryWallet()?scopeMode(entryWallet(),financialScopeOf(state.entryType))==='CUSTOM'?'本钱包专属分类':'通用分类':'请先选择钱包'}。切换钱包后如无对应分类，请重新选择。</p>
       <label><span class="ks-label">备注</span><input name="note" class="ks-control" placeholder="这笔钱用在了哪里？" value="${escapeText(state.entryDraft.note)}"></label>
       ${formFooter(saveButton(`保存${state.entryType}`),'交互预览 · 仅保存到当前演示')}
     </form>`;}
+    const validTimePart=(value,part)=>/^\d{2}$/.test(value)&&Number(value)<=(part==='hour'?23:59);
+    const timeDigits=value=>String(value).padStart(2,'0');
+    function entryTimeDialog(){
+      const d=state.entryTimeDraft;
+      const field=(part,label)=>d.clock
+        ?`<button type="button" class="ks-time-digits" data-time-part="${part}" aria-pressed="${d.part===part}" aria-label="${label} ${d[part]}">${d[part]}</button>`
+        :`<label><input class="ks-time-digits" name="${part}" type="text" inputmode="numeric" enterkeyhint="${part==='hour'?'next':'done'}" maxlength="2" autocomplete="off" value="${d[part]}" aria-invalid="${d[part].length===2&&!validTimePart(d[part],part)}"><span class="ks-note">${label}</span></label>`;
+      const isHour=d.part==='hour',selected=Number(d[d.part]),step=isHour?1:5;
+      const radius=value=>isHour&&value>=12?26:40;
+      const angle=value=>value/step*30;
+      const options=Array.from({length:isHour?24:60/step},(_,i)=>i*step);
+      if(!isHour&&!options.includes(selected))options.push(selected);
+      const dial=d.clock?`<div class="ks-time-face" role="group" aria-label="${isHour?'小时':'分钟'}">
+        <span class="ks-time-hand" aria-hidden="true" style="height:${radius(selected)}%;transform:rotate(${angle(selected)}deg)"></span>
+        ${options.map(value=>{
+          const a=angle(value)*Math.PI/180,r=radius(value);
+          return `<button type="button" data-time-value="${value}" aria-pressed="${value===selected}" style="left:${50+r*Math.sin(a)}%;top:${50-r*Math.cos(a)}%">${isHour?value:timeDigits(value)}</button>`;
+        }).join('')}
+      </div>`:'';
+      return `<div class="ks-modal-overlay ks-time-overlay"><form class="ks-period-dialog ks-time-dialog ${d.clock?'ks-time-clock':''}" data-entry-time role="dialog" aria-modal="true" aria-label="选择时间">
+        <h3>选择时间</h3>
+        <div class="ks-time-fields">${field('hour','小时')}<span class="ks-time-colon" aria-hidden="true">:</span>${field('minute','分钟')}</div>
+        ${dial}
+        <div class="ks-period-actions">
+          <button type="button" class="ks-icon-btn" data-time-action="mode" aria-label="${d.clock?'输入时间':'使用时钟'}">${icon(d.clock?'keyboard':'clock')}</button>
+          <button type="button" class="ks-text-btn" data-time-action="cancel">取消</button>
+          <button type="submit" class="ks-text-btn" ${validTimePart(d.hour,'hour')&&validTimePart(d.minute,'minute')?'':'disabled'}>确定</button>
+        </div>
+      </form></div>`;
+    }
     function calculatorSheet(){return `<div class="ks-modal-overlay"><section class="ks-calc-sheet" role="dialog" aria-modal="true" aria-label="金额计算器"><div class="ks-calc-body"><div class="ks-row"><h3>金额计算器</h3><button type="button" class="ks-text-btn cursor-interaction" data-calc-action="cancel">关闭</button></div><span class="ks-note">${entryWallet()?.code||'未选择钱包'} · 支持加减乘除</span><div class="ks-amount-input" data-calc-expression aria-label="计算表达式" aria-live="polite">${escapeText(state.calcExpression||(entryWallet()?.scale===0?'0':'0.00'))}</div><div class="ks-calculator" role="group" aria-label="计算键盘">${['C','⌫','÷','×','7','8','9','−','4','5','6','+','1','2','3','=','0','.'].map(k=>`<button type="button" class="ks-key ${['÷','×','−','+','='].includes(k)?'ks-operator':''} ${k==='0'?'ks-zero':''} ${k==='='?'ks-equal':''} cursor-interaction" data-key="${k}" aria-label="${k==='⌫'?'退格':k==='C'?'清空':k}">${k}</button>`).join('')}</div></div><div class="ks-calc-footer"><p class="ks-calc-error" role="alert"></p><div class="ks-calc-actions"><button type="button" class="ks-choice cursor-interaction" data-calc-action="cancel">取消</button><button type="button" class="ks-primary cursor-interaction" data-calc-action="apply">使用此金额</button></div></div></section></div>`;}
     function mealCalendarDialog(){
       const d=state.mealCalendar,[year,month]=d.month.split('-').map(Number);
@@ -1201,7 +1252,7 @@
     const discard=group=>()=>group?.remove();
     const pageNode=()=>phone.querySelector(':scope > .ks-page-motion');
     const modalNode=()=>phone.querySelector(':scope > .ks-modal-overlay');
-    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.walletPickerOpen?'wallet':state.periodDraft?'period':state.ledgerFilterDraft?'ledger-filters':state.githubDemo.review?'github-review':state.mealCalendar?'date-calendar':state.addingMealOption?'meal-option':null;
+    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.walletPickerOpen?'wallet':state.periodDraft?'period':state.ledgerFilterDraft?'ledger-filters':state.githubDemo.review?'github-review':state.mealCalendar?'date-calendar':state.entryTimeDraft?'entry-time':state.addingMealOption?'meal-option':null;
     const primary=page=>navs.some(n=>n[0]===page);
     const localKey=()=>state.page==='meals'?JSON.stringify([state.mealTab,state.date,state.mealStatsFilters,state.mealListMode,state.mealFilters]):state.page==='ledger'?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds,state.ledgerFilters]):'';
     const localNodes=()=>{
@@ -1354,6 +1405,12 @@
         for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
         if(previous?.modal!==kind)phone.querySelector('[data-calendar-action=jump],[data-calendar-text]').focus({preventScroll:true});
       }
+      if(state.entryTimeDraft){
+        phone.insertAdjacentHTML('beforeend',entryTimeDialog());
+        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
+        const focus=state.entryTimeDraft.clock?'[data-time-part][aria-pressed=true]':'[data-entry-time] [name=hour]';
+        phone.querySelector(focus).focus({preventScroll:true});
+      }
       if(keepingMealForm)phone.querySelector('.ks-main').scrollTop=mealPosition;
       if(state.addingMealOption){
         phone.insertAdjacentHTML('beforeend',mealOptionDialog());
@@ -1380,7 +1437,16 @@
       if(changingPage&&primary(state.page))recordOrigin=null;
       if(changingPage&&!kind){const header=phone.querySelector('.ks-top');header.setAttribute('tabindex','-1');header.focus({preventScroll:true});}
     }
-    function capture(){const form=phone.querySelector('[data-meal-form]');if(form){state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);}const entry=phone.querySelector('[data-entry-form]');if(entry){state.entryDraft={dateTime:entry.elements.dateTime.value,note:entry.elements.note.value,category:entry.elements.category.value,walletId:entry.elements.wallet.value};}}
+    function capture(){const form=phone.querySelector('[data-meal-form]');if(form){state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);}const entry=phone.querySelector('[data-entry-form]');if(entry){state.entryDraft={dateTime:entry.elements.date.value+state.entryDraft.dateTime.slice(-6),note:entry.elements.note.value,category:entry.elements.category.value,walletId:entry.elements.wallet.value};}}
+    function closeEntryTime(apply){
+      const {hour,minute}=state.entryTimeDraft;
+      if(apply){
+        if(!validTimePart(hour,'hour')||!validTimePart(minute,'minute'))return;
+        state.entryDraft.dateTime=state.entryDraft.dateTime.slice(0,-6)+'T'+hour+':'+minute;
+      }
+      state.entryTimeDraft=null;render();
+      phone.querySelector('[data-action=open-entry-time]').focus({preventScroll:true});
+    }
     function error(message){phone.querySelector('.ks-error').textContent=message;}
     function updateAppearancePreview(){
       const editor=phone.querySelector('[data-appearance-editor]');
@@ -1480,9 +1546,32 @@
       if(event.target.matches('[data-ledger-filter-overlay]')){closeLedgerFilters(false);return;}
       if(event.target.matches('.ks-period-overlay')){closePeriod(false);return;}
       if(event.target.matches('.ks-calendar-overlay')){closeMealCalendar(false);return;}
+      if(event.target.matches('.ks-time-overlay')){closeEntryTime(false);return;}
       if(event.target.matches('[data-meal-option-overlay]')){closeMealOption();return;}
       const b=event.target.closest('button');if(!b)return;
       capture();state.notice='';
+      if(b.dataset.action==='open-entry-time'){
+        const [hour,minute]=state.entryDraft.dateTime.slice(-5).split(':');
+        state.entryTimeDraft={hour,minute,clock:false,part:'hour',clockTime:{hour,minute}};
+        render();return;
+      }
+      if(b.closest('[data-entry-time]')){
+        const d=state.entryTimeDraft;
+        if(b.dataset.timeAction==='cancel'){closeEntryTime(false);return;}
+        if(b.dataset.timeAction==='mode'){
+          if(!d.clock){
+            for(const part of ['hour','minute'])d[part]=d.clockTime[part]=validTimePart(d[part],part)?d[part]:d.clockTime[part];
+            d.part='hour';
+          }
+          d.clock=!d.clock;
+        }else if(b.dataset.timePart){
+          d.part=b.dataset.timePart;
+        }else if(b.dataset.timeValue!==undefined){
+          d[d.part]=d.clockTime[d.part]=timeDigits(b.dataset.timeValue);
+          d.part='minute';
+        }else return;
+        render();return;
+      }
       if(b.dataset.action==='open-meal-calendar'){
         const compact=phone.clientWidth<360;
         state.mealCalendar={selected:state.date,month:state.date.slice(0,7),text:state.date,year:'',mode:compact?'text':'calendar',compact};
@@ -1685,16 +1774,22 @@
           state.githubDemo.review=null;render();phone.querySelector('[data-github-action=restore-preview]')?.focus({preventScroll:true});
         }else if(state.addingMealOption)closeMealOption();
         else if(state.mealCalendar)closeMealCalendar(false);
+        else if(state.entryTimeDraft)closeEntryTime(false);
         else if(state.periodDraft)closePeriod(false);
         else if(state.ledgerFilterDraft)closeLedgerFilters(false);
         else if(state.walletPickerOpen)closeWalletPicker('cancel');
         else if(state.deletePending)cancelDelete();
         else closeCalculator(false);
+      }else if(event.key==='Enter'&&event.target.matches('[data-entry-time] [name=hour]')){
+        event.preventDefault();event.target.form.elements.minute.focus();
       }else if(event.key==='Tab'){
         const dialog=modalNode().firstElementChild,controls=[...dialog.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled)')],first=controls[0],last=controls[controls.length-1];
         if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
         else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
       }
+    });
+    phone.addEventListener('focusin',event=>{
+      if(event.target.matches('[data-entry-time] input'))event.target.select();
     });
     phone.addEventListener('change',event=>{
       const e=event.target;
@@ -1739,6 +1834,16 @@
     });
     phone.addEventListener('input',event=>{
       const e=event.target;
+      if(e.matches('[data-entry-time] input')){
+        const d=state.entryTimeDraft;
+        e.value=e.value.replace(/\D/g,'');
+        d[e.name]=e.value;
+        const valid=validTimePart(e.value,e.name);
+        e.setAttribute('aria-invalid',String(e.value.length===2&&!valid));
+        e.form.querySelector('[type=submit]').disabled=!validTimePart(d.hour,'hour')||!validTimePart(d.minute,'minute');
+        if(e.name==='hour'&&valid)e.form.elements.minute.focus();
+        return;
+      }
       if(e.matches('[data-meal-option-form] input')){
         e.form.querySelector('[type=submit]').disabled=!e.value.trim();
         e.form.querySelector('[data-meal-option-error]').textContent='';
@@ -1782,6 +1887,7 @@
     });
     phone.addEventListener('submit',event=>{
       event.preventDefault();const f=event.target;capture();
+      if(f.matches('[data-entry-time]')){closeEntryTime(true);return;}
       if(f.matches('[data-meal-option-form]')){
         const name=f.elements.optionName.value.trim(),method=state.addingMealOption==='method';
         const list=method?mealMethods:mealPreparations;
@@ -1826,7 +1932,7 @@
         try{
           if(!f.elements.wallet.value){error('请先选择钱包。');return;}const cents=calcCents(state.amount),walletId=f.elements.wallet.value;
           if(!effectiveFinancialCategories(walletId,state.entryType).some(c=>c.id===f.elements.category.value)){error('请选择当前钱包可用的分类。');return;}
-          const entry={id:`draft-${state.nextEntryId++}`,type:state.entryType,cents,walletId,category:f.elements.category.value,note:f.elements.note.value,date:f.elements.dateTime.value.slice(0,10),time:f.elements.dateTime.value.slice(11,16)};
+          const entry={id:`draft-${state.nextEntryId++}`,type:state.entryType,cents,walletId,category:f.elements.category.value,note:f.elements.note.value,date:f.elements.date.value,time:state.entryDraft.dateTime.slice(-5)};
           state.entries.push(entry);if(!walletById(walletId).separateAccounting)state.lastWalletId=walletId;state.page=state.entryReturn;
           state.notice=state.page==='ledger'&&!matchesLedgerScope(entry)?'已保存到当前演示，该账目不在当前筛选范围内。':'已保存到当前演示。';
           render();

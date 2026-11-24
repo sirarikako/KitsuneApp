@@ -17,6 +17,24 @@
   #kitsune-preview .ks-ledger-check:has(input:checked){color:var(--ks-accent);border-color:var(--ks-accent);background:var(--ks-accent-bg)}
   #kitsune-preview .ks-ledger-filter-bulk{display:flex;gap:var(--ks-space-2)}
   #kitsune-preview .ks-date-trigger{display:flex;justify-content:space-between;align-items:center;gap:var(--ks-space-2);text-align:left}
+  #kitsune-preview .ks-entry-date-time{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+  #kitsune-preview .ks-time-dialog{max-width:280px}
+  #kitsune-preview .ks-time-dialog h3{font-size:var(--ks-font-body);font-weight:400}
+  #kitsune-preview .ks-time-clock{max-width:320px}
+  #kitsune-preview .ks-time-fields{align-self:center;width:min(100%,216px);display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:6px}
+  #kitsune-preview .ks-time-fields label{display:grid;gap:4px;min-width:0}
+  #kitsune-preview .ks-time-digits,#kitsune-preview .ks-time-colon{font:400 54px/80px system-ui,sans-serif;font-variant-numeric:tabular-nums;text-align:center}
+  #kitsune-preview .ks-time-digits{width:100%;min-width:0;height:80px;padding:0;border:0;border-radius:var(--ks-control-radius);background:var(--ks-soft);color:var(--ks-ink)}
+  #kitsune-preview .ks-time-digits:is(:focus,[aria-pressed=true]){background:var(--ks-accent-bg);color:var(--ks-accent)}
+  #kitsune-preview .ks-time-digits:focus{outline:2px solid var(--ks-accent);outline-offset:-2px}
+  #kitsune-preview .ks-time-digits::selection{background:color-mix(in srgb,var(--ks-accent) 20%,var(--ks-accent-bg));color:var(--ks-ink)}
+  #kitsune-preview .ks-time-digits[aria-invalid=true]{color:var(--ks-danger);box-shadow:inset 0 0 0 2px var(--ks-danger)}
+  #kitsune-preview .ks-time-dialog .ks-icon-btn{margin-inline-end:auto;border:0;background:transparent}
+  #kitsune-preview .ks-time-face{position:relative;align-self:center;width:min(100%,256px);aspect-ratio:1;border-radius:50%;background:var(--ks-soft)}
+  #kitsune-preview .ks-time-face button{position:absolute;transform:translate(-50%,-50%);display:grid;place-items:center;width:16%;aspect-ratio:1;padding:0;border:0;border-radius:50%;background:transparent}
+  #kitsune-preview .ks-time-face button[aria-pressed=true]{background:var(--ks-accent);color:var(--ks-paper)}
+  #kitsune-preview .ks-time-hand{position:absolute;bottom:50%;left:calc(50% - 1px);width:2px;background:var(--ks-accent);transform-origin:center bottom}
+  #kitsune-preview .ks-time-hand::after{content:'';position:absolute;bottom:-3px;left:-2px;width:6px;height:6px;border-radius:50%;background:inherit}
   #kitsune-preview .ks-calendar-dialog{max-width:360px;gap:var(--ks-space-2)}
   #kitsune-preview .ks-calendar-dialog h3{font-size:20px}
   #kitsune-preview .ks-calendar-dialog .ks-period-body{padding:2px}

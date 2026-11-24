@@ -27,6 +27,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
+import androidx.compose.ui.test.waitUntilExactlyOneExists
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -210,6 +211,13 @@ class NavigationTest {
             ))
             repository.read().meals.single { it.dishes == keyword }.id
         }
+        val resultsList = hasScrollToNodeAction()
+        val results = compose.onNode(resultsList)
+        fun applyStatisticsFilter() {
+            compose.onNodeWithText("应用筛选").performScrollTo().assertIsEnabled()
+                .performSemanticsAction(SemanticsActions.OnClick)
+            compose.waitUntilExactlyOneExists(resultsList, 10_000)
+        }
         try {
             compose.onNodeWithText("用餐").performClick()
             compose.onNodeWithText("统计").performClick()
@@ -217,8 +225,7 @@ class NavigationTest {
             compose.onNodeWithText("筛选").performClick()
             compose.onNodeWithText("本月").assertIsSelected()
             compose.onNodeWithContentDescription("菜品／备注关键词").performScrollTo().performTextReplacement(keyword)
-            compose.onNodeWithText("应用筛选").performScrollTo().performClick()
-            val results = compose.onNode(hasScrollToNodeAction())
+            applyStatisticsFilter()
             results.performScrollToNode(hasText("没有符合条件的用餐记录"))
             compose.onNodeWithText("没有符合条件的用餐记录").assertIsDisplayed()
 
@@ -240,7 +247,7 @@ class NavigationTest {
 
             compose.onNodeWithText("筛选").performClick()
             compose.onNodeWithText("所有时间").performClick().assertIsSelected()
-            compose.onNodeWithText("应用筛选").performScrollTo().performClick()
+            applyStatisticsFilter()
             compose.onNodeWithText("所有时间").assertIsDisplayed()
             results.performScrollToNode(hasText("关键词：$keyword"))
             compose.onNodeWithText("关键词：$keyword").assertIsDisplayed()
@@ -263,10 +270,10 @@ class NavigationTest {
         compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
         compose.onNodeWithText("用餐").performClick()
         compose.onNodeWithText("早餐").performClick()
-        val dish = compose.onNodeWithContentDescription("菜品内容").performScrollTo().performClick()
-        dish.performTextReplacement("键盘测试草稿")
-
+        val dish = compose.onNodeWithContentDescription("菜品内容").performScrollTo()
+        dish.performSemanticsAction(SemanticsActions.RequestFocus)
         compose.waitUntil(10_000) { keyboardIsVisible() }
+        dish.performTextReplacement("键盘测试草稿")
         compose.onNodeWithText("保存早餐记录").performScrollTo().assertIsDisplayed()
 
         swipeFromLeftEdge()

@@ -2088,6 +2088,24 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-ledger-check:has(input:checked){color:var(--ks-accent);border-color:var(--ks-accent);background:var(--ks-accent-bg)}
   #kitsune-preview .ks-ledger-filter-bulk{display:flex;gap:var(--ks-space-2)}
   #kitsune-preview .ks-date-trigger{display:flex;justify-content:space-between;align-items:center;gap:var(--ks-space-2);text-align:left}
+  #kitsune-preview .ks-entry-date-time{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+  #kitsune-preview .ks-time-dialog{max-width:280px}
+  #kitsune-preview .ks-time-dialog h3{font-size:var(--ks-font-body);font-weight:400}
+  #kitsune-preview .ks-time-clock{max-width:320px}
+  #kitsune-preview .ks-time-fields{align-self:center;width:min(100%,216px);display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:6px}
+  #kitsune-preview .ks-time-fields label{display:grid;gap:4px;min-width:0}
+  #kitsune-preview .ks-time-digits,#kitsune-preview .ks-time-colon{font:400 54px/80px system-ui,sans-serif;font-variant-numeric:tabular-nums;text-align:center}
+  #kitsune-preview .ks-time-digits{width:100%;min-width:0;height:80px;padding:0;border:0;border-radius:var(--ks-control-radius);background:var(--ks-soft);color:var(--ks-ink)}
+  #kitsune-preview .ks-time-digits:is(:focus,[aria-pressed=true]){background:var(--ks-accent-bg);color:var(--ks-accent)}
+  #kitsune-preview .ks-time-digits:focus{outline:2px solid var(--ks-accent);outline-offset:-2px}
+  #kitsune-preview .ks-time-digits::selection{background:color-mix(in srgb,var(--ks-accent) 20%,var(--ks-accent-bg));color:var(--ks-ink)}
+  #kitsune-preview .ks-time-digits[aria-invalid=true]{color:var(--ks-danger);box-shadow:inset 0 0 0 2px var(--ks-danger)}
+  #kitsune-preview .ks-time-dialog .ks-icon-btn{margin-inline-end:auto;border:0;background:transparent}
+  #kitsune-preview .ks-time-face{position:relative;align-self:center;width:min(100%,256px);aspect-ratio:1;border-radius:50%;background:var(--ks-soft)}
+  #kitsune-preview .ks-time-face button{position:absolute;transform:translate(-50%,-50%);display:grid;place-items:center;width:16%;aspect-ratio:1;padding:0;border:0;border-radius:50%;background:transparent}
+  #kitsune-preview .ks-time-face button[aria-pressed=true]{background:var(--ks-accent);color:var(--ks-paper)}
+  #kitsune-preview .ks-time-hand{position:absolute;bottom:50%;left:calc(50% - 1px);width:2px;background:var(--ks-accent);transform-origin:center bottom}
+  #kitsune-preview .ks-time-hand::after{content:&#x27;&#x27;;position:absolute;bottom:-3px;left:-2px;width:6px;height:6px;border-radius:50%;background:inherit}
   #kitsune-preview .ks-calendar-dialog{max-width:360px;gap:var(--ks-space-2)}
   #kitsune-preview .ks-calendar-dialog h3{font-size:20px}
   #kitsune-preview .ks-calendar-dialog .ks-period-body{padding:2px}
@@ -2211,7 +2229,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     const defaultAppearance={mode:&#x27;system&#x27;,colorSource:&#x27;PRESET&#x27;,presetColor:&#x27;#c47a4a&#x27;,customColor:&#x27;#C47A4A&#x27;};
     const style = {accent:&#x27;#c47a4a&#x27;,mealHour:&#x27;auto&#x27;,...defaultAppearance};
     const state = {page:&#x27;home&#x27;, date:&#x27;2026-11-17&#x27;, ledgerMonth:&#x27;2026-11&#x27;,ledgerTab:&#x27;流水&#x27;, mealTab:&#x27;记录&#x27;, slot:2, atHome:null, method:null, categories:[], amount:&#x27;&#x27;,calcOpen:false,calcExpression:&#x27;&#x27;,entryType:&#x27;支出&#x27;,entryDraft:{dateTime:&#x27;2026-11-17T09:41&#x27;,note:&#x27;&#x27;,category:&#x27;ge-food&#x27;,walletId:&#x27;daily&#x27;},notice:&#x27;&#x27;, mealReturn:&#x27;home&#x27;, entries:[], records:{}};
-    state.ledgerRange=null;state.periodDraft=null;state.previewMode=null;
+    state.ledgerRange=null;state.periodDraft=null;state.entryTimeDraft=null;state.previewMode=null;
     const blankLedgerFilters=()=&gt;({types:null,categoryNames:null,note:&#x27;&#x27;});
     state.ledgerFilters=blankLedgerFilters();state.ledgerFilterDraft=null;
     state.githubDemo={backedUp:false,review:null,scenario:&#x27;normal&#x27;,wifi:false,draftWifi:false,editing:false,uploading:false};
@@ -2930,12 +2948,45 @@ html&gt;body{padding:0}&lt;/style&gt;
         &lt;button type=&quot;button&quot; class=&quot;ks-amount-input ks-amount-trigger&quot; data-action=&quot;open-calculator&quot; aria-labelledby=&quot;ks-amount-label ks-amount-value&quot; ${entryWallet()?&#x27;&#x27;:&#x27;disabled&#x27;}&gt;
           &lt;span id=&quot;ks-amount-value&quot;&gt;${escapeText(state.amount|| (entryWallet()?.scale===0?&#x27;0&#x27;:&#x27;0.00&#x27;))}&lt;/span&gt;&lt;/button&gt;
       &lt;/div&gt;
-      &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;日期时间&lt;/span&gt;&lt;input type=&quot;datetime-local&quot; name=&quot;dateTime&quot; value=&quot;${escapeText(state.entryDraft.dateTime)}&quot; class=&quot;ks-control&quot; required&gt;&lt;/label&gt;
+      &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;日期时间&lt;/legend&gt;&lt;div class=&quot;ks-field-row ks-entry-date-time&quot;&gt;
+        &lt;input type=&quot;date&quot; name=&quot;date&quot; value=&quot;${escapeText(state.entryDraft.dateTime.slice(0,10))}&quot; class=&quot;ks-control&quot; aria-label=&quot;日期&quot; required&gt;
+        &lt;button type=&quot;button&quot; class=&quot;ks-control&quot; data-action=&quot;open-entry-time&quot; aria-haspopup=&quot;dialog&quot; aria-label=&quot;时间 ${state.entryDraft.dateTime.slice(-5)}&quot;&gt;${state.entryDraft.dateTime.slice(-5)}&lt;/button&gt;
+      &lt;/div&gt;&lt;/fieldset&gt;
       &lt;div class=&quot;ks-field-row&quot;&gt;&lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;钱包&lt;/span&gt;&lt;select name=&quot;wallet&quot; class=&quot;ks-control&quot; required&gt;&lt;option value=&quot;&quot; ${!entryWallet()?&#x27;selected&#x27;:&#x27;&#x27;} disabled&gt;请选择钱包&lt;/option&gt;${wallets.map(w=&gt;`&lt;option value=&quot;${w.id}&quot; ${entryWallet()?.id===w.id?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${w.name} · ${w.code}${w.separateAccounting?&#x27;（独立核算）&#x27;:&#x27;&#x27;}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;&lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;分类&lt;/span&gt;&lt;select name=&quot;category&quot; class=&quot;ks-control&quot; required&gt;&lt;option value=&quot;&quot; ${!state.entryDraft.category?&#x27;selected&#x27;:&#x27;&#x27;} disabled&gt;请选择分类&lt;/option&gt;${effectiveFinancialCategories(state.entryDraft.walletId,state.entryType).map(c=&gt;`&lt;option value=&quot;${c.id}&quot; ${state.entryDraft.category===c.id?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${escapeText(c.name)}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;&lt;/div&gt;
       &lt;p class=&quot;ks-note&quot;&gt;分类来源：${entryWallet()?scopeMode(entryWallet(),financialScopeOf(state.entryType))===&#x27;CUSTOM&#x27;?&#x27;本钱包专属分类&#x27;:&#x27;通用分类&#x27;:&#x27;请先选择钱包&#x27;}。切换钱包后如无对应分类，请重新选择。&lt;/p&gt;
       &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;备注&lt;/span&gt;&lt;input name=&quot;note&quot; class=&quot;ks-control&quot; placeholder=&quot;这笔钱用在了哪里？&quot; value=&quot;${escapeText(state.entryDraft.note)}&quot;&gt;&lt;/label&gt;
       ${formFooter(saveButton(`保存${state.entryType}`),&#x27;交互预览 · 仅保存到当前演示&#x27;)}
     &lt;/form&gt;`;}
+    const validTimePart=(value,part)=&gt;/^\d{2}$/.test(value)&amp;&amp;Number(value)&lt;=(part===&#x27;hour&#x27;?23:59);
+    const timeDigits=value=&gt;String(value).padStart(2,&#x27;0&#x27;);
+    function entryTimeDialog(){
+      const d=state.entryTimeDraft;
+      const field=(part,label)=&gt;d.clock
+        ?`&lt;button type=&quot;button&quot; class=&quot;ks-time-digits&quot; data-time-part=&quot;${part}&quot; aria-pressed=&quot;${d.part===part}&quot; aria-label=&quot;${label} ${d[part]}&quot;&gt;${d[part]}&lt;/button&gt;`
+        :`&lt;label&gt;&lt;input class=&quot;ks-time-digits&quot; name=&quot;${part}&quot; type=&quot;text&quot; inputmode=&quot;numeric&quot; enterkeyhint=&quot;${part===&#x27;hour&#x27;?&#x27;next&#x27;:&#x27;done&#x27;}&quot; maxlength=&quot;2&quot; autocomplete=&quot;off&quot; value=&quot;${d[part]}&quot; aria-invalid=&quot;${d[part].length===2&amp;&amp;!validTimePart(d[part],part)}&quot;&gt;&lt;span class=&quot;ks-note&quot;&gt;${label}&lt;/span&gt;&lt;/label&gt;`;
+      const isHour=d.part===&#x27;hour&#x27;,selected=Number(d[d.part]),step=isHour?1:5;
+      const radius=value=&gt;isHour&amp;&amp;value&gt;=12?26:40;
+      const angle=value=&gt;value/step*30;
+      const options=Array.from({length:isHour?24:60/step},(_,i)=&gt;i*step);
+      if(!isHour&amp;&amp;!options.includes(selected))options.push(selected);
+      const dial=d.clock?`&lt;div class=&quot;ks-time-face&quot; role=&quot;group&quot; aria-label=&quot;${isHour?&#x27;小时&#x27;:&#x27;分钟&#x27;}&quot;&gt;
+        &lt;span class=&quot;ks-time-hand&quot; aria-hidden=&quot;true&quot; style=&quot;height:${radius(selected)}%;transform:rotate(${angle(selected)}deg)&quot;&gt;&lt;/span&gt;
+        ${options.map(value=&gt;{
+          const a=angle(value)*Math.PI/180,r=radius(value);
+          return `&lt;button type=&quot;button&quot; data-time-value=&quot;${value}&quot; aria-pressed=&quot;${value===selected}&quot; style=&quot;left:${50+r*Math.sin(a)}%;top:${50-r*Math.cos(a)}%&quot;&gt;${isHour?value:timeDigits(value)}&lt;/button&gt;`;
+        }).join(&#x27;&#x27;)}
+      &lt;/div&gt;`:&#x27;&#x27;;
+      return `&lt;div class=&quot;ks-modal-overlay ks-time-overlay&quot;&gt;&lt;form class=&quot;ks-period-dialog ks-time-dialog ${d.clock?&#x27;ks-time-clock&#x27;:&#x27;&#x27;}&quot; data-entry-time role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;选择时间&quot;&gt;
+        &lt;h3&gt;选择时间&lt;/h3&gt;
+        &lt;div class=&quot;ks-time-fields&quot;&gt;${field(&#x27;hour&#x27;,&#x27;小时&#x27;)}&lt;span class=&quot;ks-time-colon&quot; aria-hidden=&quot;true&quot;&gt;:&lt;/span&gt;${field(&#x27;minute&#x27;,&#x27;分钟&#x27;)}&lt;/div&gt;
+        ${dial}
+        &lt;div class=&quot;ks-period-actions&quot;&gt;
+          &lt;button type=&quot;button&quot; class=&quot;ks-icon-btn&quot; data-time-action=&quot;mode&quot; aria-label=&quot;${d.clock?&#x27;输入时间&#x27;:&#x27;使用时钟&#x27;}&quot;&gt;${icon(d.clock?&#x27;keyboard&#x27;:&#x27;clock&#x27;)}&lt;/button&gt;
+          &lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-time-action=&quot;cancel&quot;&gt;取消&lt;/button&gt;
+          &lt;button type=&quot;submit&quot; class=&quot;ks-text-btn&quot; ${validTimePart(d.hour,&#x27;hour&#x27;)&amp;&amp;validTimePart(d.minute,&#x27;minute&#x27;)?&#x27;&#x27;:&#x27;disabled&#x27;}&gt;确定&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/form&gt;&lt;/div&gt;`;
+    }
     function calculatorSheet(){return `&lt;div class=&quot;ks-modal-overlay&quot;&gt;&lt;section class=&quot;ks-calc-sheet&quot; role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;金额计算器&quot;&gt;&lt;div class=&quot;ks-calc-body&quot;&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;h3&gt;金额计算器&lt;/h3&gt;&lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-calc-action=&quot;cancel&quot;&gt;关闭&lt;/button&gt;&lt;/div&gt;&lt;span class=&quot;ks-note&quot;&gt;${entryWallet()?.code||&#x27;未选择钱包&#x27;} · 支持加减乘除&lt;/span&gt;&lt;div class=&quot;ks-amount-input&quot; data-calc-expression aria-label=&quot;计算表达式&quot; aria-live=&quot;polite&quot;&gt;${escapeText(state.calcExpression||(entryWallet()?.scale===0?&#x27;0&#x27;:&#x27;0.00&#x27;))}&lt;/div&gt;&lt;div class=&quot;ks-calculator&quot; role=&quot;group&quot; aria-label=&quot;计算键盘&quot;&gt;${[&#x27;C&#x27;,&#x27;⌫&#x27;,&#x27;÷&#x27;,&#x27;×&#x27;,&#x27;7&#x27;,&#x27;8&#x27;,&#x27;9&#x27;,&#x27;−&#x27;,&#x27;4&#x27;,&#x27;5&#x27;,&#x27;6&#x27;,&#x27;+&#x27;,&#x27;1&#x27;,&#x27;2&#x27;,&#x27;3&#x27;,&#x27;=&#x27;,&#x27;0&#x27;,&#x27;.&#x27;].map(k=&gt;`&lt;button type=&quot;button&quot; class=&quot;ks-key ${[&#x27;÷&#x27;,&#x27;×&#x27;,&#x27;−&#x27;,&#x27;+&#x27;,&#x27;=&#x27;].includes(k)?&#x27;ks-operator&#x27;:&#x27;&#x27;} ${k===&#x27;0&#x27;?&#x27;ks-zero&#x27;:&#x27;&#x27;} ${k===&#x27;=&#x27;?&#x27;ks-equal&#x27;:&#x27;&#x27;} cursor-interaction&quot; data-key=&quot;${k}&quot; aria-label=&quot;${k===&#x27;⌫&#x27;?&#x27;退格&#x27;:k===&#x27;C&#x27;?&#x27;清空&#x27;:k}&quot;&gt;${k}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;ks-calc-footer&quot;&gt;&lt;p class=&quot;ks-calc-error&quot; role=&quot;alert&quot;&gt;&lt;/p&gt;&lt;div class=&quot;ks-calc-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-calc-action=&quot;cancel&quot;&gt;取消&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary cursor-interaction&quot; data-calc-action=&quot;apply&quot;&gt;使用此金额&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;&lt;/section&gt;&lt;/div&gt;`;}
     function mealCalendarDialog(){
       const d=state.mealCalendar,[year,month]=d.month.split(&#x27;-&#x27;).map(Number);
@@ -3092,7 +3143,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     const discard=group=&gt;()=&gt;group?.remove();
     const pageNode=()=&gt;phone.querySelector(&#x27;:scope &gt; .ks-page-motion&#x27;);
     const modalNode=()=&gt;phone.querySelector(&#x27;:scope &gt; .ks-modal-overlay&#x27;);
-    const modalKind=()=&gt;state.deletePending?&#x27;dialog&#x27;:state.calcOpen?&#x27;calculator&#x27;:state.walletPickerOpen?&#x27;wallet&#x27;:state.periodDraft?&#x27;period&#x27;:state.ledgerFilterDraft?&#x27;ledger-filters&#x27;:state.githubDemo.review?&#x27;github-review&#x27;:state.mealCalendar?&#x27;date-calendar&#x27;:state.addingMealOption?&#x27;meal-option&#x27;:null;
+    const modalKind=()=&gt;state.deletePending?&#x27;dialog&#x27;:state.calcOpen?&#x27;calculator&#x27;:state.walletPickerOpen?&#x27;wallet&#x27;:state.periodDraft?&#x27;period&#x27;:state.ledgerFilterDraft?&#x27;ledger-filters&#x27;:state.githubDemo.review?&#x27;github-review&#x27;:state.mealCalendar?&#x27;date-calendar&#x27;:state.entryTimeDraft?&#x27;entry-time&#x27;:state.addingMealOption?&#x27;meal-option&#x27;:null;
     const primary=page=&gt;navs.some(n=&gt;n[0]===page);
     const localKey=()=&gt;state.page===&#x27;meals&#x27;?JSON.stringify([state.mealTab,state.date,state.mealStatsFilters,state.mealListMode,state.mealFilters]):state.page===&#x27;ledger&#x27;?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds,state.ledgerFilters]):&#x27;&#x27;;
     const localNodes=()=&gt;{
@@ -3245,6 +3296,12 @@ html&gt;body{padding:0}&lt;/style&gt;
         for(const child of phone.children)if(!child.classList.contains(&#x27;ks-modal-overlay&#x27;))child.inert=true;
         if(previous?.modal!==kind)phone.querySelector(&#x27;[data-calendar-action=jump],[data-calendar-text]&#x27;).focus({preventScroll:true});
       }
+      if(state.entryTimeDraft){
+        phone.insertAdjacentHTML(&#x27;beforeend&#x27;,entryTimeDialog());
+        for(const child of phone.children)if(!child.classList.contains(&#x27;ks-modal-overlay&#x27;))child.inert=true;
+        const focus=state.entryTimeDraft.clock?&#x27;[data-time-part][aria-pressed=true]&#x27;:&#x27;[data-entry-time] [name=hour]&#x27;;
+        phone.querySelector(focus).focus({preventScroll:true});
+      }
       if(keepingMealForm)phone.querySelector(&#x27;.ks-main&#x27;).scrollTop=mealPosition;
       if(state.addingMealOption){
         phone.insertAdjacentHTML(&#x27;beforeend&#x27;,mealOptionDialog());
@@ -3271,7 +3328,16 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(changingPage&amp;&amp;primary(state.page))recordOrigin=null;
       if(changingPage&amp;&amp;!kind){const header=phone.querySelector(&#x27;.ks-top&#x27;);header.setAttribute(&#x27;tabindex&#x27;,&#x27;-1&#x27;);header.focus({preventScroll:true});}
     }
-    function capture(){const form=phone.querySelector(&#x27;[data-meal-form]&#x27;);if(form){state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);}const entry=phone.querySelector(&#x27;[data-entry-form]&#x27;);if(entry){state.entryDraft={dateTime:entry.elements.dateTime.value,note:entry.elements.note.value,category:entry.elements.category.value,walletId:entry.elements.wallet.value};}}
+    function capture(){const form=phone.querySelector(&#x27;[data-meal-form]&#x27;);if(form){state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);}const entry=phone.querySelector(&#x27;[data-entry-form]&#x27;);if(entry){state.entryDraft={dateTime:entry.elements.date.value+state.entryDraft.dateTime.slice(-6),note:entry.elements.note.value,category:entry.elements.category.value,walletId:entry.elements.wallet.value};}}
+    function closeEntryTime(apply){
+      const {hour,minute}=state.entryTimeDraft;
+      if(apply){
+        if(!validTimePart(hour,&#x27;hour&#x27;)||!validTimePart(minute,&#x27;minute&#x27;))return;
+        state.entryDraft.dateTime=state.entryDraft.dateTime.slice(0,-6)+&#x27;T&#x27;+hour+&#x27;:&#x27;+minute;
+      }
+      state.entryTimeDraft=null;render();
+      phone.querySelector(&#x27;[data-action=open-entry-time]&#x27;).focus({preventScroll:true});
+    }
     function error(message){phone.querySelector(&#x27;.ks-error&#x27;).textContent=message;}
     function updateAppearancePreview(){
       const editor=phone.querySelector(&#x27;[data-appearance-editor]&#x27;);
@@ -3371,9 +3437,32 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(event.target.matches(&#x27;[data-ledger-filter-overlay]&#x27;)){closeLedgerFilters(false);return;}
       if(event.target.matches(&#x27;.ks-period-overlay&#x27;)){closePeriod(false);return;}
       if(event.target.matches(&#x27;.ks-calendar-overlay&#x27;)){closeMealCalendar(false);return;}
+      if(event.target.matches(&#x27;.ks-time-overlay&#x27;)){closeEntryTime(false);return;}
       if(event.target.matches(&#x27;[data-meal-option-overlay]&#x27;)){closeMealOption();return;}
       const b=event.target.closest(&#x27;button&#x27;);if(!b)return;
       capture();state.notice=&#x27;&#x27;;
+      if(b.dataset.action===&#x27;open-entry-time&#x27;){
+        const [hour,minute]=state.entryDraft.dateTime.slice(-5).split(&#x27;:&#x27;);
+        state.entryTimeDraft={hour,minute,clock:false,part:&#x27;hour&#x27;,clockTime:{hour,minute}};
+        render();return;
+      }
+      if(b.closest(&#x27;[data-entry-time]&#x27;)){
+        const d=state.entryTimeDraft;
+        if(b.dataset.timeAction===&#x27;cancel&#x27;){closeEntryTime(false);return;}
+        if(b.dataset.timeAction===&#x27;mode&#x27;){
+          if(!d.clock){
+            for(const part of [&#x27;hour&#x27;,&#x27;minute&#x27;])d[part]=d.clockTime[part]=validTimePart(d[part],part)?d[part]:d.clockTime[part];
+            d.part=&#x27;hour&#x27;;
+          }
+          d.clock=!d.clock;
+        }else if(b.dataset.timePart){
+          d.part=b.dataset.timePart;
+        }else if(b.dataset.timeValue!==undefined){
+          d[d.part]=d.clockTime[d.part]=timeDigits(b.dataset.timeValue);
+          d.part=&#x27;minute&#x27;;
+        }else return;
+        render();return;
+      }
       if(b.dataset.action===&#x27;open-meal-calendar&#x27;){
         const compact=phone.clientWidth&lt;360;
         state.mealCalendar={selected:state.date,month:state.date.slice(0,7),text:state.date,year:&#x27;&#x27;,mode:compact?&#x27;text&#x27;:&#x27;calendar&#x27;,compact};
@@ -3576,16 +3665,22 @@ html&gt;body{padding:0}&lt;/style&gt;
           state.githubDemo.review=null;render();phone.querySelector(&#x27;[data-github-action=restore-preview]&#x27;)?.focus({preventScroll:true});
         }else if(state.addingMealOption)closeMealOption();
         else if(state.mealCalendar)closeMealCalendar(false);
+        else if(state.entryTimeDraft)closeEntryTime(false);
         else if(state.periodDraft)closePeriod(false);
         else if(state.ledgerFilterDraft)closeLedgerFilters(false);
         else if(state.walletPickerOpen)closeWalletPicker(&#x27;cancel&#x27;);
         else if(state.deletePending)cancelDelete();
         else closeCalculator(false);
+      }else if(event.key===&#x27;Enter&#x27;&amp;&amp;event.target.matches(&#x27;[data-entry-time] [name=hour]&#x27;)){
+        event.preventDefault();event.target.form.elements.minute.focus();
       }else if(event.key===&#x27;Tab&#x27;){
         const dialog=modalNode().firstElementChild,controls=[...dialog.querySelectorAll(&#x27;button:not(:disabled),input:not(:disabled),select:not(:disabled)&#x27;)],first=controls[0],last=controls[controls.length-1];
         if(event.shiftKey&amp;&amp;document.activeElement===first){event.preventDefault();last.focus();}
         else if(!event.shiftKey&amp;&amp;document.activeElement===last){event.preventDefault();first.focus();}
       }
+    });
+    phone.addEventListener(&#x27;focusin&#x27;,event=&gt;{
+      if(event.target.matches(&#x27;[data-entry-time] input&#x27;))event.target.select();
     });
     phone.addEventListener(&#x27;change&#x27;,event=&gt;{
       const e=event.target;
@@ -3630,6 +3725,16 @@ html&gt;body{padding:0}&lt;/style&gt;
     });
     phone.addEventListener(&#x27;input&#x27;,event=&gt;{
       const e=event.target;
+      if(e.matches(&#x27;[data-entry-time] input&#x27;)){
+        const d=state.entryTimeDraft;
+        e.value=e.value.replace(/\D/g,&#x27;&#x27;);
+        d[e.name]=e.value;
+        const valid=validTimePart(e.value,e.name);
+        e.setAttribute(&#x27;aria-invalid&#x27;,String(e.value.length===2&amp;&amp;!valid));
+        e.form.querySelector(&#x27;[type=submit]&#x27;).disabled=!validTimePart(d.hour,&#x27;hour&#x27;)||!validTimePart(d.minute,&#x27;minute&#x27;);
+        if(e.name===&#x27;hour&#x27;&amp;&amp;valid)e.form.elements.minute.focus();
+        return;
+      }
       if(e.matches(&#x27;[data-meal-option-form] input&#x27;)){
         e.form.querySelector(&#x27;[type=submit]&#x27;).disabled=!e.value.trim();
         e.form.querySelector(&#x27;[data-meal-option-error]&#x27;).textContent=&#x27;&#x27;;
@@ -3673,6 +3778,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     });
     phone.addEventListener(&#x27;submit&#x27;,event=&gt;{
       event.preventDefault();const f=event.target;capture();
+      if(f.matches(&#x27;[data-entry-time]&#x27;)){closeEntryTime(true);return;}
       if(f.matches(&#x27;[data-meal-option-form]&#x27;)){
         const name=f.elements.optionName.value.trim(),method=state.addingMealOption===&#x27;method&#x27;;
         const list=method?mealMethods:mealPreparations;
@@ -3717,7 +3823,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         try{
           if(!f.elements.wallet.value){error(&#x27;请先选择钱包。&#x27;);return;}const cents=calcCents(state.amount),walletId=f.elements.wallet.value;
           if(!effectiveFinancialCategories(walletId,state.entryType).some(c=&gt;c.id===f.elements.category.value)){error(&#x27;请选择当前钱包可用的分类。&#x27;);return;}
-          const entry={id:`draft-${state.nextEntryId++}`,type:state.entryType,cents,walletId,category:f.elements.category.value,note:f.elements.note.value,date:f.elements.dateTime.value.slice(0,10),time:f.elements.dateTime.value.slice(11,16)};
+          const entry={id:`draft-${state.nextEntryId++}`,type:state.entryType,cents,walletId,category:f.elements.category.value,note:f.elements.note.value,date:f.elements.date.value,time:state.entryDraft.dateTime.slice(-5)};
           state.entries.push(entry);if(!walletById(walletId).separateAccounting)state.lastWalletId=walletId;state.page=state.entryReturn;
           state.notice=state.page===&#x27;ledger&#x27;&amp;&amp;!matchesLedgerScope(entry)?&#x27;已保存到当前演示，该账目不在当前筛选范围内。&#x27;:&#x27;已保存到当前演示。&#x27;;
           render();
