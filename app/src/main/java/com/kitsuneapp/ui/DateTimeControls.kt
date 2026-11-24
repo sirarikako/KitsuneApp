@@ -178,7 +178,7 @@ internal fun TimeControl(value: String, set: (String) -> Unit, modifier: Modifie
                     }
                 }
             } else {
-                TimePicker(state, Modifier.align(Alignment.CenterHorizontally), layoutType = TimePickerLayoutType.Vertical)
+                TimePicker(state, Modifier.fillMaxWidth(), layoutType = TimePickerLayoutType.Vertical)
             }
         }
     }

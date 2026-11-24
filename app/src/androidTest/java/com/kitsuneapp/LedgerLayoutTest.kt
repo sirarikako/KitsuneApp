@@ -426,6 +426,14 @@ class LedgerLayoutTest {
         confirm.assertIsNotEnabled()
         minute.performTextReplacement("59")
         compose.onNodeWithContentDescription("使用时钟").performClick()
+        val dialTopLabel = compose.activity.getString(androidx.compose.material3.R.string.m3c_time_picker_hour_24h_suffix, 0)
+        val dialTop = compose.onNodeWithContentDescription(dialTopLabel)
+        compose.waitUntil(10_000) { dialTop.isDisplayed() }
+        val dialogCenter = compose.onNode(isDialog()).fetchSemanticsNode().boundsInRoot.center.x
+        val hourCenter = compose.onNodeWithText("23").fetchSemanticsNode().boundsInRoot.center.x
+        val minuteCenter = compose.onNodeWithText("59").fetchSemanticsNode().boundsInRoot.center.x
+        assertEquals("The dial is centered in the dialog", dialogCenter, dialTop.fetchSemanticsNode().boundsInRoot.center.x, 1f)
+        assertEquals("The time display is centered in the dialog", dialogCenter, (hourCenter + minuteCenter) / 2, 1f)
         saveScreenshot("kitsune-time-clock")
         compose.onNodeWithContentDescription("输入时间").performClick()
         waitForFocus("小时")
