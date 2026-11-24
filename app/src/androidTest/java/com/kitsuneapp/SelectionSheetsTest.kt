@@ -401,7 +401,12 @@ class SelectionSheetsScreenshotTest {
 
     private fun capture(title: String, name: String, profile: String) {
         sheetText(title).assertIsDisplayed()
-        val bitmap = checkNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
+        compose.waitForIdle()
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        // A Compose node can be visible before Android presents the new dialog window.
+        automation.waitForIdle(300L, 5_000L)
+        if (Build.VERSION.SDK_INT >= 29) automation.syncInputTransactions()
+        val bitmap = checkNotNull(automation.takeScreenshot())
         val file = "selection-$profile-$name"
         File(compose.activity.cacheDir, "$file.png").outputStream().use {
             check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))

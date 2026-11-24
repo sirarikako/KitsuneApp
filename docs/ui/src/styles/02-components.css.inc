@@ -93,8 +93,8 @@
   #kitsune-preview .ks-selection-chip svg{width:16px;height:16px}
   #kitsune-preview .ks-selection-chip:has(input:checked){border-color:transparent;background:var(--ks-accent-bg);color:var(--ks-accent)}
   #kitsune-preview .ks-selection-chip:has(input:checked) span{visibility:visible}
-  #kitsune-preview .ks-selection-chip:focus-within,#kitsune-preview .ks-selection-segment:focus-visible{outline:2px solid var(--ks-accent);outline-offset:-2px}
-  #kitsune-preview .ks-selection-option:focus-visible,#kitsune-preview .ks-selection-option:focus-within{outline:2px solid var(--ks-accent);outline-offset:-2px}
+  #kitsune-preview .ks-selection-chip:has(input:focus-visible),#kitsune-preview .ks-selection-segment:focus-visible{outline:2px solid var(--ks-accent);outline-offset:-2px}
+  #kitsune-preview .ks-selection-option:focus-visible,#kitsune-preview .ks-selection-option:has(input:focus-visible){outline:2px solid var(--ks-accent);outline-offset:-2px}
   #kitsune-preview .ks-calc-sheet{display:flex;flex-direction:column;width:100%;background:var(--ks-card-surface);border:var(--ks-card-border);color:var(--ks-ink);border-radius:var(--ks-dialog-radius);padding:var(--ks-space-4);box-shadow:var(--ks-dialog-shadow);max-height:calc(100% - 24px);overflow:hidden}
   #kitsune-preview .ks-calc-body{min-height:0;overflow-y:auto}
   #kitsune-preview .ks-calc-footer{flex:none}
