@@ -39,10 +39,10 @@
         for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
         if(previous?.modal!==kind)phone.querySelector('[data-period-mode][aria-pressed=true],[data-period-month][aria-pressed=true]').focus({preventScroll:true});
       }
-      if(state.ledgerFiltersOpen){
+      if(state.ledgerFilterDraft){
         phone.insertAdjacentHTML('beforeend',ledgerFiltersDialog());
         for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
-        phone.querySelector('[data-ledger-filters] select').focus({preventScroll:true});
+        phone.querySelector('[data-ledger-filters] input').focus({preventScroll:true});
       }
       if(state.githubDemo.review){
         phone.insertAdjacentHTML('beforeend',githubDemoDialog());
@@ -109,10 +109,10 @@
     function closeCalculator(apply){if(apply){try{state.amount=inputAmount(calcCents(state.calcExpression));}catch(e){phone.querySelector('.ks-calc-error').textContent=e.message;return;}}state.calcOpen=false;render();phone.querySelector('[data-action=open-calculator]').focus({preventScroll:true});}
     function closeLedgerFilters(apply){
       if(apply){
-        const fields=phone.querySelector('[data-ledger-filters]').elements;
-        state.ledgerFilters={type:fields.type.value,category:fields.category.value,note:fields.note.value};
+        const note=phone.querySelector('[data-ledger-filters] [name=note]').value;
+        state.ledgerFilters={...state.ledgerFilterDraft,note};
       }
-      state.ledgerFiltersOpen=false;render();
+      state.ledgerFilterDraft=null;render();
       phone.querySelector('[data-action=open-ledger-filters]')?.focus({preventScroll:true});
     }
     function closeWalletPicker(action){

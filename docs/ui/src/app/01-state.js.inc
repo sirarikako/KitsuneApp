@@ -27,8 +27,8 @@
     const style = {accent:'#c47a4a',mealHour:'auto',...defaultAppearance};
     const state = {page:'home', date:'2026-11-17', ledgerMonth:'2026-11',ledgerTab:'流水', mealTab:'记录', slot:2, atHome:null, method:null, categories:[], amount:'',calcOpen:false,calcExpression:'',entryType:'支出',entryDraft:{dateTime:'2026-11-17T09:41',note:'',category:'ge-food',walletId:'daily'},notice:'', mealReturn:'home', entries:[], records:{}};
     state.ledgerRange=null;state.periodDraft=null;state.previewMode=null;
-    const blankLedgerFilters=()=>({type:'',category:'',note:''});
-    state.ledgerFilters=blankLedgerFilters();state.ledgerFiltersOpen=false;
+    const blankLedgerFilters=()=>({types:null,categoryNames:null,note:''});
+    state.ledgerFilters=blankLedgerFilters();state.ledgerFilterDraft=null;
     state.githubDemo={backedUp:false,review:null,scenario:'normal',wifi:false,draftWifi:false,editing:false,uploading:false};
     const demoMealMonth=demoToday.slice(0,7);
     function mealMonthDates(month){
@@ -71,6 +71,7 @@
     const scopeMode=(wallet,scope)=>wallet?.[scope==='INCOME'?'incomeCategoryMode':'expenseCategoryMode']||'DEFAULT';
     const allFinancialCategories=()=>[...sharedFinancialCategories.EXPENSE,...sharedFinancialCategories.INCOME,...Object.values(walletFinancialCategories).flatMap(v=>[...v.EXPENSE,...v.INCOME]),...Object.values(fallbackFinancialCategories)];
     const categoryById=id=>allFinancialCategories().find(c=>c.id===id)||null;
+    const categoryNameKey=category=>category?.name.trim().normalize('NFC').toLowerCase()??null;
     const effectiveFinancialCategories=(walletId,type)=>{
       const wallet=wallets.find(w=>w.id===walletId);if(!wallet)return [];
       const scope=financialScopeOf(type);
@@ -143,6 +144,22 @@
     const entryCategory=entry=>categoryNameForId(categoryForEntry(entry));
     const regularWallets=()=>wallets.filter(w=>!w.separateAccounting);
     const selectedWallets=()=>state.walletFilterIds===null?regularWallets():state.walletFilterIds==='ALL'?[...wallets]:wallets.filter(w=>state.walletFilterIds.includes(w.id));
+    function ledgerFilterCategories(){
+      const selected=selectedWallets(),ids=new Set(selected.map(w=>w.id));
+      const historical=financialEntries().filter(e=>ids.has(e.walletId)).map(e=>categoryById(categoryForEntry(e))).filter(Boolean);
+      const candidates=[
+        ...Object.values(sharedFinancialCategories).flat().filter(c=>!c.archived),
+        ...Object.values(fallbackFinancialCategories),
+        ...selected.flatMap(w=>Object.values(walletFinancialCategories[w.id]).flat()),
+        ...historical,
+      ];
+      const names=new Map();
+      for(const category of candidates){
+        const key=categoryNameKey(category);
+        if(!names.has(key))names.set(key,category.name);
+      }
+      return [...names];
+    }
     const matchesLedgerScope=entry=>{
       const range=state.ledgerRange;
       const dateMatches=range?range.from<=entry.date&&entry.date<=range.to:entry.date.startsWith(state.ledgerMonth);
@@ -242,12 +259,13 @@
       const m=records()[i];
       return `<button type="button" class="ks-record ${m?'':'ks-empty'} cursor-interaction" data-meal="${i}">${recordIcon(slotIcons[i])}<span class="ks-record-copy"><span class="ks-record-title">${slot}${m?`<span class="ks-pill">${escapeText(m.method||'方式未填写')}</span>`:''}</span><span class="ks-record-meta">${m?escapeText(m.dishes||'未填写菜品'):'添加记录'}</span></span>${icon(m?'chevron-right':'plus')}</button>`;
     }).join('')}</div>`;
-    function moneyCard(code,entries){
+    function moneyCard(code,entries,incomeFirst){
       const period=state.ledgerRange?'所选期间':`${Number(state.ledgerMonth.slice(5))} 月`;
+      const income=money(total(entries,'收入'),code),expense=money(netExpense(entries),code);
       return `<div class="ks-money-card" data-currency="${code}">
-        <span class="ks-money-caption">${period}净支出 · ${code}</span>
-        <div class="ks-amount" data-expense>${money(netExpense(entries),code)}</div>
-        <div class="ks-money-meta"><span>收入 <span data-income>${money(total(entries,'收入'),code)}</span></span></div>
+        <span class="ks-money-caption">${period}${incomeFirst?'收入':'净支出'} · ${code}</span>
+        <div class="ks-amount" ${incomeFirst?'data-income':'data-expense'}>${incomeFirst?income:expense}</div>
+        <div class="ks-money-meta"><span>${incomeFirst?'净支出':'收入'} <span ${incomeFirst?'data-expense':'data-income'}>${incomeFirst?expense:income}</span></span></div>
       </div>`;
     }
     function week(){

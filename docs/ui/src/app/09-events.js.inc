@@ -67,11 +67,19 @@
         if(next.customColor===null){phone.querySelector('[data-appearance-error]').textContent='请输入六位 HEX 颜色，例如 #C47A4A。';return;}
         applyAnimatedAppearance(next);state.notice='已应用外观。';render();persist();return;
       }
-      if(b.dataset.action==='open-ledger-filters'){state.ledgerFiltersOpen=true;render();return;}
+      if(b.dataset.action==='open-ledger-filters'){state.ledgerFilterDraft={...state.ledgerFilters};render();return;}
       if(b.dataset.action==='cancel-ledger-filters'){closeLedgerFilters(false);return;}
+      if(b.dataset.filterBulk){
+        const group=b.closest('[data-filter-group]'),key=group.dataset.filterGroup;
+        const all=b.dataset.filterBulk==='all';
+        state.ledgerFilterDraft[key]=all?null:[];
+        group.querySelectorAll('input').forEach(input=>{input.checked=all;});
+        return;
+      }
       if(b.dataset.action==='reset-ledger-filters'){
-        const fields=b.form.elements;
-        for(const name of Object.keys(blankLedgerFilters()))fields[name].value='';
+        state.ledgerFilterDraft=blankLedgerFilters();
+        b.form.querySelectorAll('input[type=checkbox]').forEach(input=>{input.checked=true;});
+        b.form.elements.note.value='';
         return;
       }
       if(b.dataset.action==='choose-ledger-period'){
@@ -208,7 +216,7 @@
         }else if(state.addingMealOption)closeMealOption();
         else if(state.mealCalendar)closeMealCalendar(false);
         else if(state.periodDraft)closePeriod(false);
-        else if(state.ledgerFiltersOpen)closeLedgerFilters(false);
+        else if(state.ledgerFilterDraft)closeLedgerFilters(false);
         else if(state.walletPickerOpen)closeWalletPicker('cancel');
         else if(state.deletePending)cancelDelete();
         else closeCalculator(false);
@@ -220,6 +228,15 @@
     });
     phone.addEventListener('change',event=>{
       const e=event.target;
+      if(e.matches('[data-filter-group] input[type=checkbox]')){
+        const group=e.closest('[data-filter-group]'),key=group.dataset.filterGroup;
+        const options=[...group.querySelectorAll('input')].map(input=>input.value);
+        const selected=new Set(state.ledgerFilterDraft[key]??options);
+        if(e.checked)selected.add(e.value);else selected.delete(e.value);
+        state.ledgerFilterDraft[key]=selected.size===options.length&&options.every(value=>selected.has(value))
+          ?null:[...selected];
+        return;
+      }
       if(e.matches('[data-github-wifi]')){state.githubDemo.wifi=e.checked;return;}
       if(e.matches('[data-github-wifi-draft]')){state.githubDemo.draftWifi=e.checked;return;}
       if(e.matches('[data-github-scenario]')){

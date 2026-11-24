@@ -9,6 +9,13 @@
   #kitsune-preview .ks-period-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ks-space-2)}
   #kitsune-preview .ks-period-months{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--ks-space-2)}
   #kitsune-preview .ks-period-body .ks-error:empty{display:none}
+  #kitsune-preview [data-filter-group]{min-width:0;border:0;margin:0;padding:0}
+  #kitsune-preview .ks-ledger-filter-options{display:flex;flex-wrap:wrap;gap:var(--ks-space-1)}
+  #kitsune-preview [data-filter-group=categoryNames] .ks-ledger-filter-options{display:grid;max-height:216px;overflow:auto}
+  #kitsune-preview .ks-ledger-check{display:flex;align-items:center;justify-content:flex-start;gap:var(--ks-space-2);overflow-wrap:anywhere}
+  #kitsune-preview .ks-ledger-check input{width:18px;height:18px;accent-color:var(--ks-accent);flex:none}
+  #kitsune-preview .ks-ledger-check:has(input:checked){color:var(--ks-accent);border-color:var(--ks-accent);background:var(--ks-accent-bg)}
+  #kitsune-preview .ks-ledger-filter-bulk{display:flex;gap:var(--ks-space-2)}
   #kitsune-preview .ks-date-trigger{display:flex;justify-content:space-between;align-items:center;gap:var(--ks-space-2);text-align:left}
   #kitsune-preview .ks-calendar-dialog{max-width:360px;gap:var(--ks-space-2)}
   #kitsune-preview .ks-calendar-dialog h3{font-size:20px}

@@ -189,6 +189,13 @@
   #kitsune-preview .ks-period-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ks-space-2)}
   #kitsune-preview .ks-period-months{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--ks-space-2)}
   #kitsune-preview .ks-period-body .ks-error:empty{display:none}
+  #kitsune-preview [data-filter-group]{min-width:0;border:0;margin:0;padding:0}
+  #kitsune-preview .ks-ledger-filter-options{display:flex;flex-wrap:wrap;gap:var(--ks-space-1)}
+  #kitsune-preview [data-filter-group=categoryNames] .ks-ledger-filter-options{display:grid;max-height:216px;overflow:auto}
+  #kitsune-preview .ks-ledger-check{display:flex;align-items:center;justify-content:flex-start;gap:var(--ks-space-2);overflow-wrap:anywhere}
+  #kitsune-preview .ks-ledger-check input{width:18px;height:18px;accent-color:var(--ks-accent);flex:none}
+  #kitsune-preview .ks-ledger-check:has(input:checked){color:var(--ks-accent);border-color:var(--ks-accent);background:var(--ks-accent-bg)}
+  #kitsune-preview .ks-ledger-filter-bulk{display:flex;gap:var(--ks-space-2)}
   #kitsune-preview .ks-date-trigger{display:flex;justify-content:space-between;align-items:center;gap:var(--ks-space-2);text-align:left}
   #kitsune-preview .ks-calendar-dialog{max-width:360px;gap:var(--ks-space-2)}
   #kitsune-preview .ks-calendar-dialog h3{font-size:20px}
@@ -314,8 +321,8 @@
     const style = {accent:'#c47a4a',mealHour:'auto',...defaultAppearance};
     const state = {page:'home', date:'2026-11-17', ledgerMonth:'2026-11',ledgerTab:'流水', mealTab:'记录', slot:2, atHome:null, method:null, categories:[], amount:'',calcOpen:false,calcExpression:'',entryType:'支出',entryDraft:{dateTime:'2026-11-17T09:41',note:'',category:'ge-food',walletId:'daily'},notice:'', mealReturn:'home', entries:[], records:{}};
     state.ledgerRange=null;state.periodDraft=null;state.previewMode=null;
-    const blankLedgerFilters=()=>({type:'',category:'',note:''});
-    state.ledgerFilters=blankLedgerFilters();state.ledgerFiltersOpen=false;
+    const blankLedgerFilters=()=>({types:null,categoryNames:null,note:''});
+    state.ledgerFilters=blankLedgerFilters();state.ledgerFilterDraft=null;
     state.githubDemo={backedUp:false,review:null,scenario:'normal',wifi:false,draftWifi:false,editing:false,uploading:false};
     const demoMealMonth=demoToday.slice(0,7);
     function mealMonthDates(month){
@@ -358,6 +365,7 @@
     const scopeMode=(wallet,scope)=>wallet?.[scope==='INCOME'?'incomeCategoryMode':'expenseCategoryMode']||'DEFAULT';
     const allFinancialCategories=()=>[...sharedFinancialCategories.EXPENSE,...sharedFinancialCategories.INCOME,...Object.values(walletFinancialCategories).flatMap(v=>[...v.EXPENSE,...v.INCOME]),...Object.values(fallbackFinancialCategories)];
     const categoryById=id=>allFinancialCategories().find(c=>c.id===id)||null;
+    const categoryNameKey=category=>category?.name.trim().normalize('NFC').toLowerCase()??null;
     const effectiveFinancialCategories=(walletId,type)=>{
       const wallet=wallets.find(w=>w.id===walletId);if(!wallet)return [];
       const scope=financialScopeOf(type);
@@ -430,6 +438,22 @@
     const entryCategory=entry=>categoryNameForId(categoryForEntry(entry));
     const regularWallets=()=>wallets.filter(w=>!w.separateAccounting);
     const selectedWallets=()=>state.walletFilterIds===null?regularWallets():state.walletFilterIds==='ALL'?[...wallets]:wallets.filter(w=>state.walletFilterIds.includes(w.id));
+    function ledgerFilterCategories(){
+      const selected=selectedWallets(),ids=new Set(selected.map(w=>w.id));
+      const historical=financialEntries().filter(e=>ids.has(e.walletId)).map(e=>categoryById(categoryForEntry(e))).filter(Boolean);
+      const candidates=[
+        ...Object.values(sharedFinancialCategories).flat().filter(c=>!c.archived),
+        ...Object.values(fallbackFinancialCategories),
+        ...selected.flatMap(w=>Object.values(walletFinancialCategories[w.id]).flat()),
+        ...historical,
+      ];
+      const names=new Map();
+      for(const category of candidates){
+        const key=categoryNameKey(category);
+        if(!names.has(key))names.set(key,category.name);
+      }
+      return [...names];
+    }
     const matchesLedgerScope=entry=>{
       const range=state.ledgerRange;
       const dateMatches=range?range.from<=entry.date&&entry.date<=range.to:entry.date.startsWith(state.ledgerMonth);
@@ -529,12 +553,13 @@
       const m=records()[i];
       return `<button type="button" class="ks-record ${m?'':'ks-empty'} cursor-interaction" data-meal="${i}">${recordIcon(slotIcons[i])}<span class="ks-record-copy"><span class="ks-record-title">${slot}${m?`<span class="ks-pill">${escapeText(m.method||'方式未填写')}</span>`:''}</span><span class="ks-record-meta">${m?escapeText(m.dishes||'未填写菜品'):'添加记录'}</span></span>${icon(m?'chevron-right':'plus')}</button>`;
     }).join('')}</div>`;
-    function moneyCard(code,entries){
+    function moneyCard(code,entries,incomeFirst){
       const period=state.ledgerRange?'所选期间':`${Number(state.ledgerMonth.slice(5))} 月`;
+      const income=money(total(entries,'收入'),code),expense=money(netExpense(entries),code);
       return `<div class="ks-money-card" data-currency="${code}">
-        <span class="ks-money-caption">${period}净支出 · ${code}</span>
-        <div class="ks-amount" data-expense>${money(netExpense(entries),code)}</div>
-        <div class="ks-money-meta"><span>收入 <span data-income>${money(total(entries,'收入'),code)}</span></span></div>
+        <span class="ks-money-caption">${period}${incomeFirst?'收入':'净支出'} · ${code}</span>
+        <div class="ks-amount" ${incomeFirst?'data-income':'data-expense'}>${incomeFirst?income:expense}</div>
+        <div class="ks-money-meta"><span>${incomeFirst?'净支出':'收入'} <span ${incomeFirst?'data-expense':'data-income'}>${incomeFirst?expense:income}</span></span></div>
       </div>`;
     }
     function week(){
@@ -711,19 +736,25 @@
       parts.forEach(part=>observer.observe(part.firstElementChild));
     }
     function ledgerFiltersDialog(){
-      const {type,category,note}=state.ledgerFilters;
-      const select=(label,name,value,options)=>`<label><span class="ks-label">${label}</span><select class="ks-control" name="${name}">
-        <option value="">不限</option>
-        ${options.map(([id,text])=>`<option value="${escapeText(id)}" ${value===id?'selected':''}>${escapeText(text)}</option>`).join('')}
-      </select></label>`;
-      const categories=allFinancialCategories().map(c=>[c.id,categoryDescriptionForId(c.id)]);
+      const draft=state.ledgerFilterDraft;
+      const group=(label,key,options)=>`<fieldset data-filter-group="${key}">
+        <legend class="ks-label">${label}</legend>
+        <div class="ks-ledger-filter-options">
+          ${options.map(([id,text])=>`<label class="ks-choice ks-ledger-check cursor-interaction"><input type="checkbox" value="${escapeText(id)}" ${draft[key]===null||draft[key].includes(id)?'checked':''}>${escapeText(text)}</label>`).join('')}
+          ${options.length?'':'<p class="ks-note">当前钱包范围没有可选分类</p>'}
+        </div>
+        <div class="ks-ledger-filter-bulk">
+          <button type="button" class="ks-text-btn" data-filter-bulk="all" aria-label="全选${label}">全选</button>
+          <button type="button" class="ks-text-btn" data-filter-bulk="none" aria-label="全不选${label}">全不选</button>
+        </div>
+      </fieldset>`;
       return `<div class="ks-modal-overlay ks-period-overlay" data-ledger-filter-overlay>
         <form class="ks-period-dialog" data-ledger-filters role="dialog" aria-modal="true" aria-label="流水筛选">
           <h3>流水筛选</h3>
           <div class="ks-period-body">
-            ${select('类型','type',type,['支出','收入','转账','退款'].map(value=>[value,value]))}
-            ${select('分类','category',category,categories)}
-            <label><span class="ks-label">备注关键词</span><input name="note" class="ks-control" value="${escapeText(note)}"></label>
+            ${group('类型','types',['收入','支出','转账','退款'].map(value=>[value,value]))}
+            ${group('分类','categoryNames',ledgerFilterCategories())}
+            <label><span class="ks-label">备注关键词</span><input name="note" class="ks-control" value="${escapeText(draft.note)}"></label>
             <button type="button" class="ks-text-btn" data-action="reset-ledger-filters">重置条件</button>
           </div>
           <div class="ks-period-actions">
@@ -752,7 +783,7 @@
           </div>`;
         }).join('')}</div><p class="ks-footnote">交互预览 · 示例数据</p>`;
       const entries=allEntries.filter(matchesLedgerScope).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
-      const groups=currencyGroups(entries,selectedWallets());
+      const selected=selectedWallets(),groups=currencyGroups(entries,selected);
       const period=state.ledgerRange?'所选期间':'本月';
       const includeYear=state.ledgerRange&&state.ledgerRange.from.slice(0,4)!==state.ledgerRange.to.slice(0,4);
       const empty='<p class="ks-empty-state">所选日期和钱包范围内没有账目</p>';
@@ -768,15 +799,16 @@
             ${group.length?'':empty}
           </section>`).join('')}
       </div><p class="ks-footnote">交互预览 · 各币种独立统计</p>`;
-      const {type,category,note}=state.ledgerFilters;
+      const {types,categoryNames,note}=state.ledgerFilters;
       const keyword=note.trim().toLocaleLowerCase();
-      const visibleEntries=entries.filter(entry=>(!type||type===entry.type)&&
-        (!category||category===categoryForEntry(entry))&&entry.note.toLocaleLowerCase().includes(keyword));
-      const activeFilters=Boolean(type||category||keyword);
+      const visibleEntries=entries.filter(entry=>(types===null||types.includes(entry.type))&&
+        (categoryNames===null||categoryNames.includes(categoryNameKey(categoryById(categoryForEntry(entry)))))&&
+        entry.note.toLocaleLowerCase().includes(keyword));
+      const activeFilters=types!==null||categoryNames!==null||Boolean(keyword);
       const filters=`<div class="ks-ledger-list-actions"><span class="ks-note">${visibleEntries.length} 笔</span>
         <button type="button" class="ks-choice ks-date" data-action="open-ledger-filters" aria-haspopup="dialog" aria-pressed="${activeFilters}">${icon('list-filter')}筛选</button></div>`;
       return `<section data-monthly-ledger aria-label="所选日期与钱包的流水" aria-live="polite">
-        ${groups.map(({code,entries:group})=>`<div class="ks-currency-group">${moneyCard(code,group)}</div>`).join('')}
+        ${groups.map(({code,entries:group})=>`<div class="ks-currency-group">${moneyCard(code,group,selected.filter(w=>w.code===code).every(w=>w.defaultToIncome))}</div>`).join('')}
         ${section(`${period}流水`,filters)}
         <div class="ks-record-list">
         ${visibleEntries.map(entry=>{
@@ -1169,7 +1201,7 @@
     const discard=group=>()=>group?.remove();
     const pageNode=()=>phone.querySelector(':scope > .ks-page-motion');
     const modalNode=()=>phone.querySelector(':scope > .ks-modal-overlay');
-    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.walletPickerOpen?'wallet':state.periodDraft?'period':state.ledgerFiltersOpen?'ledger-filters':state.githubDemo.review?'github-review':state.mealCalendar?'date-calendar':state.addingMealOption?'meal-option':null;
+    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.walletPickerOpen?'wallet':state.periodDraft?'period':state.ledgerFilterDraft?'ledger-filters':state.githubDemo.review?'github-review':state.mealCalendar?'date-calendar':state.addingMealOption?'meal-option':null;
     const primary=page=>navs.some(n=>n[0]===page);
     const localKey=()=>state.page==='meals'?JSON.stringify([state.mealTab,state.date,state.mealStatsFilters,state.mealListMode,state.mealFilters]):state.page==='ledger'?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds,state.ledgerFilters]):'';
     const localNodes=()=>{
@@ -1307,10 +1339,10 @@
         for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
         if(previous?.modal!==kind)phone.querySelector('[data-period-mode][aria-pressed=true],[data-period-month][aria-pressed=true]').focus({preventScroll:true});
       }
-      if(state.ledgerFiltersOpen){
+      if(state.ledgerFilterDraft){
         phone.insertAdjacentHTML('beforeend',ledgerFiltersDialog());
         for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
-        phone.querySelector('[data-ledger-filters] select').focus({preventScroll:true});
+        phone.querySelector('[data-ledger-filters] input').focus({preventScroll:true});
       }
       if(state.githubDemo.review){
         phone.insertAdjacentHTML('beforeend',githubDemoDialog());
@@ -1377,10 +1409,10 @@
     function closeCalculator(apply){if(apply){try{state.amount=inputAmount(calcCents(state.calcExpression));}catch(e){phone.querySelector('.ks-calc-error').textContent=e.message;return;}}state.calcOpen=false;render();phone.querySelector('[data-action=open-calculator]').focus({preventScroll:true});}
     function closeLedgerFilters(apply){
       if(apply){
-        const fields=phone.querySelector('[data-ledger-filters]').elements;
-        state.ledgerFilters={type:fields.type.value,category:fields.category.value,note:fields.note.value};
+        const note=phone.querySelector('[data-ledger-filters] [name=note]').value;
+        state.ledgerFilters={...state.ledgerFilterDraft,note};
       }
-      state.ledgerFiltersOpen=false;render();
+      state.ledgerFilterDraft=null;render();
       phone.querySelector('[data-action=open-ledger-filters]')?.focus({preventScroll:true});
     }
     function closeWalletPicker(action){
@@ -1505,11 +1537,19 @@
         if(next.customColor===null){phone.querySelector('[data-appearance-error]').textContent='请输入六位 HEX 颜色，例如 #C47A4A。';return;}
         applyAnimatedAppearance(next);state.notice='已应用外观。';render();persist();return;
       }
-      if(b.dataset.action==='open-ledger-filters'){state.ledgerFiltersOpen=true;render();return;}
+      if(b.dataset.action==='open-ledger-filters'){state.ledgerFilterDraft={...state.ledgerFilters};render();return;}
       if(b.dataset.action==='cancel-ledger-filters'){closeLedgerFilters(false);return;}
+      if(b.dataset.filterBulk){
+        const group=b.closest('[data-filter-group]'),key=group.dataset.filterGroup;
+        const all=b.dataset.filterBulk==='all';
+        state.ledgerFilterDraft[key]=all?null:[];
+        group.querySelectorAll('input').forEach(input=>{input.checked=all;});
+        return;
+      }
       if(b.dataset.action==='reset-ledger-filters'){
-        const fields=b.form.elements;
-        for(const name of Object.keys(blankLedgerFilters()))fields[name].value='';
+        state.ledgerFilterDraft=blankLedgerFilters();
+        b.form.querySelectorAll('input[type=checkbox]').forEach(input=>{input.checked=true;});
+        b.form.elements.note.value='';
         return;
       }
       if(b.dataset.action==='choose-ledger-period'){
@@ -1646,7 +1686,7 @@
         }else if(state.addingMealOption)closeMealOption();
         else if(state.mealCalendar)closeMealCalendar(false);
         else if(state.periodDraft)closePeriod(false);
-        else if(state.ledgerFiltersOpen)closeLedgerFilters(false);
+        else if(state.ledgerFilterDraft)closeLedgerFilters(false);
         else if(state.walletPickerOpen)closeWalletPicker('cancel');
         else if(state.deletePending)cancelDelete();
         else closeCalculator(false);
@@ -1658,6 +1698,15 @@
     });
     phone.addEventListener('change',event=>{
       const e=event.target;
+      if(e.matches('[data-filter-group] input[type=checkbox]')){
+        const group=e.closest('[data-filter-group]'),key=group.dataset.filterGroup;
+        const options=[...group.querySelectorAll('input')].map(input=>input.value);
+        const selected=new Set(state.ledgerFilterDraft[key]??options);
+        if(e.checked)selected.add(e.value);else selected.delete(e.value);
+        state.ledgerFilterDraft[key]=selected.size===options.length&&options.every(value=>selected.has(value))
+          ?null:[...selected];
+        return;
+      }
       if(e.matches('[data-github-wifi]')){state.githubDemo.wifi=e.checked;return;}
       if(e.matches('[data-github-wifi-draft]')){state.githubDemo.draftWifi=e.checked;return;}
       if(e.matches('[data-github-scenario]')){

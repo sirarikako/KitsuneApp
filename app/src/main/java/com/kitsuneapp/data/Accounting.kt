@@ -18,6 +18,14 @@ data class LedgerPeriod(val month: String, val start: String? = null, val end: S
     val label get() = if (start != null && end != null) "$start 至 $end" else YearMonth.parse(month).let { "${it.year} 年 ${it.monthValue} 月" }
 }
 
+data class LedgerEntryFilters(
+    val types: Set<EntryType>? = null,
+    val categoryNames: Set<String>? = null,
+    val note: String = "",
+) : Serializable {
+    val isActive get() = types != null || categoryNames != null || note.isNotBlank()
+}
+
 data class Totals(
     val currency: String,
     val scale: Int,
@@ -45,6 +53,15 @@ class Ledger(records: Records) {
             category.name + " · " + (wallet(category.walletId)?.name ?: "通用")
         } else category.name
     } ?: ""
+    fun filterCategories(wallets: List<Wallet>): List<Category> {
+        val walletIds = wallets.mapTo(mutableSetOf()) { it.id }
+        val historical = entries.asSequence().filter { it.walletId in walletIds }.mapNotNull(::categoryId).toSet()
+        return categories.filter {
+            it.scope != Scope.PREPARATION &&
+                ((it.walletId == null && !it.archived) || it.walletId in walletIds || it.id in historical)
+        }.distinctBy(Category::normalizedName)
+    }
+
     fun availableWallets() = wallets.filterNot { it.archived }
     val defaultWallet = wallet(records.state.defaultWalletId)?.takeUnless { it.archived }
 
@@ -69,9 +86,16 @@ class Ledger(records: Records) {
         return sums
     }
 
-    fun filtered(period: LedgerPeriod, range: WalletRange): List<FinancialEntry> {
+    fun filtered(period: LedgerPeriod, range: WalletRange, filters: LedgerEntryFilters = LedgerEntryFilters()): List<FinancialEntry> {
         val ids = range.selected(wallets).map { it.id }.toSet()
-        return entries.filter { period.matches(it.date) && (it.walletId in ids || it.toWalletId in ids) }
+        val query = filters.note.trim()
+        return entries.filter {
+            period.matches(it.date) && (it.walletId in ids || it.toWalletId in ids) &&
+                (filters.types == null || it.type in filters.types) &&
+                (filters.categoryNames == null || categoryById[categoryId(it)]?.normalizedName
+                    ?.let { name -> name in filters.categoryNames } == true) &&
+                it.note.contains(query, ignoreCase = true)
+        }
     }
 
     fun statistics(period: LedgerPeriod, range: WalletRange): List<Totals> {

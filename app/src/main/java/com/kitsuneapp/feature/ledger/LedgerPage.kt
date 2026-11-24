@@ -46,9 +46,7 @@ private data class LedgerContent(
     val page: Int,
     val period: LedgerPeriod,
     val wallets: WalletRange,
-    val type: EntryType? = null,
-    val category: String? = null,
-    val note: String = "",
+    val filters: LedgerEntryFilters = LedgerEntryFilters(),
 )
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -58,9 +56,7 @@ fun LedgerPage(records: Records, open: (String) -> Unit, openDetails: (String) -
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var period by rememberSaveable { mutableStateOf(LedgerPeriod(YearMonth.now().toString())) }
     var wallets by rememberSaveable { mutableStateOf(WalletRange()) }
-    var type by rememberSaveable { mutableStateOf<EntryType?>(null) }
-    var category by rememberSaveable { mutableStateOf<String?>(null) }
-    var note by rememberSaveable { mutableStateOf("") }
+    var entryFilters by rememberSaveable { mutableStateOf(LedgerEntryFilters()) }
     var walletPicker by rememberSaveable { mutableStateOf(false) }
     var datePicker by rememberSaveable { mutableStateOf(false) }
     var filters by rememberSaveable { mutableStateOf(false) }
@@ -114,13 +110,20 @@ fun LedgerPage(records: Records, open: (String) -> Unit, openDetails: (String) -
                     }
                 }
             }
-            val content = if (tab == 0) LedgerContent(tab, period, wallets, type, category, note)
+            val content = if (tab == 0) LedgerContent(tab, period, wallets, entryFilters)
                 else LedgerContent(tab, period, wallets)
             ContentFade(content, Modifier.weight(1f)) { shown ->
                 val totals = remember(ledger, shown.period, shown.wallets, shown.page == 1) {
                     if (shown.page == 1) emptyList() else ledger.statistics(shown.period, shown.wallets)
                 }
                 val balances = remember(ledger, shown.page == 1) { if (shown.page == 1) ledger.balance() else emptyMap() }
+                val entries = remember(ledger, shown) {
+                    if (shown.page == 0) ledger.filtered(shown.period, shown.wallets, shown.filters) else emptyList()
+                }
+                val incomeFirst = remember(ledger, shown.wallets, shown.page) {
+                    if (shown.page == 0) shown.wallets.selected(ledger.wallets).groupBy(Wallet::currencyCode)
+                        .filterValues { group -> group.all(Wallet::defaultToIncome) }.keys else emptySet()
+                }
                 val custom = shown.period.start != null
                 val periodLabel = if (custom) "所选期间" else "本月"
                 val summaryPeriod = if (custom) periodLabel else "${YearMonth.parse(shown.period.month).monthValue} 月"
@@ -170,24 +173,24 @@ fun LedgerPage(records: Records, open: (String) -> Unit, openDetails: (String) -
                 ) {
                     when (shown.page) {
                         0 -> {
-                            val entries = ledger.filtered(shown.period, shown.wallets).filter {
-                                (shown.type == null || it.type == shown.type) &&
-                                    (shown.category == null || ledger.categoryId(it) == shown.category) &&
-                                    it.note.contains(shown.note.trim(), true)
-                            }
                             items(totals, key = { "summary:${it.currency}" }) { total ->
+                                val primaryIncome = total.currency in incomeFirst
+                                val primaryLabel = if (primaryIncome) "收入" else "净支出"
+                                val secondaryLabel = if (primaryIncome) "净支出" else "收入"
+                                val primaryAmount = if (primaryIncome) total.income else total.expenses
+                                val secondaryAmount = if (primaryIncome) total.expenses else total.income
                                 Paper {
-                                    Text("$summaryPeriod 净支出 · ${total.currency}", color = MaterialTheme.colorScheme.primary,
+                                    Text("$summaryPeriod $primaryLabel · ${total.currency}", color = MaterialTheme.colorScheme.primary,
                                         style = MaterialTheme.typography.bodySmall)
-                                    MoneyText(displayMoney(total.expenses, total.scale))
-                                    Text("收入 ${displayMoney(total.income, total.scale)}", style = MaterialTheme.typography.labelSmall,
+                                    MoneyText(displayMoney(primaryAmount, total.scale))
+                                    Text("$secondaryLabel ${displayMoney(secondaryAmount, total.scale)}", style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                             item { Section("${periodLabel}流水") {
                                 Secondary("${entries.size} 笔")
                                 Spacer(Modifier.width(8.dp))
-                                Choice("筛选", { filters = true }, selected = shown.type != null || shown.category != null || shown.note.isNotBlank(),
+                                Choice("筛选", { filters = true }, selected = shown.filters.isActive,
                                     icon = designIcon(R.drawable.ks_list_filter))
                             } }
                             if (entries.isEmpty()) item {
@@ -267,30 +270,11 @@ fun LedgerPage(records: Records, open: (String) -> Unit, openDetails: (String) -
         }
     }
     if (filters) {
-        var draftType by rememberSaveable { mutableStateOf(type?.name.orEmpty()) }
-        var draftCategory by rememberSaveable { mutableStateOf(category.orEmpty()) }
-        var draftNote by rememberSaveable { mutableStateOf(note) }
-        val ids = selected.map { it.id }.toSet()
-        val historical = ledger.entries.filter { it.walletId in ids }.mapNotNull(ledger::categoryId).toSet()
-        val options = ledger.categories.filter {
-            it.scope != Scope.PREPARATION && ((it.walletId == null && !it.archived) || it.walletId in ids || it.id in historical)
+        val options = remember(ledger, selected) { ledger.filterCategories(selected) }
+        LedgerEntryFilterDialog(entryFilters, options, dismiss = { filters = false }) {
+            entryFilters = it
+            filters = false
         }
-        AlertDialog(onDismissRequest = { filters = false }, shape = DialogShape, title = { Text("流水筛选") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Select("类型", draftType, listOf("") + EntryType.entries.map { it.name },
-                        { if (it.isEmpty()) "不限" else EntryType.valueOf(it).label }, { draftType = it })
-                    Select("分类", draftCategory, listOf("") + options.map { it.id },
-                        { if (it.isEmpty()) "不限" else ledger.categoryLabel(it) }, { draftCategory = it })
-                    Field("备注关键词", draftNote, { draftNote = it })
-                    TextButton({ draftType = ""; draftCategory = ""; draftNote = "" }) { Text("重置条件") }
-                }
-            }, confirmButton = { Primary("应用", {
-                type = draftType.takeIf(String::isNotEmpty)?.let(EntryType::valueOf)
-                category = draftCategory.takeIf(String::isNotEmpty)
-                note = draftNote
-                filters = false
-            }) }, dismissButton = { TextButton({ filters = false }) { Text("取消") } })
     }
 }
 
