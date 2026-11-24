@@ -16,7 +16,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DateRange
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material3.*
@@ -56,7 +55,7 @@ fun SettingsPage(githubPaused: Boolean, navigate: (String) -> Unit) {
             Section("个性化")
             Paper(padding = 0) {
                 Column(Modifier.padding(horizontal = 16.dp)) {
-                    Setting("外观与调色板", Icons.Outlined.FavoriteBorder) { navigate("appearance") }
+                    Setting("外观与调色板", designIcon(R.drawable.ks_palette)) { navigate("appearance") }
                 }
             }
             Section("数据与备份")

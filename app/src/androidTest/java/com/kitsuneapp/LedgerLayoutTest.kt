@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -28,12 +29,14 @@ import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isDisplayed
+import androidx.compose.ui.test.isFocused
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -45,10 +48,14 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
+import androidx.compose.ui.test.waitUntilAtLeastOneExists
+import androidx.compose.ui.test.waitUntilExactlyOneExists
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
@@ -374,24 +381,79 @@ class LedgerLayoutTest {
     }
 
     @Test
-    fun validatesTwentyFourHourTimeAndKeepsCanceledValue() {
+    fun replacesTheExistingTimeWithFourDigitsAndSupportsTheClock() {
         var time by mutableStateOf("09:41")
         compose.setContent { KitsuneTheme(ThemePreferences(), forceDark = true) { TimeControl(time, { time = it }) } }
         val trigger = compose.onNodeWithContentDescription("时间")
-        val input = compose.onNodeWithContentDescription("时间（HH:mm）")
+        val hour = compose.onNodeWithContentDescription("小时")
+        val minute = compose.onNodeWithContentDescription("分钟")
         val confirm = compose.onNodeWithText("确定")
-        trigger.performClick()
-        compose.onNodeWithText("输入时间").performClick()
-        input.performTextReplacement("24:00")
+        fun waitForFocus(label: String) =
+            compose.waitUntilExactlyOneExists(hasContentDescription(label) and isFocused(), 10_000)
+        fun openInput() {
+            trigger.performClick()
+            waitForFocus("小时")
+        }
+        openInput()
+        hour.assertIsFocused().assertTextEquals("09")
+        assertEquals(TextRange(0, 2), hour.fetchSemanticsNode().config[SemanticsProperties.TextSelectionRange])
+        saveScreenshot("kitsune-time-input")
+        hour.performTextInput("2")
         confirm.assertIsNotEnabled()
-        input.performTextReplacement("23:59")
+        hour.performTextInput("4")
+        hour.assertIsFocused().assertTextEquals("24")
+        confirm.assertIsNotEnabled()
         compose.onNodeWithText("取消").performClick()
         compose.runOnIdle { assertEquals("09:41", time) }
-        trigger.performClick()
-        compose.onNodeWithText("输入时间").performClick()
-        input.performTextReplacement("00:00")
+
+        openInput()
+        hour.performTextInput("0")
+        hour.performTextInput("0")
+        waitForFocus("分钟")
+        minute.assertIsFocused().assertTextEquals("41")
+        assertEquals(TextRange(0, 2), minute.fetchSemanticsNode().config[SemanticsProperties.TextSelectionRange])
+        minute.performTextInput("0")
+        minute.performTextInput("0")
         confirm.performClick()
         compose.runOnIdle { assertEquals("00:00", time) }
+
+        openInput()
+        hour.performTextInput("2")
+        hour.performTextInput("3")
+        waitForFocus("分钟")
+        minute.performTextInput("6")
+        minute.performTextInput("0")
+        confirm.assertIsNotEnabled()
+        minute.performTextReplacement("59")
+        compose.onNodeWithContentDescription("使用时钟").performClick()
+        val dialTopLabel = compose.activity.getString(androidx.compose.material3.R.string.m3c_time_picker_hour_24h_suffix, 0)
+        val dialTop = compose.onNodeWithContentDescription(dialTopLabel)
+        compose.waitUntil(10_000) { dialTop.isDisplayed() }
+        val dialogCenter = compose.onNode(isDialog()).fetchSemanticsNode().boundsInRoot.center.x
+        val hourCenter = compose.onNodeWithText("23").fetchSemanticsNode().boundsInRoot.center.x
+        val minuteCenter = compose.onNodeWithText("59").fetchSemanticsNode().boundsInRoot.center.x
+        assertEquals("The dial is centered in the dialog", dialogCenter, dialTop.fetchSemanticsNode().boundsInRoot.center.x, 1f)
+        assertEquals("The time display is centered in the dialog", dialogCenter, (hourCenter + minuteCenter) / 2, 1f)
+        saveScreenshot("kitsune-time-clock")
+        compose.onNodeWithContentDescription("输入时间").performClick()
+        waitForFocus("小时")
+        hour.assertIsFocused().assertTextEquals("23")
+        minute.assertTextEquals("59")
+        confirm.performClick()
+        compose.runOnIdle { assertEquals("23:59", time) }
+
+        openInput()
+        compose.onNodeWithContentDescription("使用时钟").performClick()
+        val hourOnDial = compose.activity.getString(androidx.compose.material3.R.string.m3c_time_picker_hour_24h_suffix, 17)
+        val minuteOnDial = compose.activity.getString(androidx.compose.material3.R.string.m3c_time_picker_minute_suffix, 15)
+        compose.onNodeWithContentDescription(hourOnDial).performScrollTo().performTouchInput { click() }
+        compose.waitUntilAtLeastOneExists(hasText("17"), 5_000)
+        compose.onNodeWithText("59").performClick()
+        compose.waitUntilAtLeastOneExists(hasContentDescription(minuteOnDial), 5_000)
+        compose.onNodeWithContentDescription(minuteOnDial).performScrollTo().performTouchInput { click() }
+        compose.waitUntilAtLeastOneExists(hasText("15"), 5_000)
+        confirm.performClick()
+        compose.runOnIdle { assertEquals("17:15", time) }
     }
 
     @Test

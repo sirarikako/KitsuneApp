@@ -13,9 +13,32 @@
       if(event.target.matches('[data-ledger-filter-overlay]')){closeLedgerFilters(false);return;}
       if(event.target.matches('.ks-period-overlay')){closePeriod(false);return;}
       if(event.target.matches('.ks-calendar-overlay')){closeMealCalendar(false);return;}
+      if(event.target.matches('.ks-time-overlay')){closeEntryTime(false);return;}
       if(event.target.matches('[data-meal-option-overlay]')){closeMealOption();return;}
       const b=event.target.closest('button');if(!b)return;
       capture();state.notice='';
+      if(b.dataset.action==='open-entry-time'){
+        const [hour,minute]=state.entryDraft.dateTime.slice(-5).split(':');
+        state.entryTimeDraft={hour,minute,clock:false,part:'hour',clockTime:{hour,minute}};
+        render();return;
+      }
+      if(b.closest('[data-entry-time]')){
+        const d=state.entryTimeDraft;
+        if(b.dataset.timeAction==='cancel'){closeEntryTime(false);return;}
+        if(b.dataset.timeAction==='mode'){
+          if(!d.clock){
+            for(const part of ['hour','minute'])d[part]=d.clockTime[part]=validTimePart(d[part],part)?d[part]:d.clockTime[part];
+            d.part='hour';
+          }
+          d.clock=!d.clock;
+        }else if(b.dataset.timePart){
+          d.part=b.dataset.timePart;
+        }else if(b.dataset.timeValue!==undefined){
+          d[d.part]=d.clockTime[d.part]=timeDigits(b.dataset.timeValue);
+          d.part='minute';
+        }else return;
+        render();return;
+      }
       if(b.dataset.action==='open-meal-calendar'){
         const compact=phone.clientWidth<360;
         state.mealCalendar={selected:state.date,month:state.date.slice(0,7),text:state.date,year:'',mode:compact?'text':'calendar',compact};
@@ -219,16 +242,22 @@
           state.githubDemo.review=null;render();phone.querySelector('[data-github-action=restore-preview]')?.focus({preventScroll:true});
         }else if(state.addingMealOption)closeMealOption();
         else if(state.mealCalendar)closeMealCalendar(false);
+        else if(state.entryTimeDraft)closeEntryTime(false);
         else if(state.periodDraft)closePeriod(false);
         else if(state.ledgerFilterDraft)closeLedgerFilters(false);
         else if(state.walletPickerOpen)closeWalletPicker('cancel');
         else if(state.deletePending)cancelDelete();
         else closeCalculator(false);
+      }else if(event.key==='Enter'&&event.target.matches('[data-entry-time] [name=hour]')){
+        event.preventDefault();event.target.form.elements.minute.focus();
       }else if(event.key==='Tab'){
         const dialog=modalNode().firstElementChild,controls=[...dialog.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled)')],first=controls[0],last=controls[controls.length-1];
         if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
         else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
       }
+    });
+    phone.addEventListener('focusin',event=>{
+      if(event.target.matches('[data-entry-time] input'))event.target.select();
     });
     phone.addEventListener('change',event=>{
       const e=event.target;
@@ -273,6 +302,16 @@
     });
     phone.addEventListener('input',event=>{
       const e=event.target;
+      if(e.matches('[data-entry-time] input')){
+        const d=state.entryTimeDraft;
+        e.value=e.value.replace(/\D/g,'');
+        d[e.name]=e.value;
+        const valid=validTimePart(e.value,e.name);
+        e.setAttribute('aria-invalid',String(e.value.length===2&&!valid));
+        e.form.querySelector('[type=submit]').disabled=!validTimePart(d.hour,'hour')||!validTimePart(d.minute,'minute');
+        if(e.name==='hour'&&valid)e.form.elements.minute.focus();
+        return;
+      }
       if(e.matches('[data-meal-option-form] input')){
         e.form.querySelector('[type=submit]').disabled=!e.value.trim();
         e.form.querySelector('[data-meal-option-error]').textContent='';
@@ -316,6 +355,7 @@
     });
     phone.addEventListener('submit',event=>{
       event.preventDefault();const f=event.target;capture();
+      if(f.matches('[data-entry-time]')){closeEntryTime(true);return;}
       if(f.matches('[data-meal-option-form]')){
         const name=f.elements.optionName.value.trim(),method=state.addingMealOption==='method';
         const list=method?mealMethods:mealPreparations;
@@ -360,7 +400,7 @@
         try{
           if(!f.elements.wallet.value){error('请先选择钱包。');return;}const cents=calcCents(state.amount),walletId=f.elements.wallet.value;
           if(!effectiveFinancialCategories(walletId,state.entryType).some(c=>c.id===f.elements.category.value)){error('请选择当前钱包可用的分类。');return;}
-          const entry={id:`draft-${state.nextEntryId++}`,type:state.entryType,cents,walletId,category:f.elements.category.value,note:f.elements.note.value,date:f.elements.dateTime.value.slice(0,10),time:f.elements.dateTime.value.slice(11,16)};
+          const entry={id:`draft-${state.nextEntryId++}`,type:state.entryType,cents,walletId,category:f.elements.category.value,note:f.elements.note.value,date:f.elements.date.value,time:state.entryDraft.dateTime.slice(-5)};
           state.entries.push(entry);if(!walletById(walletId).separateAccounting)state.lastWalletId=walletId;state.page=state.entryReturn;
           state.notice=state.page==='ledger'&&!matchesLedgerScope(entry)?'已保存到当前演示，该账目不在当前筛选范围内。':'已保存到当前演示。';
           render();
