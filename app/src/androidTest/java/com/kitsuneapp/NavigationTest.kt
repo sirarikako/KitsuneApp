@@ -270,10 +270,10 @@ class NavigationTest {
         compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
         compose.onNodeWithText("用餐").performClick()
         compose.onNodeWithText("早餐").performClick()
-        val dish = compose.onNodeWithContentDescription("菜品内容").performScrollTo().performClick()
-        dish.performTextReplacement("键盘测试草稿")
-
+        val dish = compose.onNodeWithContentDescription("菜品内容").performScrollTo()
+        dish.performSemanticsAction(SemanticsActions.RequestFocus)
         compose.waitUntil(10_000) { keyboardIsVisible() }
+        dish.performTextReplacement("键盘测试草稿")
         compose.onNodeWithText("保存早餐记录").performScrollTo().assertIsDisplayed()
 
         swipeFromLeftEdge()

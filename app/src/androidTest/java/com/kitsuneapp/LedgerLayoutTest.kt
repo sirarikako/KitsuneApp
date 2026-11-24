@@ -36,6 +36,7 @@ import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isDisplayed
+import androidx.compose.ui.test.isFocused
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -52,6 +53,7 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
+import androidx.compose.ui.test.waitUntilExactlyOneExists
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.Density
@@ -386,7 +388,13 @@ class LedgerLayoutTest {
         val hour = compose.onNodeWithContentDescription("小时")
         val minute = compose.onNodeWithContentDescription("分钟")
         val confirm = compose.onNodeWithText("确定")
-        trigger.performClick()
+        fun waitForFocus(label: String) =
+            compose.waitUntilExactlyOneExists(hasContentDescription(label) and isFocused(), 10_000)
+        fun openInput() {
+            trigger.performClick()
+            waitForFocus("小时")
+        }
+        openInput()
         hour.assertIsFocused().assertTextEquals("09")
         assertEquals(TextRange(0, 2), hour.fetchSemanticsNode().config[SemanticsProperties.TextSelectionRange])
         saveScreenshot("kitsune-time-input")
@@ -398,9 +406,10 @@ class LedgerLayoutTest {
         compose.onNodeWithText("取消").performClick()
         compose.runOnIdle { assertEquals("09:41", time) }
 
-        trigger.performClick()
+        openInput()
         hour.performTextInput("0")
         hour.performTextInput("0")
+        waitForFocus("分钟")
         minute.assertIsFocused().assertTextEquals("41")
         assertEquals(TextRange(0, 2), minute.fetchSemanticsNode().config[SemanticsProperties.TextSelectionRange])
         minute.performTextInput("0")
@@ -408,9 +417,10 @@ class LedgerLayoutTest {
         confirm.performClick()
         compose.runOnIdle { assertEquals("00:00", time) }
 
-        trigger.performClick()
+        openInput()
         hour.performTextInput("2")
         hour.performTextInput("3")
+        waitForFocus("分钟")
         minute.performTextInput("6")
         minute.performTextInput("0")
         confirm.assertIsNotEnabled()
@@ -418,12 +428,13 @@ class LedgerLayoutTest {
         compose.onNodeWithContentDescription("使用时钟").performClick()
         saveScreenshot("kitsune-time-clock")
         compose.onNodeWithContentDescription("输入时间").performClick()
+        waitForFocus("小时")
         hour.assertIsFocused().assertTextEquals("23")
         minute.assertTextEquals("59")
         confirm.performClick()
         compose.runOnIdle { assertEquals("23:59", time) }
 
-        trigger.performClick()
+        openInput()
         compose.onNodeWithContentDescription("使用时钟").performClick()
         val hourOnDial = compose.activity.getString(androidx.compose.material3.R.string.m3c_time_picker_hour_24h_suffix, 17)
         val minuteOnDial = compose.activity.getString(androidx.compose.material3.R.string.m3c_time_picker_minute_suffix, 15)
