@@ -21,6 +21,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -221,20 +222,26 @@ class NavigationTest {
         val initialConfiguration = compose.activity.resources.configuration.orientation
         val rotateTo = if (initialConfiguration == Configuration.ORIENTATION_PORTRAIT)
             ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        val pickerTitle = compose.onNodeWithText("选择钱包")
+        fun assertPickerVisible() {
+            // The sheet can be composed while the IME or rotation transition still covers it.
+            compose.waitUntil(15_000) { pickerTitle.isDisplayed() }
+            pickerTitle.assertIsDisplayed()
+        }
         try {
             compose.onNodeWithText("记一笔").performScrollTo().performClick()
             compose.waitUntilExactlyOneExists(hasText("金额计算器"), 10_000)
             compose.onNodeWithContentDescription("关闭").performClick()
             compose.onNodeWithContentDescription("备注").performScrollTo().performTextReplacement("旋转保留")
             compose.onNodeWithContentDescription("钱包").performScrollTo().performClick()
-            compose.onNodeWithText("选择钱包").assertIsDisplayed()
+            assertPickerVisible()
             activity.onActivity { it.requestedOrientation = rotateTo }
             compose.waitUntil(15_000) {
                 compose.activity.resources.configuration.orientation != initialConfiguration
             }
-            compose.onNodeWithText("选择钱包").assertIsDisplayed()
+            assertPickerVisible()
             activity.recreate()
-            compose.waitUntilAtLeastOneExists(hasText("选择钱包"), 15_000)
+            assertPickerVisible()
             compose.onNodeWithText(name).performClick()
             compose.onNodeWithText("金额计算器").assertDoesNotExist()
             compose.onNode(hasContentDescription("钱包") and hasText("$name · CNY")).assertExists()
