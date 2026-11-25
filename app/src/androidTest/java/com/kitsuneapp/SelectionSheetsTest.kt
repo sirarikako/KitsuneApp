@@ -387,6 +387,10 @@ class SelectionSheetsScreenshotTest {
         val list = compose.onNode(hasScrollToNodeAction() and inDialog)
         sheetText("应用").assertIsDisplayed()
         EntryType.entries.forEach { sheetText(it.label).assertIsDisplayed().assertIsSelected() }
+        if (profile == "narrow") {
+            val chipRows = EntryType.entries.map { sheetText(it.label).fetchSemanticsNode().boundsInRoot.top }
+            assertEquals("320dp at the default font size should fit all types on one row", 1, chipRows.distinct().size)
+        }
         capture("流水筛选", "ledger-filter", profile)
 
         sheetText("支出").performClick().assertIsNotSelected()
