@@ -82,7 +82,10 @@ class NavigationTest {
         try {
             compose.waitUntilAtLeastOneExists(hasText("JPY"), 20_000)
             compose.onNodeWithText("记一笔").performScrollTo().performClick()
+            compose.waitUntilExactlyOneExists(hasText("金额计算器"), 10_000)
+            compose.onNodeWithContentDescription("关闭").performClick()
             compose.onNodeWithText("收支类型").assertIsDisplayed()
+            compose.onNodeWithText("金额计算器").assertDoesNotExist()
             compose.onNodeWithContentDescription("返回").performClick()
             compose.onNodeWithTag("home-ledger-card").assertExists()
         } finally {
@@ -111,6 +114,9 @@ class NavigationTest {
             compose.waitUntilAtLeastOneExists(hasText(incomeWallet), 20_000)
             compose.onNodeWithText("首页").performClick()
             compose.onNodeWithText("记一笔").performScrollTo().performClick()
+            compose.waitUntilExactlyOneExists(hasText("金额计算器"), 10_000)
+            compose.onNodeWithText("JPY").assertIsDisplayed()
+            compose.onNodeWithContentDescription("关闭").performClick()
             compose.onNodeWithText("收入").assertIsSelected()
 
             compose.onNodeWithText(incomeWallet).performClick()
@@ -126,11 +132,14 @@ class NavigationTest {
             compose.onNodeWithText(expenseWallet).performClick()
             compose.onNode(hasText(incomeName) and hasText("JPY · 独立核算")).performClick()
             compose.onNodeWithText("支出").assertIsSelected()
+            compose.onNodeWithText("金额计算器").assertDoesNotExist()
 
             compose.onNodeWithContentDescription("返回").performClick()
             compose.onNodeWithText("记账").performClick()
             compose.onNodeWithText("流水").performClick()
             compose.onNodeWithContentDescription("记一笔").performClick()
+            compose.waitUntilExactlyOneExists(hasText("金额计算器"), 10_000)
+            compose.onNodeWithContentDescription("关闭").performClick()
             compose.onNodeWithText("收入").assertIsSelected()
         } finally {
             runBlocking { walletIds.forEach { repository.removeWallet(it) } }
@@ -156,11 +165,17 @@ class NavigationTest {
             compose.waitUntilAtLeastOneExists(hasText("$name · JPY"), 20_000)
             compose.onNodeWithText("流水").performClick()
             fab.performClick()
-            compose.onNode(amount).performClick()
+            compose.waitUntilExactlyOneExists(hasText("金额计算器"), 10_000)
             compose.onNodeWithText("3").performScrollTo().performClick()
+            compose.activityRule.scenario.recreate()
+            compose.waitUntilExactlyOneExists(hasText("金额计算器"), 15_000)
+            compose.onNode(hasContentDescription("计算结果") and hasText("3")).assertIsDisplayed()
             compose.onNodeWithText("7").performScrollTo().performClick()
-            compose.onNodeWithText("使用此金额").performClick()
+            compose.onNodeWithText("确认金额").performClick()
             compose.onNode(amount and hasText("37")).assertExists()
+            compose.activityRule.scenario.recreate()
+            compose.waitUntilExactlyOneExists(amount and hasText("37"), 15_000)
+            compose.onNodeWithText("金额计算器").assertDoesNotExist()
             note.performScrollTo().performTextReplacement("上一笔的备注")
 
             val save = compose.onNodeWithText("保存收入").performScrollTo().assertIsEnabled()
@@ -174,6 +189,8 @@ class NavigationTest {
             fab.performSemanticsAction(SemanticsActions.OnClick)
             compose.mainClock.autoAdvance = true
 
+            compose.waitUntilExactlyOneExists(hasText("金额计算器"), 10_000)
+            compose.onNodeWithContentDescription("关闭").performClick()
             compose.onNodeWithText("收入").assertIsSelected()
             compose.onNodeWithText("$name · JPY").assertExists()
             compose.onNode(amount and hasText("0")).assertExists()
@@ -206,6 +223,8 @@ class NavigationTest {
             ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         try {
             compose.onNodeWithText("记一笔").performScrollTo().performClick()
+            compose.waitUntilExactlyOneExists(hasText("金额计算器"), 10_000)
+            compose.onNodeWithContentDescription("关闭").performClick()
             compose.onNodeWithContentDescription("备注").performScrollTo().performTextReplacement("旋转保留")
             compose.onNodeWithContentDescription("钱包").performScrollTo().performClick()
             compose.onNodeWithText("选择钱包").assertIsDisplayed()
@@ -217,6 +236,7 @@ class NavigationTest {
             activity.recreate()
             compose.waitUntilAtLeastOneExists(hasText("选择钱包"), 15_000)
             compose.onNodeWithText(name).performClick()
+            compose.onNodeWithText("金额计算器").assertDoesNotExist()
             compose.onNode(hasContentDescription("钱包") and hasText("$name · CNY")).assertExists()
             assertEquals("旋转保留", compose.onNodeWithContentDescription("备注")
                 .fetchSemanticsNode().config[SemanticsProperties.InputText].text)
@@ -255,6 +275,8 @@ class NavigationTest {
             compose.waitUntilAtLeastOneExists(hasText("$walletName · CNY"), 20_000)
             compose.onNodeWithText("首页").performClick()
             compose.onNodeWithText("记一笔").performScrollTo().performClick()
+            compose.waitUntilExactlyOneExists(hasText("金额计算器"), 10_000)
+            compose.onNodeWithContentDescription("关闭").performClick()
             compose.waitUntilAtLeastOneExists(hasContentDescription("分类"), 10_000)
             compose.onNodeWithContentDescription("备注").performScrollTo().performTextReplacement("保留备注")
             val category = compose.onNodeWithContentDescription("分类")

@@ -1983,9 +1983,6 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-setting&gt;small{color:var(--ks-dim);font-size:var(--ks-font-note);text-align:right}
   #kitsune-preview .ks-setting select{background:var(--ks-card-surface);border:var(--ks-card-border);border-radius:var(--ks-control-radius);font-size:var(--ks-font-note);min-height:var(--ks-control-height);max-width:48%;min-width:0;padding:var(--ks-space-2);color:var(--ks-ink)}
   #kitsune-preview .ks-setting option{background:var(--ks-paper)}
-  #kitsune-preview .ks-calculator{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-  #kitsune-preview .ks-key{border:var(--ks-card-border);background:var(--ks-card-surface);font-size:20px;min-height:var(--ks-control-height);border-radius:var(--ks-control-radius)}
-  #kitsune-preview .ks-key.ks-operator{background:var(--ks-card-surface);color:var(--ks-accent)}
   #kitsune-preview .ks-amount-input{width:100%;font-size:34px!important;line-height:1.5;text-align:right;font-variant-numeric:tabular-nums;border:var(--ks-card-border);border-radius:var(--ks-control-radius);background:var(--ks-card-surface);min-height:var(--ks-control-height);padding:var(--ks-space-2) var(--ks-space-3);min-width:0}
   #kitsune-preview .ks-amount-trigger{display:block}
   #kitsune-preview .ks-full{width:100%}
@@ -2079,18 +2076,23 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-selection-chip:has(input:checked) span{visibility:visible}
   #kitsune-preview .ks-selection-chip:has(input:focus-visible),#kitsune-preview .ks-selection-segment:focus-visible{outline:2px solid var(--ks-accent);outline-offset:-2px}
   #kitsune-preview .ks-selection-option:focus-visible,#kitsune-preview .ks-selection-option:has(input:focus-visible){outline:2px solid var(--ks-accent);outline-offset:-2px}
-  #kitsune-preview .ks-calc-sheet{display:flex;flex-direction:column;width:100%;background:var(--ks-card-surface);border:var(--ks-card-border);color:var(--ks-ink);border-radius:var(--ks-dialog-radius);padding:var(--ks-space-4);box-shadow:var(--ks-dialog-shadow);max-height:calc(100% - 24px);overflow:hidden}
-  #kitsune-preview .ks-calc-body{min-height:0;overflow-y:auto}
-  #kitsune-preview .ks-calc-footer{flex:none}
-  #kitsune-preview .ks-calc-sheet h3{font-size:18px;font-weight:600;margin:0 0 var(--ks-space-2)}
-  #kitsune-preview .ks-calc-sheet .ks-amount-input{font-size:27px!important;margin:3px 0 12px;white-space:nowrap;overflow-x:auto}
-  #kitsune-preview .ks-calc-sheet .ks-calculator{gap:var(--ks-space-2)}
-
+  #kitsune-preview .ks-calculator-overlay{padding-bottom:21px}
+  #kitsune-preview .ks-calc-body{min-height:0;overflow:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:6px}
+  #kitsune-preview .ks-calc-body&gt;*{flex:none}
+  #kitsune-preview .ks-calc-meta{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px}
+  #kitsune-preview .ks-calc-readout{min-width:0;min-height:1lh;white-space:nowrap;overflow-x:auto;text-align:right;font-variant-numeric:tabular-nums}
+  #kitsune-preview .ks-calc-meta .ks-calc-readout{font-size:.857em;color:var(--ks-dim);line-height:1.33}
+  #kitsune-preview .ks-calc-result{font-size:2.429em;line-height:1.24}
+  #kitsune-preview .ks-calculator{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 8px}
+  #kitsune-preview .ks-key{display:grid;place-items:center;border:0;background:var(--ks-soft);color:var(--ks-ink);font-size:1.714em;line-height:1.17;min-height:48px;padding:4px 0;border-radius:var(--ks-control-radius)}
+  #kitsune-preview .ks-key:active{filter:brightness(.9)}
+  #kitsune-preview .ks-key svg{height:22px;width:22px}
+  #kitsune-preview .ks-key.ks-utility{color:var(--ks-dim);touch-action:manipulation;user-select:none}
+  #kitsune-preview .ks-key.ks-operator{background:var(--ks-accent-bg);color:var(--ks-ink)}
   #kitsune-preview .ks-key.ks-zero{grid-column:span 2}
-  #kitsune-preview .ks-key.ks-equal{grid-row:span 2;background:var(--ks-action-bg);color:var(--ks-action-text);border-color:var(--ks-action-bg)}
-  #kitsune-preview .ks-calc-actions{display:grid;grid-template-columns:1fr 1fr;margin-top:14px;gap:var(--ks-space-2)}
-
-  #kitsune-preview .ks-calc-error{font-size:12px;min-height:20px;margin:8px 0 0;color:var(--ks-danger)}
+  #kitsune-preview .ks-key.ks-equal{grid-row:span 2}
+  #kitsune-preview .ks-calc-error{flex:none;font-size:.857em;line-height:1.33;min-height:2lh;margin:0;color:var(--ks-danger)}
+  #kitsune-preview .ks-calc-sheet [data-calc-action=apply]{flex:none;min-height:48px}
   #kitsune-preview .ks-delete-btn{display:flex;align-items:center;justify-content:center;gap:7px;color:var(--ks-danger);width:100%;min-height:var(--ks-control-height);border:var(--ks-card-border);border-radius:var(--ks-control-radius);background:var(--ks-card-surface);padding:var(--ks-space-2) var(--ks-space-4);font-size:var(--ks-font-body)}
   #kitsune-preview .ks-delete-btn svg{width:var(--ks-icon-size);height:var(--ks-icon-size)}
   #kitsune-preview .ks-danger-confirm{background:var(--ks-danger);color:var(--ks-on-danger,light-dark(#fff8f7,#451714))}
@@ -2285,7 +2287,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     const cardRadius=17;
     const defaultAppearance={mode:&#x27;system&#x27;,colorSource:&#x27;PRESET&#x27;,presetColor:&#x27;#c47a4a&#x27;,customColor:&#x27;#C47A4A&#x27;};
     const style = {accent:&#x27;#c47a4a&#x27;,mealHour:&#x27;auto&#x27;,...defaultAppearance};
-    const state = {page:&#x27;home&#x27;, date:&#x27;2026-11-17&#x27;, ledgerMonth:&#x27;2026-11&#x27;,ledgerTab:&#x27;流水&#x27;, mealTab:&#x27;记录&#x27;, slot:2, atHome:null, method:null, categories:[], amount:&#x27;&#x27;,calcOpen:false,calcExpression:&#x27;&#x27;,entryType:&#x27;支出&#x27;,entryDraft:{dateTime:&#x27;2026-11-17T09:41&#x27;,note:&#x27;&#x27;,category:&#x27;ge-food&#x27;,walletId:&#x27;daily&#x27;},notice:&#x27;&#x27;, mealReturn:&#x27;home&#x27;, entries:[], records:{}};
+    const state = {page:&#x27;home&#x27;, date:&#x27;2026-11-17&#x27;, ledgerMonth:&#x27;2026-11&#x27;,ledgerTab:&#x27;流水&#x27;, mealTab:&#x27;记录&#x27;, slot:2, atHome:null, method:null, categories:[], amount:&#x27;&#x27;,calcOpen:false,calcExpression:&#x27;&#x27;,calcResult:null,entryType:&#x27;支出&#x27;,entryDraft:{dateTime:&#x27;2026-11-17T09:41&#x27;,note:&#x27;&#x27;,category:&#x27;ge-food&#x27;,walletId:&#x27;daily&#x27;},notice:&#x27;&#x27;, mealReturn:&#x27;home&#x27;, entries:[], records:{}};
     state.ledgerRange=null;state.periodDraft=null;state.entryTimeDraft=null;state.previewMode=null;
     const blankLedgerFilters=()=&gt;({types:null,categoryNames:null,note:&#x27;&#x27;});
     state.ledgerFilters=blankLedgerFilters();state.ledgerFilterDraft=null;
@@ -3154,7 +3156,29 @@ html&gt;body{padding:0}&lt;/style&gt;
         &lt;/div&gt;
       &lt;/form&gt;&lt;/div&gt;`;
     }
-    function calculatorSheet(){return `&lt;div class=&quot;ks-modal-overlay&quot;&gt;&lt;section class=&quot;ks-calc-sheet&quot; role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;金额计算器&quot;&gt;&lt;div class=&quot;ks-calc-body&quot;&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;h3&gt;金额计算器&lt;/h3&gt;&lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-calc-action=&quot;cancel&quot;&gt;关闭&lt;/button&gt;&lt;/div&gt;&lt;span class=&quot;ks-note&quot;&gt;${entryWallet()?.code||&#x27;未选择钱包&#x27;} · 支持加减乘除&lt;/span&gt;&lt;div class=&quot;ks-amount-input&quot; data-calc-expression aria-label=&quot;计算表达式&quot; aria-live=&quot;polite&quot;&gt;${escapeText(state.calcExpression||(entryWallet()?.scale===0?&#x27;0&#x27;:&#x27;0.00&#x27;))}&lt;/div&gt;&lt;div class=&quot;ks-calculator&quot; role=&quot;group&quot; aria-label=&quot;计算键盘&quot;&gt;${[&#x27;C&#x27;,&#x27;⌫&#x27;,&#x27;÷&#x27;,&#x27;×&#x27;,&#x27;7&#x27;,&#x27;8&#x27;,&#x27;9&#x27;,&#x27;−&#x27;,&#x27;4&#x27;,&#x27;5&#x27;,&#x27;6&#x27;,&#x27;+&#x27;,&#x27;1&#x27;,&#x27;2&#x27;,&#x27;3&#x27;,&#x27;=&#x27;,&#x27;0&#x27;,&#x27;.&#x27;].map(k=&gt;`&lt;button type=&quot;button&quot; class=&quot;ks-key ${[&#x27;÷&#x27;,&#x27;×&#x27;,&#x27;−&#x27;,&#x27;+&#x27;,&#x27;=&#x27;].includes(k)?&#x27;ks-operator&#x27;:&#x27;&#x27;} ${k===&#x27;0&#x27;?&#x27;ks-zero&#x27;:&#x27;&#x27;} ${k===&#x27;=&#x27;?&#x27;ks-equal&#x27;:&#x27;&#x27;} cursor-interaction&quot; data-key=&quot;${k}&quot; aria-label=&quot;${k===&#x27;⌫&#x27;?&#x27;退格&#x27;:k===&#x27;C&#x27;?&#x27;清空&#x27;:k}&quot;&gt;${k}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;ks-calc-footer&quot;&gt;&lt;p class=&quot;ks-calc-error&quot; role=&quot;alert&quot;&gt;&lt;/p&gt;&lt;div class=&quot;ks-calc-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-calc-action=&quot;cancel&quot;&gt;取消&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary cursor-interaction&quot; data-calc-action=&quot;apply&quot;&gt;使用此金额&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;&lt;/section&gt;&lt;/div&gt;`;}
+    function calculatorSheet(){
+      return `&lt;div class=&quot;ks-modal-overlay ks-calculator-overlay&quot;&gt;
+        &lt;section class=&quot;ks-selection-panel ks-calc-sheet&quot; role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-labelledby=&quot;ks-calculator-title&quot;&gt;
+          &lt;div class=&quot;ks-selection-handle&quot; aria-hidden=&quot;true&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;/div&gt;
+          &lt;header class=&quot;ks-selection-heading&quot;&gt;&lt;h3 id=&quot;ks-calculator-title&quot;&gt;金额计算器&lt;/h3&gt;
+            &lt;button type=&quot;button&quot; class=&quot;ks-selection-close cursor-interaction&quot; data-calc-action=&quot;cancel&quot; aria-label=&quot;关闭&quot;&gt;${icon(&#x27;x&#x27;)}&lt;/button&gt;
+          &lt;/header&gt;
+          &lt;div class=&quot;ks-calc-body&quot;&gt;
+            &lt;div class=&quot;ks-calc-meta&quot;&gt;&lt;span class=&quot;ks-note&quot;&gt;${entryWallet().code}&lt;/span&gt;
+              &lt;div class=&quot;ks-calc-readout&quot; data-calc-expression aria-label=&quot;计算表达式&quot;&gt;&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;ks-calc-readout ks-calc-result&quot; data-calc-result aria-label=&quot;计算结果&quot; aria-live=&quot;polite&quot;&gt;&lt;/div&gt;
+            &lt;div class=&quot;ks-calculator&quot; role=&quot;group&quot; aria-label=&quot;计算键盘&quot;&gt;
+              ${[&#x27;C&#x27;,&#x27;⌫&#x27;,&#x27;÷&#x27;,&#x27;×&#x27;,&#x27;7&#x27;,&#x27;8&#x27;,&#x27;9&#x27;,&#x27;−&#x27;,&#x27;4&#x27;,&#x27;5&#x27;,&#x27;6&#x27;,&#x27;+&#x27;,&#x27;1&#x27;,&#x27;2&#x27;,&#x27;3&#x27;,&#x27;=&#x27;,&#x27;0&#x27;,&#x27;.&#x27;].map(k=&gt;
+                `&lt;button type=&quot;button&quot; class=&quot;ks-key ${calcOperators.includes(k)||k===&#x27;=&#x27;?&#x27;ks-operator&#x27;:&#x27;&#x27;} ${k===&#x27;C&#x27;||k===&#x27;⌫&#x27;?&#x27;ks-utility&#x27;:&#x27;&#x27;} ${k===&#x27;0&#x27;?&#x27;ks-zero&#x27;:&#x27;&#x27;} ${k===&#x27;=&#x27;?&#x27;ks-equal&#x27;:&#x27;&#x27;} cursor-interaction&quot;
+                  data-key=&quot;${k}&quot; aria-label=&quot;${k===&#x27;⌫&#x27;?&#x27;退格&#x27;:k===&#x27;C&#x27;?&#x27;清空&#x27;:k}&quot;&gt;${k===&#x27;⌫&#x27;?icon(&#x27;delete&#x27;):k}&lt;/button&gt;`).join(&#x27;&#x27;)}
+            &lt;/div&gt;
+          &lt;/div&gt;
+          &lt;p class=&quot;ks-calc-error&quot; role=&quot;alert&quot;&gt;&lt;/p&gt;
+          &lt;button type=&quot;button&quot; class=&quot;ks-primary ks-full cursor-interaction&quot; data-calc-action=&quot;apply&quot;&gt;确认金额&lt;/button&gt;
+        &lt;/section&gt;
+      &lt;/div&gt;`;
+    }
     function mealCalendarDialog(){
       const d=state.mealCalendar,[year,month]=d.month.split(&#x27;-&#x27;).map(Number);
       const first=new Date(`${d.month}-01T00:00:00Z`),offset=(first.getUTCDay()+6)%7;
@@ -3454,7 +3478,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       const settingsScreen=state.page===&#x27;settings&#x27;||state.page===&#x27;github&#x27;?`ks-${state.page}-screen`:&#x27;&#x27;;
       const top=`&lt;header class=&quot;ks-top ${form?&#x27;ks-subpage&#x27;:&#x27;&#x27;}&quot;&gt;${header}&lt;/header&gt;`;
       phone.innerHTML=`&lt;div class=&quot;ks-status&quot;&gt;&lt;span&gt;9:41&lt;/span&gt;&lt;span class=&quot;ks-signal&quot;&gt;${icon(&#x27;signal&#x27;)}${icon(&#x27;wifi&#x27;)}${icon(&#x27;battery-full&#x27;)}&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-page-motion ${settingsScreen} ${ledger?&#x27;ks-ledger-screen&#x27;:&#x27;&#x27;} ${fab?&#x27;ks-ledger-with-fab&#x27;:&#x27;&#x27;}&quot;&gt;${ledger?`&lt;div class=&quot;ks-ledger-collapsible&quot;&gt;${top}&lt;/div&gt;${ledgerTabs()}${ledgerFilters()}`:top}&lt;main class=&quot;ks-main&quot;&gt;${pages[state.page]()}${state.notice?`&lt;p class=&quot;ks-success&quot; role=&quot;status&quot;&gt;${escapeText(state.notice)}&lt;/p&gt;`:&#x27;&#x27;}&lt;/main&gt;${fab?`&lt;button type=&quot;button&quot; class=&quot;ks-primary ks-ledger-fab&quot; data-action=&quot;add-entry&quot; aria-label=&quot;记一笔&quot;&gt;${icon(&#x27;plus&#x27;)}&lt;span&gt;记一笔&lt;/span&gt;&lt;/button&gt;`:&#x27;&#x27;}&lt;/div&gt;${form?&#x27;&#x27;:`&lt;nav class=&quot;ks-nav&quot; aria-label=&quot;主导航&quot;&gt;${navs.map(([id,name,ic])=&gt;`&lt;button type=&quot;button&quot; data-page=&quot;${id}&quot; class=&quot;cursor-interaction&quot; ${state.page===id?&#x27;aria-current=&quot;page&quot;&#x27;:&#x27;&#x27;}&gt;&lt;span&gt;${icon(ic)}&lt;/span&gt;${name}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/nav&gt;`}&lt;div class=&quot;ks-home-indicator&quot; aria-hidden=&quot;true&quot;&gt;&lt;/div&gt;`;
-      if(state.calcOpen){phone.insertAdjacentHTML(&#x27;beforeend&#x27;,calculatorSheet());phone.querySelector(&#x27;.ks-top&#x27;).inert=true;phone.querySelector(&#x27;.ks-main&#x27;).inert=true;phone.querySelector(&#x27;[data-calc-action=cancel]&#x27;).focus({preventScroll:true});}
+      if(state.calcOpen){phone.insertAdjacentHTML(&#x27;beforeend&#x27;,calculatorSheet());phone.querySelector(&#x27;.ks-top&#x27;).inert=true;phone.querySelector(&#x27;.ks-main&#x27;).inert=true;updateCalculatorReadout();phone.querySelector(&#x27;[data-calc-action=cancel]&#x27;).focus({preventScroll:true});}
       if(state.deletePending){phone.insertAdjacentHTML(&#x27;beforeend&#x27;,deleteConfirmation());phone.querySelector(&#x27;.ks-top&#x27;).inert=true;phone.querySelector(&#x27;.ks-main&#x27;).inert=true;phone.querySelector(&#x27;[data-delete-action=cancel]&#x27;).focus({preventScroll:true});}
       if(state.walletPickerOpen||state.ledgerFilterDraft||state.singleSelection){
         const panel=state.walletPickerOpen?walletRangeDialog():state.ledgerFilterDraft?ledgerFiltersDialog():singleSelectionPanel();
@@ -3573,7 +3597,54 @@ html&gt;body{padding:0}&lt;/style&gt;
     function deleteConfirmation(){const p=state.deletePending;return `&lt;div class=&quot;ks-modal-overlay ks-delete-overlay&quot;&gt;&lt;section class=&quot;ks-delete-sheet&quot; role=&quot;alertdialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;确认删除记录&quot;&gt;&lt;h3&gt;${p.kind===&#x27;meal&#x27;?&#x27;删除这条用餐记录？&#x27;:&#x27;删除这笔账目？&#x27;}&lt;/h3&gt;&lt;p class=&quot;ks-delete-summary&quot;&gt;${escapeText(p.summary)}&lt;/p&gt;&lt;p class=&quot;ks-note&quot;&gt;${p.kind===&#x27;meal&#x27;?&#x27;删除后，将更新今日进度、月度及全部记录统计。&#x27;:&#x27;删除后，将更新流水、收支统计和钱包余额。&#x27;}&lt;/p&gt;&lt;p class=&quot;ks-error&quot; role=&quot;alert&quot; data-delete-error&gt;&lt;/p&gt;&lt;div class=&quot;ks-calc-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-delete-action=&quot;cancel&quot;&gt;取消&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary ks-danger-confirm cursor-interaction&quot; data-delete-action=&quot;confirm&quot;&gt;确认删除&lt;/button&gt;&lt;/div&gt;&lt;/section&gt;&lt;/div&gt;`;}
     function cancelDelete(){const action=state.deletePending.kind===&#x27;meal&#x27;?&#x27;delete-meal&#x27;:&#x27;delete-entry&#x27;;state.deletePending=null;render();phone.querySelector(`[data-action=${action}]`)?.focus({preventScroll:true});}
     function confirmDelete(){const p=state.deletePending;if(p.kind===&#x27;meal&#x27;){if(state.records[p.date])state.records[p.date][p.slot]=null;state.date=p.date;state.page=state.mealReturn;state.editing=false;}else{if(financialEntries().some(e=&gt;e.originalExpenseId===p.id)){phone.querySelector(&#x27;[data-delete-error]&#x27;).textContent=&#x27;请先删除这笔支出关联的退款，再删除原支出。&#x27;;return;}state.deletedEntryIds.add(p.id);state.page=&#x27;ledger&#x27;;state.ledgerTab=&#x27;流水&#x27;;}state.deletePending=null;state.notice=&#x27;已从当前演示删除记录。&#x27;;render();}
-    function closeCalculator(apply){if(apply){try{state.amount=inputAmount(calcCents(state.calcExpression));}catch(e){phone.querySelector(&#x27;.ks-calc-error&#x27;).textContent=e.message;return;}}state.calcOpen=false;render();phone.querySelector(&#x27;[data-action=open-calculator]&#x27;).focus({preventScroll:true});}
+    const calcOperators=&#x27;+−×÷&#x27;;
+    function openCalculator(){
+      if(!entryWallet()||modalKind())return;
+      state.calcExpression=state.amount;state.calcResult=null;state.calcOpen=true;render();
+    }
+    function closeCalculator(apply){
+      if(apply){
+        try{state.amount=inputAmount(calcCents(state.calcExpression));}
+        catch(failure){phone.querySelector(&#x27;.ks-calc-error&#x27;).textContent=failure.message;return;}
+      }
+      stopCalcBackspace();
+      state.calcOpen=false;render();phone.querySelector(&#x27;[data-action=open-calculator]&#x27;)?.focus({preventScroll:true});
+    }
+    function updateCalculatorReadout(){
+      const expression=state.calcExpression,hasOperation=[...expression].some(char=&gt;calcOperators.includes(char));
+      let result=state.calcResult;
+      if(result===null){
+        result=hasOperation?&#x27;&#x27;:expression||inputAmount(0n);
+        if(hasOperation){
+          try{result=inputAmount(calcCents(expression));}catch{}
+        }
+      }
+      for(const [selector,value] of [
+        [&#x27;[data-calc-expression]&#x27;,hasOperation||(state.calcResult!==null&amp;&amp;state.calcResult!==expression)?expression:&#x27;&#x27;],
+        [&#x27;[data-calc-result]&#x27;,result],
+      ]){
+        const readout=phone.querySelector(selector);
+        readout.textContent=value;
+        readout.scrollLeft=readout.scrollWidth;
+        readout.tabIndex=readout.scrollWidth&gt;readout.clientWidth?0:-1;
+      }
+      phone.querySelector(&#x27;[data-calc-action=apply]&#x27;).disabled=expression.length===0;
+    }
+    function pressCalculatorKey(key){
+      const error=phone.querySelector(&#x27;.ks-calc-error&#x27;);
+      error.textContent=&#x27;&#x27;;
+      if(key===&#x27;=&#x27;){
+        try{state.calcResult=inputAmount(calcCents(state.calcExpression));phone.querySelector(&#x27;.ks-calc-body&#x27;).scrollTop=0;}
+        catch(failure){error.textContent=failure.message;return;}
+      }else{
+        if(key===&#x27;C&#x27;)state.calcExpression=&#x27;&#x27;;
+        else if(key===&#x27;⌫&#x27;)state.calcExpression=state.calcExpression.slice(0,-1);
+        else if(state.calcResult!==null)state.calcExpression=calcOperators.includes(key)?state.calcResult+key:key;
+        else state.calcExpression=(state.calcExpression+key).slice(0,512);
+        state.calcResult=null;
+      }
+      updateCalculatorReadout();
+    }
     function closeLedgerFilters(apply){
       if(apply){
         const note=phone.querySelector(&#x27;[data-ledger-filters] [name=note]&#x27;).value;
@@ -3663,17 +3734,50 @@ html&gt;body{padding:0}&lt;/style&gt;
       phone.querySelector(mealStats?&#x27;[data-action=choose-meal-month]&#x27;:&#x27;[data-action=choose-ledger-period]&#x27;)?.focus({preventScroll:true});
       if(apply)persist();
     }
-        function calcCents(expression){
-      const source=expression.replace(/×/g,&#x27;*&#x27;).replace(/[−–]/g,&#x27;-&#x27;).replace(/÷/g,&#x27;/&#x27;).replace(/\s/g,&#x27;&#x27;);
-      if(source.length&gt;80||!/^\d+(?:\.\d*)?(?:[+*/-]\d+(?:\.\d*)?)*$/.test(source))throw Error(&#x27;请补全金额或计算式，例如 12+8×2。&#x27;);
-      const tokens=source.match(/\d+(?:\.\d*)?|[+*/-]/g);
-      const parse=s=&gt;{const [a,b=&#x27;&#x27;]=s.split(&#x27;.&#x27;);return [BigInt(a+b),10n**BigInt(b.length)];};
-      const op=(a,b,o)=&gt;{if(o===&#x27;+&#x27;)return[a[0]*b[1]+b[0]*a[1],a[1]*b[1]];if(o===&#x27;-&#x27;)return[a[0]*b[1]-b[0]*a[1],a[1]*b[1]];if(o===&#x27;*&#x27;)return[a[0]*b[0],a[1]*b[1]];if(!b[0])throw Error(&#x27;不能除以 0，请修改计算式。&#x27;);return[a[0]*b[1],a[1]*b[0]];};
-      const sums=[];let term=parse(tokens[0]);for(let i=1;i&lt;tokens.length;i+=2){if(tokens[i]===&#x27;*&#x27;||tokens[i]===&#x27;/&#x27;)term=op(term,parse(tokens[i+1]),tokens[i]);else{sums.push(term,tokens[i]);term=parse(tokens[i+1]);}}sums.push(term);let result=sums[0];for(let i=1;i&lt;sums.length;i+=2)result=op(result,sums[i+1],sums[i]);
-      if(result[0]&lt;=0n)throw Error(&#x27;金额需大于 0。&#x27;);
-      if(!entryWallet())throw Error(&#x27;请先选择钱包。&#x27;);const factor=10n**BigInt(entryWallet().scale),cents=(result[0]*factor*2n+result[1])/(result[1]*2n);
-      if(cents&lt;=0n)throw Error(&#x27;金额四舍五入后必须大于 0。&#x27;);
-      if(cents&gt;maximumEntryMinor)throw Error(&#x27;超出单笔金额上限，请减小金额。&#x27;);
+    function calcCents(expression){
+      if(!expression.length||expression.length&gt;512)throw Error(&#x27;请输入不超过 512 字符的表达式&#x27;);
+      const source=expression.replaceAll(&#x27;×&#x27;,&#x27;*&#x27;).replaceAll(&#x27;−&#x27;,&#x27;-&#x27;).replaceAll(&#x27;÷&#x27;,&#x27;/&#x27;);
+      const number=/\s*([+-]?[0-9.]+)/y;
+      const decimal=/^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$/;
+      let index=0;
+      const peek=()=&gt;{
+        while(/\s/.test(source[index]??&#x27;&#x27;))index++;
+        return source[index]??&#x27;&#x27;;
+      };
+      const readNumber=()=&gt;{
+        number.lastIndex=index;
+        const match=number.exec(source);
+        if(!match||!decimal.test(match[1]))throw Error(&#x27;表达式缺少有效数字&#x27;);
+        index=number.lastIndex;
+        const [a,b=&#x27;&#x27;]=match[1].split(&#x27;.&#x27;);
+        return [BigInt(a+b),10n**BigInt(b.length)];
+      };
+      const readTerm=()=&gt;{
+        let [n,d]=readNumber();
+        for(let op=peek();op===&#x27;*&#x27;||op===&#x27;/&#x27;;op=peek()){
+          index++;
+          const [p,q]=readNumber();
+          if(op===&#x27;*&#x27;){n*=p;d*=q;}
+          else{
+            if(!p)throw Error(&#x27;除数不能为零&#x27;);
+            n*=p&lt;0n?-q:q;
+            d*=p&lt;0n?-p:p;
+          }
+        }
+        return [n,d];
+      };
+      let [n,d]=readTerm();
+      for(let op=peek();op===&#x27;+&#x27;||op===&#x27;-&#x27;;op=peek()){
+        index++;
+        const [p,q]=readTerm();
+        n=n*q+(op===&#x27;+&#x27;?p:-p)*d;d*=q;
+      }
+      if(peek())throw Error(&#x27;表达式包含无效字符&#x27;);
+      if(!entryWallet())throw Error(&#x27;请先选择钱包。&#x27;);
+      const scaled=n*10n**BigInt(entryWallet().scale);
+      const cents=(scaled*2n+(scaled&lt;0n?-d:d))/(d*2n);
+      if(cents&gt;maximumEntryMinor||cents&lt; -maximumEntryMinor-1n)throw Error(&#x27;单笔金额超出 64 位范围&#x27;);
+      if(cents&lt;=0n)throw Error(&#x27;舍入后金额必须大于零&#x27;);
       return cents;
     }
     function updateMealDatePresets(form){
@@ -3687,6 +3791,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       form.querySelector(&#x27;.ks-error&#x27;).textContent=&#x27;&#x27;;
     }
     phone.addEventListener(&#x27;click&#x27;,event=&gt;{
+      if(event.target.matches(&#x27;.ks-calculator-overlay&#x27;)){closeCalculator(false);return;}
       if(event.target.matches(&#x27;.ks-selection-overlay&#x27;)){cancelSelection();return;}
       if(event.target.matches(&#x27;[data-entry-category-overlay]&#x27;)){closeEntryCategory();return;}
       if(event.target.matches(&#x27;.ks-period-overlay&#x27;)){closePeriod(false);return;}
@@ -3883,7 +3988,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(b.dataset.action===&#x27;delete-meal&#x27;){const meal=state.records[state.editingDate]?.[state.editingSlot];if(!meal)return;state.deletePending={kind:&#x27;meal&#x27;,date:state.editingDate,slot:state.editingSlot,summary:`${state.editingDate} · ${slots[state.editingSlot]}\n${meal.dishes||&#x27;无菜品内容&#x27;}`};render();return;}
       if(b.dataset.action===&#x27;delete-entry&#x27;){const e=financialEntries().find(e=&gt;e.id===state.selectedEntryId);if(!e)return;const w=walletById(e.walletId);state.deletePending={kind:&#x27;entry&#x27;,id:e.id,summary:`${e.date} ${e.time}\n${w.name} · ${w.code}\n${entryCategory(e)} · ${e.type} · ${e.type===&#x27;支出&#x27;?&#x27;−&#x27;:&#x27;+&#x27;}${money(e.cents,w.code)} ${w.code}`};render();return;}
       if(b.dataset.deleteAction){if(b.dataset.deleteAction===&#x27;confirm&#x27;)confirmDelete();else cancelDelete();return;}
-      if(b.dataset.action===&#x27;open-calculator&#x27;){state.calcExpression=state.amount;state.calcOpen=true;render();return;}
+      if(b.dataset.action===&#x27;open-calculator&#x27;){openCalculator();return;}
       if(b.dataset.calcAction){closeCalculator(b.dataset.calcAction===&#x27;apply&#x27;);return;}
       if(b.dataset.page){if(state.page===b.dataset.page)return;state.page=b.dataset.page;if(state.page===&#x27;settings&#x27;)resetAppearance();render();persist();return;}
       if(b.dataset.date){
@@ -3908,17 +4013,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         render();return;
       }
       if(b.dataset.key!==undefined){
-        const display=phone.querySelector(&#x27;[data-calc-expression]&#x27;),key=b.dataset.key;
-        const error=phone.querySelector(&#x27;.ks-calc-error&#x27;);
-        error.textContent=&#x27;&#x27;;
-        if(key===&#x27;C&#x27;)state.calcExpression=&#x27;&#x27;;
-        else if(key===&#x27;⌫&#x27;)state.calcExpression=state.calcExpression.slice(0,-1);
-        else if(key===&#x27;=&#x27;){
-          try{state.calcExpression=inputAmount(calcCents(state.calcExpression));display.closest(&#x27;.ks-calc-body&#x27;).scrollTop=0;}
-          catch(failure){error.textContent=failure.message;return;}
-        }else if(state.calcExpression.length&lt;80)state.calcExpression+=key;
-        display.textContent=state.calcExpression||(entryWallet()?.scale===0?&#x27;0&#x27;:&#x27;0.00&#x27;);
-        display.scrollLeft=display.scrollWidth;
+        if(b.dataset.key!==&#x27;⌫&#x27;||!calcBackspaceRepeated||event.detail===0)pressCalculatorKey(b.dataset.key);
         return;
       }
       if(b.dataset.action===&#x27;add-entry&#x27;){
@@ -3929,24 +4024,52 @@ html&gt;body{padding:0}&lt;/style&gt;
           ||initialEntryCategory(walletId,state.entryType);
         state.entryReturn=state.page;state.page=&#x27;entry&#x27;;state.amount=&#x27;&#x27;;
         state.entryDraft={dateTime:`${demoToday}T09:41`,note:&#x27;&#x27;,category,walletId};
-        render();return;
+        render();
+        const draft=state.entryDraft;
+        if(wallet)Promise.allSettled(pageNode().getAnimations().map(animation=&gt;animation.finished)).then(()=&gt;{
+          if(state.page===&#x27;entry&#x27;&amp;&amp;state.entryDraft===draft)openCalculator();
+        });
+        return;
       }
       if(b.dataset.action===&#x27;back&#x27;){state.page=state.page===&#x27;entry&#x27;?state.entryReturn:state.page===&#x27;category-detail&#x27;?state.categoryDetailReturn:state.page===&#x27;category-owned&#x27;?&#x27;category-manager&#x27;:state.page===&#x27;category-manager&#x27;?state.categoryReturn:[&#x27;appearance&#x27;,&#x27;github&#x27;,&#x27;csv-mapping&#x27;].includes(state.page)?&#x27;settings&#x27;:state.page===&#x27;meal-filter&#x27;?&#x27;meals&#x27;:state.page===&#x27;meal-form&#x27;?state.mealReturn:&#x27;ledger&#x27;;render();return;}
       if(b.dataset.addMealOption){state.addingMealOption=b.dataset.addMealOption;render();return;}
       if(b.dataset.action===&#x27;cancel-meal-option&#x27;){closeMealOption();return;}
     });
+    let calcBackspacePointer=null,calcBackspaceTimer,calcBackspaceRepeated=false;
+    function stopCalcBackspace(){
+      clearTimeout(calcBackspaceTimer);clearInterval(calcBackspaceTimer);
+      calcBackspacePointer=null;
+    }
+    phone.addEventListener(&#x27;pointerdown&#x27;,event=&gt;{
+      const key=event.target.closest(&#x27;[data-key=&quot;⌫&quot;]&#x27;);
+      if(!key||!event.isPrimary||event.button!==0)return;
+      stopCalcBackspace();
+      calcBackspacePointer=event.pointerId;calcBackspaceRepeated=false;key.setPointerCapture(event.pointerId);
+      calcBackspaceTimer=setTimeout(()=&gt;{
+        calcBackspaceRepeated=true;
+        pressCalculatorKey(&#x27;⌫&#x27;);
+        calcBackspaceTimer=setInterval(()=&gt;pressCalculatorKey(&#x27;⌫&#x27;),75);
+      },500);
+    });
+    for(const type of [&#x27;pointerup&#x27;,&#x27;pointercancel&#x27;,&#x27;lostpointercapture&#x27;]){
+      phone.addEventListener(type,event=&gt;{if(event.pointerId===calcBackspacePointer)stopCalcBackspace();});
+    }
+    window.addEventListener(&#x27;blur&#x27;,stopCalcBackspace);
+    phone.addEventListener(&#x27;contextmenu&#x27;,event=&gt;{
+      if(event.target.closest(&#x27;[data-key=&quot;⌫&quot;]&#x27;))event.preventDefault();
+    });
     let selectionDrag=null;
     phone.addEventListener(&#x27;pointerdown&#x27;,event=&gt;{
       const handle=event.target.closest(&#x27;.ks-selection-handle&#x27;);
       if(!handle||!event.isPrimary)return;
-      selectionDrag={id:event.pointerId,x:event.clientX,y:event.clientY};
+      selectionDrag={id:event.pointerId,x:event.clientX,y:event.clientY,calculator:!!handle.closest(&#x27;.ks-calc-sheet&#x27;)};
       handle.setPointerCapture(event.pointerId);
     });
     phone.addEventListener(&#x27;pointerup&#x27;,event=&gt;{
       if(selectionDrag?.id!==event.pointerId)return;
       const dy=event.clientY-selectionDrag.y,dx=event.clientX-selectionDrag.x;
-      selectionDrag=null;
-      if(dy&gt;48&amp;&amp;dy&gt;Math.abs(dx))cancelSelection();
+      const {calculator}=selectionDrag;selectionDrag=null;
+      if(dy&gt;48&amp;&amp;dy&gt;Math.abs(dx)){if(calculator)closeCalculator(false);else cancelSelection();}
     });
     phone.addEventListener(&#x27;pointercancel&#x27;,()=&gt;{selectionDrag=null;});
     phone.addEventListener(&#x27;keydown&#x27;,event=&gt;{
@@ -3968,7 +4091,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       }else if(event.key===&#x27;Enter&#x27;&amp;&amp;event.target.matches(&#x27;[data-entry-time] [name=hour]&#x27;)){
         event.preventDefault();event.target.form.elements.minute.focus();
       }else if(event.key===&#x27;Tab&#x27;){
-        const dialog=modalNode().firstElementChild,controls=[...dialog.querySelectorAll(&#x27;button:not(:disabled),input:not(:disabled),select:not(:disabled)&#x27;)],first=controls[0],last=controls[controls.length-1];
+        const dialog=modalNode().firstElementChild,controls=[...dialog.querySelectorAll(&#x27;button:not(:disabled),input:not(:disabled),select:not(:disabled),[tabindex=&quot;0&quot;]&#x27;)],first=controls[0],last=controls[controls.length-1];
         if(event.shiftKey&amp;&amp;document.activeElement===first){event.preventDefault();last.focus();}
         else if(!event.shiftKey&amp;&amp;document.activeElement===last){event.preventDefault();first.focus();}
       }

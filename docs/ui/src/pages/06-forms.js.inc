@@ -156,7 +156,29 @@
         </div>
       </form></div>`;
     }
-    function calculatorSheet(){return `<div class="ks-modal-overlay"><section class="ks-calc-sheet" role="dialog" aria-modal="true" aria-label="金额计算器"><div class="ks-calc-body"><div class="ks-row"><h3>金额计算器</h3><button type="button" class="ks-text-btn cursor-interaction" data-calc-action="cancel">关闭</button></div><span class="ks-note">${entryWallet()?.code||'未选择钱包'} · 支持加减乘除</span><div class="ks-amount-input" data-calc-expression aria-label="计算表达式" aria-live="polite">${escapeText(state.calcExpression||(entryWallet()?.scale===0?'0':'0.00'))}</div><div class="ks-calculator" role="group" aria-label="计算键盘">${['C','⌫','÷','×','7','8','9','−','4','5','6','+','1','2','3','=','0','.'].map(k=>`<button type="button" class="ks-key ${['÷','×','−','+','='].includes(k)?'ks-operator':''} ${k==='0'?'ks-zero':''} ${k==='='?'ks-equal':''} cursor-interaction" data-key="${k}" aria-label="${k==='⌫'?'退格':k==='C'?'清空':k}">${k}</button>`).join('')}</div></div><div class="ks-calc-footer"><p class="ks-calc-error" role="alert"></p><div class="ks-calc-actions"><button type="button" class="ks-choice cursor-interaction" data-calc-action="cancel">取消</button><button type="button" class="ks-primary cursor-interaction" data-calc-action="apply">使用此金额</button></div></div></section></div>`;}
+    function calculatorSheet(){
+      return `<div class="ks-modal-overlay ks-calculator-overlay">
+        <section class="ks-selection-panel ks-calc-sheet" role="dialog" aria-modal="true" aria-labelledby="ks-calculator-title">
+          <div class="ks-selection-handle" aria-hidden="true"><span></span></div>
+          <header class="ks-selection-heading"><h3 id="ks-calculator-title">金额计算器</h3>
+            <button type="button" class="ks-selection-close cursor-interaction" data-calc-action="cancel" aria-label="关闭">${icon('x')}</button>
+          </header>
+          <div class="ks-calc-body">
+            <div class="ks-calc-meta"><span class="ks-note">${entryWallet().code}</span>
+              <div class="ks-calc-readout" data-calc-expression aria-label="计算表达式"></div>
+            </div>
+            <div class="ks-calc-readout ks-calc-result" data-calc-result aria-label="计算结果" aria-live="polite"></div>
+            <div class="ks-calculator" role="group" aria-label="计算键盘">
+              ${['C','⌫','÷','×','7','8','9','−','4','5','6','+','1','2','3','=','0','.'].map(k=>
+                `<button type="button" class="ks-key ${calcOperators.includes(k)||k==='='?'ks-operator':''} ${k==='C'||k==='⌫'?'ks-utility':''} ${k==='0'?'ks-zero':''} ${k==='='?'ks-equal':''} cursor-interaction"
+                  data-key="${k}" aria-label="${k==='⌫'?'退格':k==='C'?'清空':k}">${k==='⌫'?icon('delete'):k}</button>`).join('')}
+            </div>
+          </div>
+          <p class="ks-calc-error" role="alert"></p>
+          <button type="button" class="ks-primary ks-full cursor-interaction" data-calc-action="apply">确认金额</button>
+        </section>
+      </div>`;
+    }
     function mealCalendarDialog(){
       const d=state.mealCalendar,[year,month]=d.month.split('-').map(Number);
       const first=new Date(`${d.month}-01T00:00:00Z`),offset=(first.getUTCDay()+6)%7;

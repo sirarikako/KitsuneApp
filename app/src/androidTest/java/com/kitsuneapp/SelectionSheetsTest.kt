@@ -71,6 +71,8 @@ class SelectionSheetsTest {
             KitsuneTheme(records.theme) { EntryForm(records, null, null, model, {}, {}) }
         }
 
+        compose.onNodeWithText("金额计算器").assertIsDisplayed()
+        compose.onNodeWithContentDescription("关闭").performClick()
         val wallet = compose.onNodeWithContentDescription("钱包")
         val category = compose.onNodeWithContentDescription("分类")
         compose.onNode(hasContentDescription("钱包") and hasText("日常钱包 · CNY")).assertExists()
@@ -111,6 +113,7 @@ class SelectionSheetsTest {
         }
 
         val wallet = compose.onNodeWithContentDescription("钱包")
+        compose.onNodeWithText("金额计算器").assertDoesNotExist()
         wallet.performScrollTo().performClick()
         compose.onNode(hasText("旧钱包") and hasText("CNY · 已归档") and inDialog).assertIsSelected()
         sheetText("旅行钱包").assertIsDisplayed()
@@ -118,6 +121,7 @@ class SelectionSheetsTest {
         compose.runOnIdle { editing = false }
 
         compose.onNodeWithText("记录退款").assertIsDisplayed()
+        compose.onNodeWithText("金额计算器").assertDoesNotExist()
         wallet.performScrollTo().performClick()
         sheetText("旧钱包").assertIsSelected()
         sheetText("旅行钱包").assertDoesNotExist()
@@ -345,8 +349,11 @@ class SelectionSheetsScreenshotTest {
         val records = selectionRecords().withMoreFilterCategories()
         val model = compose.runOnIdle { ViewModelProvider(compose.activity)[AppViewModel::class.java] }
         var screen by mutableStateOf("entry")
+        val calculatorTheme = records.theme.copy(colorSource = ColorSource.CUSTOM, customSeedColor = "#386E78")
+        var reviewCustomCalculator by mutableStateOf(profile == "narrow-large")
         compose.setContent {
-            KitsuneTheme(records.theme, forceDark = isDark) {
+            val theme = if (reviewCustomCalculator) calculatorTheme else records.theme
+            KitsuneTheme(theme, forceDark = isDark) {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     when (screen) {
                         "entry" -> EntryForm(records, null, null, model, {}, {})
@@ -357,6 +364,16 @@ class SelectionSheetsScreenshotTest {
             }
         }
 
+        compose.onNodeWithText("金额计算器").assertIsDisplayed()
+        val confirm = compose.onNodeWithText("确认金额").assertIsDisplayed()
+        listOf("1", "2", "8", ".", "5", "0", "+", "3", "6").forEach {
+            compose.onNodeWithText(it).performScrollTo().performClick()
+        }
+        compose.onNodeWithText("164.50").performScrollTo().assertIsDisplayed()
+        confirm.assertIsDisplayed()
+        capture("金额计算器", "calculator", profile)
+        compose.onNodeWithContentDescription("关闭").performClick()
+        compose.runOnIdle { reviewCustomCalculator = false }
         compose.onNodeWithContentDescription("钱包").performScrollTo().performClick()
         capture("选择钱包", "wallet", profile)
         compose.onNodeWithContentDescription("关闭").performClick()

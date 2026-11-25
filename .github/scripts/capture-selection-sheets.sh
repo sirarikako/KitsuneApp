@@ -14,7 +14,7 @@ trap restore_device EXIT
 
 runner=com.kitsuneapp.test/androidx.test.runner.AndroidJUnitRunner
 suite=com.kitsuneapp.SelectionSheetsScreenshotTest
-sheets=(wallet category ledger-filter ledger-filter-partial ledger-filter-categories wallet-range currency)
+sheets=(calculator wallet category ledger-filter ledger-filter-partial ledger-filter-categories wallet-range currency)
 visual_review="${SELECTION_VISUAL_REVIEW:-false}"
 
 for profile in light dark narrow narrow-large; do
@@ -66,7 +66,7 @@ import sys
 from pathlib import Path
 
 captures = list(Path(sys.argv[1]).glob("selection-*.png"))
-assert len(captures) == 28, f"Expected 28 sheet captures, found {len(captures)}"
+assert len(captures) == 32, f"Expected 32 sheet captures, found {len(captures)}"
 for capture in captures:
     assert capture.read_bytes().startswith(b"\x89PNG\r\n\x1a\n"), capture
 PYTHON

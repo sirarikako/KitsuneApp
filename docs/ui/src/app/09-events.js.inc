@@ -9,6 +9,7 @@
       form.querySelector('.ks-error').textContent='';
     }
     phone.addEventListener('click',event=>{
+      if(event.target.matches('.ks-calculator-overlay')){closeCalculator(false);return;}
       if(event.target.matches('.ks-selection-overlay')){cancelSelection();return;}
       if(event.target.matches('[data-entry-category-overlay]')){closeEntryCategory();return;}
       if(event.target.matches('.ks-period-overlay')){closePeriod(false);return;}
@@ -205,7 +206,7 @@
       if(b.dataset.action==='delete-meal'){const meal=state.records[state.editingDate]?.[state.editingSlot];if(!meal)return;state.deletePending={kind:'meal',date:state.editingDate,slot:state.editingSlot,summary:`${state.editingDate} · ${slots[state.editingSlot]}\n${meal.dishes||'无菜品内容'}`};render();return;}
       if(b.dataset.action==='delete-entry'){const e=financialEntries().find(e=>e.id===state.selectedEntryId);if(!e)return;const w=walletById(e.walletId);state.deletePending={kind:'entry',id:e.id,summary:`${e.date} ${e.time}\n${w.name} · ${w.code}\n${entryCategory(e)} · ${e.type} · ${e.type==='支出'?'−':'+'}${money(e.cents,w.code)} ${w.code}`};render();return;}
       if(b.dataset.deleteAction){if(b.dataset.deleteAction==='confirm')confirmDelete();else cancelDelete();return;}
-      if(b.dataset.action==='open-calculator'){state.calcExpression=state.amount;state.calcOpen=true;render();return;}
+      if(b.dataset.action==='open-calculator'){openCalculator();return;}
       if(b.dataset.calcAction){closeCalculator(b.dataset.calcAction==='apply');return;}
       if(b.dataset.page){if(state.page===b.dataset.page)return;state.page=b.dataset.page;if(state.page==='settings')resetAppearance();render();persist();return;}
       if(b.dataset.date){
@@ -230,17 +231,7 @@
         render();return;
       }
       if(b.dataset.key!==undefined){
-        const display=phone.querySelector('[data-calc-expression]'),key=b.dataset.key;
-        const error=phone.querySelector('.ks-calc-error');
-        error.textContent='';
-        if(key==='C')state.calcExpression='';
-        else if(key==='⌫')state.calcExpression=state.calcExpression.slice(0,-1);
-        else if(key==='='){
-          try{state.calcExpression=inputAmount(calcCents(state.calcExpression));display.closest('.ks-calc-body').scrollTop=0;}
-          catch(failure){error.textContent=failure.message;return;}
-        }else if(state.calcExpression.length<80)state.calcExpression+=key;
-        display.textContent=state.calcExpression||(entryWallet()?.scale===0?'0':'0.00');
-        display.scrollLeft=display.scrollWidth;
+        if(b.dataset.key!=='⌫'||!calcBackspaceRepeated||event.detail===0)pressCalculatorKey(b.dataset.key);
         return;
       }
       if(b.dataset.action==='add-entry'){
@@ -251,24 +242,52 @@
           ||initialEntryCategory(walletId,state.entryType);
         state.entryReturn=state.page;state.page='entry';state.amount='';
         state.entryDraft={dateTime:`${demoToday}T09:41`,note:'',category,walletId};
-        render();return;
+        render();
+        const draft=state.entryDraft;
+        if(wallet)Promise.allSettled(pageNode().getAnimations().map(animation=>animation.finished)).then(()=>{
+          if(state.page==='entry'&&state.entryDraft===draft)openCalculator();
+        });
+        return;
       }
       if(b.dataset.action==='back'){state.page=state.page==='entry'?state.entryReturn:state.page==='category-detail'?state.categoryDetailReturn:state.page==='category-owned'?'category-manager':state.page==='category-manager'?state.categoryReturn:['appearance','github','csv-mapping'].includes(state.page)?'settings':state.page==='meal-filter'?'meals':state.page==='meal-form'?state.mealReturn:'ledger';render();return;}
       if(b.dataset.addMealOption){state.addingMealOption=b.dataset.addMealOption;render();return;}
       if(b.dataset.action==='cancel-meal-option'){closeMealOption();return;}
     });
+    let calcBackspacePointer=null,calcBackspaceTimer,calcBackspaceRepeated=false;
+    function stopCalcBackspace(){
+      clearTimeout(calcBackspaceTimer);clearInterval(calcBackspaceTimer);
+      calcBackspacePointer=null;
+    }
+    phone.addEventListener('pointerdown',event=>{
+      const key=event.target.closest('[data-key="⌫"]');
+      if(!key||!event.isPrimary||event.button!==0)return;
+      stopCalcBackspace();
+      calcBackspacePointer=event.pointerId;calcBackspaceRepeated=false;key.setPointerCapture(event.pointerId);
+      calcBackspaceTimer=setTimeout(()=>{
+        calcBackspaceRepeated=true;
+        pressCalculatorKey('⌫');
+        calcBackspaceTimer=setInterval(()=>pressCalculatorKey('⌫'),75);
+      },500);
+    });
+    for(const type of ['pointerup','pointercancel','lostpointercapture']){
+      phone.addEventListener(type,event=>{if(event.pointerId===calcBackspacePointer)stopCalcBackspace();});
+    }
+    window.addEventListener('blur',stopCalcBackspace);
+    phone.addEventListener('contextmenu',event=>{
+      if(event.target.closest('[data-key="⌫"]'))event.preventDefault();
+    });
     let selectionDrag=null;
     phone.addEventListener('pointerdown',event=>{
       const handle=event.target.closest('.ks-selection-handle');
       if(!handle||!event.isPrimary)return;
-      selectionDrag={id:event.pointerId,x:event.clientX,y:event.clientY};
+      selectionDrag={id:event.pointerId,x:event.clientX,y:event.clientY,calculator:!!handle.closest('.ks-calc-sheet')};
       handle.setPointerCapture(event.pointerId);
     });
     phone.addEventListener('pointerup',event=>{
       if(selectionDrag?.id!==event.pointerId)return;
       const dy=event.clientY-selectionDrag.y,dx=event.clientX-selectionDrag.x;
-      selectionDrag=null;
-      if(dy>48&&dy>Math.abs(dx))cancelSelection();
+      const {calculator}=selectionDrag;selectionDrag=null;
+      if(dy>48&&dy>Math.abs(dx)){if(calculator)closeCalculator(false);else cancelSelection();}
     });
     phone.addEventListener('pointercancel',()=>{selectionDrag=null;});
     phone.addEventListener('keydown',event=>{
@@ -290,7 +309,7 @@
       }else if(event.key==='Enter'&&event.target.matches('[data-entry-time] [name=hour]')){
         event.preventDefault();event.target.form.elements.minute.focus();
       }else if(event.key==='Tab'){
-        const dialog=modalNode().firstElementChild,controls=[...dialog.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled)')],first=controls[0],last=controls[controls.length-1];
+        const dialog=modalNode().firstElementChild,controls=[...dialog.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),[tabindex="0"]')],first=controls[0],last=controls[controls.length-1];
         if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
         else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
       }

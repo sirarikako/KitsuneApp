@@ -1,7 +1,4 @@
   #kitsune-preview .ks-setting option{background:var(--ks-paper)}
-  #kitsune-preview .ks-calculator{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-  #kitsune-preview .ks-key{border:var(--ks-card-border);background:var(--ks-card-surface);font-size:20px;min-height:var(--ks-control-height);border-radius:var(--ks-control-radius)}
-  #kitsune-preview .ks-key.ks-operator{background:var(--ks-card-surface);color:var(--ks-accent)}
   #kitsune-preview .ks-amount-input{width:100%;font-size:34px!important;line-height:1.5;text-align:right;font-variant-numeric:tabular-nums;border:var(--ks-card-border);border-radius:var(--ks-control-radius);background:var(--ks-card-surface);min-height:var(--ks-control-height);padding:var(--ks-space-2) var(--ks-space-3);min-width:0}
   #kitsune-preview .ks-amount-trigger{display:block}
   #kitsune-preview .ks-full{width:100%}
@@ -95,18 +92,23 @@
   #kitsune-preview .ks-selection-chip:has(input:checked) span{visibility:visible}
   #kitsune-preview .ks-selection-chip:has(input:focus-visible),#kitsune-preview .ks-selection-segment:focus-visible{outline:2px solid var(--ks-accent);outline-offset:-2px}
   #kitsune-preview .ks-selection-option:focus-visible,#kitsune-preview .ks-selection-option:has(input:focus-visible){outline:2px solid var(--ks-accent);outline-offset:-2px}
-  #kitsune-preview .ks-calc-sheet{display:flex;flex-direction:column;width:100%;background:var(--ks-card-surface);border:var(--ks-card-border);color:var(--ks-ink);border-radius:var(--ks-dialog-radius);padding:var(--ks-space-4);box-shadow:var(--ks-dialog-shadow);max-height:calc(100% - 24px);overflow:hidden}
-  #kitsune-preview .ks-calc-body{min-height:0;overflow-y:auto}
-  #kitsune-preview .ks-calc-footer{flex:none}
-  #kitsune-preview .ks-calc-sheet h3{font-size:18px;font-weight:600;margin:0 0 var(--ks-space-2)}
-  #kitsune-preview .ks-calc-sheet .ks-amount-input{font-size:27px!important;margin:3px 0 12px;white-space:nowrap;overflow-x:auto}
-  #kitsune-preview .ks-calc-sheet .ks-calculator{gap:var(--ks-space-2)}
-
+  #kitsune-preview .ks-calculator-overlay{padding-bottom:21px}
+  #kitsune-preview .ks-calc-body{min-height:0;overflow:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:6px}
+  #kitsune-preview .ks-calc-body>*{flex:none}
+  #kitsune-preview .ks-calc-meta{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px}
+  #kitsune-preview .ks-calc-readout{min-width:0;min-height:1lh;white-space:nowrap;overflow-x:auto;text-align:right;font-variant-numeric:tabular-nums}
+  #kitsune-preview .ks-calc-meta .ks-calc-readout{font-size:.857em;color:var(--ks-dim);line-height:1.33}
+  #kitsune-preview .ks-calc-result{font-size:2.429em;line-height:1.24}
+  #kitsune-preview .ks-calculator{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 8px}
+  #kitsune-preview .ks-key{display:grid;place-items:center;border:0;background:var(--ks-soft);color:var(--ks-ink);font-size:1.714em;line-height:1.17;min-height:48px;padding:4px 0;border-radius:var(--ks-control-radius)}
+  #kitsune-preview .ks-key:active{filter:brightness(.9)}
+  #kitsune-preview .ks-key svg{height:22px;width:22px}
+  #kitsune-preview .ks-key.ks-utility{color:var(--ks-dim);touch-action:manipulation;user-select:none}
+  #kitsune-preview .ks-key.ks-operator{background:var(--ks-accent-bg);color:var(--ks-ink)}
   #kitsune-preview .ks-key.ks-zero{grid-column:span 2}
-  #kitsune-preview .ks-key.ks-equal{grid-row:span 2;background:var(--ks-action-bg);color:var(--ks-action-text);border-color:var(--ks-action-bg)}
-  #kitsune-preview .ks-calc-actions{display:grid;grid-template-columns:1fr 1fr;margin-top:14px;gap:var(--ks-space-2)}
-
-  #kitsune-preview .ks-calc-error{font-size:12px;min-height:20px;margin:8px 0 0;color:var(--ks-danger)}
+  #kitsune-preview .ks-key.ks-equal{grid-row:span 2}
+  #kitsune-preview .ks-calc-error{flex:none;font-size:.857em;line-height:1.33;min-height:2lh;margin:0;color:var(--ks-danger)}
+  #kitsune-preview .ks-calc-sheet [data-calc-action=apply]{flex:none;min-height:48px}
   #kitsune-preview .ks-delete-btn{display:flex;align-items:center;justify-content:center;gap:7px;color:var(--ks-danger);width:100%;min-height:var(--ks-control-height);border:var(--ks-card-border);border-radius:var(--ks-control-radius);background:var(--ks-card-surface);padding:var(--ks-space-2) var(--ks-space-4);font-size:var(--ks-font-body)}
   #kitsune-preview .ks-delete-btn svg{width:var(--ks-icon-size);height:var(--ks-icon-size)}
   #kitsune-preview .ks-danger-confirm{background:var(--ks-danger);color:var(--ks-on-danger,light-dark(#fff8f7,#451714))}
