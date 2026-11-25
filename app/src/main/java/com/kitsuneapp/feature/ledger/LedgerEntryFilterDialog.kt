@@ -8,7 +8,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.kitsuneapp.R
@@ -75,26 +77,29 @@ private fun <T> toggle(selection: Set<T>, value: T): Set<T> =
 @Composable
 private fun TypeFilterChip(label: String, selected: Boolean, toggle: () -> Unit) {
     val colors = MaterialTheme.colorScheme
-    FilterChip(
+    Surface(
         selected = selected,
         onClick = toggle,
-        label = { Text(label, style = MaterialTheme.typography.labelLarge) },
-        leadingIcon = {
-            Box(Modifier.size(16.dp)) {
-                if (selected) Icon(designIcon(R.drawable.ks_check), contentDescription = null)
-            }
-        },
-        colors = FilterChipDefaults.filterChipColors(
-            labelColor = colors.onSurface,
-            selectedContainerColor = colors.primaryContainer,
-            selectedLabelColor = colors.onPrimaryContainer,
-            selectedLeadingIconColor = colors.onPrimaryContainer,
-        ),
+        modifier = Modifier.semantics { role = Role.Checkbox },
+        shape = FilterChipDefaults.shape,
+        color = if (selected) colors.primaryContainer else Color.Transparent,
+        contentColor = if (selected) colors.onPrimaryContainer else colors.onSurface,
         border = FilterChipDefaults.filterChipBorder(
             enabled = true, selected = selected, borderColor = colors.outlineVariant,
             selectedBorderColor = Color.Transparent,
         ),
-    )
+    ) {
+        Row(
+            Modifier.defaultMinSize(minHeight = FilterChipDefaults.Height).padding(horizontal = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.size(16.dp)) {
+                if (selected) Icon(designIcon(R.drawable.ks_check), contentDescription = null)
+            }
+            Text(label, style = MaterialTheme.typography.labelLarge)
+        }
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)

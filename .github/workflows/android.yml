@@ -1,7 +1,7 @@
 name: Android
 on:
   push:
-    branches: [main, 'feat/**', 'codex/android-16']
+    branches: [main, 'feat/**', 'fix/selection-sheet-spacing', 'codex/android-16']
   pull_request:
     branches: [main, 'feat/android-full-implementation']
   workflow_dispatch:
@@ -53,6 +53,7 @@ jobs:
       github.ref == 'refs/heads/feat/meal-statistics-month' ||
       github.ref == 'refs/heads/feat/filter-action-alignment' ||
       github.ref == 'refs/heads/feat/selection-sheet-hierarchy' ||
+      github.ref == 'refs/heads/fix/selection-sheet-spacing' ||
       github.ref == 'refs/heads/feat/category-icons' ||
       github.ref == 'refs/heads/feat/github-backup-ui-pauses' || github.ref == 'refs/heads/codex/android-16')
     needs: [verify, device-tests]

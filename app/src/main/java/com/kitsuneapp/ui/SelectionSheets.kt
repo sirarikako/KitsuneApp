@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kitsuneapp.R
@@ -38,7 +39,7 @@ internal fun SelectionSheet(
     content: LazyListScope.() -> Unit,
 ) {
     val listState = key(listStateKey) { rememberLazyListState() }
-    FloatingSheet(title, dismiss) {
+    FloatingSheet(title, dismiss, bottomPadding = 12.dp) {
         header?.invoke()
         LazyColumn(
             Modifier.weight(1f, fill = false).heightIn(max = 420.dp)
@@ -49,13 +50,20 @@ internal fun SelectionSheet(
             if (subtitle != null) item { Secondary(subtitle) }
             content()
         }
-        footer?.invoke(this)
+        if (footer != null) {
+            Column(Modifier.padding(top = 8.dp), content = footer)
+        }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun FloatingSheet(title: String, dismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+internal fun FloatingSheet(
+    title: String,
+    dismiss: () -> Unit,
+    bottomPadding: Dp = 8.dp,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     val colors = MaterialTheme.colorScheme
     ModalBottomSheet(
         onDismissRequest = dismiss,
@@ -65,7 +73,7 @@ internal fun FloatingSheet(title: String, dismiss: () -> Unit, content: @Composa
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         Surface(Modifier.fillMaxWidth().padding(9.dp), shape = DialogShape, color = colors.surface) {
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            Column(Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = bottomPadding),
                 verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Box(Modifier.align(Alignment.CenterHorizontally).padding(vertical = 4.dp)
                     .size(32.dp, 4.dp).clip(ControlShape).background(colors.outlineVariant))
