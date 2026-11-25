@@ -1,7 +1,10 @@
 package com.kitsuneapp.feature.ledger
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -13,11 +16,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -26,6 +32,7 @@ import com.kitsuneapp.AppViewModel
 import com.kitsuneapp.R
 import com.kitsuneapp.data.*
 import com.kitsuneapp.ui.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -175,7 +182,10 @@ private fun defaultEntryType(wallet: Wallet?) =
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun EntryForm(records: Records, id: String?, expenseId: String?, model: AppViewModel, back: () -> Unit, finished: () -> Unit) {
+fun EntryForm(
+    records: Records, id: String?, expenseId: String?, model: AppViewModel, back: () -> Unit, finished: () -> Unit,
+    readyForSheet: Boolean = true,
+) {
     val ledger = remember(records) { Ledger(records) }
     val original = ledger.entry(id)
     val expense = ledger.entry(expenseId ?: original?.originalExpenseId)
@@ -200,17 +210,29 @@ fun EntryForm(records: Records, id: String?, expenseId: String?, model: AppViewM
     var targetAmount by rememberSaveable { mutableStateOf(original?.toAmountMinor?.let { money(it, target?.currencyScale ?: 0) }.orEmpty()) }
     var note by rememberSaveable { mutableStateOf(original?.note.orEmpty()) }
     var calculator by rememberSaveable { mutableIntStateOf(0) }
+    var initialCalculatorHandled by rememberSaveable { mutableStateOf(false) }
     val focus = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
     fun openCalculator(field: Int) {
         focus.clearFocus()
         keyboard?.hide()
+        initialCalculatorHandled = true
         calculator = field
     }
     var walletSheet by rememberSaveable { mutableIntStateOf(0) }
     var categorySheet by rememberSaveable { mutableStateOf(false) }
     val busy by model.busy.collectAsState()
     val error by model.error.collectAsState()
+    LaunchedEffect(readyForSheet, wallet, id, expenseId) {
+        if (readyForSheet && !initialCalculatorHandled && id == null && expenseId == null) {
+            initialCalculatorHandled = true
+            if (wallet != null && !wallet.archived && wallet.currencyScale in 0..4 &&
+                walletSheet == 0 && !categorySheet && !addingCategory && type != EntryType.TRANSFER
+            ) {
+                openCalculator(1)
+            }
+        }
+    }
     val scope = type.scope
     val options = remember(ledger, wallet, scope) {
         if (scope != null && wallet != null) ledger.categories.filter { allowedCategory(it, wallet, scope) }
@@ -339,7 +361,7 @@ fun EntryForm(records: Records, id: String?, expenseId: String?, model: AppViewM
             model.save { addEntryCategory(category, scope, wallet.id, name, icon) }
         }
     }
-    if (calculator != 0) {
+    if (readyForSheet && calculator != 0) {
         val first = calculator == 1
         val scale = (if (first) wallet else target)?.currencyScale
         val currency = if (first) wallet?.currencyCode else target?.currencyCode
@@ -406,89 +428,148 @@ private fun AmountField(label: String, value: String, wallet: Wallet?, calculato
     }
 }
 
+private const val CalculatorOperators = "+−×÷"
+
 @Composable
 internal fun Calculator(scale: Int, currency: String, initial: String, dismiss: () -> Unit, apply: (String) -> Unit) {
-    var text by rememberSaveable { mutableStateOf(initial) }
+    var expression by rememberSaveable { mutableStateOf(initial) }
+    var settledResult by rememberSaveable { mutableStateOf<String?>(null) }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
     val scroll = rememberScrollState()
     val scope = rememberCoroutineScope()
+    val hasOperation = expression.any { it in CalculatorOperators }
+    val preview = remember(expression, scale, hasOperation) {
+        if (hasOperation) previewCalculation(expression, scale)?.let { money(it, scale) } else null
+    }
+    val result = settledResult ?: if (hasOperation) preview.orEmpty() else expression.ifEmpty { money(0L, scale) }
+    val colors = MaterialTheme.colorScheme
     fun evaluate(): String? {
         return try {
-            money(calculate(text, scale), scale).also { error = null }
+            money(calculate(expression, scale), scale).also { error = null }
         } catch (failure: IllegalArgumentException) {
             error = failure.message
             null
         }
     }
-    fun update(input: String) {
-        text = input.take(512)
+
+    fun press(key: String) {
+        if (key == "=") {
+            evaluate()?.let {
+                settledResult = it
+                scope.launch { scroll.scrollTo(0) }
+            }
+            return
+        }
+        val settled = settledResult
+        expression = when (key) {
+            "C" -> ""
+            "⌫" -> expression.dropLast(1)
+            else -> when {
+                settled == null -> expression + key
+                key in CalculatorOperators -> settled + key
+                else -> key
+            }
+        }.take(512)
+        settledResult = null
         error = null
     }
-    fun press(key: String) {
-        when (key) {
-            "C" -> update("")
-            "⌫" -> update(text.dropLast(1))
-            else -> update(text + key)
-        }
-    }
-    DesignSheet(dismiss, scroll = scroll, footer = {
-        error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Choice("取消", dismiss, Modifier.weight(1f))
-            Primary("使用此金额", { evaluate()?.let(apply) }, Modifier.weight(1f))
-        }
-    }) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("金额计算器", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-            TextAction("关闭", dismiss)
-        }
-        Secondary("$currency · 支持加减乘除")
-        val colors = MaterialTheme.colorScheme
-        BoxWithConstraints(Modifier.fillMaxWidth().clip(ControlShape).background(colors.surface)
-            .border(1.dp, colors.outlineVariant, ControlShape).padding(horizontal = 12.dp, vertical = 8.dp)) {
-            Text(text.ifEmpty { money(0L, scale) },
-                Modifier.horizontalScroll(rememberScrollState(), reverseScrolling = true)
-                    .widthIn(min = maxWidth).semantics { contentDescription = "计算表达式" },
-                style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.End,
-                color = if (text.isEmpty()) colors.onSurfaceVariant else colors.onSurface, softWrap = false)
-        }
-        listOf(listOf("C", "⌫", "÷", "×"), listOf("7", "8", "9", "−"), listOf("4", "5", "6", "+")).forEach { keys ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                keys.forEach { key -> CalculatorKey(key, Modifier.weight(1f)) { press(key) } }
+
+    FloatingSheet("金额计算器", dismiss) {
+        Column(Modifier.weight(1f, fill = false).verticalScroll(scroll),
+            verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Secondary(currency)
+                CalculatorReadout(
+                    if (hasOperation || settledResult?.let { it != expression } == true) expression else "",
+                    "计算表达式", MaterialTheme.typography.bodySmall, Modifier.weight(1f),
+                    color = colors.onSurfaceVariant,
+                )
             }
-        }
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val keyWidth = (maxWidth - 24.dp) / 4
-            Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Column(Modifier.width(keyWidth * 3 + 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("1", "2", "3").forEach { key -> CalculatorKey(key, Modifier.width(keyWidth)) { press(key) } }
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CalculatorKey("0", Modifier.width(keyWidth * 2 + 8.dp)) { press("0") }
-                        CalculatorKey(".", Modifier.width(keyWidth)) { press(".") }
-                    }
+            CalculatorReadout(result, "计算结果",
+                MaterialTheme.typography.headlineMedium.copy(fontSize = 34.sp, lineHeight = 42.sp))
+            listOf(listOf("C", "⌫", "÷", "×"), listOf("7", "8", "9", "−"), listOf("4", "5", "6", "+")).forEach { keys ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    keys.forEach { key -> CalculatorKey(key, Modifier.weight(1f)) { press(key) } }
                 }
-                Primary("=", {
-                    evaluate()?.let {
-                        update(it)
-                        scope.launch { scroll.scrollTo(0) }
+            }
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val keyWidth = (maxWidth - 24.dp) / 4
+                Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.width(keyWidth * 3 + 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("1", "2", "3").forEach { key ->
+                                CalculatorKey(key, Modifier.width(keyWidth)) { press(key) }
+                            }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            CalculatorKey("0", Modifier.width(keyWidth * 2 + 8.dp)) { press("0") }
+                            CalculatorKey(".", Modifier.width(keyWidth)) { press(".") }
+                        }
                     }
-                }, Modifier.width(keyWidth).fillMaxHeight())
+                    CalculatorKey("=", Modifier.weight(1f).fillMaxHeight()) { press("=") }
+                }
             }
         }
+        Text(error.orEmpty(), color = colors.error, style = MaterialTheme.typography.bodySmall, minLines = 2)
+        Primary("确认金额", { evaluate()?.let(apply) }, Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            enabled = expression.isNotEmpty())
     }
 }
 
 @Composable
+private fun CalculatorReadout(
+    value: String, label: String, style: TextStyle, modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.onSurface,
+) {
+    BoxWithConstraints(modifier.fillMaxWidth().clipToBounds()) {
+        Text(value, Modifier.horizontalScroll(rememberScrollState(), reverseScrolling = true)
+            .widthIn(min = maxWidth).semantics { if (value.isNotEmpty()) contentDescription = label },
+            style = style.copy(fontFeatureSettings = "tnum"), textAlign = TextAlign.End, color = color, softWrap = false)
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
 private fun CalculatorKey(key: String, modifier: Modifier, press: () -> Unit) {
     val colors = MaterialTheme.colorScheme
-    val keyModifier = when (key) {
-        "C" -> modifier.semantics { contentDescription = "清空" }
-        "⌫" -> modifier.semantics { contentDescription = "退格" }
-        else -> modifier
+    val operator = key in CalculatorOperators || key == "="
+    val utility = key == "C" || key == "⌫"
+    val foreground = when {
+        operator -> colors.onPrimaryContainer
+        utility -> colors.onSurfaceVariant
+        else -> colors.onSurface
     }
-    OutlinedAction(press, keyModifier, contentColor = if (key in listOf("÷", "×", "−", "+")) colors.primary else colors.onSurface) {
-        Text(key, fontSize = 20.sp, lineHeight = 24.sp)
+    val interaction = remember { MutableInteractionSource() }
+    var repeating by remember { mutableStateOf(false) }
+    if (key == "⌫") {
+        val held by interaction.collectIsPressedAsState()
+        val onRepeat by rememberUpdatedState(press)
+        LaunchedEffect(held, repeating) {
+            if (!held) repeating = false
+            else if (repeating) {
+                while (true) {
+                    delay(75)
+                    onRepeat()
+                }
+            }
+        }
+    }
+    Box(
+        modifier.heightIn(min = 48.dp).clip(ControlShape)
+            .background(if (operator) colors.primaryContainer else colors.surfaceVariant)
+            .combinedClickable(
+                interactionSource = interaction, indication = ripple(), role = Role.Button, onClick = press,
+                onLongClick = if (key == "⌫") { { press(); repeating = true } } else null,
+                onLongClickLabel = if (key == "⌫") "连续删除" else null,
+            ).padding(vertical = 4.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (key == "⌫") {
+            Icon(designIcon(R.drawable.ks_delete), "退格", Modifier.size(22.dp), tint = foreground)
+        } else {
+            Text(key, Modifier.semantics { if (key == "C") contentDescription = "清空" },
+                color = foreground, fontSize = 24.sp, lineHeight = 28.sp)
+        }
     }
 }

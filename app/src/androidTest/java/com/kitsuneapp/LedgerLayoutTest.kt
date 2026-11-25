@@ -31,6 +31,8 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
@@ -662,33 +664,71 @@ class LedgerLayoutTest {
             }
         }
         val expression = compose.onNodeWithContentDescription("计算表达式")
+        val result = compose.onNodeWithContentDescription("计算结果")
+        val backspace = compose.onNodeWithContentDescription("退格")
         val clear = compose.onNodeWithContentDescription("清空")
-        val apply = compose.onNodeWithText("使用此金额")
+        val apply = compose.onNodeWithText("确认金额")
         fun press(vararg keys: String) {
             keys.forEach { compose.onNodeWithText(it).performScrollTo().performClick() }
         }
 
-        compose.onNodeWithText("12.50").assertIsDisplayed()
-        assertTrue(!expression.fetchSemanticsNode().config.contains(SemanticsActions.SetText))
+        result.assertIsDisplayed().assertTextEquals("12.50")
+        assertFalse(result.fetchSemanticsNode().config.contains(SemanticsActions.SetText))
+        expression.assertDoesNotExist()
         clear.performClick()
-        press("1", "÷", "0", "=")
+        press("1", "÷")
+        result.assertDoesNotExist()
+        compose.onNodeWithText("表达式缺少有效数字").assertDoesNotExist()
+        press("0", "=")
         compose.onNodeWithText("除数不能为零").assertIsDisplayed()
-        compose.onNodeWithContentDescription("退格").performScrollTo().performClick()
+        backspace.performScrollTo().performClick()
         press("3", "×", "1", "0", "0")
         restoration.emulateSavedInstanceStateRestore()
-        compose.onNodeWithText("1÷3×100").performScrollTo().assertIsDisplayed()
-        press("=")
-        compose.waitUntil(5_000) { compose.onNodeWithText("33.33").isDisplayed() }
-        apply.assertIsDisplayed().performClick()
-        compose.runOnIdle { assertEquals("33.33", amount) }
+        expression.performScrollTo().assertTextEquals("1÷3×100")
+        result.assertIsDisplayed().assertTextEquals("33.33")
         saveScreenshot("kitsune-calculator")
 
+        press("=")
+        restoration.emulateSavedInstanceStateRestore()
+        expression.assertTextEquals("1÷3×100")
+        result.assertTextEquals("33.33")
+        backspace.performScrollTo().performClick()
+        expression.assertTextEquals("1÷3×10")
+        result.assertTextEquals("3.33")
+        press("0", "=", "+", "2")
+        expression.assertTextEquals("33.33+2")
+        result.assertTextEquals("35.33")
+        apply.assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals("35.33", amount) }
+
+        press("=", "9")
+        expression.assertDoesNotExist()
+        result.assertTextEquals("9")
+        press("8", "7", "6", "5", "4", "3")
+        backspace.performScrollTo().performTouchInput { down(center) }
+        try {
+            compose.waitUntil(3_000) {
+                result.fetchSemanticsNode().config[SemanticsProperties.Text].single().text.length < 6
+            }
+        } finally {
+            backspace.performTouchInput { up() }
+        }
+        val afterHold = result.fetchSemanticsNode().config[SemanticsProperties.Text].single().text
+        assertTrue("长按应删除多个字符", afterHold.length < 6)
+        compose.mainClock.advanceTimeBy(300)
+        result.assertTextEquals(afterHold)
+        compose.runOnIdle {
+            assertFalse(ViewCompat.getRootWindowInsets(compose.activity.window.decorView)
+                ?.isVisible(WindowInsetsCompat.Type.ime()) == true)
+        }
+
         clear.performScrollTo().performClick()
+        apply.assertIsNotEnabled()
         press("2", "×", "2", "5")
-        compose.onNodeWithText("取消").performClick()
+        compose.onNodeWithContentDescription("关闭").performClick()
         compose.runOnIdle {
             assertTrue(dismissed)
-            assertEquals("33.33", amount)
+            assertEquals("35.33", amount)
         }
     }
 
@@ -712,12 +752,12 @@ class LedgerLayoutTest {
         val targetAmount = hasContentDescription("到账金额 · JPY")
         val expression = hasContentDescription("计算表达式")
         val note = compose.onNodeWithContentDescription("备注")
-        val apply = compose.onNodeWithText("使用此金额")
+        val apply = compose.onNodeWithText("确认金额")
         note.performScrollTo().performTextReplacement("未保存备注")
         val initial = compose.onNode(sourceAmount and hasText("12.50"))
         assertTrue(!initial.fetchSemanticsNode().config.contains(SemanticsActions.SetText))
         initial.performScrollTo().performClick()
-        compose.onNode(expression and hasText("12.50")).assertIsDisplayed()
+        compose.onNode(hasContentDescription("计算结果") and hasText("12.50")).assertIsDisplayed()
         compose.onNodeWithText("+").performScrollTo().performClick()
         compose.onNodeWithText("1").performScrollTo().performClick()
         restoration.emulateSavedInstanceStateRestore()
@@ -727,13 +767,27 @@ class LedgerLayoutTest {
         note.assertTextEquals("未保存备注")
 
         compose.onNode(targetAmount and hasText("300")).performScrollTo().performClick()
-        compose.onNodeWithText("JPY · 支持加减乘除").assertIsDisplayed()
-        compose.onNode(expression and hasText("300")).assertIsDisplayed()
+        compose.onNodeWithText("JPY").assertIsDisplayed()
+        compose.onNode(hasContentDescription("计算结果") and hasText("300")).assertIsDisplayed()
         compose.onNodeWithContentDescription("清空").performScrollTo().performClick()
         listOf("2", ".", "5").forEach { compose.onNodeWithText(it).performScrollTo().performClick() }
         apply.performClick()
         compose.onNode(targetAmount and hasText("3")).assertExists()
         compose.onNode(sourceAmount and hasText("13.50")).assertExists()
+    }
+
+    @Test
+    fun aNewDraftWithoutAnAvailableDefaultWalletDoesNotOpenTheCalculator() {
+        val records = Records(DataState(installationId = "test", datasetId = "test", arrayElements = 0),
+            ThemePreferences(), emptyList(), emptyList(), emptyList(), emptyMap(), emptyList(), emptyList())
+        val model = compose.runOnIdle { ViewModelProvider(compose.activity)[AppViewModel::class.java] }
+        compose.setContent {
+            KitsuneTheme(records.theme) { EntryForm(records, null, null, model, back = {}, finished = {}) }
+        }
+        compose.onNodeWithText("记一笔").assertIsDisplayed()
+        compose.onNodeWithContentDescription("金额 · 请选择钱包").assertIsNotEnabled()
+        compose.onNodeWithText("请手动选择钱包").assertExists()
+        compose.onNodeWithText("金额计算器").assertDoesNotExist()
     }
 
     private fun saveScreenshot(name: String) {

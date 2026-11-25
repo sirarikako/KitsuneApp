@@ -84,7 +84,7 @@ def main() -> None:
     output_path = ROOT / "index.html"
     output_path.write_text(output, encoding="utf-8", newline="\n")
     manifest = {
-        "designDate": "2026-11-23",
+        "designDate": "2026-11-25",
         "source": source_path.name,
         "sourceSha256": sha256(source_path),
         "preview": output_path.name,

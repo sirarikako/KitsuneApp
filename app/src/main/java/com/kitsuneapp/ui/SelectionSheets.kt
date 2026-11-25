@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.sp
 import com.kitsuneapp.R
 import com.kitsuneapp.data.Wallet
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SelectionSheet(
     title: String,
@@ -38,8 +37,26 @@ internal fun SelectionSheet(
     listStateKey: String = "",
     content: LazyListScope.() -> Unit,
 ) {
-    val colors = MaterialTheme.colorScheme
     val listState = key(listStateKey) { rememberLazyListState() }
+    FloatingSheet(title, dismiss) {
+        header?.invoke()
+        LazyColumn(
+            Modifier.weight(1f, fill = false).heightIn(max = 420.dp)
+                .then(if (singleChoice) Modifier.selectableGroup() else Modifier),
+            state = listState,
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            if (subtitle != null) item { Secondary(subtitle) }
+            content()
+        }
+        footer?.invoke(this)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun FloatingSheet(title: String, dismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    val colors = MaterialTheme.colorScheme
     ModalBottomSheet(
         onDismissRequest = dismiss,
         containerColor = Color.Transparent,
@@ -59,17 +76,7 @@ internal fun SelectionSheet(
                         Icon(designIcon(R.drawable.ks_x), contentDescription = "关闭", modifier = Modifier.size(22.dp))
                     }
                 }
-                header?.invoke()
-                LazyColumn(
-                    Modifier.weight(1f, fill = false).heightIn(max = 420.dp)
-                        .then(if (singleChoice) Modifier.selectableGroup() else Modifier),
-                    state = listState,
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    if (subtitle != null) item { Secondary(subtitle) }
-                    content()
-                }
-                footer?.invoke(this)
+                content()
             }
         }
     }

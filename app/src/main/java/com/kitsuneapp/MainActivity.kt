@@ -168,6 +168,7 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
     val currentMealMonth = remember(mealMonth) { MealFilter.forMonth(mealMonth) }
 
     val transition = updateTransition(stack, label = "页面过渡")
+    val pageSettled = transition.currentState == transition.targetState && !transition.isRunning
     val onPrimaryPage = top in roots
     val showBottomBar = onPrimaryPage || transition.currentState.last() in roots
     NavigationFrame(showBottomBar, bottomBar = {
@@ -266,7 +267,8 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
                                     openDetails = { id -> openRecord("entry/$id", id) }, active = active)
                                 "wallet" -> WalletForm(records, parts[1].takeUnless { it == "-" }, model, goBack)
                                 "entry" -> EntryDetails(records, parts[1], model, ::open, goBack)
-                                "entryForm" -> EntryForm(records, parts[1].takeUnless { it == "-" }, null, model, goBack, ::back)
+                                "entryForm" -> EntryForm(records, parts[1].takeUnless { it == "-" }, null, model, goBack, ::back,
+                                    readyForSheet = active && pageSettled)
                                 "refund" -> EntryForm(records, null, parts[1], model, goBack, ::back)
                             }
                         }

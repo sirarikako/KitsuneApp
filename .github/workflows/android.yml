@@ -47,6 +47,7 @@ jobs:
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/android-full-implementation' ||
       github.ref == 'refs/heads/feat/android-release-apk' ||
+      github.ref == 'refs/heads/feat/amount-calculator-ui' ||
       github.ref == 'refs/heads/feat/android-default-wallet' ||
       github.ref == 'refs/heads/feat/ledger-time-picker' ||
       github.ref == 'refs/heads/feat/meal-statistics-month' ||

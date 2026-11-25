@@ -25,7 +25,7 @@
     const cardRadius=17;
     const defaultAppearance={mode:'system',colorSource:'PRESET',presetColor:'#c47a4a',customColor:'#C47A4A'};
     const style = {accent:'#c47a4a',mealHour:'auto',...defaultAppearance};
-    const state = {page:'home', date:'2026-11-17', ledgerMonth:'2026-11',ledgerTab:'流水', mealTab:'记录', slot:2, atHome:null, method:null, categories:[], amount:'',calcOpen:false,calcExpression:'',entryType:'支出',entryDraft:{dateTime:'2026-11-17T09:41',note:'',category:'ge-food',walletId:'daily'},notice:'', mealReturn:'home', entries:[], records:{}};
+    const state = {page:'home', date:'2026-11-17', ledgerMonth:'2026-11',ledgerTab:'流水', mealTab:'记录', slot:2, atHome:null, method:null, categories:[], amount:'',calcOpen:false,calcExpression:'',calcResult:null,entryType:'支出',entryDraft:{dateTime:'2026-11-17T09:41',note:'',category:'ge-food',walletId:'daily'},notice:'', mealReturn:'home', entries:[], records:{}};
     state.ledgerRange=null;state.periodDraft=null;state.entryTimeDraft=null;state.previewMode=null;
     const blankLedgerFilters=()=>({types:null,categoryNames:null,note:''});
     state.ledgerFilters=blankLedgerFilters();state.ledgerFilterDraft=null;

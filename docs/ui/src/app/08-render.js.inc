@@ -34,7 +34,7 @@
       const settingsScreen=state.page==='settings'||state.page==='github'?`ks-${state.page}-screen`:'';
       const top=`<header class="ks-top ${form?'ks-subpage':''}">${header}</header>`;
       phone.innerHTML=`<div class="ks-status"><span>9:41</span><span class="ks-signal">${icon('signal')}${icon('wifi')}${icon('battery-full')}</span></div><div class="ks-page-motion ${settingsScreen} ${ledger?'ks-ledger-screen':''} ${fab?'ks-ledger-with-fab':''}">${ledger?`<div class="ks-ledger-collapsible">${top}</div>${ledgerTabs()}${ledgerFilters()}`:top}<main class="ks-main">${pages[state.page]()}${state.notice?`<p class="ks-success" role="status">${escapeText(state.notice)}</p>`:''}</main>${fab?`<button type="button" class="ks-primary ks-ledger-fab" data-action="add-entry" aria-label="记一笔">${icon('plus')}<span>记一笔</span></button>`:''}</div>${form?'':`<nav class="ks-nav" aria-label="主导航">${navs.map(([id,name,ic])=>`<button type="button" data-page="${id}" class="cursor-interaction" ${state.page===id?'aria-current="page"':''}><span>${icon(ic)}</span>${name}</button>`).join('')}</nav>`}<div class="ks-home-indicator" aria-hidden="true"></div>`;
-      if(state.calcOpen){phone.insertAdjacentHTML('beforeend',calculatorSheet());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-calc-action=cancel]').focus({preventScroll:true});}
+      if(state.calcOpen){phone.insertAdjacentHTML('beforeend',calculatorSheet());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;updateCalculatorReadout();phone.querySelector('[data-calc-action=cancel]').focus({preventScroll:true});}
       if(state.deletePending){phone.insertAdjacentHTML('beforeend',deleteConfirmation());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-delete-action=cancel]').focus({preventScroll:true});}
       if(state.walletPickerOpen||state.ledgerFilterDraft||state.singleSelection){
         const panel=state.walletPickerOpen?walletRangeDialog():state.ledgerFilterDraft?ledgerFiltersDialog():singleSelectionPanel();
@@ -153,7 +153,54 @@
     function deleteConfirmation(){const p=state.deletePending;return `<div class="ks-modal-overlay ks-delete-overlay"><section class="ks-delete-sheet" role="alertdialog" aria-modal="true" aria-label="确认删除记录"><h3>${p.kind==='meal'?'删除这条用餐记录？':'删除这笔账目？'}</h3><p class="ks-delete-summary">${escapeText(p.summary)}</p><p class="ks-note">${p.kind==='meal'?'删除后，将更新今日进度、月度及全部记录统计。':'删除后，将更新流水、收支统计和钱包余额。'}</p><p class="ks-error" role="alert" data-delete-error></p><div class="ks-calc-actions"><button type="button" class="ks-choice cursor-interaction" data-delete-action="cancel">取消</button><button type="button" class="ks-primary ks-danger-confirm cursor-interaction" data-delete-action="confirm">确认删除</button></div></section></div>`;}
     function cancelDelete(){const action=state.deletePending.kind==='meal'?'delete-meal':'delete-entry';state.deletePending=null;render();phone.querySelector(`[data-action=${action}]`)?.focus({preventScroll:true});}
     function confirmDelete(){const p=state.deletePending;if(p.kind==='meal'){if(state.records[p.date])state.records[p.date][p.slot]=null;state.date=p.date;state.page=state.mealReturn;state.editing=false;}else{if(financialEntries().some(e=>e.originalExpenseId===p.id)){phone.querySelector('[data-delete-error]').textContent='请先删除这笔支出关联的退款，再删除原支出。';return;}state.deletedEntryIds.add(p.id);state.page='ledger';state.ledgerTab='流水';}state.deletePending=null;state.notice='已从当前演示删除记录。';render();}
-    function closeCalculator(apply){if(apply){try{state.amount=inputAmount(calcCents(state.calcExpression));}catch(e){phone.querySelector('.ks-calc-error').textContent=e.message;return;}}state.calcOpen=false;render();phone.querySelector('[data-action=open-calculator]').focus({preventScroll:true});}
+    const calcOperators='+−×÷';
+    function openCalculator(){
+      if(!entryWallet()||modalKind())return;
+      state.calcExpression=state.amount;state.calcResult=null;state.calcOpen=true;render();
+    }
+    function closeCalculator(apply){
+      if(apply){
+        try{state.amount=inputAmount(calcCents(state.calcExpression));}
+        catch(failure){phone.querySelector('.ks-calc-error').textContent=failure.message;return;}
+      }
+      stopCalcBackspace();
+      state.calcOpen=false;render();phone.querySelector('[data-action=open-calculator]')?.focus({preventScroll:true});
+    }
+    function updateCalculatorReadout(){
+      const expression=state.calcExpression,hasOperation=[...expression].some(char=>calcOperators.includes(char));
+      let result=state.calcResult;
+      if(result===null){
+        result=hasOperation?'':expression||inputAmount(0n);
+        if(hasOperation){
+          try{result=inputAmount(calcCents(expression));}catch{}
+        }
+      }
+      for(const [selector,value] of [
+        ['[data-calc-expression]',hasOperation||(state.calcResult!==null&&state.calcResult!==expression)?expression:''],
+        ['[data-calc-result]',result],
+      ]){
+        const readout=phone.querySelector(selector);
+        readout.textContent=value;
+        readout.scrollLeft=readout.scrollWidth;
+        readout.tabIndex=readout.scrollWidth>readout.clientWidth?0:-1;
+      }
+      phone.querySelector('[data-calc-action=apply]').disabled=expression.length===0;
+    }
+    function pressCalculatorKey(key){
+      const error=phone.querySelector('.ks-calc-error');
+      error.textContent='';
+      if(key==='='){
+        try{state.calcResult=inputAmount(calcCents(state.calcExpression));phone.querySelector('.ks-calc-body').scrollTop=0;}
+        catch(failure){error.textContent=failure.message;return;}
+      }else{
+        if(key==='C')state.calcExpression='';
+        else if(key==='⌫')state.calcExpression=state.calcExpression.slice(0,-1);
+        else if(state.calcResult!==null)state.calcExpression=calcOperators.includes(key)?state.calcResult+key:key;
+        else state.calcExpression=(state.calcExpression+key).slice(0,512);
+        state.calcResult=null;
+      }
+      updateCalculatorReadout();
+    }
     function closeLedgerFilters(apply){
       if(apply){
         const note=phone.querySelector('[data-ledger-filters] [name=note]').value;
@@ -243,16 +290,49 @@
       phone.querySelector(mealStats?'[data-action=choose-meal-month]':'[data-action=choose-ledger-period]')?.focus({preventScroll:true});
       if(apply)persist();
     }
-        function calcCents(expression){
-      const source=expression.replace(/×/g,'*').replace(/[−–]/g,'-').replace(/÷/g,'/').replace(/\s/g,'');
-      if(source.length>80||!/^\d+(?:\.\d*)?(?:[+*/-]\d+(?:\.\d*)?)*$/.test(source))throw Error('请补全金额或计算式，例如 12+8×2。');
-      const tokens=source.match(/\d+(?:\.\d*)?|[+*/-]/g);
-      const parse=s=>{const [a,b='']=s.split('.');return [BigInt(a+b),10n**BigInt(b.length)];};
-      const op=(a,b,o)=>{if(o==='+')return[a[0]*b[1]+b[0]*a[1],a[1]*b[1]];if(o==='-')return[a[0]*b[1]-b[0]*a[1],a[1]*b[1]];if(o==='*')return[a[0]*b[0],a[1]*b[1]];if(!b[0])throw Error('不能除以 0，请修改计算式。');return[a[0]*b[1],a[1]*b[0]];};
-      const sums=[];let term=parse(tokens[0]);for(let i=1;i<tokens.length;i+=2){if(tokens[i]==='*'||tokens[i]==='/')term=op(term,parse(tokens[i+1]),tokens[i]);else{sums.push(term,tokens[i]);term=parse(tokens[i+1]);}}sums.push(term);let result=sums[0];for(let i=1;i<sums.length;i+=2)result=op(result,sums[i+1],sums[i]);
-      if(result[0]<=0n)throw Error('金额需大于 0。');
-      if(!entryWallet())throw Error('请先选择钱包。');const factor=10n**BigInt(entryWallet().scale),cents=(result[0]*factor*2n+result[1])/(result[1]*2n);
-      if(cents<=0n)throw Error('金额四舍五入后必须大于 0。');
-      if(cents>maximumEntryMinor)throw Error('超出单笔金额上限，请减小金额。');
+    function calcCents(expression){
+      if(!expression.length||expression.length>512)throw Error('请输入不超过 512 字符的表达式');
+      const source=expression.replaceAll('×','*').replaceAll('−','-').replaceAll('÷','/');
+      const number=/\s*([+-]?[0-9.]+)/y;
+      const decimal=/^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$/;
+      let index=0;
+      const peek=()=>{
+        while(/\s/.test(source[index]??''))index++;
+        return source[index]??'';
+      };
+      const readNumber=()=>{
+        number.lastIndex=index;
+        const match=number.exec(source);
+        if(!match||!decimal.test(match[1]))throw Error('表达式缺少有效数字');
+        index=number.lastIndex;
+        const [a,b='']=match[1].split('.');
+        return [BigInt(a+b),10n**BigInt(b.length)];
+      };
+      const readTerm=()=>{
+        let [n,d]=readNumber();
+        for(let op=peek();op==='*'||op==='/';op=peek()){
+          index++;
+          const [p,q]=readNumber();
+          if(op==='*'){n*=p;d*=q;}
+          else{
+            if(!p)throw Error('除数不能为零');
+            n*=p<0n?-q:q;
+            d*=p<0n?-p:p;
+          }
+        }
+        return [n,d];
+      };
+      let [n,d]=readTerm();
+      for(let op=peek();op==='+'||op==='-';op=peek()){
+        index++;
+        const [p,q]=readTerm();
+        n=n*q+(op==='+'?p:-p)*d;d*=q;
+      }
+      if(peek())throw Error('表达式包含无效字符');
+      if(!entryWallet())throw Error('请先选择钱包。');
+      const scaled=n*10n**BigInt(entryWallet().scale);
+      const cents=(scaled*2n+(scaled<0n?-d:d))/(d*2n);
+      if(cents>maximumEntryMinor||cents< -maximumEntryMinor-1n)throw Error('单笔金额超出 64 位范围');
+      if(cents<=0n)throw Error('舍入后金额必须大于零');
       return cents;
     }

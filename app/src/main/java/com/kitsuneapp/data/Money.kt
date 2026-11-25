@@ -58,6 +58,13 @@ fun calculate(expression: String, scale: Int): Long {
     return result
 }
 
+internal fun previewCalculation(expression: String, scale: Int): Long? =
+    try {
+        calculate(expression, scale)
+    } catch (_: IllegalArgumentException) {
+        null
+    }
+
 private class MoneyExpression(private val text: String) {
     private var index = 0
 
