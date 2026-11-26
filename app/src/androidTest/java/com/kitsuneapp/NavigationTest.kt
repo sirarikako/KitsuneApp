@@ -2,10 +2,8 @@ package com.kitsuneapp
 
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
-import android.graphics.Bitmap
 import android.os.ParcelFileDescriptor
 import androidx.compose.ui.MotionDurationScale
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -14,7 +12,6 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
-import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
@@ -27,14 +24,13 @@ import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
-import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import androidx.compose.ui.test.waitUntilDoesNotExist
+import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import androidx.compose.ui.test.waitUntilExactlyOneExists
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.core.view.ViewCompat
@@ -49,7 +45,6 @@ import com.kitsuneapp.data.money
 import com.kitsuneapp.data.removeEntry
 import com.kitsuneapp.data.removeWallet
 import com.kitsuneapp.data.saveWallet
-import java.io.File
 import java.time.LocalDate
 import java.util.UUID
 import kotlinx.coroutines.runBlocking
@@ -210,55 +205,73 @@ class NavigationTest {
 
     @Test
     fun openWalletPickerAndEntryDraftSurviveRotationAndRecreation() {
-        compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
         val repository = runBlocking { (compose.activity.application as KitsuneApplication).repository() }
         val name = "旋转测试-" + UUID.randomUUID().toString().take(8)
         val wallet = runBlocking {
             repository.saveWallet(WalletDraft(null, name, "CNY", "0", 0, false, false))
             repository.read().wallets.single { it.name == name }
         }
-        val activity = compose.activityRule.scenario
-        val initialOrientation = compose.activity.requestedOrientation
-        val initialConfiguration = compose.activity.resources.configuration.orientation
-        val rotateTo = if (initialConfiguration == Configuration.ORIENTATION_PORTRAIT)
-            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-        val pickerTitle = compose.onNodeWithText("选择钱包")
-        fun assertPickerVisible() {
-            // The sheet can be composed while the IME or rotation transition still covers it.
-            compose.waitUntil(15_000) { pickerTitle.isDisplayed() }
+        val scenario = compose.activityRule.scenario
+        val original = compose.activity
+        val initialOrientation = original.requestedOrientation
+        val initialConfiguration = original.resources.configuration.orientation
+        val (rotateTo, expectedConfiguration) =
+            if (initialConfiguration == Configuration.ORIENTATION_PORTRAIT) {
+                ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE to Configuration.ORIENTATION_LANDSCAPE
+            } else {
+                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT to Configuration.ORIENTATION_PORTRAIT
+            }
+        val inDialog = hasAnyAncestor(isDialog())
+        val pickerTitle = compose.onNode(hasText("选择钱包") and inDialog)
+        val note = compose.onNodeWithContentDescription("备注")
+        fun assertPickerVisible(stage: String) {
+            compose.waitUntil("wallet picker presented with IME hidden $stage", 15_000) {
+                pickerTitle.isDisplayed() && !keyboardIsVisible()
+            }
             pickerTitle.assertIsDisplayed()
         }
         try {
+            compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
+            compose.onNodeWithText("记账").performClick()
+            compose.onNodeWithText("钱包").performClick()
+            compose.waitUntilExactlyOneExists(hasText("$name · CNY"), 20_000)
+            compose.onNodeWithText("首页").performClick()
             compose.onNodeWithText("记一笔").performScrollTo().performClick()
-            compose.waitUntilExactlyOneExists(hasText("金额计算器"), 10_000)
-            compose.onNodeWithContentDescription("关闭").performClick()
-            compose.onNodeWithContentDescription("备注").performScrollTo().performTextReplacement("旋转保留")
-            compose.onNodeWithContentDescription("钱包").performScrollTo().performClick()
-            assertPickerVisible()
-            activity.onActivity { it.requestedOrientation = rotateTo }
-            compose.waitUntil(15_000) {
-                compose.activity.resources.configuration.orientation != initialConfiguration
+            closeEntryCalculator()
+            note.performScrollTo().performClick().performTextReplacement("旋转保留")
+            compose.waitUntil("entry form IME visible", 10_000) { keyboardIsVisible() }
+            compose.onNodeWithContentDescription("钱包").performScrollTo().assertIsDisplayed().performClick()
+            assertPickerVisible("before rotation")
+            scenario.onActivity { it.requestedOrientation = rotateTo }
+            compose.waitUntil("activity recreated in the requested orientation", 15_000) {
+                val rotated = compose.activity
+                rotated !== original && rotated.resources.configuration.orientation == expectedConfiguration
             }
-            assertPickerVisible()
-            activity.recreate()
-            assertPickerVisible()
-            compose.onNodeWithText(name).performClick()
+            assertPickerVisible("after rotation")
+            scenario.recreate()
+            assertPickerVisible("after explicit recreation")
+            compose.onNode(hasScrollToNodeAction() and inDialog).performScrollToNode(hasText(name))
+            compose.onNode(hasText(name) and inDialog).assertIsDisplayed().performClick()
+            compose.waitUntilDoesNotExist(isDialog(), 10_000)
             compose.onNodeWithText("金额计算器").assertDoesNotExist()
             compose.onNode(hasContentDescription("钱包") and hasText("$name · CNY")).assertExists()
-            assertEquals("旋转保留", compose.onNodeWithContentDescription("备注")
-                .fetchSemanticsNode().config[SemanticsProperties.InputText].text)
+            assertEquals("旋转保留", note.fetchSemanticsNode().config[SemanticsProperties.InputText].text)
         } finally {
-            activity.onActivity { it.requestedOrientation = initialOrientation }
-            runBlocking { repository.removeWallet(wallet.id) }
+            try {
+                scenario.onActivity { it.requestedOrientation = initialOrientation }
+                compose.waitUntil("original display orientation restored", 15_000) {
+                    compose.activity.resources.configuration.orientation == initialConfiguration
+                }
+            } finally {
+                runBlocking { repository.removeWallet(wallet.id) }
+            }
         }
     }
 
     @Test
     fun opensAppearanceFromSettings() {
         compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
-        screenshot("kitsune-home")
         compose.onNodeWithText("设置").performClick()
-        screenshot("kitsune-settings")
         compose.onNodeWithText("外观与调色板").performClick()
         compose.onNodeWithText("恢复默认").assertIsDisplayed()
     }
@@ -282,22 +295,25 @@ class NavigationTest {
             compose.waitUntilAtLeastOneExists(hasText("$walletName · CNY"), 20_000)
             compose.onNodeWithText("首页").performClick()
             compose.onNodeWithText("记一笔").performScrollTo().performClick()
-            compose.waitUntilExactlyOneExists(hasText("金额计算器"), 10_000)
-            compose.onNodeWithContentDescription("关闭").performClick()
-            compose.waitUntilAtLeastOneExists(hasContentDescription("分类"), 10_000)
-            compose.onNodeWithContentDescription("备注").performScrollTo().performTextReplacement("保留备注")
+            closeEntryCalculator()
+            val defaultWallet = hasContentDescription("钱包") and hasText("$walletName · CNY")
+            compose.waitUntilExactlyOneExists(defaultWallet, 10_000)
+            val note = compose.onNodeWithContentDescription("备注")
+            note.performScrollTo().performTextReplacement("保留备注")
             val category = compose.onNodeWithContentDescription("分类")
             val dialogContent = hasAnyAncestor(isDialog())
             val sheetTitle = hasText("选择分类") and dialogContent
             val categoryNameField = hasContentDescription("分类名称") and dialogContent
+            val addCategory = compose.onNode(hasText("新增分类") and dialogContent)
             fun openPicker() {
                 category.performScrollTo().assertIsDisplayed().performSemanticsAction(SemanticsActions.OnClick)
-                compose.waitUntilExactlyOneExists(sheetTitle, 10_000)
+                compose.waitUntil("category picker title and action visible", 10_000) {
+                    compose.onNode(sheetTitle).isDisplayed() && addCategory.isDisplayed()
+                }
             }
             fun openEditor() {
                 openPicker()
-                compose.onNode(hasText("新增分类") and dialogContent).assertIsDisplayed()
-                    .performSemanticsAction(SemanticsActions.OnClick)
+                addCategory.assertIsDisplayed().performSemanticsAction(SemanticsActions.OnClick)
                 compose.waitUntilExactlyOneExists(categoryNameField, 10_000)
             }
             openEditor()
@@ -305,23 +321,23 @@ class NavigationTest {
             compose.onNode(hasText("取消") and dialogContent).performSemanticsAction(SemanticsActions.OnClick)
             compose.waitUntilDoesNotExist(categoryNameField, 10_000)
             compose.onNode(sheetTitle).assertDoesNotExist()
+            waitForEntryFormWindow()
             category.assertExists()
             assertTrue(runBlocking { repository.read().categories.none { it.name == categoryName } })
 
             openEditor()
             compose.onNode(categoryNameField).performTextReplacement(categoryName)
-            compose.onNodeWithText("礼物").performScrollTo().performSemanticsAction(SemanticsActions.OnClick)
-            compose.onNodeWithText("保存").assertIsEnabled().performSemanticsAction(SemanticsActions.OnClick)
+            compose.onNode(hasText("礼物") and dialogContent).performScrollTo()
+                .performSemanticsAction(SemanticsActions.OnClick)
+            compose.onNode(hasText("保存") and dialogContent).assertIsEnabled()
+                .performSemanticsAction(SemanticsActions.OnClick)
 
             val selected = hasContentDescription("分类") and hasText(categoryName)
             compose.waitUntilExactlyOneExists(selected, 10_000)
-            assertEquals("保留备注", compose.onNodeWithContentDescription("备注")
-                .fetchSemanticsNode().config[SemanticsProperties.InputText].text)
+            assertEquals("保留备注", note.fetchSemanticsNode().config[SemanticsProperties.InputText].text)
             assertEquals(CategoryIcon.GIFT, runBlocking { repository.read().categories.single { it.name == categoryName }.icon })
-            // The saved value can appear before Android returns input focus from the dialog to the form.
-            compose.waitUntil(10_000) {
-                compose.runOnUiThread { compose.activity.window.decorView.hasWindowFocus() }
-            }
+            compose.waitUntilDoesNotExist(categoryNameField, 10_000)
+            waitForEntryFormWindow()
             compose.onNode(selected).performScrollTo().assertIsDisplayed()
             openPicker()
             val categoryList = hasScrollToNodeAction() and dialogContent
@@ -342,6 +358,23 @@ class NavigationTest {
                     }
                 }
             }
+        }
+    }
+
+    private fun closeEntryCalculator() {
+        val calculatorTitle = hasText("金额计算器") and hasAnyAncestor(isDialog())
+        val close = compose.onNode(hasContentDescription("关闭") and hasAnyAncestor(isDialog()))
+        compose.waitUntil("calculator close button visible", 10_000) { close.isDisplayed() }
+        compose.onNode(calculatorTitle).assertIsDisplayed()
+        close.performSemanticsAction(SemanticsActions.OnClick)
+        compose.waitUntilDoesNotExist(calculatorTitle, 10_000)
+        waitForEntryFormWindow()
+    }
+
+    private fun waitForEntryFormWindow() {
+        compose.waitUntil("entry form window has focus", 10_000) {
+            val decor = compose.activity.window.decorView
+            compose.runOnUiThread { decor.hasWindowFocus() }
         }
     }
 
@@ -439,9 +472,11 @@ class NavigationTest {
         dish.assertDoesNotExist()
     }
 
-    private fun keyboardIsVisible(): Boolean = compose.runOnUiThread {
-        ViewCompat.getRootWindowInsets(compose.activity.window.decorView)
-            ?.isVisible(WindowInsetsCompat.Type.ime()) == true
+    private fun keyboardIsVisible(): Boolean {
+        val decor = compose.activity.window.decorView
+        return compose.runOnUiThread {
+            ViewCompat.getRootWindowInsets(decor)?.isVisible(WindowInsetsCompat.Type.ime()) == true
+        }
     }
 
     private fun swipeFromLeftEdge() {
@@ -569,9 +604,7 @@ class NavigationTest {
     fun checksRequiredMealPlanAndReturnsAfterSave() {
         compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
         compose.onNodeWithText("用餐").performClick()
-        screenshot("kitsune-meals")
         compose.onNodeWithText("早餐").performClick()
-        screenshot("kitsune-meal-form")
         compose.onNodeWithText("是").assertIsSelected()
         val cooking = compose.onNodeWithText("下厨")
         cooking.assertIsSelected().performClick()
@@ -878,10 +911,4 @@ class NavigationTest {
         assertEquals(value.replace('\n', ' '), layout.layoutInput.text.text)
     }
 
-    private fun screenshot(name: String) {
-        val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
-        File(compose.activity.cacheDir, "$name.png").outputStream().use {
-            check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
-        }
-    }
 }

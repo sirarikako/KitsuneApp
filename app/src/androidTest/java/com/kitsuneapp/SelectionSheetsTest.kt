@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
@@ -25,6 +26,8 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.isDisplayed
+import androidx.compose.ui.test.isFocused
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -34,6 +37,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.waitUntilDoesNotExist
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
@@ -54,9 +58,11 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 
+@OptIn(ExperimentalTestApi::class)
 class SelectionSheetsTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private val inDialog = hasAnyAncestor(isDialog())
@@ -251,6 +257,11 @@ class SelectionSheetsTest {
     fun filterStartsAtTopAndKeepsApplyAccessibleWithSoftwareKeyboard() {
         val records = selectionRecords().withMoreFilterCategories()
         var applied = LedgerEntryFilters()
+        val title = sheetText("流水筛选")
+        val apply = sheetText("应用")
+        val noteMatcher = hasContentDescription("备注关键词") and inDialog
+        val note = compose.onNode(noteMatcher)
+        val focusedNote = compose.onNode(noteMatcher and isFocused())
         compose.setContent {
             KitsuneTheme(records.theme) {
                 var open by rememberSaveable { mutableStateOf(false) }
@@ -261,33 +272,42 @@ class SelectionSheetsTest {
                 }
             }
         }
-        fun assertTypesVisible() {
+        fun openAndAssertStartsAtTop() {
+            compose.onNodeWithText("打开筛选").performClick()
+            compose.waitUntil("new filter sheet visible", 10_000) {
+                title.isDisplayed() && sheetText(EntryType.entries.last().label).isDisplayed()
+            }
             EntryType.entries.forEach { sheetText(it.label).assertIsDisplayed().assertIsSelected() }
         }
-        compose.onNodeWithText("打开筛选").performClick()
-        assertTypesVisible()
+        openAndAssertStartsAtTop()
         list().performScrollToNode(hasText("图书影音"))
         sheetText("图书影音").assertIsOn().performClick()
-        sheetText("应用").assertIsDisplayed()
+        apply.assertIsDisplayed()
         close()
+        compose.waitUntilDoesNotExist(isDialog(), 10_000)
 
-        compose.onNodeWithText("打开筛选").performClick()
-        assertTypesVisible()
-        val note = hasContentDescription("备注关键词")
-        list().performScrollToNode(note)
-        compose.onNode(note).performClick()
-        compose.waitUntil(10_000) {
-            compose.runOnUiThread {
-                val windows = if (Build.VERSION.SDK_INT >= 29) WindowInspector.getGlobalWindowViews()
-                    else listOf(compose.activity.window.decorView)
-                windows.any { decor ->
-                    ViewCompat.getRootWindowInsets(decor)?.isVisible(WindowInsetsCompat.Type.ime()) == true
-                }
+        openAndAssertStartsAtTop()
+        list().performScrollToNode(noteMatcher)
+        note.assertIsDisplayed().performClick()
+        val activityDecor = compose.activity.window.decorView
+        fun sheetImeVisible(): Boolean = compose.runOnUiThread {
+            val decor = if (Build.VERSION.SDK_INT >= 29) {
+                WindowInspector.getGlobalWindowViews().singleOrNull { it !== activityDecor && it.hasWindowFocus() }
+            } else {
+                activityDecor
             }
+            decor?.let { ViewCompat.getRootWindowInsets(it)?.isVisible(WindowInsetsCompat.Type.ime()) } == true
         }
-        compose.onNode(note).assertIsDisplayed().performTextReplacement("键盘筛选")
-        sheetText("流水筛选").assertIsDisplayed()
-        sheetText("应用").assertIsDisplayed().performClick()
+        compose.waitUntil("filter field focused and title, field and footer visible with the sheet IME", 10_000) {
+            sheetImeVisible() && focusedNote.isDisplayed() && title.isDisplayed() && apply.isDisplayed()
+        }
+        note.assertIsDisplayed().performTextReplacement("键盘筛选")
+        title.assertIsDisplayed()
+        compose.waitUntil("filter apply visible while IME remains open", 10_000) {
+            sheetImeVisible() && apply.isDisplayed()
+        }
+        apply.assertIsDisplayed().performClick()
+        compose.waitUntilDoesNotExist(isDialog(), 10_000)
         compose.runOnIdle { assertEquals(LedgerEntryFilters(note = "键盘筛选"), applied) }
     }
 
@@ -337,10 +357,11 @@ class SelectionSheetsScreenshotTest {
 
     @Test
     fun capturesSelectionSheets() {
+        val profile = InstrumentationRegistry.getArguments().getString("selectionProfile")
+        assumeTrue("Run via capture-selection-sheets.sh", profile != null)
+        checkNotNull(profile)
         val configuration = compose.activity.resources.configuration
         val isDark = (configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-        val profile = InstrumentationRegistry.getArguments().getString("selectionProfile")
-            ?: if (isDark) "dark" else "light"
         if (profile == "narrow" || profile == "narrow-large") {
             assertEquals(320, configuration.screenWidthDp)
             assertEquals(if (profile == "narrow-large") 1.5f else 1f, configuration.fontScale, .01f)

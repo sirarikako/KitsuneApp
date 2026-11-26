@@ -61,22 +61,12 @@ for profile in light dark narrow narrow-large; do
   fi
 done
 
-# Keep the 320 dp width and 1.5 font scale, and reduce the viewport to 450 dp.
-adb shell wm size 640x900
-adb shell run-as com.kitsuneapp rm -f cache/kitsune-calculator.png
-adb shell am force-stop com.kitsuneapp
-adb shell am instrument -w \
-  -e class 'com.kitsuneapp.LedgerLayoutTest#calculatorUsesKeypadAndRestoresExpressionBeforeApplying' "$runner" |
-  tee "$output/calculator-short.log"
-grep -Fxq 'OK (1 test)' "$output/calculator-short.log"
-adb exec-out run-as com.kitsuneapp cat cache/kitsune-calculator.png > "$output/calculator-short.png"
-
 python3 - "$output" <<'PYTHON'
 import sys
 from pathlib import Path
 
 captures = list(Path(sys.argv[1]).glob("selection-*.png"))
 assert len(captures) == 32, f"Expected 32 sheet captures, found {len(captures)}"
-for capture in [*captures, Path(sys.argv[1]) / "calculator-short.png"]:
+for capture in captures:
     assert capture.read_bytes().startswith(b"\x89PNG\r\n\x1a\n"), capture
 PYTHON

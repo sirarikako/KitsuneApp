@@ -1,10 +1,15 @@
 name: Android
 on:
   push:
-    branches: [main, 'feat/**', 'fix/selection-sheet-spacing', 'codex/android-16']
+    branches: [main, 'feat/**', 'fix/selection-sheet-spacing', 'fix/android-instrumentation-stability', 'codex/android-16']
   pull_request:
     branches: [main, 'feat/android-full-implementation']
   workflow_dispatch:
+    inputs:
+      capture_selection_sheets:
+        description: Capture selection sheets for visual review on API 36
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -54,12 +59,16 @@ jobs:
       github.ref == 'refs/heads/feat/filter-action-alignment' ||
       github.ref == 'refs/heads/feat/selection-sheet-hierarchy' ||
       github.ref == 'refs/heads/fix/selection-sheet-spacing' ||
+      github.ref == 'refs/heads/fix/android-instrumentation-stability' ||
       github.ref == 'refs/heads/feat/category-icons' ||
       github.ref == 'refs/heads/feat/meal-record-fixes' ||
       github.ref == 'refs/heads/feat/github-backup-ui-pauses' || github.ref == 'refs/heads/codex/android-16')
     needs: [verify, device-tests]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
           name: kitsune-debug-ci
@@ -144,19 +153,7 @@ jobs:
           target: google_apis
           profile: pixel_2
           disable-animations: true
-          script: |
-            set -euo pipefail
-            mkdir -p upgrade-reports
-            adb install apk-signed/app-debug.apk
-            adb install -t apk-signed/app-debug-androidTest.apk
-            adb shell am instrument -w -e class com.kitsuneapp.FixedSigningUpgradeTest -e kitsuneUpgradePhase seed com.kitsuneapp.test/androidx.test.runner.AndroidJUnitRunner | tee upgrade-reports/debug-seed.log
-            grep -Eq '^OK \(1 test\)' upgrade-reports/debug-seed.log
-            adb install -r apk-signed/app-release.apk
-            adb shell am instrument -w -e class com.kitsuneapp.FixedSigningUpgradeTest -e kitsuneUpgradePhase verify com.kitsuneapp.test/androidx.test.runner.AndroidJUnitRunner | tee upgrade-reports/release-verify.log
-            grep -Eq '^OK \(1 test\)' upgrade-reports/release-verify.log
-            adb install -r apk-signed/app-debug.apk
-            adb shell am instrument -w -e class com.kitsuneapp.FixedSigningUpgradeTest -e kitsuneUpgradePhase verify com.kitsuneapp.test/androidx.test.runner.AndroidJUnitRunner | tee upgrade-reports/debug-verify.log
-            grep -Eq '^OK \(1 test\)' upgrade-reports/debug-verify.log
+          script: bash .github/scripts/verify-fixed-signature-upgrades.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -194,41 +191,19 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
       - uses: reactivecircus/android-emulator-runner@v2
+        env:
+          # Exercise three consecutive full suites on the stabilization branch.
+          DEVICE_TEST_ROUNDS: ${{ github.ref == 'refs/heads/fix/android-instrumentation-stability' && '3' || '1' }}
+          CAPTURE_SELECTION_SHEETS: ${{ github.event_name == 'workflow_dispatch' && inputs.capture_selection_sheets && matrix.api-level == 36 }}
         with:
           api-level: ${{ matrix.api-level }}
           arch: x86_64
           target: google_apis
           profile: pixel_2
           disable-animations: true
-          script: |
-            adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.gestural
-            adb shell settings put secure show_ime_with_hard_keyboard 1
-            ./gradlew :app:connectedDebugAndroidTest
-            adb install -r app/build/outputs/apk/debug/app-debug.apk
-            adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-            mkdir -p captures
-            adb shell am instrument -w -e class 'com.kitsuneapp.NavigationTest#opensAppearanceFromSettings,com.kitsuneapp.NavigationTest#checksRequiredMealPlanAndReturnsAfterSave,com.kitsuneapp.LedgerLayoutTest' com.kitsuneapp.test/androidx.test.runner.AndroidJUnitRunner | tee captures/instrumentation.log
-            grep -Eq '^OK \([1-9][0-9]* tests?\)' captures/instrumentation.log
-            adb exec-out run-as com.kitsuneapp cat cache/kitsune-home.png > captures/home.png
-            adb exec-out run-as com.kitsuneapp cat cache/kitsune-settings.png > captures/settings.png
-            adb exec-out run-as com.kitsuneapp cat cache/kitsune-meals.png > captures/meals.png
-            adb exec-out run-as com.kitsuneapp cat cache/kitsune-meal-form.png > captures/meal-form.png
-            adb exec-out run-as com.kitsuneapp cat cache/kitsune-ledger-narrow-dark.png > captures/ledger-narrow-dark.png
-            adb exec-out run-as com.kitsuneapp cat cache/kitsune-wallets-narrow-dark.png > captures/wallets-narrow-dark.png
-            adb exec-out run-as com.kitsuneapp cat cache/kitsune-calculator.png > captures/calculator.png
-            adb exec-out run-as com.kitsuneapp cat cache/kitsune-wallet-range-regular.png > captures/wallet-range-regular.png
-            adb exec-out run-as com.kitsuneapp cat cache/kitsune-wallet-range-manual.png > captures/wallet-range-manual.png
-            adb exec-out run-as com.kitsuneapp cat cache/kitsune-calendar-year-month.png > captures/calendar-year-month.png
-            adb exec-out run-as com.kitsuneapp cat cache/kitsune-calendar-leap-day.png > captures/calendar-leap-day.png
-            adb exec-out run-as com.kitsuneapp cat cache/kitsune-time-input.png > captures/time-input.png
-            adb exec-out run-as com.kitsuneapp cat cache/kitsune-time-clock.png > captures/time-clock.png
-            python3 -c 'from pathlib import Path; files = list(Path("captures").glob("*.png")); assert len(files) == 13 and all(f.read_bytes().startswith(bytes.fromhex("89504e470d0a1a0a")) for f in files)'
-            SELECTION_VISUAL_REVIEW='${{ matrix.api-level == 36 && github.ref == 'refs/heads/feat/selection-sheet-hierarchy' }}' bash .github/scripts/capture-selection-sheets.sh captures/selection-sheets
+          script: bash .github/scripts/run-android-device-tests.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: connected-test-reports-api-${{ matrix.api-level }}
-          path: |
-            app/build/reports/androidTests/
-            app/build/outputs/connected_android_test_additional_output/
-            captures/
+          path: device-reports/
