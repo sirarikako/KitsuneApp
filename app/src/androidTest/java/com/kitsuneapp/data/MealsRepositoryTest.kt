@@ -59,6 +59,38 @@ class MealsRepositoryTest {
     }
 
     @Test
+    fun readsMealsByDateDescendingThenBreakfastLunchDinner() = runBlocking {
+        val draft = MealDraft(date = "2026-11-20", slot = MealSlot.DINNER, atHome = false, methodId = null,
+            preparationIds = emptyList(), newPreparations = emptyList(), dishes = "", note = "")
+        listOf(MealSlot.DINNER, MealSlot.BREAKFAST, MealSlot.LUNCH).forEach { slot ->
+            repository.saveMeal(draft.copy(slot = slot))
+            repository.saveMeal(draft.copy(date = "2026-11-21", slot = slot))
+        }
+        val order = repository.read().meals.map { it.date to it.mealSlot }
+        assertEquals(listOf("2026-11-21", "2026-11-20").flatMap { date ->
+            listOf(MealSlot.BREAKFAST, MealSlot.LUNCH, MealSlot.DINNER).map { date to it }
+        }, order)
+    }
+
+    @Test
+    fun historicalPreparationDependsOnlyOnTheSavedMethod() = runBlocking {
+        val seed = repository.read()
+        val cooking = seed.methods.first { it.showPreparationCategories }
+        val takeout = seed.methods.first { !it.showPreparationCategories }
+        val stirFry = seed.categories.first { it.scope == Scope.PREPARATION }
+        val draft = MealDraft(date = "2026-11-21", slot = MealSlot.LUNCH, atHome = true, methodId = cooking.id,
+            preparationIds = listOf(stirFry.id), newPreparations = emptyList(), dishes = "", note = "")
+        repository.saveMeal(draft)
+        val meal = repository.read().meals.single()
+        repository.saveMethod(cooking.id, cooking.name, cooking.sortOrder, false, false)
+        // The form may have toggled to another method and back; the hidden draft selection is not used.
+        repository.saveMeal(draft.copy(id = meal.id, preparationIds = emptyList(), note = "换回原方式"))
+        assertEquals(listOf(stirFry.name), repository.read().preparationNames(meal.id))
+        repository.saveMeal(draft.copy(id = meal.id, methodId = takeout.id))
+        assertTrue(repository.read().preparation.isEmpty())
+    }
+
+    @Test
     fun checksOwnershipAndDoesNotReseedExistingDatabase() = runBlocking {
         val previous = repository.read()
         repository.initialize(false)

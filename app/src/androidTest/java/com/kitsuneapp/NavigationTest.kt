@@ -651,6 +651,42 @@ class NavigationTest {
     }
 
     @Test
+    fun switchingMealMethodAwayAndBackKeepsSelectedPreparation() {
+        compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
+        val repository = runBlocking { (compose.activity.application as KitsuneApplication).repository() }
+        val preparation = "切换-" + UUID.randomUUID().toString().take(8)
+        runBlocking { repository.saveCategory(null, Scope.PREPARATION, null, preparation, order = null, archived = false) }
+        val today = LocalDate.now().toString()
+        try {
+            val methods = runBlocking { repository.read().methods.filter { !it.archived } }
+            val cooking = methods.first { it.showPreparationCategories }.name
+            val takeout = methods.first { !it.showPreparationCategories }.name
+            compose.onNodeWithText("用餐").performClick()
+            compose.onNodeWithText("早餐").performClick()
+            compose.waitUntilExactlyOneExists(hasText("保存早餐记录"), 10_000)
+            compose.waitForIdle()
+            compose.onNodeWithText(cooking).assertIsSelected()
+            compose.onNodeWithText(preparation).performScrollTo().performClick().assertIsSelected()
+            compose.onNodeWithText(takeout).performScrollTo().performClick().assertIsSelected()
+            compose.onNodeWithText(preparation).assertDoesNotExist()
+            compose.onNodeWithText(cooking).performScrollTo().performClick().assertIsSelected()
+            compose.onNodeWithText(preparation).performScrollTo().assertIsSelected()
+            compose.onNodeWithText("保存早餐记录").performScrollTo().performClick()
+            compose.waitUntilAtLeastOneExists(hasText("三餐记录"), 15_000)
+            val saved = runBlocking { repository.read() }
+            val meal = saved.meals.single { it.date == today && it.mealSlot == MealSlot.BREAKFAST }
+            assertEquals(listOf(preparation), saved.preparationNames(meal.id))
+        } finally {
+            runBlocking {
+                val saved = repository.read()
+                saved.meals.find { it.date == today && it.mealSlot == MealSlot.BREAKFAST }?.let { repository.deleteMeal(it.id) }
+                saved.categories.find { it.scope == Scope.PREPARATION && it.name == preparation }
+                    ?.let { repository.deleteCategory(it.id) }
+            }
+        }
+    }
+
+    @Test
     fun selectsDaysAndBrowsesWeeksBeforeOpeningMeal() {
         compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
         compose.onNodeWithText("用餐").performClick()

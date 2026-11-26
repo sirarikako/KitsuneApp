@@ -114,8 +114,11 @@ private data class RecordNavigation(val id: String, val source: String, val deta
 @Composable
 private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
     var stack by rememberSaveable { mutableStateOf<List<String>>(listOf("home")) }
-    var filter by rememberSaveable { mutableStateOf<MealFilter?>(null) }
-    var mealStatsFilter by rememberSaveable { mutableStateOf<MealFilter?>(null) }
+    var storedFilter by rememberSaveable { mutableStateOf<MealFilter?>(null) }
+    var storedStatsFilter by rememberSaveable { mutableStateOf<MealFilter?>(null) }
+    // Conditions pointing at deleted methods or categories are dropped whenever the data changes.
+    val filter = storedFilter?.validIn(records)
+    val mealStatsFilter = storedStatsFilter?.validIn(records)
     val holder = rememberSaveableStateHolder()
     var recordNavigation by remember { mutableStateOf<RecordNavigation?>(null) }
     val top = stack.last()
@@ -225,12 +228,12 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
                                     filter = filter,
                                     statsFilter = mealStatsFilter ?: currentMealMonth,
                                     currentMonth = currentMealMonth,
-                                    daily = { filter = null },
-                                    clearConditions = { filter = MealFilter() },
+                                    daily = { storedFilter = null },
+                                    clearConditions = { storedFilter = MealFilter() },
                                     openFilter = { open("mealFilter") },
                                     openStatsFilter = { open("mealFilter/statistics") },
                                     selectStatsMonth = { month ->
-                                        mealStatsFilter = (mealStatsFilter ?: currentMealMonth).withMonth(month)
+                                        storedStatsFilter = (mealStatsFilter ?: currentMealMonth).withMonth(month)
                                             .takeUnless { it == currentMealMonth }
                                     },
                                     openMeal = ::openMeal,
@@ -243,8 +246,8 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
                                     val defaults = if (statistics) currentMealMonth else MealFilter()
                                     val applied = if (statistics) mealStatsFilter else filter
                                     MealFilterPage(records, applied ?: defaults, defaults, currentMealMonth, goBack) {
-                                        if (statistics) mealStatsFilter = it.takeUnless { it == currentMealMonth }
-                                        else filter = it
+                                        if (statistics) storedStatsFilter = it.takeUnless { it == currentMealMonth }
+                                        else storedFilter = it
                                         back()
                                     }
                                 }
