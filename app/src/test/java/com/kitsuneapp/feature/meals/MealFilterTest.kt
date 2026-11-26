@@ -60,4 +60,25 @@ class MealFilterTest {
         assertEquals(MealFilter(), valid)
         assertTrue(valid.labels(records).isEmpty())
     }
+
+    @Test
+    fun writingBackPrunedFiltersPreventsRevivalWhenOlderBackupRestoresDeletedItems() {
+        val removedMethod = MealMethod("method-removed", "旧方式", "旧方式", 1, false, false, now, now)
+        val removedPrep = category("prep-removed", Scope.PREPARATION, "旧分类")
+        val beforeDelete = records.copy(methods = records.methods + removedMethod, categories = records.categories + removedPrep)
+        val currentMonth = MealFilter.forMonth(java.time.YearMonth.of(2026, 11))
+
+        var storedRecordFilter: MealFilter? = MealFilter(method = removedMethod.id, categories = listOf(removedPrep.id), query = "番茄")
+        var storedStatsFilter: MealFilter? = currentMonth.copy(method = removedMethod.id)
+
+        // Delete items -> prune and write back to stored state (matching MainActivity LaunchedEffect).
+        storedRecordFilter = storedRecordFilter?.validIn(records)
+        storedStatsFilter = storedStatsFilter?.validIn(records)?.takeUnless { it == currentMonth }
+        assertEquals(MealFilter(query = "番茄"), storedRecordFilter)
+        assertEquals(null, storedStatsFilter)
+
+        // Restore older backup containing removedMethod and removedPrep -> cleared conditions stay cleared.
+        assertEquals(MealFilter(query = "番茄"), storedRecordFilter?.validIn(beforeDelete))
+        assertEquals(currentMonth, (storedStatsFilter?.validIn(beforeDelete) ?: currentMonth))
+    }
 }

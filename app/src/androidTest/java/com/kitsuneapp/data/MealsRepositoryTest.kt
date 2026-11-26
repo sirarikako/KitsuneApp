@@ -91,6 +91,26 @@ class MealsRepositoryTest {
     }
 
     @Test
+    fun archivedMethodAndPreparationAreOnlyAcceptedForTheRecordThatUsedThem() = runBlocking {
+        val seed = repository.read()
+        val cooking = seed.methods.first { it.showPreparationCategories }
+        val stirFry = seed.categories.first { it.scope == Scope.PREPARATION }
+        val draft = MealDraft(date = "2026-11-21", slot = MealSlot.LUNCH, atHome = true, methodId = cooking.id,
+            preparationIds = listOf(stirFry.id), newPreparations = emptyList(), dishes = "", note = "")
+        repository.saveMeal(draft)
+        val meal = repository.read().meals.single()
+        repository.saveMethod(cooking.id, cooking.name, cooking.sortOrder, archived = true, show = true)
+        repository.saveCategory(stirFry.id, Scope.PREPARATION, null, stirFry.name, stirFry.sortOrder, archived = true)
+        assertTrue(repository.saveMeal(draft.copy(id = meal.id, note = "重新选择停用项目")))
+        assertEquals(listOf(stirFry.name), repository.read().preparationNames(meal.id))
+        assertTrue(runCatching { repository.saveMeal(draft.copy(slot = MealSlot.DINNER)) }.isFailure)
+        val takeout = seed.methods.first { !it.showPreparationCategories }
+        assertTrue(runCatching {
+            repository.saveMeal(draft.copy(slot = MealSlot.DINNER, methodId = takeout.id, preparationIds = listOf(stirFry.id)))
+        }.isSuccess)
+    }
+
+    @Test
     fun checksOwnershipAndDoesNotReseedExistingDatabase() = runBlocking {
         val previous = repository.read()
         repository.initialize(false)

@@ -169,6 +169,12 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
     }
     val mealMonth = java.time.YearMonth.from(now)
     val currentMealMonth = remember(mealMonth) { MealFilter.forMonth(mealMonth) }
+    // Persist pruned conditions so restoring an older backup cannot revive conditions already cleared.
+    LaunchedEffect(filter, mealStatsFilter, currentMealMonth) {
+        if (filter != storedFilter) storedFilter = filter
+        val normalizedStats = mealStatsFilter?.takeUnless { it == currentMealMonth }
+        if (normalizedStats != storedStatsFilter) storedStatsFilter = normalizedStats
+    }
 
     val transition = updateTransition(stack, label = "页面过渡")
     val pageSettled = transition.currentState == transition.targetState && !transition.isRunning

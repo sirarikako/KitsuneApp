@@ -413,9 +413,9 @@
       if(f.matches('[data-entry-time]')){closeEntryTime(true);return;}
       if(f.matches('[data-meal-option-form]')){
         const name=f.elements.optionName.value.trim(),method=state.addingMealOption==='method';
-        const list=method?mealMethods:mealPreparations;
+        const list=method?mealMethods:mealPreparations,archived=method?archivedMealMethods:archivedMealPreparations;
         const normalize=text=>text.normalize('NFC').toLowerCase();
-        const message=!name?'请填写名称':list.some(item=>normalize(item)===normalize(name))
+        const message=!name?'请填写名称':[...list,...archived].some(item=>normalize(item)===normalize(name))
           ?method?'已有同名用餐方式':'此范围已有同名分类':'';
         if(message){f.querySelector('[data-meal-option-error]').textContent=message;return;}
         list.push(name);closeMealOption();return;

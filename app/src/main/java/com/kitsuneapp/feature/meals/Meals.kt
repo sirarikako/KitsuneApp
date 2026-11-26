@@ -347,7 +347,13 @@ fun MealFilterPage(
                     { draft = draft.copy(atHome = it.toBooleanStrictOrNull()) }, Modifier.weight(1f))
             }
             SheetSelect("用餐方式", draft.method, listOf("", MealFilter.NO_METHOD) + records.methods.map { it.id },
-                { when (it) { "" -> "全部方式"; MealFilter.NO_METHOD -> "未填写方式"; else -> records.methodName(it) } },
+                {
+                    when (it) {
+                        "" -> "全部方式"
+                        MealFilter.NO_METHOD -> "未填写方式"
+                        else -> records.methodName(it) + if (records.methods.find { m -> m.id == it }?.archived == true) "（已停用）" else ""
+                    }
+                },
                 { draft = draft.copy(method = it) })
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 FieldLabel("制作分类", "多选，匹配任一项")
@@ -438,6 +444,9 @@ fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot,
     var note by rememberSaveable { mutableStateOf(original?.note.orEmpty()) }
     var delete by rememberSaveable { mutableStateOf(false) }
     val method = records.methods.find { it.id == methodId }
+    // Archived items already used by the record being edited stay selectable; new records only offer active items.
+    val originalMethodId = original?.mealMethodId
+    val originalPreparation = original?.let { records.preparation[it.id] }.orEmpty().toSet()
     val busy by model.busy.collectAsState()
     val error by model.error.collectAsState()
     val earlier = records.meals.asSequence().filter {
@@ -472,10 +481,10 @@ fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot,
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 FieldLabel("用餐方式", if (atHome) "必选" else "单选 · 可不填")
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    records.methods.filter { !it.archived || it.id == methodId }.forEach { option ->
+                    records.methods.filter { !it.archived || it.id == originalMethodId || it.id == methodId }.forEach { option ->
                         // Keep the category draft while switching; saving with the final method decides what is stored.
-                        Choice(option.name, { methodId = option.id.takeUnless { it == methodId } },
-                            selected = methodId == option.id)
+                        Choice(option.name + if (option.archived) "（已停用）" else "",
+                            { methodId = option.id.takeUnless { it == methodId } }, selected = methodId == option.id)
                     }
                     SquareIcon(designIcon(R.drawable.ks_plus), "新增用餐方式", enabled = !busy) {
                         openAdd(MealOption.METHOD)
@@ -485,8 +494,9 @@ fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot,
             if (method?.showPreparationCategories == true) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     FieldLabel("制作分类", "多选 · 选填")
-                    MultiCategories(records.categories.filter { it.scope == Scope.PREPARATION && (!it.archived || it.id in selected) },
-                        selected, trailing = {
+                    MultiCategories(records.categories.filter {
+                        it.scope == Scope.PREPARATION && (!it.archived || it.id in originalPreparation || it.id in selected)
+                    }, selected, trailing = {
                             SquareIcon(designIcon(R.drawable.ks_plus), "新增制作分类", enabled = !busy) {
                                 openAdd(MealOption.PREPARATION)
                             }
@@ -500,7 +510,7 @@ fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot,
                 dishes = earlier.dishes
                 note = earlier.note
                 if (method?.showPreparationCategories == true) {
-                    val valid = records.categories.filter { !it.archived || it.id in records.preparation[id].orEmpty() }
+                    val valid = records.categories.filter { !it.archived || it.id in originalPreparation }
                         .map { it.id }.toSet()
                     selected = ArrayList(records.preparation[earlier.id].orEmpty().filter { it in valid })
                 }

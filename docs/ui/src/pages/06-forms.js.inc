@@ -2,8 +2,10 @@
     const walletSelectionOption=w=>[w.id,w.name,walletSelectionDetails(w)];
     const knownCurrencies=['AUD','CAD','CHF','CNY','EUR','GBP','HKD','JPY','KRW','MOP','SGD','TWD','USD'];
     const displayCurrency=new Intl.DisplayNames(['zh-CN'],{type:'currency'});
+    const mealMethodLabel=m=>m+(archivedMealMethods.includes(m)?'（已停用）':'');
+    const mealPreparationLabel=c=>c+(archivedMealPreparations.includes(c)?'（已停用）':'');
     const mealFilterMethods=()=>[['any','全部方式'],['none','未填写方式'],
-      ...[...new Set([...mealMethods,...allMeals().map(m=>m.method).filter(Boolean)])].map(m=>[m,m])];
+      ...[...new Set([...mealMethods,...archivedMealMethods,...allMeals().map(m=>m.method).filter(Boolean)])].map(m=>[m,mealMethodLabel(m)])];
     function selectionControl(kind,label,value,glyph='',disabled=false){
       return `<div class="ks-selection-field"><span class="ks-label" id="ks-choice-${kind}">${escapeText(label)}</span>
         <button type="button" class="ks-control ks-selection-trigger" data-select-open="${kind}" aria-labelledby="ks-choice-${kind} ks-choice-${kind}-value" aria-haspopup="dialog" ${disabled?'disabled':''}>
@@ -63,11 +65,18 @@
         (options||'<p class="ks-note">没有可选项目</p>'),footer);
     }
     const addMealOption = kind => `<button type="button" class="ks-icon-btn cursor-interaction" data-add-meal-option="${kind}" aria-label="新增${mealOptionLabels[kind]}">${icon('plus')}</button>`;
-    function pageMealForm(){return `<form class="ks-form" data-meal-form>
+    // Editing keeps the original record's archived method and categories selectable; new records only list active items.
+    const mealFormOptions=()=>{
+      const original=state.editing?state.records[state.editingDate]?.[state.editingSlot]:null;
+      const methods=[...mealMethods,...archivedMealMethods.filter(m=>m===original?.method||m===state.method)];
+      const preparations=[...mealPreparations,...archivedMealPreparations.filter(c=>original?.categories?.includes(c)||state.categories.includes(c))];
+      return {methods,preparations};
+    };
+    function pageMealForm(){const options=mealFormOptions();return `<form class="ks-form" data-meal-form>
       <div class="ks-field-row"><label><span class="ks-label">日期</span><input type="date" name="date" class="ks-control" value="${state.date}" required></label><label><span class="ks-label">餐次</span><select name="slot" class="ks-control">${slots.map((s,i)=>`<option value="${i}" ${i===state.slot?'selected':''}>${s}</option>`).join('')}</select></label></div>
       <fieldset><legend class="ks-label">是否计划在家吃<span class="ks-required">必选</span></legend><div class="ks-choices">${choice('是',true,state.atHome,'home-choice')}${choice('否',false,state.atHome,'home-choice')}</div></fieldset>
-      <fieldset><legend class="ks-label">用餐方式<span class="ks-required">${state.atHome?'必选':'单选 · 可不填'}</span></legend><div class="ks-choices">${mealMethods.map(m=>choice(escapeText(m),m,state.method,'method')).join('')}${addMealOption('method')}</div></fieldset>
-      ${state.method==='下厨'?`<fieldset><legend class="ks-label">制作分类<span class="ks-required">多选 · 选填</span></legend><div class="ks-choices">${mealPreparations.map(c=>choice(escapeText(c),c,state.categories.includes(c)?c:null,'category')).join('')}${addMealOption('preparation')}</div></fieldset>`:''}
+      <fieldset><legend class="ks-label">用餐方式<span class="ks-required">${state.atHome?'必选':'单选 · 可不填'}</span></legend><div class="ks-choices">${options.methods.map(m=>choice(escapeText(mealMethodLabel(m)),m,state.method,'method')).join('')}${addMealOption('method')}</div></fieldset>
+      ${state.method==='下厨'?`<fieldset><legend class="ks-label">制作分类<span class="ks-required">多选 · 选填</span></legend><div class="ks-choices">${options.preparations.map(c=>choice(escapeText(mealPreparationLabel(c)),c,state.categories.includes(c)?c:null,'category')).join('')}${addMealOption('preparation')}</div></fieldset>`:''}
       <label><span class="ks-label">菜品内容</span><input type="text" name="dishes" class="ks-control" placeholder="今天吃了什么？" value="${escapeText(state.dishes||'')}"></label>
       <label><span class="ks-label">备注</span><input type="text" name="note" class="ks-control" placeholder="还有什么想记下的？" value="${escapeText(state.note||'')}"></label>
       ${formFooter(saveButton(`保存${slots[state.slot]}记录`)+(state.editing?deleteButton('meal','删除这条用餐记录'):''),'交互预览 · 仅保存到当前演示')}
@@ -257,7 +266,7 @@
       return selectionPanel('钱包范围',body,footer);
     }
     function pageMealFilter(){
-      const f=state.mealFilterDraft,preparations=[...new Set([...mealPreparations,...allMeals().flatMap(m=>m.categories)])];
+      const f=state.mealFilterDraft,preparations=[...new Set([...mealPreparations,...archivedMealPreparations,...allMeals().flatMap(m=>m.categories)])];
       const datePreset=mealDatePreset(f);
       const dateField=(name,label)=>`<div class="ks-meal-filter-date">
         <div class="ks-filter-field-heading">
@@ -274,7 +283,7 @@
         </fieldset>
         <div class="ks-field-row">${select('餐次','slot',[['any','全部餐次'],...slots.map((s,i)=>[String(i),s])])}${select('计划在家吃','atHome',[['any','不限'],['yes','是'],['no','否']])}</div>
         ${selectionControl('meal-method','用餐方式',mealFilterMethods().find(([value])=>value===f.method)?.[1])}
-        <fieldset><legend class="ks-label">制作分类<span class="ks-required">多选，匹配任一项</span></legend><div class="ks-preparation-choices">${preparations.map(c=>`<label class="ks-preparation-check cursor-interaction"><input type="checkbox" name="preparation" value="${escapeText(c)}" ${f.preparations.includes(c)?'checked':''}>${escapeText(c)}</label>`).join('')}</div></fieldset>
+        <fieldset><legend class="ks-label">制作分类<span class="ks-required">多选，匹配任一项</span></legend><div class="ks-preparation-choices">${preparations.map(c=>`<label class="ks-preparation-check cursor-interaction"><input type="checkbox" name="preparation" value="${escapeText(c)}" ${f.preparations.includes(c)?'checked':''}>${escapeText(mealPreparationLabel(c))}</label>`).join('')}</div></fieldset>
         <label><span class="ks-label">菜品／备注关键词</span><input class="ks-control" type="search" name="keyword" value="${escapeText(f.keyword)}" placeholder="例如：番茄、和朋友" maxlength="100"></label>
         <p class="ks-note" style="margin:0">不同条件同时满足；未选择的条件不限制。</p>
         ${formFooter(`<div class="ks-form-actions"><button type="button" class="ks-choice cursor-interaction" data-action="reset-meal-filter">重置条件</button>${saveButton('应用筛选')}</div>`)}

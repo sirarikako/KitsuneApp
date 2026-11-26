@@ -45,6 +45,8 @@
     state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
     state.mealStatsFilters=blankMealFilters(mealDatePresets.month);
     const mealMethods=['下厨','外卖'],mealPreparations=['炒菜','预制菜'];
+    // Archived items stay on the records that used them; only editing those records offers them again.
+    const archivedMealMethods=['食堂'],archivedMealPreparations=['凉拌'];
     const mealOptionLabels={method:'用餐方式',preparation:'制作分类'};
     const wallets=[{id:'daily',name:'日常钱包',code:'CNY',scale:2,opening:0n,separateAccounting:false},{id:'pocket',name:'零钱钱包',code:'CNY',scale:2,opening:50000n,separateAccounting:false},{id:'travel',name:'旅行钱包',code:'JPY',scale:0,opening:20000n,separateAccounting:true}];
     const walletById=id=>wallets.find(w=>w.id===id)||wallets[0];
@@ -119,6 +121,7 @@
     const resetAppearance=()=>{state.appearanceDraft=appliedAppearance();state.previewMode=null;};
     resetAppearance();
     const colorSeed=theme=>theme.colorSource==='SYSTEM'?demoSystemSeed:theme.colorSource==='CUSTOM'?(normalizeHex(theme.customColor)||style.customColor):theme.presetColor;
+    state.records['2026-10-30'] = [null,{atHome:false,method:'食堂',categories:[],dishes:'食堂套餐',note:''},{atHome:true,method:'下厨',categories:['凉拌'],dishes:'凉拌黄瓜、米饭',note:''}];
     state.records['2026-10-31'] = [{atHome:true,method:'下厨',categories:['炒菜'],dishes:'番茄炒蛋',note:''},{atHome:false,method:'外卖',categories:[],dishes:'牛肉面',note:''},{atHome:false,method:null,categories:[],dishes:'和朋友吃饭',note:''}];
     const exampleEntries = [
       {date:'2026-11-17',time:'12:30',type:'支出',category:'餐饮',cents:78650,note:'本月餐饮示例'},
