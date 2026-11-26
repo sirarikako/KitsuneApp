@@ -52,7 +52,8 @@ interface RecordsDao {
     @Query("SELECT COUNT(*) FROM Category WHERE walletId = :id") suspend fun ownedCategories(id: String): Int
     @Query("DELETE FROM Category WHERE id = :id") suspend fun deleteCategory(id: String): Int
 
-    @Query("SELECT * FROM MealRecord ORDER BY date DESC, mealSlot, id") suspend fun meals(): List<MealRecord>
+    @Query("SELECT * FROM MealRecord ORDER BY date DESC, CASE mealSlot WHEN 'BREAKFAST' THEN 0 WHEN 'LUNCH' THEN 1 WHEN 'DINNER' THEN 2 ELSE 3 END, id")
+    suspend fun meals(): List<MealRecord>
     @Query("SELECT * FROM MealRecord WHERE id = :id") suspend fun meal(id: String): MealRecord?
     @Query("SELECT * FROM MealRecord WHERE date = :date AND mealSlot = :slot")
     suspend fun mealAt(date: String, slot: MealSlot): MealRecord?

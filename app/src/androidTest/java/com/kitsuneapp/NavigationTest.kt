@@ -651,6 +651,199 @@ class NavigationTest {
     }
 
     @Test
+    fun switchingMealMethodAwayAndBackKeepsSelectedPreparation() {
+        compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
+        val repository = runBlocking { (compose.activity.application as KitsuneApplication).repository() }
+        val preparation = "切换-" + UUID.randomUUID().toString().take(8)
+        runBlocking { repository.saveCategory(null, Scope.PREPARATION, null, preparation, order = null, archived = false) }
+        val today = LocalDate.now().toString()
+        try {
+            val methods = runBlocking { repository.read().methods.filter { !it.archived } }
+            val cooking = methods.first { it.showPreparationCategories }.name
+            val takeout = methods.first { !it.showPreparationCategories }.name
+            compose.onNodeWithText("用餐").performClick()
+            compose.onNodeWithText("早餐").performClick()
+            compose.waitUntilExactlyOneExists(hasText("保存早餐记录"), 10_000)
+            compose.waitForIdle()
+            compose.onNodeWithText(cooking).assertIsSelected()
+            compose.onNodeWithText(preparation).performScrollTo().performClick().assertIsSelected()
+            compose.onNodeWithText(takeout).performScrollTo().performClick().assertIsSelected()
+            compose.onNodeWithText(preparation).assertDoesNotExist()
+            compose.onNodeWithText(cooking).performScrollTo().performClick().assertIsSelected()
+            compose.onNodeWithText(preparation).performScrollTo().assertIsSelected()
+            compose.onNodeWithText("保存早餐记录").performScrollTo().performClick()
+            compose.waitUntilAtLeastOneExists(hasText("三餐记录"), 15_000)
+            val saved = runBlocking { repository.read() }
+            val meal = saved.meals.single { it.date == today && it.mealSlot == MealSlot.BREAKFAST }
+            assertEquals(listOf(preparation), saved.preparationNames(meal.id))
+        } finally {
+            runBlocking {
+                val saved = repository.read()
+                saved.meals.find { it.date == today && it.mealSlot == MealSlot.BREAKFAST }?.let { repository.deleteMeal(it.id) }
+                saved.categories.find { it.scope == Scope.PREPARATION && it.name == preparation }
+                    ?.let { repository.deleteCategory(it.id) }
+            }
+        }
+    }
+
+    @Test
+    fun removedMealFilterConditionsStayRemovedWhenRestoredWhileKeepingValidOnes() {
+        compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
+        val repository = runBlocking { (compose.activity.application as KitsuneApplication).repository() }
+        val suffix = UUID.randomUUID().toString().take(8)
+        val methodName = "筛选回写方式-$suffix"
+        val prepName = "筛选回写分类-$suffix"
+        val keyword = "保留词-$suffix"
+        val markerName = "刷新标记-$suffix"
+        val (method, prep) = runBlocking {
+            repository.saveMethod(null, methodName, order = null, archived = false, show = false)
+            repository.saveCategory(null, Scope.PREPARATION, null, prepName, order = null, archived = false)
+            val saved = repository.read()
+            saved.methods.single { it.name == methodName } to
+                saved.categories.single { it.scope == Scope.PREPARATION && it.name == prepName }
+        }
+        val methodChooser = hasContentDescription("用餐方式")
+        try {
+            compose.onNodeWithText("用餐").performClick()
+            // Records tab: apply deleted method + deleted prep + valid keyword.
+            compose.onNodeWithText("筛选").performClick()
+            compose.onNode(methodChooser).performScrollTo().performClick()
+            compose.onNode(hasText(methodName) and hasAnyAncestor(isDialog())).performClick()
+            compose.onNodeWithText(prepName).performScrollTo().performClick()
+            compose.onNodeWithContentDescription("菜品／备注关键词").performScrollTo().performTextReplacement(keyword)
+            compose.onNodeWithText("应用筛选").performScrollTo().performSemanticsAction(SemanticsActions.OnClick)
+            compose.waitUntilExactlyOneExists(hasText("筛选 (3)"), 10_000)
+
+            // Statistics tab: default current month + deleted method + deleted prep -> pruning returns to default current month.
+            compose.onNodeWithText("统计").performClick()
+            compose.onNodeWithText("本月").assertIsDisplayed()
+            compose.onNodeWithText("筛选").performClick()
+            compose.onNode(methodChooser).performScrollTo().performClick()
+            compose.onNode(hasText(methodName) and hasAnyAncestor(isDialog())).performClick()
+            compose.onNodeWithText(prepName).performScrollTo().performClick()
+            compose.onNodeWithText("应用筛选").performScrollTo().performSemanticsAction(SemanticsActions.OnClick)
+            compose.waitUntilExactlyOneExists(hasText(methodName), 10_000)
+
+            runBlocking {
+                repository.deleteMethod(method.id)
+                repository.deleteCategory(prep.id)
+            }
+            compose.waitUntilDoesNotExist(hasText(methodName), 10_000)
+            compose.waitUntilDoesNotExist(hasText(prepName), 10_000)
+            compose.waitForIdle()
+
+            // Simulate restoring an older backup that brings the same method & category IDs back, plus a marker method to confirm UI update.
+            runBlocking {
+                repository.change {
+                    repository.dao.put(method)
+                    repository.dao.put(prep)
+                    true
+                }
+                repository.saveMethod(null, markerName, order = null, archived = false, show = false)
+            }
+            compose.onNodeWithText("筛选").performClick()
+            compose.onNode(methodChooser).performScrollTo().performClick()
+            compose.waitUntilExactlyOneExists(hasText(markerName) and hasAnyAncestor(isDialog()), 10_000)
+            compose.onNode(hasText("全部方式") and hasAnyAncestor(isDialog())).assertIsSelected()
+            compose.onNodeWithContentDescription("关闭").performClick()
+            compose.onNodeWithText(prepName).performScrollTo().assertIsNotSelected()
+            compose.onNodeWithContentDescription("返回").performClick()
+            compose.waitForIdle()
+            compose.onNodeWithText("本月").assertIsDisplayed()
+            compose.onNodeWithText(methodName).assertDoesNotExist()
+            compose.onNodeWithText(prepName).assertDoesNotExist()
+
+            // Switch back to Records tab: valid keyword remains (count = 1), pruned method & prep did not revive.
+            compose.onNodeWithText("记录").performClick()
+            compose.waitUntilExactlyOneExists(hasText("筛选 (1)"), 10_000)
+            compose.onNodeWithText("关键词：$keyword").assertExists()
+            compose.onNodeWithText(methodName).assertDoesNotExist()
+            compose.onNodeWithText(prepName).assertDoesNotExist()
+            compose.onNodeWithText("筛选 (1)").performClick()
+            compose.onNode(methodChooser and hasText("全部方式")).performScrollTo().assertExists()
+            compose.onNodeWithText(prepName).performScrollTo().assertIsNotSelected()
+        } finally {
+            runBlocking {
+                val saved = repository.read()
+                saved.methods.find { it.id == method.id }?.let { repository.deleteMethod(it.id) }
+                saved.methods.find { it.name == markerName }?.let { repository.deleteMethod(it.id) }
+                saved.categories.find { it.id == prep.id }?.let { repository.deleteCategory(it.id) }
+            }
+        }
+    }
+
+    @Test
+    fun editingKeepsTheRecordsArchivedMethodAndPreparationSelectable() {
+        compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
+        val repository = runBlocking { (compose.activity.application as KitsuneApplication).repository() }
+        val suffix = UUID.randomUUID().toString().take(8)
+        val methodName = "停用方式-$suffix"
+        val preparationName = "停用分类-$suffix"
+        val today = LocalDate.now().toString()
+        val (archivedMethod, archivedPreparation) = runBlocking {
+            repository.saveMethod(null, methodName, order = null, archived = false, show = false)
+            repository.saveCategory(null, Scope.PREPARATION, null, preparationName, order = null, archived = false)
+            val seed = repository.read()
+            val method = seed.methods.single { it.name == methodName }
+            val preparation = seed.categories.single { it.scope == Scope.PREPARATION && it.name == preparationName }
+            val cooking = seed.methods.first { it.showPreparationCategories && !it.archived }
+            val draft = MealDraft(date = today, slot = MealSlot.BREAKFAST, atHome = true, methodId = method.id,
+                preparationIds = emptyList(), newPreparations = emptyList(), dishes = "", note = "")
+            repository.saveMeal(draft)
+            repository.saveMeal(draft.copy(slot = MealSlot.LUNCH, methodId = cooking.id, preparationIds = listOf(preparation.id)))
+            repository.saveMethod(method.id, method.name, method.sortOrder, archived = true, show = false)
+            repository.saveCategory(preparation.id, Scope.PREPARATION, null, preparation.name, preparation.sortOrder, archived = true)
+            method.id to preparation.id
+        }
+        val methodLabel = "$methodName（已停用）"
+        val preparationLabel = "$preparationName（已停用）"
+        try {
+            val methods = runBlocking { repository.read().methods.filter { !it.archived } }
+            val cooking = methods.first { it.showPreparationCategories }.name
+            val takeout = methods.first { !it.showPreparationCategories }.name
+            compose.onNodeWithText("用餐").performClick()
+
+            compose.onNodeWithText("早餐").performClick()
+            compose.waitUntilExactlyOneExists(hasText("保存早餐记录"), 10_000)
+            compose.waitForIdle()
+            compose.onNodeWithText(methodLabel).performScrollTo().assertIsSelected().performClick().assertIsNotSelected()
+            compose.onNodeWithText(takeout).performScrollTo().performClick().assertIsSelected()
+            compose.onNodeWithText(methodLabel).performScrollTo().assertIsNotSelected().performClick().assertIsSelected()
+            compose.onNodeWithText("保存早餐记录").performScrollTo().performClick()
+            compose.waitUntilAtLeastOneExists(hasText("三餐记录"), 15_000)
+
+            compose.onNodeWithText("午餐").performClick()
+            compose.waitUntilExactlyOneExists(hasText("保存午餐记录"), 10_000)
+            compose.waitForIdle()
+            compose.onNodeWithText(preparationLabel).performScrollTo().assertIsSelected().performClick().assertIsNotSelected()
+            compose.onNodeWithText(takeout).performScrollTo().performClick()
+            compose.onNodeWithText(preparationLabel).assertDoesNotExist()
+            compose.onNodeWithText(cooking).performScrollTo().performClick()
+            compose.onNodeWithText(preparationLabel).performScrollTo().assertIsNotSelected().performClick().assertIsSelected()
+            compose.onNodeWithText("保存午餐记录").performScrollTo().performClick()
+            compose.waitUntilAtLeastOneExists(hasText("三餐记录"), 15_000)
+
+            val saved = runBlocking { repository.read() }
+            val todayMeals = saved.meals.filter { it.date == today }.associateBy { it.mealSlot }
+            assertEquals(archivedMethod, todayMeals.getValue(MealSlot.BREAKFAST).mealMethodId)
+            assertEquals(listOf(archivedPreparation), saved.preparation[todayMeals.getValue(MealSlot.LUNCH).id])
+
+            compose.onNodeWithText("晚餐").performClick()
+            compose.waitUntilExactlyOneExists(hasText("保存晚餐记录"), 10_000)
+            compose.waitForIdle()
+            compose.onNodeWithText(cooking).assertIsSelected()
+            compose.onNodeWithText(methodLabel).assertDoesNotExist()
+            compose.onNodeWithText(preparationLabel).assertDoesNotExist()
+        } finally {
+            runBlocking {
+                repository.read().meals.filter { it.date == today }.forEach { repository.deleteMeal(it.id) }
+                repository.deleteMethod(archivedMethod)
+                repository.deleteCategory(archivedPreparation)
+            }
+        }
+    }
+
+    @Test
     fun selectsDaysAndBrowsesWeeksBeforeOpeningMeal() {
         compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
         compose.onNodeWithText("用餐").performClick()

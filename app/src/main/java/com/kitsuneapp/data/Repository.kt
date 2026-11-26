@@ -21,8 +21,16 @@ data class Records(
 ) {
     val methodNames = methods.associate { it.id to it.name }
     val categoryNames = categories.associate { it.id to it.name }
-    fun methodName(id: String?) = methodNames[id] ?: "未填写"
+    val preparationCategoryIds = categories.filter { it.scope == Scope.PREPARATION }.map { it.id }.toSet()
+
+    /** A null ID means the meal method was left empty; a non-null unknown ID is a stale reference. */
+    fun methodName(id: String?) = if (id == null) UNFILLED_METHOD else methodNames[id] ?: DELETED_METHOD
     fun preparationNames(id: String) = preparation[id].orEmpty().mapNotNull(categoryNames::get)
+
+    companion object {
+        const val UNFILLED_METHOD = "未填写"
+        const val DELETED_METHOD = "已删除的方式"
+    }
 }
 
 data class MealDraft(
@@ -35,7 +43,6 @@ data class MealDraft(
     val newPreparations: List<String>,
     val dishes: String,
     val note: String,
-    val clearHistoricalPreparation: Boolean = false,
 )
 
 class OwnershipException : IllegalStateException("此数据库需要重新确认设备归属")
@@ -122,7 +129,8 @@ class Repository internal constructor(
                 }
                 existing + draft.newPreparations.map { resolveCategory(Scope.PREPARATION, null, it).id }
             }
-            original?.mealMethodId == method.id && !draft.clearHistoricalPreparation -> previous
+            // Only the final method matters: switching away and back in the form is not a method change.
+            original?.mealMethodId == method.id -> previous
             else -> emptySet()
         }
         val now = utcNow()

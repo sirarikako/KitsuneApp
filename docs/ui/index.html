@@ -2308,6 +2308,8 @@ html&gt;body{padding:0}&lt;/style&gt;
     state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
     state.mealStatsFilters=blankMealFilters(mealDatePresets.month);
     const mealMethods=[&#x27;下厨&#x27;,&#x27;外卖&#x27;],mealPreparations=[&#x27;炒菜&#x27;,&#x27;预制菜&#x27;];
+    // Archived items stay on the records that used them; only editing those records offers them again.
+    const archivedMealMethods=[&#x27;食堂&#x27;],archivedMealPreparations=[&#x27;凉拌&#x27;];
     const mealOptionLabels={method:&#x27;用餐方式&#x27;,preparation:&#x27;制作分类&#x27;};
     const wallets=[{id:&#x27;daily&#x27;,name:&#x27;日常钱包&#x27;,code:&#x27;CNY&#x27;,scale:2,opening:0n,separateAccounting:false},{id:&#x27;pocket&#x27;,name:&#x27;零钱钱包&#x27;,code:&#x27;CNY&#x27;,scale:2,opening:50000n,separateAccounting:false},{id:&#x27;travel&#x27;,name:&#x27;旅行钱包&#x27;,code:&#x27;JPY&#x27;,scale:0,opening:20000n,separateAccounting:true}];
     const walletById=id=&gt;wallets.find(w=&gt;w.id===id)||wallets[0];
@@ -2382,6 +2384,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     const resetAppearance=()=&gt;{state.appearanceDraft=appliedAppearance();state.previewMode=null;};
     resetAppearance();
     const colorSeed=theme=&gt;theme.colorSource===&#x27;SYSTEM&#x27;?demoSystemSeed:theme.colorSource===&#x27;CUSTOM&#x27;?(normalizeHex(theme.customColor)||style.customColor):theme.presetColor;
+    state.records[&#x27;2026-10-30&#x27;] = [null,{atHome:false,method:&#x27;食堂&#x27;,categories:[],dishes:&#x27;食堂套餐&#x27;,note:&#x27;&#x27;},{atHome:true,method:&#x27;下厨&#x27;,categories:[&#x27;凉拌&#x27;],dishes:&#x27;凉拌黄瓜、米饭&#x27;,note:&#x27;&#x27;}];
     state.records[&#x27;2026-10-31&#x27;] = [{atHome:true,method:&#x27;下厨&#x27;,categories:[&#x27;炒菜&#x27;],dishes:&#x27;番茄炒蛋&#x27;,note:&#x27;&#x27;},{atHome:false,method:&#x27;外卖&#x27;,categories:[],dishes:&#x27;牛肉面&#x27;,note:&#x27;&#x27;},{atHome:false,method:null,categories:[],dishes:&#x27;和朋友吃饭&#x27;,note:&#x27;&#x27;}];
     const exampleEntries = [
       {date:&#x27;2026-11-17&#x27;,time:&#x27;12:30&#x27;,type:&#x27;支出&#x27;,category:&#x27;餐饮&#x27;,cents:78650,note:&#x27;本月餐饮示例&#x27;},
@@ -3003,8 +3006,10 @@ html&gt;body{padding:0}&lt;/style&gt;
     const walletSelectionOption=w=&gt;[w.id,w.name,walletSelectionDetails(w)];
     const knownCurrencies=[&#x27;AUD&#x27;,&#x27;CAD&#x27;,&#x27;CHF&#x27;,&#x27;CNY&#x27;,&#x27;EUR&#x27;,&#x27;GBP&#x27;,&#x27;HKD&#x27;,&#x27;JPY&#x27;,&#x27;KRW&#x27;,&#x27;MOP&#x27;,&#x27;SGD&#x27;,&#x27;TWD&#x27;,&#x27;USD&#x27;];
     const displayCurrency=new Intl.DisplayNames([&#x27;zh-CN&#x27;],{type:&#x27;currency&#x27;});
+    const mealMethodLabel=m=&gt;m+(archivedMealMethods.includes(m)?&#x27;（已停用）&#x27;:&#x27;&#x27;);
+    const mealPreparationLabel=c=&gt;c+(archivedMealPreparations.includes(c)?&#x27;（已停用）&#x27;:&#x27;&#x27;);
     const mealFilterMethods=()=&gt;[[&#x27;any&#x27;,&#x27;全部方式&#x27;],[&#x27;none&#x27;,&#x27;未填写方式&#x27;],
-      ...[...new Set([...mealMethods,...allMeals().map(m=&gt;m.method).filter(Boolean)])].map(m=&gt;[m,m])];
+      ...[...new Set([...mealMethods,...archivedMealMethods,...allMeals().map(m=&gt;m.method).filter(Boolean)])].map(m=&gt;[m,mealMethodLabel(m)])];
     function selectionControl(kind,label,value,glyph=&#x27;&#x27;,disabled=false){
       return `&lt;div class=&quot;ks-selection-field&quot;&gt;&lt;span class=&quot;ks-label&quot; id=&quot;ks-choice-${kind}&quot;&gt;${escapeText(label)}&lt;/span&gt;
         &lt;button type=&quot;button&quot; class=&quot;ks-control ks-selection-trigger&quot; data-select-open=&quot;${kind}&quot; aria-labelledby=&quot;ks-choice-${kind} ks-choice-${kind}-value&quot; aria-haspopup=&quot;dialog&quot; ${disabled?&#x27;disabled&#x27;:&#x27;&#x27;}&gt;
@@ -3064,11 +3069,18 @@ html&gt;body{padding:0}&lt;/style&gt;
         (options||&#x27;&lt;p class=&quot;ks-note&quot;&gt;没有可选项目&lt;/p&gt;&#x27;),footer);
     }
     const addMealOption = kind =&gt; `&lt;button type=&quot;button&quot; class=&quot;ks-icon-btn cursor-interaction&quot; data-add-meal-option=&quot;${kind}&quot; aria-label=&quot;新增${mealOptionLabels[kind]}&quot;&gt;${icon(&#x27;plus&#x27;)}&lt;/button&gt;`;
-    function pageMealForm(){return `&lt;form class=&quot;ks-form&quot; data-meal-form&gt;
+    // Editing keeps the original record&#x27;s archived method and categories selectable; new records only list active items.
+    const mealFormOptions=()=&gt;{
+      const original=state.editing?state.records[state.editingDate]?.[state.editingSlot]:null;
+      const methods=[...mealMethods,...archivedMealMethods.filter(m=&gt;m===original?.method||m===state.method)];
+      const preparations=[...mealPreparations,...archivedMealPreparations.filter(c=&gt;original?.categories?.includes(c)||state.categories.includes(c))];
+      return {methods,preparations};
+    };
+    function pageMealForm(){const options=mealFormOptions();return `&lt;form class=&quot;ks-form&quot; data-meal-form&gt;
       &lt;div class=&quot;ks-field-row&quot;&gt;&lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;日期&lt;/span&gt;&lt;input type=&quot;date&quot; name=&quot;date&quot; class=&quot;ks-control&quot; value=&quot;${state.date}&quot; required&gt;&lt;/label&gt;&lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;餐次&lt;/span&gt;&lt;select name=&quot;slot&quot; class=&quot;ks-control&quot;&gt;${slots.map((s,i)=&gt;`&lt;option value=&quot;${i}&quot; ${i===state.slot?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${s}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;&lt;/div&gt;
       &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;是否计划在家吃&lt;span class=&quot;ks-required&quot;&gt;必选&lt;/span&gt;&lt;/legend&gt;&lt;div class=&quot;ks-choices&quot;&gt;${choice(&#x27;是&#x27;,true,state.atHome,&#x27;home-choice&#x27;)}${choice(&#x27;否&#x27;,false,state.atHome,&#x27;home-choice&#x27;)}&lt;/div&gt;&lt;/fieldset&gt;
-      &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;用餐方式&lt;span class=&quot;ks-required&quot;&gt;${state.atHome?&#x27;必选&#x27;:&#x27;单选 · 可不填&#x27;}&lt;/span&gt;&lt;/legend&gt;&lt;div class=&quot;ks-choices&quot;&gt;${mealMethods.map(m=&gt;choice(escapeText(m),m,state.method,&#x27;method&#x27;)).join(&#x27;&#x27;)}${addMealOption(&#x27;method&#x27;)}&lt;/div&gt;&lt;/fieldset&gt;
-      ${state.method===&#x27;下厨&#x27;?`&lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;制作分类&lt;span class=&quot;ks-required&quot;&gt;多选 · 选填&lt;/span&gt;&lt;/legend&gt;&lt;div class=&quot;ks-choices&quot;&gt;${mealPreparations.map(c=&gt;choice(escapeText(c),c,state.categories.includes(c)?c:null,&#x27;category&#x27;)).join(&#x27;&#x27;)}${addMealOption(&#x27;preparation&#x27;)}&lt;/div&gt;&lt;/fieldset&gt;`:&#x27;&#x27;}
+      &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;用餐方式&lt;span class=&quot;ks-required&quot;&gt;${state.atHome?&#x27;必选&#x27;:&#x27;单选 · 可不填&#x27;}&lt;/span&gt;&lt;/legend&gt;&lt;div class=&quot;ks-choices&quot;&gt;${options.methods.map(m=&gt;choice(escapeText(mealMethodLabel(m)),m,state.method,&#x27;method&#x27;)).join(&#x27;&#x27;)}${addMealOption(&#x27;method&#x27;)}&lt;/div&gt;&lt;/fieldset&gt;
+      ${state.method===&#x27;下厨&#x27;?`&lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;制作分类&lt;span class=&quot;ks-required&quot;&gt;多选 · 选填&lt;/span&gt;&lt;/legend&gt;&lt;div class=&quot;ks-choices&quot;&gt;${options.preparations.map(c=&gt;choice(escapeText(mealPreparationLabel(c)),c,state.categories.includes(c)?c:null,&#x27;category&#x27;)).join(&#x27;&#x27;)}${addMealOption(&#x27;preparation&#x27;)}&lt;/div&gt;&lt;/fieldset&gt;`:&#x27;&#x27;}
       &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;菜品内容&lt;/span&gt;&lt;input type=&quot;text&quot; name=&quot;dishes&quot; class=&quot;ks-control&quot; placeholder=&quot;今天吃了什么？&quot; value=&quot;${escapeText(state.dishes||&#x27;&#x27;)}&quot;&gt;&lt;/label&gt;
       &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;备注&lt;/span&gt;&lt;input type=&quot;text&quot; name=&quot;note&quot; class=&quot;ks-control&quot; placeholder=&quot;还有什么想记下的？&quot; value=&quot;${escapeText(state.note||&#x27;&#x27;)}&quot;&gt;&lt;/label&gt;
       ${formFooter(saveButton(`保存${slots[state.slot]}记录`)+(state.editing?deleteButton(&#x27;meal&#x27;,&#x27;删除这条用餐记录&#x27;):&#x27;&#x27;),&#x27;交互预览 · 仅保存到当前演示&#x27;)}
@@ -3258,7 +3270,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       return selectionPanel(&#x27;钱包范围&#x27;,body,footer);
     }
     function pageMealFilter(){
-      const f=state.mealFilterDraft,preparations=[...new Set([...mealPreparations,...allMeals().flatMap(m=&gt;m.categories)])];
+      const f=state.mealFilterDraft,preparations=[...new Set([...mealPreparations,...archivedMealPreparations,...allMeals().flatMap(m=&gt;m.categories)])];
       const datePreset=mealDatePreset(f);
       const dateField=(name,label)=&gt;`&lt;div class=&quot;ks-meal-filter-date&quot;&gt;
         &lt;div class=&quot;ks-filter-field-heading&quot;&gt;
@@ -3275,7 +3287,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         &lt;/fieldset&gt;
         &lt;div class=&quot;ks-field-row&quot;&gt;${select(&#x27;餐次&#x27;,&#x27;slot&#x27;,[[&#x27;any&#x27;,&#x27;全部餐次&#x27;],...slots.map((s,i)=&gt;[String(i),s])])}${select(&#x27;计划在家吃&#x27;,&#x27;atHome&#x27;,[[&#x27;any&#x27;,&#x27;不限&#x27;],[&#x27;yes&#x27;,&#x27;是&#x27;],[&#x27;no&#x27;,&#x27;否&#x27;]])}&lt;/div&gt;
         ${selectionControl(&#x27;meal-method&#x27;,&#x27;用餐方式&#x27;,mealFilterMethods().find(([value])=&gt;value===f.method)?.[1])}
-        &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;制作分类&lt;span class=&quot;ks-required&quot;&gt;多选，匹配任一项&lt;/span&gt;&lt;/legend&gt;&lt;div class=&quot;ks-preparation-choices&quot;&gt;${preparations.map(c=&gt;`&lt;label class=&quot;ks-preparation-check cursor-interaction&quot;&gt;&lt;input type=&quot;checkbox&quot; name=&quot;preparation&quot; value=&quot;${escapeText(c)}&quot; ${f.preparations.includes(c)?&#x27;checked&#x27;:&#x27;&#x27;}&gt;${escapeText(c)}&lt;/label&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;&lt;/fieldset&gt;
+        &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;制作分类&lt;span class=&quot;ks-required&quot;&gt;多选，匹配任一项&lt;/span&gt;&lt;/legend&gt;&lt;div class=&quot;ks-preparation-choices&quot;&gt;${preparations.map(c=&gt;`&lt;label class=&quot;ks-preparation-check cursor-interaction&quot;&gt;&lt;input type=&quot;checkbox&quot; name=&quot;preparation&quot; value=&quot;${escapeText(c)}&quot; ${f.preparations.includes(c)?&#x27;checked&#x27;:&#x27;&#x27;}&gt;${escapeText(mealPreparationLabel(c))}&lt;/label&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;&lt;/fieldset&gt;
         &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;菜品／备注关键词&lt;/span&gt;&lt;input class=&quot;ks-control&quot; type=&quot;search&quot; name=&quot;keyword&quot; value=&quot;${escapeText(f.keyword)}&quot; placeholder=&quot;例如：番茄、和朋友&quot; maxlength=&quot;100&quot;&gt;&lt;/label&gt;
         &lt;p class=&quot;ks-note&quot; style=&quot;margin:0&quot;&gt;不同条件同时满足；未选择的条件不限制。&lt;/p&gt;
         ${formFooter(`&lt;div class=&quot;ks-form-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-action=&quot;reset-meal-filter&quot;&gt;重置条件&lt;/button&gt;${saveButton(&#x27;应用筛选&#x27;)}&lt;/div&gt;`)}
@@ -4000,7 +4012,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       }
       if(b.dataset.meal!==undefined){if(state.page===&#x27;home&#x27;)state.date=&#x27;2026-11-17&#x27;;else if(b.dataset.mealDate)state.date=b.dataset.mealDate;state.slot=Number(b.dataset.meal);state.mealReturn=state.page;const m=records()[state.slot];state.editing=!!m;if(m&amp;&amp;b.classList.contains(&#x27;ks-record&#x27;)){recordOrigin={page:state.page,date:state.date,slot:b.dataset.meal};entrance=visible(b)?rect(b):null;}else recordOrigin=null;state.editingDate=state.date;state.editingSlot=state.slot;state.atHome=m?m.atHome:true;state.method=m?m.method:&#x27;下厨&#x27;;state.categories=[...(m?.categories||[])];state.dishes=m?.dishes||&#x27;&#x27;;state.note=m?.note||&#x27;&#x27;;state.page=&#x27;meal-form&#x27;;render();return;}
       if(b.dataset.homeChoice!==undefined){state.atHome=b.dataset.homeChoice===&#x27;true&#x27;;render();return;}
-      if(b.dataset.method){const m=b.dataset.method;state.method=state.method===m?null:m;if(state.method!==&#x27;下厨&#x27;)state.categories=[];render();return;}
+      if(b.dataset.method){const m=b.dataset.method;state.method=state.method===m?null:m;render();return;}
       if(b.dataset.category){const c=b.dataset.category;state.categories=state.categories.includes(c)?state.categories.filter(x=&gt;x!==c):[...state.categories,c];render();return;}
       if(b.dataset.mealTab){state.mealTab=b.dataset.mealTab;render();return;}
       if(b.dataset.ledgerTab){state.ledgerTab=b.dataset.ledgerTab;render();return;}
@@ -4196,9 +4208,9 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(f.matches(&#x27;[data-entry-time]&#x27;)){closeEntryTime(true);return;}
       if(f.matches(&#x27;[data-meal-option-form]&#x27;)){
         const name=f.elements.optionName.value.trim(),method=state.addingMealOption===&#x27;method&#x27;;
-        const list=method?mealMethods:mealPreparations;
+        const list=method?mealMethods:mealPreparations,archived=method?archivedMealMethods:archivedMealPreparations;
         const normalize=text=&gt;text.normalize(&#x27;NFC&#x27;).toLowerCase();
-        const message=!name?&#x27;请填写名称&#x27;:list.some(item=&gt;normalize(item)===normalize(name))
+        const message=!name?&#x27;请填写名称&#x27;:[...list,...archived].some(item=&gt;normalize(item)===normalize(name))
           ?method?&#x27;已有同名用餐方式&#x27;:&#x27;此范围已有同名分类&#x27;:&#x27;&#x27;;
         if(message){f.querySelector(&#x27;[data-meal-option-error]&#x27;).textContent=message;return;}
         list.push(name);closeMealOption();return;
@@ -4246,8 +4258,11 @@ html&gt;body{padding:0}&lt;/style&gt;
         if(state.atHome===null){error(&#x27;请先选择是否计划在家吃。&#x27;);return;}
         if(state.atHome&amp;&amp;!state.method){error(&#x27;计划在家吃时，请选择一种用餐方式。&#x27;);return;}
         const list=records();if(list[state.slot]&amp;&amp;!(state.editing&amp;&amp;state.date===state.editingDate&amp;&amp;state.slot===state.editingSlot)){error(&#x27;当天这一餐已有记录，请返回后编辑已有记录。&#x27;);return;}
+        // The final method decides categories: switching away and back keeps them; another method without categories clears them.
+        const original=state.editing?state.records[state.editingDate]?.[state.editingSlot]:null;
+        const categories=state.method===&#x27;下厨&#x27;?[...state.categories]:state.method&amp;&amp;state.method===original?.method?[...(original.categories||[])]:[];
         if(state.editing&amp;&amp;(state.date!==state.editingDate||state.slot!==state.editingSlot))state.records[state.editingDate][state.editingSlot]=null;
-        state.records[state.date]||=[null,null,null];state.records[state.date][state.slot]={atHome:state.atHome,method:state.method,categories:[...state.categories],dishes:state.dishes,note:state.note};state.page=state.mealReturn;state.notice=&#x27;已保存到当前演示。&#x27;;render();return;
+        state.records[state.date]||=[null,null,null];state.records[state.date][state.slot]={atHome:state.atHome,method:state.method,categories,dishes:state.dishes,note:state.note};state.page=state.mealReturn;state.notice=&#x27;已保存到当前演示。&#x27;;render();return;
       }
       if(f.matches(&#x27;[data-entry-form]&#x27;)){
         try{

@@ -217,7 +217,7 @@
       }
       if(b.dataset.meal!==undefined){if(state.page==='home')state.date='2026-11-17';else if(b.dataset.mealDate)state.date=b.dataset.mealDate;state.slot=Number(b.dataset.meal);state.mealReturn=state.page;const m=records()[state.slot];state.editing=!!m;if(m&&b.classList.contains('ks-record')){recordOrigin={page:state.page,date:state.date,slot:b.dataset.meal};entrance=visible(b)?rect(b):null;}else recordOrigin=null;state.editingDate=state.date;state.editingSlot=state.slot;state.atHome=m?m.atHome:true;state.method=m?m.method:'下厨';state.categories=[...(m?.categories||[])];state.dishes=m?.dishes||'';state.note=m?.note||'';state.page='meal-form';render();return;}
       if(b.dataset.homeChoice!==undefined){state.atHome=b.dataset.homeChoice==='true';render();return;}
-      if(b.dataset.method){const m=b.dataset.method;state.method=state.method===m?null:m;if(state.method!=='下厨')state.categories=[];render();return;}
+      if(b.dataset.method){const m=b.dataset.method;state.method=state.method===m?null:m;render();return;}
       if(b.dataset.category){const c=b.dataset.category;state.categories=state.categories.includes(c)?state.categories.filter(x=>x!==c):[...state.categories,c];render();return;}
       if(b.dataset.mealTab){state.mealTab=b.dataset.mealTab;render();return;}
       if(b.dataset.ledgerTab){state.ledgerTab=b.dataset.ledgerTab;render();return;}
@@ -413,9 +413,9 @@
       if(f.matches('[data-entry-time]')){closeEntryTime(true);return;}
       if(f.matches('[data-meal-option-form]')){
         const name=f.elements.optionName.value.trim(),method=state.addingMealOption==='method';
-        const list=method?mealMethods:mealPreparations;
+        const list=method?mealMethods:mealPreparations,archived=method?archivedMealMethods:archivedMealPreparations;
         const normalize=text=>text.normalize('NFC').toLowerCase();
-        const message=!name?'请填写名称':list.some(item=>normalize(item)===normalize(name))
+        const message=!name?'请填写名称':[...list,...archived].some(item=>normalize(item)===normalize(name))
           ?method?'已有同名用餐方式':'此范围已有同名分类':'';
         if(message){f.querySelector('[data-meal-option-error]').textContent=message;return;}
         list.push(name);closeMealOption();return;
@@ -463,8 +463,11 @@
         if(state.atHome===null){error('请先选择是否计划在家吃。');return;}
         if(state.atHome&&!state.method){error('计划在家吃时，请选择一种用餐方式。');return;}
         const list=records();if(list[state.slot]&&!(state.editing&&state.date===state.editingDate&&state.slot===state.editingSlot)){error('当天这一餐已有记录，请返回后编辑已有记录。');return;}
+        // The final method decides categories: switching away and back keeps them; another method without categories clears them.
+        const original=state.editing?state.records[state.editingDate]?.[state.editingSlot]:null;
+        const categories=state.method==='下厨'?[...state.categories]:state.method&&state.method===original?.method?[...(original.categories||[])]:[];
         if(state.editing&&(state.date!==state.editingDate||state.slot!==state.editingSlot))state.records[state.editingDate][state.editingSlot]=null;
-        state.records[state.date]||=[null,null,null];state.records[state.date][state.slot]={atHome:state.atHome,method:state.method,categories:[...state.categories],dishes:state.dishes,note:state.note};state.page=state.mealReturn;state.notice='已保存到当前演示。';render();return;
+        state.records[state.date]||=[null,null,null];state.records[state.date][state.slot]={atHome:state.atHome,method:state.method,categories,dishes:state.dishes,note:state.note};state.page=state.mealReturn;state.notice='已保存到当前演示。';render();return;
       }
       if(f.matches('[data-entry-form]')){
         try{

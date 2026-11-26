@@ -42,7 +42,7 @@ data class MealFilter(
     fun matches(meal: MealRecord, records: Records): Boolean =
         (start.isEmpty() || meal.date >= start) && (end.isEmpty() || meal.date <= end) &&
             (slot == null || meal.mealSlot == slot) && (atHome == null || meal.plannedAtHome == atHome) &&
-            (method.isEmpty() || method == (meal.mealMethodId ?: "none")) &&
+            (method.isEmpty() || method == (meal.mealMethodId ?: NO_METHOD)) &&
             (categories.isEmpty() || records.preparation[meal.id].orEmpty().any { it in categories }) &&
             (meal.dishes.contains(query.trim(), true) || meal.note.contains(query.trim(), true))
 
@@ -52,12 +52,23 @@ data class MealFilter(
         }
         slot?.let { add(it.label) }
         atHome?.let { add("计划在家：${if (it) "是" else "否"}") }
-        if (method.isNotEmpty()) add(if (method == "none") "方式未填写" else records.methodName(method))
+        if (method.isNotEmpty()) add(if (method == NO_METHOD) "方式未填写" else records.methodName(method))
         addAll(categories.mapNotNull(records.categoryNames::get))
         if (query.isNotBlank()) add("关键词：${query.trim()}")
     }
 
     fun hasSameDates(other: MealFilter) = start == other.start && end == other.end
+
+    /**
+     * Drops conditions that reference meal methods or preparation categories no longer in [records].
+     * Such stale IDs cannot match any record, cannot be shown as a label, and cannot be unchecked in the filter page.
+     */
+    fun validIn(records: Records): MealFilter {
+        val validMethod = method.isEmpty() || method == NO_METHOD || method in records.methodNames
+        val validCategories = categories.filter { it in records.preparationCategoryIds }
+        return if (validMethod && validCategories.size == categories.size) this
+        else copy(method = if (validMethod) method else "", categories = validCategories)
+    }
 
     fun dateSummary(currentMonth: MealFilter): String {
         if (start.isEmpty() && end.isEmpty()) return "所有时间"
@@ -71,6 +82,9 @@ data class MealFilter(
     fun withMonth(month: YearMonth) = copy(start = month.atDay(1).toString(), end = month.atEndOfMonth().toString())
 
     companion object {
+        /** Method filter value for meals whose method was left empty. */
+        const val NO_METHOD = "none"
+
         fun forMonth(month: YearMonth) = MealFilter().withMonth(month)
     }
 }
@@ -332,8 +346,14 @@ fun MealFilterPage(
                     { if (it.isEmpty()) "不限" else if (it == "true") "是" else "否" },
                     { draft = draft.copy(atHome = it.toBooleanStrictOrNull()) }, Modifier.weight(1f))
             }
-            SheetSelect("用餐方式", draft.method, listOf("", "none") + records.methods.map { it.id },
-                { when (it) { "" -> "全部方式"; "none" -> "未填写方式"; else -> records.methodName(it) } },
+            SheetSelect("用餐方式", draft.method, listOf("", MealFilter.NO_METHOD) + records.methods.map { it.id },
+                {
+                    when (it) {
+                        "" -> "全部方式"
+                        MealFilter.NO_METHOD -> "未填写方式"
+                        else -> records.methodName(it) + if (records.methods.find { m -> m.id == it }?.archived == true) "（已停用）" else ""
+                    }
+                },
                 { draft = draft.copy(method = it) })
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 FieldLabel("制作分类", "多选，匹配任一项")
@@ -420,11 +440,13 @@ fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot,
     var selected by rememberSaveable { mutableStateOf<List<String>>(ArrayList(records.preparation[id].orEmpty())) }
     var newName by rememberSaveable { mutableStateOf("") }
     var adding by rememberSaveable { mutableStateOf<MealOption?>(null) }
-    var clearHistorical by rememberSaveable { mutableStateOf(false) }
     var dishes by rememberSaveable { mutableStateOf(original?.dishes.orEmpty()) }
     var note by rememberSaveable { mutableStateOf(original?.note.orEmpty()) }
     var delete by rememberSaveable { mutableStateOf(false) }
     val method = records.methods.find { it.id == methodId }
+    // Archived items already used by the record being edited stay selectable; new records only offer active items.
+    val originalMethodId = original?.mealMethodId
+    val originalPreparation = original?.let { records.preparation[it.id] }.orEmpty().toSet()
     val busy by model.busy.collectAsState()
     val error by model.error.collectAsState()
     val earlier = records.meals.asSequence().filter {
@@ -459,15 +481,10 @@ fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot,
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 FieldLabel("用餐方式", if (atHome) "必选" else "单选 · 可不填")
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    records.methods.filter { !it.archived || it.id == methodId }.forEach { option ->
-                        Choice(option.name, {
-                            val next = option.id.takeUnless { it == methodId }
-                            methodId = next
-                            if (records.methods.find { it.id == next }?.showPreparationCategories != true) {
-                                clearHistorical = true
-                                selected = arrayListOf()
-                            }
-                        }, selected = methodId == option.id)
+                    records.methods.filter { !it.archived || it.id == originalMethodId || it.id == methodId }.forEach { option ->
+                        // Keep the category draft while switching; saving with the final method decides what is stored.
+                        Choice(option.name + if (option.archived) "（已停用）" else "",
+                            { methodId = option.id.takeUnless { it == methodId } }, selected = methodId == option.id)
                     }
                     SquareIcon(designIcon(R.drawable.ks_plus), "新增用餐方式", enabled = !busy) {
                         openAdd(MealOption.METHOD)
@@ -477,22 +494,23 @@ fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot,
             if (method?.showPreparationCategories == true) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     FieldLabel("制作分类", "多选 · 选填")
-                    MultiCategories(records.categories.filter { it.scope == Scope.PREPARATION && (!it.archived || it.id in selected) },
-                        selected, trailing = {
+                    MultiCategories(records.categories.filter {
+                        it.scope == Scope.PREPARATION && (!it.archived || it.id in originalPreparation || it.id in selected)
+                    }, selected, trailing = {
                             SquareIcon(designIcon(R.drawable.ks_plus), "新增制作分类", enabled = !busy) {
                                 openAdd(MealOption.PREPARATION)
                             }
                         },
                     ) { selected = ArrayList(it) }
                 }
-            } else if (!clearHistorical && method != null && method.id == original?.mealMethodId && records.preparationNames(original.id).isNotEmpty()) {
+            } else if (method != null && method.id == original?.mealMethodId && records.preparationNames(original.id).isNotEmpty()) {
                 Secondary("历史制作分类 · " + records.preparationNames(original.id).joinToString("、"))
             }
             if (earlier != null) TextButton({
                 dishes = earlier.dishes
                 note = earlier.note
                 if (method?.showPreparationCategories == true) {
-                    val valid = records.categories.filter { !it.archived || it.id in records.preparation[id].orEmpty() }
+                    val valid = records.categories.filter { !it.archived || it.id in originalPreparation }
                         .map { it.id }.toSet()
                     selected = ArrayList(records.preparation[earlier.id].orEmpty().filter { it in valid })
                 }
@@ -501,7 +519,7 @@ fun MealForm(records: Records, id: String?, initialDate: String, slot: MealSlot,
             Field("备注", note, { note = it }, transformation = singleLineMealText, placeholder = "还有什么想记下的？")
             SaveActions(busy, error.takeIf { adding == null }, {
                 val draft = MealDraft(id, date, selectedSlot, atHome, methodId, selected,
-                    emptyList(), dishes, note, clearHistorical)
+                    emptyList(), dishes, note)
                 model.save(back) { saveMeal(draft) }
             }, original?.let { "删除这条用餐记录" }, { delete = true }, "保存${selectedSlot.label}记录")
         }
