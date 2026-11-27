@@ -87,8 +87,8 @@ python docs/ui/build_preview.py
 
 ## 环境、构建与安装
 
-- JDK 21，Gradle 8.11.1，AGP 8.10.1，Kotlin 2.1.21，Room 2.7.2。依赖定义集中在 `gradle/libs.versions.toml`。
-- compileSdk／targetSdk 36（Android 16），minSdk 26，Build Tools 35.0.0。
+- JDK 21，Gradle 9.9.2，AGP 9.5.3（内置 Kotlin），Kotlin 2.4.21，KSP 2.3.14，Room 2.8.5。依赖定义集中在 `gradle/libs.versions.toml`。
+- compileSdk 37.1，targetSdk 36（Android 16），minSdk 26，Build Tools 36.0.0。
 - 应用标识 `com.kitsuneapp`，版本 `1.0.1`（versionCode 2）。本地调试 APK 使用本机调试密钥。
 
 安装 JDK 和 Android SDK 后，在仓库根目录运行。Windows PowerShell 将 `./gradlew` 换为 `.\gradlew.bat`。

@@ -196,3 +196,9 @@
 - 记录和统计的已应用筛选会移除指向已删除方式或制作分类的条件并同步写回原筛选状态，保留其他有效条件及默认本月统计逻辑，避免恢复旧备份后已解除的条件重新生效；标签、计数与结果保持一致；方式为空显示“未填写”，无法解析的方式显示“已删除的方式”。
 - 用餐数据按日期倒序、同日按早餐、午餐、晚餐读取，修正此前按餐次标识字母排序的问题。
 - 本地 Debug／Release 构建、JVM 测试（新增 `MealFilterTest`）、Debug／Release lint 及仪器测试 APK 构建通过。新增的 Room 和 Compose 设备用例由 CI 的 API 35／36 模拟器运行；本机无 KVM，未在本地运行设备用例。
+
+## Android 依赖与构建工具链升级
+
+- 分阶段将构建工具链与依赖升级至相互兼容的最新稳定版本：Gradle `9.9.2`、AGP `9.5.3`（迁移至内置 Kotlin，移除 `org.jetbrains.kotlin.android`）、Kotlin `2.4.21`、KSP `2.3.14`、Room `2.8.5`（保持 Room 2.x 与现有 schema 兼容，未迁移至破坏性大版本 `androidx.room3`）、Compose BOM `2026.11.01`（Compose UI `1.13.0`、Material3 `1.5.0`，已确认 `ModalBottomSheet` 支持 `sheetGesturesEnabled` 参数）、Activity `1.13.0`、Lifecycle `2.11.1`、WorkManager `2.12.0`、MaterialKolor `6.0.0`（切换至 `material-kolor-material3`，并显式指定 `ColorSpec.SpecVersion.SPEC_2021` 保持原有主题配色不变）、Gson `2.15.0`、OkHttp／MockWebServer `5.5.1`、AndroidX JUnit `1.3.0`、Espresso `3.7.0`。
+- 保持 `minSdk = 26`、`targetSdk = 36` 不变；因 Compose `1.13.0` 与 Lifecycle `2.11.1` 的 AAR 元数据要求，仅将 `compileSdk` 升至 `37.1`，并将 Build Tools 更新至 AGP 9.5 最低要求的 `36.0.0`。同步替换 `app/build.gradle.kts` 中已废弃的 `res.srcDir`。
+- 本地 Debug／Release 构建、35 项 JVM 单元测试（含主题色精确比对与 OkHttp／MockWebServer 备份测试）、Debug／Release lint（0 错误，20 条既有／targetSdk 提示警告）及仪器测试 APK 构建通过；API 35／36 模拟器设备测试与固定测试签名覆盖安装验证由 GitHub Actions 执行。
