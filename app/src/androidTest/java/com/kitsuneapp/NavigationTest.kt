@@ -398,20 +398,21 @@ class NavigationTest {
             ))
             repository.read().meals.single { it.dishes == keyword }.id
         }
-        val resultsList = hasScrollToNodeAction()
+        val inSheet = hasAnyAncestor(isDialog())
+        val resultsList = hasScrollToNodeAction() and !inSheet
         val results = compose.onNode(resultsList)
         fun applyStatisticsFilter() {
-            compose.onNodeWithText("应用筛选").performScrollTo().assertIsEnabled()
+            compose.onNode(hasText("应用筛选") and inSheet).assertIsEnabled()
                 .performSemanticsAction(SemanticsActions.OnClick)
-            compose.waitUntilExactlyOneExists(resultsList, 10_000)
+            compose.waitUntilDoesNotExist(isDialog(), 10_000)
         }
         try {
             compose.onNodeWithText("用餐").performClick()
             compose.onNodeWithText("统计").performClick()
             compose.onNodeWithText("本月").assertIsDisplayed()
             compose.onNodeWithText("筛选").performClick()
-            compose.onNodeWithText("本月").assertIsSelected()
-            compose.onNodeWithContentDescription("菜品／备注关键词").performScrollTo().performTextReplacement(keyword)
+            compose.onNode(hasText("本月") and inSheet).assertIsSelected()
+            compose.onNode(hasContentDescription("菜品／备注关键词") and inSheet).performTextReplacement(keyword)
             applyStatisticsFilter()
             results.performScrollToNode(hasText("没有符合条件的用餐记录"))
             compose.onNodeWithText("没有符合条件的用餐记录").assertIsDisplayed()
@@ -432,8 +433,8 @@ class NavigationTest {
             results.performScrollToNode(hasText("否 1 餐"))
             compose.onNodeWithText("否 1 餐").assertIsDisplayed()
 
-            compose.onNodeWithText("筛选").performClick()
-            compose.onNodeWithText("所有时间").performClick().assertIsSelected()
+            compose.onNodeWithText("筛选 (1)").performClick()
+            compose.onNode(hasText("所有时间") and inSheet).performClick().assertIsSelected()
             applyStatisticsFilter()
             compose.onNodeWithText("所有时间").assertIsDisplayed()
             results.performScrollToNode(hasText("关键词：$keyword"))
@@ -746,12 +747,14 @@ class NavigationTest {
             compose.onNodeWithText("用餐").performClick()
             // Records tab: apply deleted method + deleted prep + valid keyword.
             compose.onNodeWithText("筛选").performClick()
-            compose.onNode(hasContentDescription("菜品／备注关键词") and inSheet).performTextReplacement(keyword)
             sheetList().performScrollToNode(hasText(methodName))
             sheetNode(methodName).performClick().assertIsSelected()
             sheetList().performScrollToNode(hasText(prepName))
             sheetNode(prepName).performClick().assertIsSelected()
-            sheetNode("应用筛选").performClick()
+            sheetList().performScrollToNode(hasContentDescription("菜品／备注关键词"))
+            compose.onNode(hasContentDescription("菜品／备注关键词") and inSheet).performTextReplacement(keyword)
+            sheetNode("应用筛选").performSemanticsAction(SemanticsActions.OnClick)
+            compose.waitUntilDoesNotExist(isDialog(), 10_000)
             compose.waitUntilExactlyOneExists(hasText("筛选 (3)"), 10_000)
 
             // Statistics tab: default current month + deleted method + deleted prep -> pruning returns to default current month.
@@ -763,6 +766,7 @@ class NavigationTest {
             sheetList().performScrollToNode(hasText(prepName))
             sheetNode(prepName).performClick().assertIsSelected()
             sheetNode("应用筛选").performClick()
+            compose.waitUntilDoesNotExist(isDialog(), 10_000)
             compose.waitUntilExactlyOneExists(hasText(methodName), 10_000)
 
             runBlocking {
@@ -852,13 +856,15 @@ class NavigationTest {
             compose.onNodeWithText("用餐").performClick()
             // 1. Apply multi-select slots + preparation + keyword, remove chips one by one until empty -> daily browse.
             compose.onNodeWithText("筛选").performClick()
-            compose.onNode(hasContentDescription("菜品／备注关键词") and inSheet).performTextReplacement(dishName)
             sheetList().performScrollToNode(hasText("早餐"))
             sheetNode("早餐").performClick().assertIsSelected()
             sheetNode("晚餐").performClick().assertIsSelected()
             sheetList().performScrollToNode(hasText(prepName))
             sheetNode(prepName).performClick().assertIsSelected()
-            sheetNode("应用筛选").performClick()
+            sheetList().performScrollToNode(hasContentDescription("菜品／备注关键词"))
+            compose.onNode(hasContentDescription("菜品／备注关键词") and inSheet).performTextReplacement(dishName)
+            sheetNode("应用筛选").performSemanticsAction(SemanticsActions.OnClick)
+            compose.waitUntilDoesNotExist(isDialog(), 10_000)
             compose.waitUntilExactlyOneExists(hasText("筛选 (4)"), 10_000)
             compose.onNodeWithText("范围：所有时间").assertIsDisplayed()
             compose.onNodeWithText(dishName).assertIsDisplayed()
@@ -880,8 +886,10 @@ class NavigationTest {
             // 2. Re-apply filter and press system Back -> clears filter and returns to daily browse.
             compose.onNodeWithText("筛选").performClick()
             compose.onNode(hasContentDescription("菜品／备注关键词") and inSheet).performTextReplacement(dishName)
-            sheetNode("应用筛选").performClick()
+            sheetNode("应用筛选").performSemanticsAction(SemanticsActions.OnClick)
+            compose.waitUntilDoesNotExist(isDialog(), 10_000)
             compose.waitUntilExactlyOneExists(hasText("筛选 (1)"), 10_000)
+            compose.waitUntil(5_000) { !keyboardIsVisible() }
             InstrumentationRegistry.getInstrumentation().uiAutomation
                 .executeShellCommand("input keyevent KEYCODE_BACK").close()
             compose.waitUntilAtLeastOneExists(hasText("三餐记录"), 10_000)
@@ -889,7 +897,8 @@ class NavigationTest {
             // 3. Re-apply filter, open meal from results, tap "查看当天" -> clears filter and selects pastDate with daily summary.
             compose.onNodeWithText("筛选").performClick()
             compose.onNode(hasContentDescription("菜品／备注关键词") and inSheet).performTextReplacement(dishName)
-            sheetNode("应用筛选").performClick()
+            sheetNode("应用筛选").performSemanticsAction(SemanticsActions.OnClick)
+            compose.waitUntilDoesNotExist(isDialog(), 10_000)
             compose.waitUntilExactlyOneExists(hasText(dishName), 10_000)
             compose.onNodeWithText(dishName).performClick()
             compose.waitUntilExactlyOneExists(hasText("查看当天"), 10_000)

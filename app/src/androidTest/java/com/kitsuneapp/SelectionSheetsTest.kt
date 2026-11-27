@@ -223,16 +223,20 @@ class SelectionSheetsTest {
 
         // Activity restoration preserves open sheet and multi-select draft, then apply commits.
         open()
-        compose.onNodeWithContentDescription("菜品／备注关键词").performTextReplacement("番茄")
         list().performScrollToNode(hasText("早餐"))
         sheetText("早餐").performClick().assertIsSelected()
         sheetText("晚餐").performClick().assertIsSelected()
         list().performScrollToNode(hasText("未填写方式"))
         sheetText("未填写方式").performClick().assertIsSelected()
+        list().performScrollToNode(hasContentDescription("菜品／备注关键词"))
+        compose.onNodeWithContentDescription("菜品／备注关键词").performTextReplacement("番茄")
         restoration.emulateSavedInstanceStateRestore()
-        sheetText("未填写方式").assertIsSelected()
         list().performScrollToNode(hasContentDescription("菜品／备注关键词"))
         compose.onNode(hasContentDescription("菜品／备注关键词") and hasText("番茄")).assertIsDisplayed()
+        list().performScrollToNode(hasText("早餐"))
+        sheetText("早餐").assertIsSelected()
+        list().performScrollToNode(hasText("未填写方式"))
+        sheetText("未填写方式").assertIsSelected()
         sheetText("应用筛选").assertIsDisplayed().performClick()
         compose.waitUntilDoesNotExist(isDialog(), 5_000)
         compose.runOnIdle {
