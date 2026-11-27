@@ -299,19 +299,50 @@
       if(event.target.closest('[data-key="⌫"]'))event.preventDefault();
     });
     let selectionDrag=null;
+    const resetSelectionDrag=()=>{
+      if(!selectionDrag)return;
+      const {panel,dragging}=selectionDrag;
+      selectionDrag=null;
+      if(!panel||!dragging)return;
+      panel.style.transition=reducedMotion.matches?'':`transform 200ms ${motion.easing}`;
+      panel.style.transform='';
+      setTimeout(()=>{if(panel.isConnected)panel.style.transition='';},220);
+    };
     phone.addEventListener('pointerdown',event=>{
-      const handle=event.target.closest('.ks-selection-handle');
-      if(!handle||!event.isPrimary)return;
-      selectionDrag={id:event.pointerId,x:event.clientX,y:event.clientY,calculator:!!handle.closest('.ks-calc-sheet')};
-      handle.setPointerCapture(event.pointerId);
+      const header=event.target.closest('.ks-selection-handle,.ks-selection-heading');
+      if(!header||!event.isPrimary||event.target.closest('.ks-selection-close'))return;
+      const panel=header.closest('.ks-selection-panel');
+      if(!panel)return;
+      selectionDrag={id:event.pointerId,x:event.clientX,y:event.clientY,lastY:event.clientY,lastT:event.timeStamp,lastMoveT:event.timeStamp,vy:0,
+        dragging:false,target:header,panel,calculator:panel.classList.contains('ks-calc-sheet')};
+    });
+    phone.addEventListener('pointermove',event=>{
+      if(selectionDrag?.id!==event.pointerId)return;
+      const dy=event.clientY-selectionDrag.y,dx=event.clientX-selectionDrag.x;
+      if(!selectionDrag.dragging){
+        if(Math.abs(dy)<=8||Math.abs(dy)<=Math.abs(dx))return;
+        selectionDrag.dragging=true;
+        try{selectionDrag.target.setPointerCapture(event.pointerId);}catch{}
+        selectionDrag.panel.style.transition='none';
+      }
+      const dt=event.timeStamp-selectionDrag.lastT,stepY=event.clientY-selectionDrag.lastY;
+      if(dt>0)selectionDrag.vy=stepY/(dt/1000);
+      if(Math.abs(stepY)>=1)selectionDrag.lastMoveT=event.timeStamp;
+      selectionDrag.lastY=event.clientY;selectionDrag.lastT=event.timeStamp;
+      selectionDrag.panel.style.transform=`translateY(${Math.max(0,dy)}px)`;
     });
     phone.addEventListener('pointerup',event=>{
       if(selectionDrag?.id!==event.pointerId)return;
-      const dy=event.clientY-selectionDrag.y,dx=event.clientX-selectionDrag.x;
-      const {calculator}=selectionDrag;selectionDrag=null;
-      if(dy>48&&dy>Math.abs(dx)){if(calculator)closeCalculator(false);else cancelSelection();}
+      const dy=Math.max(0,event.clientY-selectionDrag.y);
+      const {calculator,dragging,lastMoveT,panel,vy}=selectionDrag;
+      const effectiveVy=event.timeStamp-lastMoveT>=100?0:vy;
+      const dismiss=dragging&&(dy>=100||(dy>=24&&effectiveVy>=800));
+      if(dismiss){
+        selectionDrag=null;panel.style.transition='';panel.style.transform='';
+        if(calculator)closeCalculator(false);else cancelSelection();
+      }else resetSelectionDrag();
     });
-    phone.addEventListener('pointercancel',()=>{selectionDrag=null;});
+    phone.addEventListener('pointercancel',resetSelectionDrag);
     phone.addEventListener('keydown',event=>{
       if(!modalKind())return;
       if(event.key==='Escape'){

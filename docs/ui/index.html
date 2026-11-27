@@ -2027,7 +2027,7 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-selection-panel{display:flex;flex-direction:column;gap:4px;width:100%;max-height:100%;overflow:hidden;background:var(--ks-card-surface);color:var(--ks-ink);border-radius:var(--ks-dialog-radius);padding:8px 16px 12px}
   #kitsune-preview .ks-selection-handle{display:grid;place-items:center;min-height:12px;touch-action:none}
   #kitsune-preview .ks-selection-handle span{width:32px;height:4px;border-radius:4px;background:var(--ks-line)}
-  #kitsune-preview .ks-selection-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  #kitsune-preview .ks-selection-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;touch-action:none}
   #kitsune-preview .ks-selection-heading h3{font-size:1.286em;font-weight:600;margin:0;line-height:1.33}
   #kitsune-preview .ks-selection-close{display:grid;place-items:center;width:48px;height:48px;flex:none;border:0;border-radius:50%;background:transparent;color:var(--ks-ink)}
   #kitsune-preview .ks-selection-close svg{width:22px;height:22px}
@@ -4191,19 +4191,50 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(event.target.closest(&#x27;[data-key=&quot;⌫&quot;]&#x27;))event.preventDefault();
     });
     let selectionDrag=null;
+    const resetSelectionDrag=()=&gt;{
+      if(!selectionDrag)return;
+      const {panel,dragging}=selectionDrag;
+      selectionDrag=null;
+      if(!panel||!dragging)return;
+      panel.style.transition=reducedMotion.matches?&#x27;&#x27;:`transform 200ms ${motion.easing}`;
+      panel.style.transform=&#x27;&#x27;;
+      setTimeout(()=&gt;{if(panel.isConnected)panel.style.transition=&#x27;&#x27;;},220);
+    };
     phone.addEventListener(&#x27;pointerdown&#x27;,event=&gt;{
-      const handle=event.target.closest(&#x27;.ks-selection-handle&#x27;);
-      if(!handle||!event.isPrimary)return;
-      selectionDrag={id:event.pointerId,x:event.clientX,y:event.clientY,calculator:!!handle.closest(&#x27;.ks-calc-sheet&#x27;)};
-      handle.setPointerCapture(event.pointerId);
+      const header=event.target.closest(&#x27;.ks-selection-handle,.ks-selection-heading&#x27;);
+      if(!header||!event.isPrimary||event.target.closest(&#x27;.ks-selection-close&#x27;))return;
+      const panel=header.closest(&#x27;.ks-selection-panel&#x27;);
+      if(!panel)return;
+      selectionDrag={id:event.pointerId,x:event.clientX,y:event.clientY,lastY:event.clientY,lastT:event.timeStamp,lastMoveT:event.timeStamp,vy:0,
+        dragging:false,target:header,panel,calculator:panel.classList.contains(&#x27;ks-calc-sheet&#x27;)};
+    });
+    phone.addEventListener(&#x27;pointermove&#x27;,event=&gt;{
+      if(selectionDrag?.id!==event.pointerId)return;
+      const dy=event.clientY-selectionDrag.y,dx=event.clientX-selectionDrag.x;
+      if(!selectionDrag.dragging){
+        if(Math.abs(dy)&lt;=8||Math.abs(dy)&lt;=Math.abs(dx))return;
+        selectionDrag.dragging=true;
+        try{selectionDrag.target.setPointerCapture(event.pointerId);}catch{}
+        selectionDrag.panel.style.transition=&#x27;none&#x27;;
+      }
+      const dt=event.timeStamp-selectionDrag.lastT,stepY=event.clientY-selectionDrag.lastY;
+      if(dt&gt;0)selectionDrag.vy=stepY/(dt/1000);
+      if(Math.abs(stepY)&gt;=1)selectionDrag.lastMoveT=event.timeStamp;
+      selectionDrag.lastY=event.clientY;selectionDrag.lastT=event.timeStamp;
+      selectionDrag.panel.style.transform=`translateY(${Math.max(0,dy)}px)`;
     });
     phone.addEventListener(&#x27;pointerup&#x27;,event=&gt;{
       if(selectionDrag?.id!==event.pointerId)return;
-      const dy=event.clientY-selectionDrag.y,dx=event.clientX-selectionDrag.x;
-      const {calculator}=selectionDrag;selectionDrag=null;
-      if(dy&gt;48&amp;&amp;dy&gt;Math.abs(dx)){if(calculator)closeCalculator(false);else cancelSelection();}
+      const dy=Math.max(0,event.clientY-selectionDrag.y);
+      const {calculator,dragging,lastMoveT,panel,vy}=selectionDrag;
+      const effectiveVy=event.timeStamp-lastMoveT&gt;=100?0:vy;
+      const dismiss=dragging&amp;&amp;(dy&gt;=100||(dy&gt;=24&amp;&amp;effectiveVy&gt;=800));
+      if(dismiss){
+        selectionDrag=null;panel.style.transition=&#x27;&#x27;;panel.style.transform=&#x27;&#x27;;
+        if(calculator)closeCalculator(false);else cancelSelection();
+      }else resetSelectionDrag();
     });
-    phone.addEventListener(&#x27;pointercancel&#x27;,()=&gt;{selectionDrag=null;});
+    phone.addEventListener(&#x27;pointercancel&#x27;,resetSelectionDrag);
     phone.addEventListener(&#x27;keydown&#x27;,event=&gt;{
       if(!modalKind())return;
       if(event.key===&#x27;Escape&#x27;){

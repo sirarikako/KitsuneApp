@@ -410,8 +410,17 @@ internal fun DesignSheet(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
-    ModalBottomSheet(onDismissRequest = dismiss, containerColor = Color.Transparent, scrimColor = Color.Black.copy(alpha = .33f),
-        dragHandle = null, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+    ModalBottomSheet(
+        onDismissRequest = dismiss,
+        containerColor = Color.Transparent,
+        scrimColor = Color.Black.copy(alpha = .33f),
+        dragHandle = null,
+        sheetState = rememberBottomSheetState(
+            initialValue = SheetValue.Hidden,
+            enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+        ),
+        sheetGesturesEnabled = false,
+    ) {
         Surface(Modifier.fillMaxWidth().padding(9.dp), shape = DialogShape,
             color = colors.surface, border = BorderStroke(1.dp, colors.outlineVariant)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

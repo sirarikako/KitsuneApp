@@ -202,3 +202,10 @@
 - 分阶段将构建工具链与依赖升级至相互兼容的最新稳定版本：Gradle `9.9.2`、AGP `9.5.3`（迁移至内置 Kotlin，移除 `org.jetbrains.kotlin.android`）、Kotlin `2.4.21`、KSP `2.3.14`、Room `2.8.5`（保持 Room 2.x 与现有 schema 兼容，未迁移至破坏性大版本 `androidx.room3`）、Compose BOM `2026.11.01`（Compose UI `1.13.0`、Material3 `1.5.0`，已确认 `ModalBottomSheet` 支持 `sheetGesturesEnabled` 参数）、Activity `1.13.0`、Lifecycle `2.11.1`、WorkManager `2.12.0`、MaterialKolor `6.0.0`（切换至 `material-kolor-material3`，并显式指定 `ColorSpec.SpecVersion.SPEC_2021` 保持原有主题配色不变）、Gson `2.15.0`、OkHttp／MockWebServer `5.5.1`、AndroidX JUnit `1.3.0`、Espresso `3.7.0`。
 - 保持 `minSdk = 26`、`targetSdk = 36` 不变；因 Compose `1.13.0` 与 Lifecycle `2.11.1` 的 AAR 元数据要求，仅将 `compileSdk` 升至 `37.1`，并将 Build Tools 更新至 AGP 9.5 最低要求的 `36.0.0`。同步替换 `app/build.gradle.kts` 中已废弃的 `res.srcDir`。
 - 本地 Debug／Release 构建、35 项 JVM 单元测试（含主题色精确比对与 OkHttp／MockWebServer 备份测试）、Debug／Release lint（0 错误，20 条既有／targetSdk 提示警告）及仪器测试 APK 构建通过；API 35／36 模拟器设备测试与固定测试签名覆盖安装验证由 GitHub Actions 执行。
+
+## 底部弹窗拖动关闭手势统一优化
+
+- 合并 Material3 `1.5.0` 升级后，在公共组件 `FloatingSheet`（覆盖流水筛选、钱包范围、分类选择、钱包选择、币种选择、用餐方式、CSV 映射与金额计算器）及 `DesignSheet` 中启用原生 `sheetGesturesEnabled = false`，并迁移已废弃的 `rememberModalBottomSheetState` 与 `BottomSheetDefaults.windowInsets` 至 `rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))` 及默认窗口边距。
+- 移除多余的内容区手势拦截和嵌套滚动拦截代码，仅在 `FloatingSheet` 顶部小横条及标题区保留自定义下拉关闭与回弹手势：下拉达到阈值（默认 `100dp`，小屏按面板高度适配且不低于 `56dp`）或明显快速下拉（`≥ 800dp/s`、位移 `≥ 24dp` 且松手前未停顿）时平滑关闭；轻微拖动或快速下拉后停顿（`≥ 100ms`）再松手则自动回弹。内容区连续滑动、列表到顶继续下滑与底部操作按钮均由原生控件独立处理，不会误关闭弹窗。
+- 检查日期选择（`DateSelectionDialog`／`LedgerPeriodDialog`／`MonthPickerDialog`）与时间选择（`TimeControl`）：均为居中弹窗（`Dialog`／`AlertDialog`），无下拉关闭手势。
+- 同步更新 `docs/features/01-common.md`、`docs/features/05-ledger.md`、`docs/testing/ACCEPTANCE.md` 与离线网页预览；补充 `SheetGestureTest`（含快速下拉停顿回弹单测）和 `BottomSheetGestureTest`（含连续快速上下滑、列表到顶反复下滑及快拉停顿松手回归）。本地通过 Debug／Release 构建、38 项 JVM 单元测试、Debug／Release lint（0 错误）及仪器测试 APK 构建；API 35／36 模拟器设备测试与固定签名覆盖安装由 GitHub Actions 验证。
