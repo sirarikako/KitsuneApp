@@ -650,6 +650,7 @@ class NavigationTest {
 
             open("新增用餐方式", "  $method  ")
             compose.onNodeWithText("确定").performClick()
+            compose.waitUntilDoesNotExist(hasContentDescription("名称"), 15_000)
             compose.waitUntilAtLeastOneExists(hasText(method), 15_000)
             compose.onNodeWithText(method).assertIsNotSelected()
             compose.onNodeWithText("下厨").assertIsSelected()
@@ -658,12 +659,15 @@ class NavigationTest {
             compose.onNodeWithText("确定").performClick()
             compose.waitUntilAtLeastOneExists(hasText("已有同名用餐方式"), 15_000)
             compose.onNodeWithText("取消").performClick()
+            compose.waitUntilDoesNotExist(hasContentDescription("名称"), 10_000)
 
             open("新增制作分类", preparation)
             compose.onNodeWithText("取消").performClick()
+            compose.waitUntilDoesNotExist(hasContentDescription("名称"), 10_000)
             compose.onNodeWithText(preparation).assertDoesNotExist()
             open("新增制作分类", preparation)
             compose.onNodeWithText("确定").performClick()
+            compose.waitUntilDoesNotExist(hasContentDescription("名称"), 15_000)
             compose.waitUntilAtLeastOneExists(hasText(preparation), 15_000)
             compose.onNodeWithText(preparation).assertIsNotSelected()
             assertSingleLineMealText("菜品内容", "保留草稿")
