@@ -4205,7 +4205,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(!header||!event.isPrimary||event.target.closest(&#x27;.ks-selection-close&#x27;))return;
       const panel=header.closest(&#x27;.ks-selection-panel&#x27;);
       if(!panel)return;
-      selectionDrag={id:event.pointerId,x:event.clientX,y:event.clientY,lastY:event.clientY,lastT:event.timeStamp,vy:0,
+      selectionDrag={id:event.pointerId,x:event.clientX,y:event.clientY,lastY:event.clientY,lastT:event.timeStamp,lastMoveT:event.timeStamp,vy:0,
         dragging:false,target:header,panel,calculator:panel.classList.contains(&#x27;ks-calc-sheet&#x27;)};
     });
     phone.addEventListener(&#x27;pointermove&#x27;,event=&gt;{
@@ -4217,16 +4217,18 @@ html&gt;body{padding:0}&lt;/style&gt;
         try{selectionDrag.target.setPointerCapture(event.pointerId);}catch{}
         selectionDrag.panel.style.transition=&#x27;none&#x27;;
       }
-      const dt=event.timeStamp-selectionDrag.lastT;
-      if(dt&gt;0)selectionDrag.vy=(event.clientY-selectionDrag.lastY)/(dt/1000);
+      const dt=event.timeStamp-selectionDrag.lastT,stepY=event.clientY-selectionDrag.lastY;
+      if(dt&gt;0)selectionDrag.vy=stepY/(dt/1000);
+      if(Math.abs(stepY)&gt;=1)selectionDrag.lastMoveT=event.timeStamp;
       selectionDrag.lastY=event.clientY;selectionDrag.lastT=event.timeStamp;
       selectionDrag.panel.style.transform=`translateY(${Math.max(0,dy)}px)`;
     });
     phone.addEventListener(&#x27;pointerup&#x27;,event=&gt;{
       if(selectionDrag?.id!==event.pointerId)return;
       const dy=Math.max(0,event.clientY-selectionDrag.y);
-      const {calculator,dragging,panel,vy}=selectionDrag;
-      const dismiss=dragging&amp;&amp;(dy&gt;=100||(dy&gt;=24&amp;&amp;vy&gt;=800));
+      const {calculator,dragging,lastMoveT,panel,vy}=selectionDrag;
+      const effectiveVy=event.timeStamp-lastMoveT&gt;=100?0:vy;
+      const dismiss=dragging&amp;&amp;(dy&gt;=100||(dy&gt;=24&amp;&amp;effectiveVy&gt;=800));
       if(dismiss){
         selectionDrag=null;panel.style.transition=&#x27;&#x27;;panel.style.transform=&#x27;&#x27;;
         if(calculator)closeCalculator(false);else cancelSelection();

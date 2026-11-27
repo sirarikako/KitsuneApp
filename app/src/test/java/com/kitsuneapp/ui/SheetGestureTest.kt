@@ -1,9 +1,5 @@
 package com.kitsuneapp.ui
 
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.unit.Velocity
-import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -37,18 +33,17 @@ class SheetGestureTest {
     }
 
     @Test
-    fun nestedScrollBlockerConsumesOnlyRemainingVerticalScrollAndFling() = runBlocking {
-        val postScroll = BlockSheetNestedScroll.onPostScroll(
-            consumed = Offset(10f, 20f),
-            available = Offset(35f, 120f),
-            source = NestedScrollSource.UserInput,
-        )
-        assertEquals(Offset(0f, 120f), postScroll)
+    fun fastPullFollowedByPauseBeforeReleaseDoesNotDismissBelowDistanceThreshold() {
+        val distance = 100f
+        val flingVelocity = 800f
+        val minFlingDistance = 24f
 
-        val postFling = BlockSheetNestedScroll.onPostFling(
-            consumed = Velocity(50f, 100f),
-            available = Velocity(250f, 900f),
-        )
-        assertEquals(Velocity(0f, 900f), postFling)
+        // Genuine fast flick (minimal gap between last movement and release) still dismisses.
+        assertTrue(shouldDismissSheet(50f, 1400f, distance, flingVelocity, minFlingDistance, pauseBeforeReleaseMs = 20L))
+        // Pausing before release clears stale fling velocity, so pulls below distance threshold snap back.
+        assertFalse(shouldDismissSheet(50f, 1400f, distance, flingVelocity, minFlingDistance, pauseBeforeReleaseMs = SheetDismissMaxFlingPauseMs))
+        assertFalse(shouldDismissSheet(80f, 1800f, distance, flingVelocity, minFlingDistance, pauseBeforeReleaseMs = 250L))
+        // Pulling past the distance threshold still dismisses even after a pause.
+        assertTrue(shouldDismissSheet(120f, 1400f, distance, flingVelocity, minFlingDistance, pauseBeforeReleaseMs = 300L))
     }
 }

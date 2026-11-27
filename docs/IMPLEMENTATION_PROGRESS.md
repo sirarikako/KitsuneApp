@@ -205,7 +205,7 @@
 
 ## 底部弹窗拖动关闭手势统一优化
 
-- 公共组件 `FloatingSheet`（覆盖流水筛选、钱包范围、分类选择、钱包选择、币种选择、用餐方式、CSV 映射与金额计算器）保留顶部小横条与现有布局配色，并将拖动关闭严格限定于顶部小横条及整个标题区；按初始触摸点锁定当次手势性质，中途跨区域不切换行为。
-- 顶部标题区下拉达到阈值（默认 `100dp`，小屏按面板高度适配且不低于 `56dp`）或明显快速下拉（`≥ 800dp/s` 且位移 `≥ 24dp`）时平滑关闭，轻微拖动使用共用缓动自动回弹；内容区滚动（含列表到顶及不可滚动短内容）与底部操作按钮区通过 `BlockSheetNestedScroll` 与垂直拖动拦截完全隔离，不会触发误关闭。
-- 检查 `DesignSheet` 及日期／时间选择弹窗：`DesignSheet` 同步接入内容与底部手势隔离；日期选择（`DateSelectionDialog`／`LedgerPeriodDialog`／`MonthPickerDialog`）与时间选择（`TimeControl`）均为居中弹窗（`Dialog`／`AlertDialog`），无下拉关闭手势。
-- 同步更新 `docs/features/01-common.md`、`docs/features/05-ledger.md`、`docs/testing/ACCEPTANCE.md` 与离线网页预览（headless Chrome 验证通过，无脚本错误）。本地通过 Debug／Release 构建、38 项 JVM 单元测试（含 `SheetGestureTest`）、Debug／Release lint（0 错误）及仪器测试 APK 构建；新增 `BottomSheetGestureTest` Compose 手势回归用例交由 GitHub Actions API 35／36 模拟器及固定签名覆盖安装作业验证。
+- 合并 Material3 `1.5.0` 升级后，在公共组件 `FloatingSheet`（覆盖流水筛选、钱包范围、分类选择、钱包选择、币种选择、用餐方式、CSV 映射与金额计算器）及 `DesignSheet` 中启用原生 `sheetGesturesEnabled = false`，并迁移已废弃的 `rememberModalBottomSheetState` 与 `BottomSheetDefaults.windowInsets` 至 `rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))` 及默认窗口边距。
+- 移除多余的内容区手势拦截和嵌套滚动拦截代码，仅在 `FloatingSheet` 顶部小横条及标题区保留自定义下拉关闭与回弹手势：下拉达到阈值（默认 `100dp`，小屏按面板高度适配且不低于 `56dp`）或明显快速下拉（`≥ 800dp/s`、位移 `≥ 24dp` 且松手前未停顿）时平滑关闭；轻微拖动或快速下拉后停顿（`≥ 100ms`）再松手则自动回弹。内容区连续滑动、列表到顶继续下滑与底部操作按钮均由原生控件独立处理，不会误关闭弹窗。
+- 检查日期选择（`DateSelectionDialog`／`LedgerPeriodDialog`／`MonthPickerDialog`）与时间选择（`TimeControl`）：均为居中弹窗（`Dialog`／`AlertDialog`），无下拉关闭手势。
+- 同步更新 `docs/features/01-common.md`、`docs/features/05-ledger.md`、`docs/testing/ACCEPTANCE.md` 与离线网页预览；补充 `SheetGestureTest`（含快速下拉停顿回弹单测）和 `BottomSheetGestureTest`（含连续快速上下滑、列表到顶反复下滑及快拉停顿松手回归）。本地通过 Debug／Release 构建、38 项 JVM 单元测试、Debug／Release lint（0 错误）及仪器测试 APK 构建；API 35／36 模拟器设备测试与固定签名覆盖安装由 GitHub Actions 验证。

@@ -313,7 +313,7 @@
       if(!header||!event.isPrimary||event.target.closest('.ks-selection-close'))return;
       const panel=header.closest('.ks-selection-panel');
       if(!panel)return;
-      selectionDrag={id:event.pointerId,x:event.clientX,y:event.clientY,lastY:event.clientY,lastT:event.timeStamp,vy:0,
+      selectionDrag={id:event.pointerId,x:event.clientX,y:event.clientY,lastY:event.clientY,lastT:event.timeStamp,lastMoveT:event.timeStamp,vy:0,
         dragging:false,target:header,panel,calculator:panel.classList.contains('ks-calc-sheet')};
     });
     phone.addEventListener('pointermove',event=>{
@@ -325,16 +325,18 @@
         try{selectionDrag.target.setPointerCapture(event.pointerId);}catch{}
         selectionDrag.panel.style.transition='none';
       }
-      const dt=event.timeStamp-selectionDrag.lastT;
-      if(dt>0)selectionDrag.vy=(event.clientY-selectionDrag.lastY)/(dt/1000);
+      const dt=event.timeStamp-selectionDrag.lastT,stepY=event.clientY-selectionDrag.lastY;
+      if(dt>0)selectionDrag.vy=stepY/(dt/1000);
+      if(Math.abs(stepY)>=1)selectionDrag.lastMoveT=event.timeStamp;
       selectionDrag.lastY=event.clientY;selectionDrag.lastT=event.timeStamp;
       selectionDrag.panel.style.transform=`translateY(${Math.max(0,dy)}px)`;
     });
     phone.addEventListener('pointerup',event=>{
       if(selectionDrag?.id!==event.pointerId)return;
       const dy=Math.max(0,event.clientY-selectionDrag.y);
-      const {calculator,dragging,panel,vy}=selectionDrag;
-      const dismiss=dragging&&(dy>=100||(dy>=24&&vy>=800));
+      const {calculator,dragging,lastMoveT,panel,vy}=selectionDrag;
+      const effectiveVy=event.timeStamp-lastMoveT>=100?0:vy;
+      const dismiss=dragging&&(dy>=100||(dy>=24&&effectiveVy>=800));
       if(dismiss){
         selectionDrag=null;panel.style.transition='';panel.style.transform='';
         if(calculator)closeCalculator(false);else cancelSelection();

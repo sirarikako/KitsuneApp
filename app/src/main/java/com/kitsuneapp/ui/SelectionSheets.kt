@@ -6,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitVerticalTouchSlopOrCancellation
-import androidx.compose.foundation.gestures.verticalDrag
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -25,26 +24,20 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
-import androidx.compose.ui.input.pointer.util.addPointerInputChange
-import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kitsuneapp.R
 import com.kitsuneapp.data.Wallet
+import kotlin.math.abs
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -53,6 +46,7 @@ internal val SheetDismissDistance = 100.dp
 internal val SheetDismissFlingVelocity = 800.dp
 internal val SheetDismissMinFlingDistance = 24.dp
 internal val SheetMinEffectiveDismissDistance = 56.dp
+internal const val SheetDismissMaxFlingPauseMs = 100L
 
 internal fun effectiveSheetDismissDistance(
     defaultDistancePx: Float,
@@ -70,111 +64,110 @@ internal fun shouldDismissSheet(
     distanceThresholdPx: Float,
     flingVelocityThresholdPx: Float,
     minFlingDistancePx: Float,
-): Boolean = when {
-    velocityPxPerSec <= -flingVelocityThresholdPx -> false
-    offsetPx >= distanceThresholdPx -> true
-    offsetPx >= minFlingDistancePx && velocityPxPerSec >= flingVelocityThresholdPx -> true
-    else -> false
-}
-
-internal object BlockSheetNestedScroll : NestedScrollConnection {
-    override fun onPostScroll(
-        consumed: Offset,
-        available: Offset,
-        source: NestedScrollSource,
-    ): Offset = Offset(0f, available.y)
-
-    override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity =
-        Velocity(0f, available.y)
-}
-
-internal fun Modifier.blockVerticalSheetDrag(): Modifier = pointerInput(Unit) {
-    awaitEachGesture {
-        val down = awaitFirstDown(requireUnconsumed = false)
-        val drag = awaitVerticalTouchSlopOrCancellation(down.id) { change, _ ->
-            change.consume()
-        }
-        if (drag != null) {
-            verticalDrag(drag.id) { change ->
-                if (change.positionChange() != Offset.Zero) change.consume()
-            }
-        }
+    pauseBeforeReleaseMs: Long = 0L,
+    maxFlingPauseMs: Long = SheetDismissMaxFlingPauseMs,
+): Boolean {
+    val effectiveVelocity = if (pauseBeforeReleaseMs >= maxFlingPauseMs) 0f else velocityPxPerSec
+    return when {
+        effectiveVelocity <= -flingVelocityThresholdPx -> false
+        offsetPx >= distanceThresholdPx -> true
+        offsetPx >= minFlingDistancePx && effectiveVelocity >= flingVelocityThresholdPx -> true
+        else -> false
     }
 }
 
-private fun isPointInHeader(
-    pointInHost: Offset,
-    hostCoordinates: LayoutCoordinates?,
-    headerCoordinates: LayoutCoordinates?,
-): Boolean {
-    if (hostCoordinates == null || headerCoordinates == null) return false
-    if (!hostCoordinates.isAttached || !headerCoordinates.isAttached) return false
-    return hostCoordinates.localBoundingBoxOf(headerCoordinates, clipBounds = false).contains(pointInHost)
-}
-
-private fun Modifier.sheetGestureHost(
-    isInHeader: (Offset) -> Boolean,
+private fun Modifier.sheetHeaderDismissGesture(
     dragEnabled: () -> Boolean,
-    onHeaderDragStart: () -> Unit,
-    onHeaderDrag: (Float) -> Unit,
-    onHeaderDragEnd: (
+    onDragStart: () -> Unit,
+    onDrag: (Float) -> Unit,
+    onDragEnd: (
         velocityY: Float,
+        pauseBeforeReleaseMs: Long,
         defaultDistancePx: Float,
         flingVelocityPx: Float,
         minFlingDistancePx: Float,
         minEffectiveDistancePx: Float,
     ) -> Unit,
-    onHeaderDragCancel: () -> Unit,
+    onDragCancel: () -> Unit,
 ): Modifier = pointerInput(Unit) {
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)
-        // Lock gesture intent at initial touch-down so crossing between regions mid-drag never switches behavior.
-        if (isInHeader(down.position) && dragEnabled()) {
-            val velocityTracker = VelocityTracker()
-            var overSlop = 0f
-            val drag = awaitVerticalTouchSlopOrCancellation(down.id) { change, over ->
+        if (!dragEnabled()) return@awaitEachGesture
+        var overSlop = 0f
+        val drag = awaitVerticalTouchSlopOrCancellation(down.id) { change, over ->
+            change.consume()
+            overSlop = over
+        } ?: return@awaitEachGesture
+
+        onDragStart()
+        val velocityTracker = VelocityTracker()
+        // Accumulate screen-space deltas so translating the parent Surface never cancels measured velocity.
+        var trackedY = 0f
+        velocityTracker.addPosition(drag.previousUptimeMillis, Offset.Zero)
+        trackedY += drag.positionChange().y
+        velocityTracker.addPosition(drag.uptimeMillis, Offset(0f, trackedY))
+        var lastMoveUptimeMillis = drag.uptimeMillis
+        if (overSlop != 0f) onDrag(overSlop)
+
+        var activePointerId = drag.id
+        var completed = false
+        var releaseUptimeMillis = drag.uptimeMillis
+        while (true) {
+            val event = awaitPointerEvent()
+            val change = event.changes.firstOrNull { it.id == activePointerId }
+            if (change == null) {
+                val replacement = event.changes.firstOrNull { it.pressed }
+                if (replacement == null) {
+                    completed = true
+                    break
+                }
+                activePointerId = replacement.id
+                velocityTracker.resetTracking()
+                velocityTracker.addPosition(replacement.uptimeMillis, Offset(0f, trackedY))
+                lastMoveUptimeMillis = replacement.uptimeMillis
+                continue
+            }
+            if (change.isConsumed) {
+                completed = false
+                break
+            }
+            if (!change.pressed) {
+                val otherPressed = event.changes.firstOrNull { it.pressed }
+                if (otherPressed != null) {
+                    activePointerId = otherPressed.id
+                    velocityTracker.resetTracking()
+                    velocityTracker.addPosition(otherPressed.uptimeMillis, Offset(0f, trackedY))
+                    lastMoveUptimeMillis = otherPressed.uptimeMillis
+                    continue
+                }
+                releaseUptimeMillis = change.uptimeMillis
+                completed = true
+                break
+            }
+            val deltaY = change.positionChange().y
+            trackedY += deltaY
+            velocityTracker.addPosition(change.uptimeMillis, Offset(0f, trackedY))
+            if (deltaY != 0f) {
+                if (abs(deltaY) >= 1f) {
+                    lastMoveUptimeMillis = change.uptimeMillis
+                }
+                onDrag(deltaY)
                 change.consume()
-                overSlop = over
             }
-            if (drag != null) {
-                onHeaderDragStart()
-                velocityTracker.addPointerInputChange(down)
-                velocityTracker.addPointerInputChange(drag)
-                if (overSlop != 0f) onHeaderDrag(overSlop)
-                var activePointerId = drag.id
-                val completed = verticalDrag(drag.id) { change ->
-                    if (change.id != activePointerId) {
-                        activePointerId = change.id
-                        velocityTracker.resetTracking()
-                    }
-                    velocityTracker.addPointerInputChange(change)
-                    val deltaY = change.positionChange().y
-                    if (deltaY != 0f) {
-                        onHeaderDrag(deltaY)
-                        change.consume()
-                    }
-                }
-                if (completed) {
-                    onHeaderDragEnd(
-                        velocityTracker.calculateVelocity().y,
-                        SheetDismissDistance.toPx(),
-                        SheetDismissFlingVelocity.toPx(),
-                        SheetDismissMinFlingDistance.toPx(),
-                        SheetMinEffectiveDismissDistance.toPx(),
-                    )
-                } else {
-                    onHeaderDragCancel()
-                }
-            }
+        }
+
+        if (completed) {
+            val pauseMs = (releaseUptimeMillis - lastMoveUptimeMillis).coerceAtLeast(0L)
+            onDragEnd(
+                velocityTracker.calculateVelocity().y,
+                pauseMs,
+                SheetDismissDistance.toPx(),
+                SheetDismissFlingVelocity.toPx(),
+                SheetDismissMinFlingDistance.toPx(),
+                SheetMinEffectiveDismissDistance.toPx(),
+            )
         } else {
-            val drag = awaitVerticalTouchSlopOrCancellation(down.id) { change, _ ->
-                change.consume()
-            }
-            if (drag != null) {
-                verticalDrag(drag.id) { change ->
-                    if (change.positionChange() != Offset.Zero) change.consume()
-                }
-            }
+            onDragCancel()
         }
     }
 }
@@ -209,8 +202,6 @@ internal fun SelectionSheet(
 }
 
 private class SheetDragHolder {
-    var hostCoordinates: LayoutCoordinates? = null
-    var headerCoordinates: LayoutCoordinates? = null
     var sheetHeightPx: Int = 0
     var offsetPx: Float = 0f
     var isDismissing: Boolean = false
@@ -227,7 +218,10 @@ internal fun FloatingSheet(
 ) {
     val colors = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberBottomSheetState(
+        initialValue = SheetValue.Hidden,
+        enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+    )
     val latestDismiss by rememberUpdatedState(dismiss)
     val dragOffset = remember { Animatable(0f) }
     val holder = remember { SheetDragHolder() }
@@ -238,115 +232,106 @@ internal fun FloatingSheet(
         scrimColor = colors.scrim.copy(alpha = .33f),
         dragHandle = null,
         sheetState = sheetState,
-        contentWindowInsets = { WindowInsets(0) },
+        sheetGesturesEnabled = false,
     ) {
-        Box(
+        Surface(
             Modifier
                 .fillMaxWidth()
-                .onGloballyPositioned { holder.hostCoordinates = it }
-                .nestedScroll(BlockSheetNestedScroll)
-                .sheetGestureHost(
-                    isInHeader = { point -> isPointInHeader(point, holder.hostCoordinates, holder.headerCoordinates) },
-                    dragEnabled = { !holder.isDismissing },
-                    onHeaderDragStart = {
-                        holder.settleJob?.cancel()
-                        holder.settleJob = null
-                        holder.offsetPx = dragOffset.value
-                    },
-                    onHeaderDrag = { deltaY ->
-                        val next = (holder.offsetPx + deltaY).coerceAtLeast(0f)
-                        holder.offsetPx = next
-                        holder.settleJob?.cancel()
-                        holder.settleJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
-                            dragOffset.snapTo(next)
-                        }
-                    },
-                    onHeaderDragEnd = { velocityY, defaultDistancePx, flingVelocityPx, minFlingDistancePx, minEffectiveDistancePx ->
-                        val thresholdPx = effectiveSheetDismissDistance(
-                            defaultDistancePx = defaultDistancePx,
-                            sheetHeightPx = holder.sheetHeightPx,
-                            minDistancePx = minEffectiveDistancePx,
-                        )
-                        if (shouldDismissSheet(
-                                offsetPx = holder.offsetPx,
-                                velocityPxPerSec = velocityY,
-                                distanceThresholdPx = thresholdPx,
-                                flingVelocityThresholdPx = flingVelocityPx,
-                                minFlingDistancePx = minFlingDistancePx,
-                            )
-                        ) {
-                            holder.isDismissing = true
-                            holder.settleJob?.cancel()
-                            holder.settleJob = scope.launch {
-                                try {
-                                    sheetState.hide()
-                                } finally {
-                                    latestDismiss()
-                                }
-                            }
-                        } else {
-                            holder.settleJob?.cancel()
-                            holder.settleJob = scope.launch {
-                                dragOffset.animateTo(0f, tween(durationMillis = 200, easing = motion))
-                            }
-                        }
-                    },
-                    onHeaderDragCancel = {
-                        if (!holder.isDismissing) {
-                            holder.settleJob?.cancel()
-                            holder.settleJob = scope.launch {
-                                dragOffset.animateTo(0f, tween(durationMillis = 200, easing = motion))
-                            }
-                        }
-                    },
-                )
-                .windowInsetsPadding(BottomSheetDefaults.windowInsets),
+                .padding(9.dp)
+                .onSizeChanged { holder.sheetHeightPx = it.height }
+                .graphicsLayer { translationY = dragOffset.value },
+            shape = DialogShape,
+            color = colors.surface,
         ) {
-            Surface(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(9.dp)
-                    .onSizeChanged { holder.sheetHeightPx = it.height }
-                    .graphicsLayer { translationY = dragOffset.value },
-                shape = DialogShape,
-                color = colors.surface,
-            ) {
-                Column(Modifier.fillMaxWidth()) {
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
-                            .onGloballyPositioned { holder.headerCoordinates = it }
-                            .padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 4.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Box(
-                            Modifier
-                                .align(Alignment.CenterHorizontally)
-                                .padding(vertical = 4.dp)
-                                .size(32.dp, 4.dp)
-                                .clip(ControlShape)
-                                .background(colors.outlineVariant),
+            Column(Modifier.fillMaxWidth()) {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .sheetHeaderDismissGesture(
+                            dragEnabled = { !holder.isDismissing },
+                            onDragStart = {
+                                holder.settleJob?.cancel()
+                                holder.settleJob = null
+                                holder.offsetPx = dragOffset.value
+                            },
+                            onDrag = { deltaY ->
+                                val next = (holder.offsetPx + deltaY).coerceAtLeast(0f)
+                                holder.offsetPx = next
+                                holder.settleJob?.cancel()
+                                holder.settleJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                                    dragOffset.snapTo(next)
+                                }
+                            },
+                            onDragEnd = { velocityY, pauseMs, defaultDistancePx, flingVelocityPx, minFlingDistancePx, minEffectiveDistancePx ->
+                                val thresholdPx = effectiveSheetDismissDistance(
+                                    defaultDistancePx = defaultDistancePx,
+                                    sheetHeightPx = holder.sheetHeightPx,
+                                    minDistancePx = minEffectiveDistancePx,
+                                )
+                                if (shouldDismissSheet(
+                                        offsetPx = holder.offsetPx,
+                                        velocityPxPerSec = velocityY,
+                                        distanceThresholdPx = thresholdPx,
+                                        flingVelocityThresholdPx = flingVelocityPx,
+                                        minFlingDistancePx = minFlingDistancePx,
+                                        pauseBeforeReleaseMs = pauseMs,
+                                    )
+                                ) {
+                                    holder.isDismissing = true
+                                    holder.settleJob?.cancel()
+                                    holder.settleJob = scope.launch {
+                                        try {
+                                            sheetState.hide()
+                                        } finally {
+                                            latestDismiss()
+                                        }
+                                    }
+                                } else {
+                                    holder.settleJob?.cancel()
+                                    holder.settleJob = scope.launch {
+                                        dragOffset.animateTo(0f, tween(durationMillis = 200, easing = motion))
+                                    }
+                                }
+                            },
+                            onDragCancel = {
+                                if (!holder.isDismissing) {
+                                    holder.settleJob?.cancel()
+                                    holder.settleJob = scope.launch {
+                                        dragOffset.animateTo(0f, tween(durationMillis = 200, easing = motion))
+                                    }
+                                }
+                            },
                         )
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                title,
-                                Modifier.weight(1f).semantics { heading() },
-                                style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, lineHeight = 24.sp),
-                            )
-                            IconButton(onClick = dismiss, modifier = Modifier.size(48.dp)) {
-                                Icon(designIcon(R.drawable.ks_x), contentDescription = "关闭", modifier = Modifier.size(22.dp))
-                            }
+                        .padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Box(
+                        Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(vertical = 4.dp)
+                            .size(32.dp, 4.dp)
+                            .clip(ControlShape)
+                            .background(colors.outlineVariant),
+                    )
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            title,
+                            Modifier.weight(1f).semantics { heading() },
+                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, lineHeight = 24.sp),
+                        )
+                        IconButton(onClick = dismiss, modifier = Modifier.size(48.dp)) {
+                            Icon(designIcon(R.drawable.ks_x), contentDescription = "关闭", modifier = Modifier.size(22.dp))
                         }
                     }
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
-                            .weight(1f, fill = false)
-                            .padding(start = 16.dp, end = 16.dp, bottom = bottomPadding),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        content = content,
-                    )
                 }
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = false)
+                        .padding(start = 16.dp, end = 16.dp, bottom = bottomPadding),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    content = content,
+                )
             }
         }
     }

@@ -85,30 +85,50 @@ class BottomSheetGestureTest {
         val titleBounds = sheetText("流水筛选").fetchSemanticsNode().boundsInRoot
         val applyBounds = sheetText("应用").fetchSemanticsNode().boundsInRoot
 
-        // 1. Slow and fast downward swipes on the list already at top must not dismiss the sheet.
+        // 1. Repeated slow and fast downward flings when list is already at top must never dismiss.
         compose.onNode(isDialog()).performTouchInput {
             swipe(
                 start = Offset(listBounds.center.x, listBounds.top + 20.dp.toPx()),
                 end = Offset(listBounds.center.x, listBounds.top + 200.dp.toPx()),
                 durationMillis = 350,
             )
-            swipe(
-                start = Offset(listBounds.center.x, listBounds.top + 20.dp.toPx()),
-                end = Offset(listBounds.center.x, listBounds.top + 200.dp.toPx()),
-                durationMillis = 60,
-            )
+            repeat(5) {
+                swipe(
+                    start = Offset(listBounds.center.x, listBounds.top + 20.dp.toPx()),
+                    end = Offset(listBounds.center.x, listBounds.bottom - 12.dp.toPx()),
+                    durationMillis = 55,
+                )
+            }
         }
         compose.waitForIdle()
         sheetText("流水筛选").assertIsDisplayed()
 
-        // 2. Scroll down into the list, then pull down continuously past the top; sheet stays open.
-        listNode.performScrollToNode(hasText("图书影音"))
+        // 2. Continuous rapid alternating up/down scrolling past the top edge keeps scrolling normal and stays open.
         compose.onNode(isDialog()).performTouchInput {
             repeat(3) {
                 swipe(
+                    start = Offset(listBounds.center.x, listBounds.bottom - 20.dp.toPx()),
+                    end = Offset(listBounds.center.x, listBounds.top + 20.dp.toPx()),
+                    durationMillis = 70,
+                )
+                swipe(
                     start = Offset(listBounds.center.x, listBounds.top + 20.dp.toPx()),
-                    end = Offset(listBounds.center.x, listBounds.bottom - 16.dp.toPx()),
-                    durationMillis = 120,
+                    end = Offset(listBounds.center.x, listBounds.bottom - 12.dp.toPx()),
+                    durationMillis = 70,
+                )
+            }
+        }
+        compose.waitForIdle()
+        sheetText("流水筛选").assertIsDisplayed()
+
+        // 3. Scroll deep into the list, then pull down continuously past the top; sheet returns to top and stays open.
+        listNode.performScrollToNode(hasText("图书影音"))
+        compose.onNode(isDialog()).performTouchInput {
+            repeat(4) {
+                swipe(
+                    start = Offset(listBounds.center.x, listBounds.top + 20.dp.toPx()),
+                    end = Offset(listBounds.center.x, listBounds.bottom - 12.dp.toPx()),
+                    durationMillis = 100,
                 )
             }
         }
@@ -116,7 +136,7 @@ class BottomSheetGestureTest {
         sheetText("流水筛选").assertIsDisplayed()
         assertEquals(0f, listNode.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value(), 1f)
 
-        // 3. Gesture starting in content, crossing into header, then dragging down must keep content behavior.
+        // 4. Gesture starting in content, crossing into header, then dragging down must keep content behavior.
         compose.onNode(isDialog()).performTouchInput {
             down(Offset(listBounds.center.x, listBounds.top + 24.dp.toPx()))
             moveTo(titleBounds.center, delayMillis = 80)
@@ -126,20 +146,34 @@ class BottomSheetGestureTest {
         compose.waitForIdle()
         sheetText("流水筛选").assertIsDisplayed()
 
-        // 4. Downward swipe starting on the bottom action button must neither dismiss nor apply.
+        // 5. Repeated downward swipes starting on the bottom action button must neither dismiss nor apply.
         compose.onNode(isDialog()).performTouchInput {
-            swipe(
-                start = applyBounds.center,
-                end = Offset(applyBounds.center.x, applyBounds.center.y + 160.dp.toPx()),
-                durationMillis = 120,
-            )
+            repeat(3) {
+                swipe(
+                    start = applyBounds.center,
+                    end = Offset(applyBounds.center.x, applyBounds.center.y + 160.dp.toPx()),
+                    durationMillis = 80,
+                )
+            }
         }
         compose.waitForIdle()
         sheetText("流水筛选").assertIsDisplayed()
         compose.runOnIdle { assertEquals(LedgerEntryFilters(), applied) }
 
-        // 5. Slight slow downward drag from the header must snap back without dismissing.
+        // 6. Fast downward pull below 100dp followed by a pause before releasing must snap back, not dismiss.
         val restingTitleTop = sheetText("流水筛选").fetchSemanticsNode().boundsInRoot.top
+        compose.onNode(isDialog()).performTouchInput {
+            down(titleBounds.center)
+            moveTo(Offset(titleBounds.center.x, titleBounds.center.y + 28.dp.toPx()), delayMillis = 20)
+            moveTo(Offset(titleBounds.center.x, titleBounds.center.y + 56.dp.toPx()), delayMillis = 20)
+            advanceEventTime(200)
+            up()
+        }
+        compose.waitForIdle()
+        sheetText("流水筛选").assertIsDisplayed()
+        assertEquals(restingTitleTop, sheetText("流水筛选").fetchSemanticsNode().boundsInRoot.top, 2f)
+
+        // 7. Slight slow downward drag from the header must snap back without dismissing.
         compose.onNode(isDialog()).performTouchInput {
             swipe(
                 start = titleBounds.center,
@@ -151,18 +185,18 @@ class BottomSheetGestureTest {
         sheetText("流水筛选").assertIsDisplayed()
         assertEquals(restingTitleTop, sheetText("流水筛选").fetchSemanticsNode().boundsInRoot.top, 2f)
 
-        // 6. Long slow downward drag from the header (>= 100dp) dismisses and discards draft.
+        // 8. Long slow downward drag from the header (>= 100dp) dismisses even if paused before release.
         compose.onNode(isDialog()).performTouchInput {
-            swipe(
-                start = titleBounds.center,
-                end = Offset(titleBounds.center.x, titleBounds.center.y + 140.dp.toPx()),
-                durationMillis = 800,
-            )
+            down(titleBounds.center)
+            moveTo(Offset(titleBounds.center.x, titleBounds.center.y + 70.dp.toPx()), delayMillis = 300)
+            moveTo(Offset(titleBounds.center.x, titleBounds.center.y + 140.dp.toPx()), delayMillis = 300)
+            advanceEventTime(200)
+            up()
         }
         compose.waitUntilDoesNotExist(isDialog(), 5_000)
         compose.runOnIdle { assertEquals(LedgerEntryFilters(), applied) }
 
-        // 7. Fast downward fling starting from the top handle bar area dismisses even below 100dp.
+        // 9. Fast downward fling starting from the top handle bar area without pause dismisses below 100dp.
         openSheet()
         val reopenedTitle = sheetText("流水筛选").fetchSemanticsNode().boundsInRoot
         compose.onNode(isDialog()).performTouchInput {
@@ -176,7 +210,7 @@ class BottomSheetGestureTest {
         compose.waitUntilDoesNotExist(isDialog(), 5_000)
         compose.runOnIdle { assertEquals(LedgerEntryFilters(), applied) }
 
-        // 8. Drag starting in header and crossing down into content dismisses cleanly.
+        // 10. Drag starting in header and crossing down into content dismisses cleanly.
         openSheet()
         val thirdTitle = sheetText("流水筛选").fetchSemanticsNode().boundsInRoot
         val thirdList = compose.onNode(hasScrollToNodeAction() and inDialog).fetchSemanticsNode().boundsInRoot
@@ -212,21 +246,38 @@ class BottomSheetGestureTest {
         val resetBounds = sheetText("恢复默认").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         val applyBounds = sheetText("应用").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         compose.onNode(isDialog()).performTouchInput {
-            swipe(
-                start = hintBounds.center,
-                end = Offset(hintBounds.center.x, hintBounds.center.y + 180.dp.toPx()),
-                durationMillis = 80,
-            )
+            repeat(3) {
+                swipe(
+                    start = hintBounds.center,
+                    end = Offset(hintBounds.center.x, hintBounds.center.y + 180.dp.toPx()),
+                    durationMillis = 60,
+                )
+            }
             swipe(
                 start = resetBounds.center,
                 end = Offset(resetBounds.center.x, resetBounds.center.y + 160.dp.toPx()),
-                durationMillis = 80,
+                durationMillis = 70,
             )
             swipe(
                 start = applyBounds.center,
                 end = Offset(applyBounds.center.x, applyBounds.center.y + 160.dp.toPx()),
-                durationMillis = 80,
+                durationMillis = 70,
             )
+        }
+        compose.waitForIdle()
+        sheetText("钱包范围").assertIsDisplayed()
+
+        // Switching to manual mode and swiping down at the top of the wallet list also stays open.
+        sheetText("手动选择").performClick()
+        val walletItem = sheetText("日常钱包").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        compose.onNode(isDialog()).performTouchInput {
+            repeat(3) {
+                swipe(
+                    start = walletItem.center,
+                    end = Offset(walletItem.center.x, walletItem.center.y + 180.dp.toPx()),
+                    durationMillis = 60,
+                )
+            }
         }
         compose.waitForIdle()
         sheetText("钱包范围").assertIsDisplayed()
@@ -256,11 +307,13 @@ class BottomSheetGestureTest {
         val foodBounds = sheetText("餐饮").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         val addBounds = sheetText("新增分类").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         compose.onNode(isDialog()).performTouchInput {
-            swipe(
-                start = foodBounds.center,
-                end = Offset(foodBounds.center.x, foodBounds.center.y + 180.dp.toPx()),
-                durationMillis = 70,
-            )
+            repeat(3) {
+                swipe(
+                    start = foodBounds.center,
+                    end = Offset(foodBounds.center.x, foodBounds.center.y + 180.dp.toPx()),
+                    durationMillis = 60,
+                )
+            }
             swipe(
                 start = addBounds.center,
                 end = Offset(addBounds.center.x, addBounds.center.y + 160.dp.toPx()),
@@ -283,11 +336,13 @@ class BottomSheetGestureTest {
         compose.onNodeWithContentDescription("钱包").performScrollTo().performClick()
         val walletBounds = sheetText("日常钱包").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         compose.onNode(isDialog()).performTouchInput {
-            swipe(
-                start = walletBounds.center,
-                end = Offset(walletBounds.center.x, walletBounds.center.y + 180.dp.toPx()),
-                durationMillis = 70,
-            )
+            repeat(3) {
+                swipe(
+                    start = walletBounds.center,
+                    end = Offset(walletBounds.center.x, walletBounds.center.y + 180.dp.toPx()),
+                    durationMillis = 60,
+                )
+            }
         }
         compose.waitForIdle()
         sheetText("选择钱包").assertIsDisplayed()
@@ -316,11 +371,13 @@ class BottomSheetGestureTest {
         val keyFive = sheetText("5").performScrollTo().assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         val confirmBounds = sheetText("确认金额").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         compose.onNode(isDialog()).performTouchInput {
-            swipe(
-                start = keyFive.center,
-                end = Offset(keyFive.center.x, keyFive.center.y + 180.dp.toPx()),
-                durationMillis = 70,
-            )
+            repeat(3) {
+                swipe(
+                    start = keyFive.center,
+                    end = Offset(keyFive.center.x, keyFive.center.y + 180.dp.toPx()),
+                    durationMillis = 60,
+                )
+            }
             swipe(
                 start = confirmBounds.center,
                 end = Offset(confirmBounds.center.x, confirmBounds.center.y + 160.dp.toPx()),
@@ -331,14 +388,15 @@ class BottomSheetGestureTest {
         sheetText("金额计算器").assertIsDisplayed()
         compose.runOnIdle { assertNull(applied) }
 
+        // Fast downward pull followed by pause on calculator header must snap back.
         val titleBounds = sheetText("金额计算器").fetchSemanticsNode().boundsInRoot
         val restingTop = titleBounds.top
         compose.onNode(isDialog()).performTouchInput {
-            swipe(
-                start = titleBounds.center,
-                end = Offset(titleBounds.center.x, titleBounds.center.y + 40.dp.toPx()),
-                durationMillis = 350,
-            )
+            down(titleBounds.center)
+            moveTo(Offset(titleBounds.center.x, titleBounds.center.y + 26.dp.toPx()), delayMillis = 20)
+            moveTo(Offset(titleBounds.center.x, titleBounds.center.y + 52.dp.toPx()), delayMillis = 20)
+            advanceEventTime(200)
+            up()
         }
         compose.waitForIdle()
         sheetText("金额计算器").assertIsDisplayed()
@@ -379,11 +437,13 @@ class BottomSheetGestureTest {
         val itemBounds = sheetText("第一项").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         val footerBounds = sheetText("底部按钮").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         compose.onNode(isDialog()).performTouchInput {
-            swipe(
-                start = itemBounds.center,
-                end = Offset(itemBounds.center.x, itemBounds.center.y + 180.dp.toPx()),
-                durationMillis = 70,
-            )
+            repeat(3) {
+                swipe(
+                    start = itemBounds.center,
+                    end = Offset(itemBounds.center.x, itemBounds.center.y + 180.dp.toPx()),
+                    durationMillis = 60,
+                )
+            }
             swipe(
                 start = footerBounds.center,
                 end = Offset(footerBounds.center.x, footerBounds.center.y + 160.dp.toPx()),
