@@ -30,8 +30,9 @@ import com.kitsuneapp.data.ColorSource
 import com.kitsuneapp.data.ThemeMode
 import com.kitsuneapp.data.ThemePreferences
 import com.kitsuneapp.data.presets
-import com.materialkolor.dynamicColorScheme
-import com.materialkolor.ktx.animateColorScheme
+import com.materialkolor.dynamiccolor.ColorSpec
+import com.materialkolor.material3.dynamicColorScheme
+import com.materialkolor.material3.ktx.animateColorScheme
 
 val LocalDarkMode = staticCompositionLocalOf { false }
 private val LocalExpenseColor = compositionLocalOf { Color.Unspecified }
@@ -47,6 +48,7 @@ val DialogShape = RoundedCornerShape(24.dp)
 
 internal fun tonalColors(seed: Color, dark: Boolean): ColorScheme = dynamicColorScheme(
     seedColor = seed, isDark = dark, isAmoled = false, contrastLevel = 0.25,
+    specVersion = ColorSpec.SpecVersion.SPEC_2021,
 )
 
 private val type = Typography(
@@ -92,7 +94,7 @@ fun KitsuneTheme(preferences: ThemePreferences?, forceDark: Boolean? = null, ref
             designColors(Color(android.graphics.Color.parseColor(seed)), dark, usePresetTones)
         }
     }
-    val applied = if (forceDark != null) colors else key(dark) { animateColorScheme(colors, tween(250, easing = motion)) }
+    val applied = if (forceDark != null) colors else key(dark) { animateColorScheme(colors, { tween(250, easing = motion) }) }
     KitsuneMaterialTheme(applied, dark, content)
 }
 

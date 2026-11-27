@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
@@ -8,7 +7,11 @@ plugins {
 
 android {
     namespace = "com.kitsuneapp"
-    compileSdk = 36
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 1
+        }
+    }
 
     defaultConfig {
         applicationId = "com.kitsuneapp"
@@ -27,7 +30,7 @@ android {
         }
     }
 
-    sourceSets["main"].res.srcDir(rootProject.file("artwork/android/res"))
+    sourceSets["main"].res.directories.add(rootProject.file("artwork/android/res").path)
     buildFeatures.compose = true
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
