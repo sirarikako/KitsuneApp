@@ -170,18 +170,97 @@ class SelectionSheetsTest {
                 MealFilterPage(records, filter, filter, filter, {}, { applied = it })
             }
         }
+        compose.onNodeWithText("早餐").performScrollTo().performClick()
+        compose.onNodeWithText("晚餐").performScrollTo().performClick()
+        compose.onNodeWithText("是").performScrollTo().performClick()
+
         val chooser = compose.onNodeWithContentDescription("用餐方式")
         chooser.performScrollTo().performClick()
-        sheetText("全部方式").assertIsSelected()
+        sheetText("选择用餐方式").assertIsDisplayed()
         sheetText("未填写方式").performClick()
+        sheetText("应用").performClick()
         compose.onNode(hasContentDescription("用餐方式") and hasText("未填写方式")).assertExists()
         compose.runOnIdle { assertNull(applied) }
+
         chooser.performClick()
-        sheetText("全部方式").assertIsDisplayed()
+        sheetText("全选").performClick()
         close()
         compose.onNode(hasContentDescription("用餐方式") and hasText("未填写方式")).assertExists()
         compose.onNodeWithText("应用筛选").performScrollTo().performClick()
-        compose.runOnIdle { assertEquals("none", applied?.method) }
+        compose.runOnIdle {
+            assertEquals(listOf(MealSlot.BREAKFAST, MealSlot.DINNER), applied?.slots)
+            assertEquals(listOf(true), applied?.atHome)
+            assertEquals(listOf(MealFilter.NO_METHOD), applied?.methods)
+        }
+    }
+
+    @Test
+    fun mealFilterRetainsFullMultiSelectionsAndUsesBottomSheetForExtraPreparationCategories() {
+        val time = "2026-11-17T12:00:00Z"
+        val methods = listOf(
+            MealMethod("m-cook", "下厨", "下厨", 0, false, true, time, time),
+            MealMethod("m-takeout", "外卖", "外卖", 1, false, false, time, time),
+        )
+        val preps = (1..10).map { i ->
+            Category("prep-$i", Scope.PREPARATION, null, GLOBAL_OWNER, "制作$i", "制作$i", i, false, false, time, time)
+        }
+        val base = selectionRecords()
+        val records = base.copy(methods = methods, categories = base.categories + preps)
+        var applied: MealFilter? = null
+        compose.setContent {
+            KitsuneTheme(records.theme) {
+                val filter = MealFilter()
+                MealFilterPage(records, filter, filter, filter, {}, { applied = it })
+            }
+        }
+
+        // Selecting all methods retains full selection instead of collapsing to empty.
+        val chooser = compose.onNodeWithContentDescription("用餐方式")
+        chooser.performScrollTo().performClick()
+        sheetText("全选").performClick()
+        sheetText("应用").performClick()
+        compose.onNode(hasContentDescription("用餐方式") and hasText("已选 3 项 · 未填写方式、下厨等")).assertExists()
+
+        // Reopening the method sheet retains all checked states; clearing resets to "全部方式".
+        chooser.performScrollTo().performClick()
+        sheetText("未填写方式").assertIsOn()
+        sheetText("下厨").assertIsOn()
+        sheetText("外卖").assertIsOn()
+        sheetText("全不选").performClick()
+        sheetText("应用").performClick()
+        compose.onNode(hasContentDescription("用餐方式") and hasText("全部方式")).assertExists()
+
+        // Selecting an extra preparation category via "更多分类" bottom sheet.
+        compose.onNodeWithText("更多分类").performScrollTo().performClick()
+        sheetText("选择制作分类").assertIsDisplayed()
+        compose.onNodeWithContentDescription("搜索分类").performTextReplacement("10")
+        sheetText("制作10").performClick()
+        close()
+        compose.onNodeWithText("已选更多分类 · 制作10").assertDoesNotExist()
+
+        compose.onNodeWithText("更多分类").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("搜索分类").performTextReplacement("10")
+        sheetText("制作10").performClick()
+        sheetText("应用").performClick()
+        compose.onNodeWithText("已选更多分类 · 制作10").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("应用筛选").performScrollTo().performClick()
+        compose.runOnIdle {
+            assertEquals(emptyList<String>(), applied?.methods)
+            assertEquals(listOf("prep-10"), applied?.categories)
+        }
+
+        // Selecting all methods and all preparation categories retains every selected ID on apply.
+        chooser.performScrollTo().performClick()
+        sheetText("全选").performClick()
+        sheetText("应用").performClick()
+        compose.onNodeWithText("更多分类").performScrollTo().performClick()
+        sheetText("全选").performClick()
+        sheetText("应用").performClick()
+        compose.onNodeWithText("应用筛选").performScrollTo().performClick()
+        compose.runOnIdle {
+            assertEquals(listOf(MealFilter.NO_METHOD, "m-cook", "m-takeout"), applied?.methods)
+            assertEquals((1..10).map { "prep-$it" }, applied?.categories)
+        }
     }
 
     @Test

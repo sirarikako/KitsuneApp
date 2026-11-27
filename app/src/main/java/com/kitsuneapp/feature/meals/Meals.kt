@@ -33,16 +33,16 @@ import java.time.YearMonth
 data class MealFilter(
     val start: String = "",
     val end: String = "",
-    val slot: MealSlot? = null,
-    val atHome: Boolean? = null,
-    val method: String = "",
+    val slots: List<MealSlot> = emptyList(),
+    val atHome: List<Boolean> = emptyList(),
+    val methods: List<String> = emptyList(),
     val categories: List<String> = emptyList(),
     val query: String = "",
 ) : Serializable {
     fun matches(meal: MealRecord, records: Records): Boolean =
         (start.isEmpty() || meal.date >= start) && (end.isEmpty() || meal.date <= end) &&
-            (slot == null || meal.mealSlot == slot) && (atHome == null || meal.plannedAtHome == atHome) &&
-            (method.isEmpty() || method == (meal.mealMethodId ?: NO_METHOD)) &&
+            (slots.isEmpty() || meal.mealSlot in slots) && (atHome.isEmpty() || meal.plannedAtHome in atHome) &&
+            (methods.isEmpty() || (meal.mealMethodId ?: NO_METHOD) in methods) &&
             (categories.isEmpty() || records.preparation[meal.id].orEmpty().any { it in categories }) &&
             (meal.dishes.contains(query.trim(), true) || meal.note.contains(query.trim(), true))
 
@@ -50,9 +50,11 @@ data class MealFilter(
         if (includeDates && (start.isNotEmpty() || end.isNotEmpty())) {
             add("${start.ifEmpty { "最早" }} ～ ${end.ifEmpty { "至今" }}")
         }
-        slot?.let { add(it.label) }
-        atHome?.let { add("计划在家：${if (it) "是" else "否"}") }
-        if (method.isNotEmpty()) add(if (method == NO_METHOD) "方式未填写" else records.methodName(method))
+        MealSlot.entries.filter { it in slots }.forEach { add(it.label) }
+        listOf(true, false).filter { it in atHome }.forEach { add("计划在家：${if (it) "是" else "否"}") }
+        methods.forEach { method ->
+            add(if (method == NO_METHOD) "方式未填写" else records.methodName(method))
+        }
         addAll(categories.mapNotNull(records.categoryNames::get))
         if (query.isNotBlank()) add("关键词：${query.trim()}")
     }
@@ -64,10 +66,10 @@ data class MealFilter(
      * Such stale IDs cannot match any record, cannot be shown as a label, and cannot be unchecked in the filter page.
      */
     fun validIn(records: Records): MealFilter {
-        val validMethod = method.isEmpty() || method == NO_METHOD || method in records.methodNames
+        val validMethods = methods.filter { it == NO_METHOD || it in records.methodNames }
         val validCategories = categories.filter { it in records.preparationCategoryIds }
-        return if (validMethod && validCategories.size == categories.size) this
-        else copy(method = if (validMethod) method else "", categories = validCategories)
+        return if (validMethods.size == methods.size && validCategories.size == categories.size) this
+        else copy(methods = validMethods, categories = validCategories)
     }
 
     fun dateSummary(currentMonth: MealFilter): String {
@@ -316,6 +318,22 @@ fun MealFilterPage(
 ) {
     var draft by rememberSaveable { mutableStateOf(initial) }
     var error by rememberSaveable { mutableStateOf(false) }
+    var pickMethods by rememberSaveable { mutableStateOf(false) }
+    val methodOptions = remember(records.methods) { listOf(MealFilter.NO_METHOD) + records.methods.map { it.id } }
+    val methodById = remember(records.methods) { records.methods.associateBy { it.id } }
+    fun methodOptionLabel(id: String): String = when (id) {
+        MealFilter.NO_METHOD -> "未填写方式"
+        else -> records.methodName(id) + if (methodById[id]?.archived == true) "（已停用）" else ""
+    }
+    val methodSummary = remember(draft.methods, methodById, records) {
+        val chosen = methodOptions.filter { it in draft.methods }
+        when {
+            chosen.isEmpty() -> "全部方式"
+            chosen.size <= 2 -> chosen.joinToString("、", transform = ::methodOptionLabel)
+            else -> "已选 ${chosen.size} 项 · ${chosen.take(2).joinToString("、", transform = ::methodOptionLabel)}等"
+        }
+    }
+
     Column {
         Header("筛选用餐", back = back)
         Form {
@@ -338,26 +356,35 @@ fun MealFilterPage(
                         Modifier.weight(1f), allowEmpty = true)
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Select("餐次", draft.slot?.name ?: "", listOf("") + MealSlot.entries.map { it.name },
-                    { if (it.isEmpty()) "全部餐次" else MealSlot.valueOf(it).label },
-                    { draft = draft.copy(slot = if (it.isEmpty()) null else MealSlot.valueOf(it)) }, Modifier.weight(1f))
-                Select("计划在家吃", draft.atHome?.toString() ?: "", listOf("", "true", "false"),
-                    { if (it.isEmpty()) "不限" else if (it == "true") "是" else "否" },
-                    { draft = draft.copy(atHome = it.toBooleanStrictOrNull()) }, Modifier.weight(1f))
-            }
-            SheetSelect("用餐方式", draft.method, listOf("", MealFilter.NO_METHOD) + records.methods.map { it.id },
-                {
-                    when (it) {
-                        "" -> "全部方式"
-                        MealFilter.NO_METHOD -> "未填写方式"
-                        else -> records.methodName(it) + if (records.methods.find { m -> m.id == it }?.archived == true) "（已停用）" else ""
-                    }
-                },
-                { draft = draft.copy(method = it) })
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                FieldLabel("制作分类", "多选，匹配任一项")
-                MultiCategories(records.categories.filter { it.scope == Scope.PREPARATION }, draft.categories) {
+                FieldLabel("餐次", "多选，不选不限")
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MealSlot.entries.forEach { slot ->
+                        val checked = slot in draft.slots
+                        Choice(slot.label, {
+                            draft = draft.copy(slots = if (checked) draft.slots - slot else draft.slots + slot)
+                        }, selected = checked, icon = if (checked) designIcon(R.drawable.ks_check) else null)
+                    }
+                }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                FieldLabel("计划在家吃", "多选，不选不限")
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(true to "是", false to "否").forEach { (value, label) ->
+                        val checked = value in draft.atHome
+                        Choice(label, {
+                            draft = draft.copy(atHome = if (checked) draft.atHome - value else draft.atHome + value)
+                        }, selected = checked, icon = if (checked) designIcon(R.drawable.ks_check) else null)
+                    }
+                }
+            }
+            SelectionControl("用餐方式", methodSummary, { pickMethods = true })
+            val prepCategories = remember(records.categories) {
+                records.categories.filter { it.scope == Scope.PREPARATION }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                FieldLabel("制作分类", "多选，不选不限")
+                MultiCategories(prepCategories, draft.categories) {
                     draft = draft.copy(categories = it)
                 }
             }
@@ -368,10 +395,30 @@ fun MealFilterPage(
                 Choice("重置条件", { draft = defaults; error = false }, Modifier.weight(1f))
                 Primary("应用筛选", {
                     error = draft.start.isNotEmpty() && draft.end.isNotEmpty() && draft.start > draft.end
-                    if (!error) apply(draft.copy(query = draft.query.trim()))
+                    if (!error) {
+                        apply(draft.copy(
+                            slots = MealSlot.entries.filter { it in draft.slots },
+                            atHome = listOf(true, false).filter { it in draft.atHome },
+                            methods = methodOptions.filter { it in draft.methods },
+                            categories = prepCategories.map { it.id }.filter { it in draft.categories },
+                            query = draft.query.trim(),
+                        ))
+                    }
                 }, Modifier.weight(1f))
             }
         }
+    }
+    if (pickMethods) {
+        MultiSelectSheet(
+            title = "选择用餐方式",
+            selected = draft.methods.toSet(),
+            options = methodOptions,
+            optionKey = { it },
+            label = ::methodOptionLabel,
+            onApply = { picked -> draft = draft.copy(methods = picked) },
+            dismiss = { pickMethods = false },
+            subtitle = "全不选表示不限",
+        )
     }
 }
 
@@ -384,7 +431,6 @@ private fun MultiCategories(
     set: (List<String>) -> Unit,
 ) {
     var menu by rememberSaveable { mutableStateOf(false) }
-    var search by rememberSaveable { mutableStateOf("") }
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         categories.take(8).forEach { category ->
             val checked = category.id in selected
@@ -398,21 +444,19 @@ private fun MultiCategories(
     val extra = categories.drop(8).filter { it.id in selected }
     if (extra.isNotEmpty()) Secondary("已选更多分类 · " + extra.joinToString("、") { it.name })
     if (menu) {
-        AlertDialog(onDismissRequest = { menu = false }, title = { Text("选择制作分类") }, shape = DialogShape,
-            text = {
-                Column {
-                    Field("搜索分类", search, { search = it })
-                    LazyColumn(Modifier.heightIn(max = 280.dp)) {
-                        items(categories.filter { it.name.contains(search, true) }, key = { it.id }) { category ->
-                            val checked = category.id in selected
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Checkbox(checked, { set(if (checked) selected - category.id else selected + category.id) })
-                                Text(category.name + if (category.archived) "（已停用）" else "")
-                            }
-                        }
-                    }
-                }
-            }, confirmButton = { TextButton({ menu = false; search = "" }) { Text("完成") } })
+        val selectedSet = remember(selected) { selected.toSet() }
+        MultiSelectSheet(
+            title = "选择制作分类",
+            selected = categories.filter { it.id in selectedSet }.toSet(),
+            options = categories,
+            optionKey = { it.id },
+            label = { it.name + if (it.archived) "（已停用）" else "" },
+            onApply = { picked -> set(picked.map { it.id }) },
+            dismiss = { menu = false },
+            searchable = true,
+            searchLabel = "搜索分类",
+            empty = "没有匹配分类",
+        )
     }
 }
 

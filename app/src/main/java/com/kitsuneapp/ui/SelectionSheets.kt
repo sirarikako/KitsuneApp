@@ -410,10 +410,10 @@ internal fun <T> SingleSelectSheet(
 @Composable
 internal fun SelectionControl(
     title: String, value: String, onClick: () -> Unit, modifier: Modifier = Modifier,
-    enabled: Boolean = true, icon: ImageVector? = null,
+    enabled: Boolean = true, icon: ImageVector? = null, showLabel: Boolean = true,
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        FieldLabel(title)
+        if (showLabel) FieldLabel(title)
         OutlinedAction(onClick, Modifier.fillMaxWidth().semantics { contentDescription = title },
             enabled = enabled, spread = true) {
             if (icon != null) Icon(icon, null, Modifier.size(16.dp))
@@ -421,6 +421,22 @@ internal fun SelectionControl(
                 if (enabled) LocalContentColor.current else MaterialTheme.colorScheme.onSurfaceVariant)
             Icon(designIcon(R.drawable.ks_chevron_down), null, Modifier.size(14.dp))
         }
+    }
+}
+
+@Composable
+fun <T> Select(
+    title: String, value: T?, options: List<T>, label: (T) -> String, onSelect: (T) -> Unit,
+    modifier: Modifier = Modifier, placeholder: String = "请选择", enabled: Boolean = true,
+    showLabel: Boolean = true, optionIcon: (@Composable (T) -> ImageVector)? = null,
+) {
+    var open by rememberSaveable { mutableStateOf(false) }
+    val currentIcon = if (value != null && optionIcon != null) optionIcon(value) else null
+    SelectionControl(title, value?.let(label) ?: placeholder, { open = true }, modifier,
+        enabled = enabled, icon = currentIcon, showLabel = showLabel)
+    if (open && enabled) {
+        SingleSelectSheet("选择$title", value, options, { options.indexOf(it).toString() }, label, onSelect,
+            { open = false }, optionIcon = optionIcon)
     }
 }
 
@@ -435,6 +451,81 @@ internal fun SheetSelect(
     if (open && enabled) {
         SingleSelectSheet("选择$title", value, options, { it }, label, onSelect, { open = false },
             secondary = secondary)
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun <T> MultiSelectSheet(
+    title: String,
+    selected: Set<T>,
+    options: List<T>,
+    optionKey: (T) -> String,
+    label: (T) -> String,
+    onApply: (List<T>) -> Unit,
+    dismiss: () -> Unit,
+    subtitle: String? = null,
+    secondary: ((T) -> String?)? = null,
+    searchable: Boolean = false,
+    searchLabel: String = "搜索",
+    empty: String = "没有可选项目",
+    showSelectAllActions: Boolean = true,
+    actionLabel: String = "应用",
+) {
+    var draftKeys by rememberSaveable {
+        mutableStateOf(ArrayList(options.filter { it in selected }.map(optionKey)))
+    }
+    var query by rememberSaveable { mutableStateOf("") }
+    val checkedKeys = remember(draftKeys) { draftKeys.toSet() }
+    val trimmed = query.trim()
+    val visibleOptions = remember(options, trimmed, searchable) {
+        if (!searchable || trimmed.isEmpty()) options
+        else options.filter { label(it).contains(trimmed, ignoreCase = true) }
+    }
+    val selectedCount = remember(options, checkedKeys) { options.count { optionKey(it) in checkedKeys } }
+
+    SelectionSheet(
+        title = title,
+        dismiss = dismiss,
+        subtitle = subtitle,
+        header = if (searchable || showSelectAllActions) {
+            {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (searchable) Field(searchLabel, query, { query = it })
+                    if (showSelectAllActions) {
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End)) {
+                            Row(Modifier.weight(1f).align(Alignment.CenterVertically),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Secondary("已选 $selectedCount/${options.size}")
+                            }
+                            TextButton({ draftKeys = ArrayList(options.map(optionKey)) },
+                                Modifier.semantics { contentDescription = "全选$title" },
+                                contentPadding = PaddingValues(horizontal = 8.dp)) { Text("全选") }
+                            TextButton({ draftKeys = ArrayList() },
+                                Modifier.semantics { contentDescription = "全不选$title" },
+                                contentPadding = PaddingValues(horizontal = 8.dp)) { Text("全不选") }
+                        }
+                    }
+                }
+            }
+        } else null,
+        footer = {
+            Primary(actionLabel, {
+                val chosen = options.filter { optionKey(it) in checkedKeys }
+                dismiss()
+                onApply(chosen)
+            }, Modifier.fillMaxWidth().heightIn(min = 48.dp))
+        },
+        listStateKey = if (searchable) trimmed else "",
+    ) {
+        if (visibleOptions.isEmpty()) item { EmptyState(empty) }
+        items(visibleOptions, key = optionKey) { option ->
+            val key = optionKey(option)
+            val checked = key in checkedKeys
+            MultiSelectionRow(label(option), checked, { next ->
+                draftKeys = ArrayList(if (next) (draftKeys + key).distinct() else draftKeys - key)
+            }, secondary?.invoke(option))
+        }
     }
 }
 

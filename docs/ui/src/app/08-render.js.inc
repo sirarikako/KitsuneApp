@@ -36,8 +36,8 @@
       phone.innerHTML=`<div class="ks-status"><span>9:41</span><span class="ks-signal">${icon('signal')}${icon('wifi')}${icon('battery-full')}</span></div><div class="ks-page-motion ${settingsScreen} ${ledger?'ks-ledger-screen':''} ${fab?'ks-ledger-with-fab':''}">${ledger?`<div class="ks-ledger-collapsible">${top}</div>${ledgerTabs()}${ledgerFilters()}`:top}<main class="ks-main">${pages[state.page]()}${state.notice?`<p class="ks-success" role="status">${escapeText(state.notice)}</p>`:''}</main>${fab?`<button type="button" class="ks-primary ks-ledger-fab" data-action="add-entry" aria-label="记一笔">${icon('plus')}<span>记一笔</span></button>`:''}</div>${form?'':`<nav class="ks-nav" aria-label="主导航">${navs.map(([id,name,ic])=>`<button type="button" data-page="${id}" class="cursor-interaction" ${state.page===id?'aria-current="page"':''}><span>${icon(ic)}</span>${name}</button>`).join('')}</nav>`}<div class="ks-home-indicator" aria-hidden="true"></div>`;
       if(state.calcOpen){phone.insertAdjacentHTML('beforeend',calculatorSheet());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;updateCalculatorReadout();phone.querySelector('[data-calc-action=cancel]').focus({preventScroll:true});}
       if(state.deletePending){phone.insertAdjacentHTML('beforeend',deleteConfirmation());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-delete-action=cancel]').focus({preventScroll:true});}
-      if(state.walletPickerOpen||state.ledgerFilterDraft||state.singleSelection){
-        const panel=state.walletPickerOpen?walletRangeDialog():state.ledgerFilterDraft?ledgerFiltersDialog():singleSelectionPanel();
+      if(state.walletPickerOpen||state.ledgerFilterDraft||state.singleSelection||state.mealMethodPickerDraft||state.mealPrepPickerDraft){
+        const panel=state.walletPickerOpen?walletRangeDialog():state.ledgerFilterDraft?ledgerFiltersDialog():state.mealMethodPickerDraft?mealMethodFilterDialog():state.mealPrepPickerDraft?mealPreparationPickerDialog():singleSelectionPanel();
         phone.insertAdjacentHTML('beforeend',panel);
         for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
         phone.querySelector('.ks-selection-panel [data-select-close]').focus({preventScroll:true});
@@ -109,7 +109,7 @@
       const form=phone.querySelector('[data-meal-form]');
       if(form){
         state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;
-        state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);
+        state.date=form.elements.date.value;
       }
       const entry=phone.querySelector('[data-entry-form]');
       if(entry){
@@ -118,9 +118,14 @@
       }
       const meal=phone.querySelector('[data-meal-filter-form]');
       if(meal){
-        const {from,to,slot,atHome,keyword}=meal.elements;
-        state.mealFilterDraft={...state.mealFilterDraft,from:from.value,to:to.value,slot:slot.value,atHome:atHome.value,
-          keyword:keyword.value,preparations:[...meal.querySelectorAll('[name=preparation]:checked')].map(e=>e.value)};
+        const {from,to,keyword}=meal.elements;
+        const inlinePreps=new Set([...meal.querySelectorAll('[name=preparation]')].map(e=>e.value));
+        const checkedInline=[...meal.querySelectorAll('[name=preparation]:checked')].map(e=>e.value);
+        const keptExtra=state.mealFilterDraft.preparations.filter(c=>!inlinePreps.has(c));
+        state.mealFilterDraft={...state.mealFilterDraft,from:from.value,to:to.value,
+          slots:[...meal.querySelectorAll('[name=slot]:checked')].map(e=>e.value),
+          atHome:[...meal.querySelectorAll('[name=atHome]:checked')].map(e=>e.value),
+          keyword:keyword.value,preparations:[...checkedInline,...keptExtra]};
       }
       if(state.page==='wallet-edit'){
         const draft=state.walletEditDraft;
@@ -244,10 +249,21 @@
           }
           case 'entry-category':
             state.entryDraft.category=value;state.followsWalletType=false;break;
-          case 'meal-method':
-            state.mealFilterDraft.method=value;break;
+          case 'meal-slot':
+            state.slot=Number(value);break;
           case 'category-wallet':
             state.categoryWalletId=value;state.editingFinancialCategoryId=null;break;
+          case 'category-mode': {
+            const wallet=wallets.find(w=>w.id===state.categoryWalletId);
+            if(wallet){wallet[state.financialScope==='INCOME'?'incomeCategoryMode':'expenseCategoryMode']=value;state.editingFinancialCategoryId=null;}
+            break;
+          }
+          case 'appearance-mode':
+            state.appearanceDraft.mode=value;break;
+          case 'appearance-source':
+            state.appearanceDraft.colorSource=value;break;
+          case 'appearance-palette':
+            state.appearanceDraft.presetColor=value;break;
           case 'csv-method':
             state.csvMethod=value;break;
           case 'csv-wallet':
@@ -259,8 +275,30 @@
       state.singleSelection=null;render();
       phone.querySelector(`[data-select-open="${kind}"]`)?.focus({preventScroll:true});
     }
+    function closeMealMethodPicker(apply){
+      if(apply){
+        const all=mealFilterMethods().map(([value])=>value);
+        state.mealFilterDraft.methods=all.filter(v=>(state.mealMethodPickerDraft||[]).includes(v));
+      }
+      state.mealMethodPickerDraft=null;render();
+      phone.querySelector('[data-select-open="meal-methods"]')?.focus({preventScroll:true});
+    }
+    function closeMealPrepPicker(apply){
+      const draft=state.mealPrepPickerDraft;
+      if(apply&&draft){
+        const all=mealPrepTargetOptions(draft.target);
+        const picked=all.filter(c=>draft.selected.includes(c));
+        if(draft.target==='form')state.categories=picked;
+        else state.mealFilterDraft.preparations=picked;
+      }
+      const target=draft?.target;
+      state.mealPrepPickerDraft=null;render();
+      if(target)phone.querySelector(`[data-open-meal-preps="${target}"]`)?.focus({preventScroll:true});
+    }
     function cancelSelection(){
       if(state.singleSelection)closeSingleSelection();
+      else if(state.mealMethodPickerDraft)closeMealMethodPicker(false);
+      else if(state.mealPrepPickerDraft)closeMealPrepPicker(false);
       else if(state.walletPickerOpen)closeWalletPicker('cancel');
       else if(state.ledgerFilterDraft)closeLedgerFilters(false);
     }

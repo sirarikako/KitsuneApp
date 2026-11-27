@@ -19,7 +19,29 @@
       const b=event.target.closest('button');if(!b)return;
       capture();state.notice='';
       if(b.hasAttribute('data-select-close')){cancelSelection();return;}
+      if(b.dataset.selectOpen==='meal-methods'){state.mealMethodPickerDraft=[...state.mealFilterDraft.methods];render();return;}
       if(b.dataset.selectOpen){state.singleSelection=b.dataset.selectOpen;render();return;}
+      if(b.dataset.mealMethodAction){
+        const action=b.dataset.mealMethodAction;
+        if(action==='all'){state.mealMethodPickerDraft=mealFilterMethods().map(([value])=>value);render();}
+        else if(action==='none'){state.mealMethodPickerDraft=[];render();}
+        else if(action==='apply')closeMealMethodPicker(true);
+        return;
+      }
+      if(b.dataset.openMealPreps){
+        const target=b.dataset.openMealPreps;
+        const current=target==='form'?state.categories:state.mealFilterDraft.preparations;
+        state.mealPrepPickerDraft={target,selected:[...current],query:''};render();return;
+      }
+      if(b.dataset.mealPrepAction){
+        const action=b.dataset.mealPrepAction,draft=state.mealPrepPickerDraft;
+        if(draft){
+          if(action==='all'){draft.selected=mealPrepTargetOptions(draft.target);render();}
+          else if(action==='none'){draft.selected=[];render();}
+          else if(action==='apply')closeMealPrepPicker(true);
+        }
+        return;
+      }
       if(b.dataset.selectValue!==undefined){closeSingleSelection(b.dataset.selectValue);return;}
       if(b.dataset.action==='add-entry-category'){state.singleSelection=null;state.addingEntryCategory=true;render();return;}
       if(b.dataset.action==='open-local-backup'){state.page='local-backup';render();return;}
@@ -356,7 +378,7 @@
         else if(state.entryTimeDraft)closeEntryTime(false);
         else if(state.addingEntryCategory)closeEntryCategory();
         else if(state.periodDraft)closePeriod(false);
-        else if(state.singleSelection||state.ledgerFilterDraft||state.walletPickerOpen)cancelSelection();
+        else if(state.singleSelection||state.mealMethodPickerDraft||state.mealPrepPickerDraft||state.ledgerFilterDraft||state.walletPickerOpen)cancelSelection();
         else if(state.deletePending)cancelDelete();
         else closeCalculator(false);
       }else if(event.key==='Enter'&&event.target.matches('[data-ledger-filters] [name=note]')){
@@ -384,6 +406,23 @@
         updateLedgerFilterCount(group);
         return;
       }
+      if(e.matches('[data-meal-method-option]')){
+        const val=e.dataset.mealMethodOption,scroll=e.closest('.ks-selection-body').scrollTop;
+        const current=state.mealMethodPickerDraft||[];
+        state.mealMethodPickerDraft=e.checked?[...new Set([...current,val])]:current.filter(x=>x!==val);
+        render();phone.querySelector('.ks-selection-body').scrollTop=scroll;
+        phone.querySelector(`[data-meal-method-option="${CSS.escape(val)}"]`)?.focus({preventScroll:true});return;
+      }
+      if(e.matches('[data-meal-prep-option]')){
+        const draft=state.mealPrepPickerDraft;
+        if(!draft)return;
+        const val=e.dataset.mealPrepOption;
+        draft.selected=e.checked?[...new Set([...draft.selected,val])]:draft.selected.filter(x=>x!==val);
+        const all=mealPrepTargetOptions(draft.target);
+        const countNode=phone.querySelector('[data-meal-prep-count]');
+        if(countNode)countNode.textContent=`已选 ${all.filter(c=>draft.selected.includes(c)).length}/${all.length}`;
+        return;
+      }
       if(e.matches('[data-github-wifi]')){state.githubDemo.wifi=e.checked;return;}
       if(e.matches('[data-github-wifi-draft]')){state.githubDemo.draftWifi=e.checked;return;}
       if(e.matches('[data-github-scenario]')){
@@ -393,7 +432,6 @@
       if(e.matches('[data-local-backup-scenario]')){
         state.localBackupDemo.scenario=e.value;state.localBackupDemo.restoreOpen=false;render();return;
       }
-      if(e.matches('[data-category-mode]')){const wallet=wallets.find(w=>w.id===state.categoryWalletId);if(wallet){wallet[state.financialScope==='INCOME'?'incomeCategoryMode':'expenseCategoryMode']=e.value;state.editingFinancialCategoryId=null;render();}return;}
       if(e.matches('[data-wallet-option]')){
         const id=e.dataset.walletOption,scroll=e.closest('.ks-selection-body').scrollTop;
         state.walletDraftIds=e.checked?[...new Set([...state.walletDraftIds,id])]:state.walletDraftIds.filter(x=>x!==id);
@@ -401,10 +439,6 @@
         phone.querySelector(`[data-wallet-option=${id}]`).focus({preventScroll:true});return;
       }
       if(e.matches('[data-meal-filter-form] input[type=date]')){updateMealDatePresets(e.form);return;}
-      if(e.matches('[data-theme]')){state.appearanceDraft.mode=e.value;updateAppearancePreview();return;}
-      if(e.matches('[data-color-source]')){state.appearanceDraft.colorSource=e.value;render();return;}
-      if(e.matches('[data-palette]')){state.appearanceDraft.presetColor=e.value;updateAppearancePreview();return;}
-      if(e.matches('[data-meal-form] [name=slot]')){capture();render();}
     });
     phone.addEventListener('input',event=>{
       const e=event.target;
@@ -413,6 +447,15 @@
         body.innerHTML=currencyOptions(e.value);
         body.scrollTop=0;
         globalThis.lucide?.createIcons({root:body,attrs:{width:18,height:18}});
+        return;
+      }
+      if(e.matches('[data-meal-prep-search]')){
+        const draft=state.mealPrepPickerDraft;
+        if(!draft)return;
+        draft.query=e.value;
+        const body=e.closest('.ks-selection-panel').querySelector('.ks-selection-body');
+        body.innerHTML=mealPrepOptionsMarkup(mealPrepTargetOptions(draft.target),draft.selected,draft.query);
+        body.scrollTop=0;
         return;
       }
       if(e.matches('[data-entry-time] input')){
@@ -507,11 +550,24 @@
       if(f.matches('[data-ledger-filters]')){closeLedgerFilters(true);return;}
       if(f.matches('[data-period-form]')){closePeriod(true);return;}
       if(f.matches('[data-meal-filter-form]')){
-        const {from,to,slot,atHome,keyword}=f.elements;
+        const {from,to,keyword}=f.elements;
         if(from.value&&to.value&&from.value>to.value){error('开始日期不能晚于结束日期。');return;}
+        const pickedSlots=[...f.querySelectorAll('[name=slot]:checked')].map(e=>e.value);
+        const pickedHome=[...f.querySelectorAll('[name=atHome]:checked')].map(e=>e.value);
+        const allMethods=mealFilterMethods().map(([value])=>value);
+        const pickedMethods=allMethods.filter(v=>state.mealFilterDraft.methods.includes(v));
+        const allPreps=allMealFilterPreparations();
+        const inlinePreps=new Set([...f.querySelectorAll('[name=preparation]')].map(e=>e.value));
+        const checkedInline=[...f.querySelectorAll('[name=preparation]:checked')].map(e=>e.value);
+        const keptExtra=state.mealFilterDraft.preparations.filter(c=>!inlinePreps.has(c));
+        const pickedPreps=allPreps.filter(c=>checkedInline.includes(c)||keptExtra.includes(c));
         const applied={
-          from:from.value,to:to.value,slot:slot.value,atHome:atHome.value,method:state.mealFilterDraft.method,
-          preparations:[...f.querySelectorAll('[name=preparation]:checked')].map(e=>e.value),keyword:keyword.value.trim(),
+          from:from.value,to:to.value,
+          slots:pickedSlots,
+          atHome:pickedHome,
+          methods:pickedMethods,
+          preparations:pickedPreps,
+          keyword:keyword.value.trim(),
         };
         if(state.mealTab==='统计')state.mealStatsFilters=applied;
         else{state.mealFilters=applied;state.mealListMode=true;}

@@ -109,12 +109,15 @@
     }
     function pageAppearance(){
       const draft=state.appearanceDraft;
-      return `<div class="ks-settings">
-        <label class="ks-setting">${icon('sun-moon')}<span>明暗模式</span><select data-theme aria-label="明暗模式">${themeModes.map(([value,label])=>`<option value="${value}" ${draft.mode===value?'selected':''}>${label}</option>`).join('')}</select></label>
-        <label class="ks-setting">${icon('palette')}<span>配色来源</span><select data-color-source aria-label="配色来源">${[['PRESET','预设调色板'],['CUSTOM','自选主色'],['SYSTEM','跟随系统壁纸']].map(([v,n])=>`<option value="${v}" ${draft.colorSource===v?'selected':''}>${n}</option>`).join('')}</select></label>
-        ${draft.colorSource==='PRESET'?`<label class="ks-setting">${icon('swatch-book')}<span>调色板</span><select data-palette aria-label="调色板">${[['#c47a4a','杏橙'],['#5f7f64','茶绿'],['#587c9b','雾蓝'],['#8a729f','薰衣草'],['#a76f82','豆沙粉']].map(([v,n])=>`<option value="${v}" ${draft.presetColor===v?'selected':''}>${n}</option>`).join('')}</select></label>`:''}
+      const modeLabel=themeModes.find(([v])=>v===draft.mode)?.[1]||'跟随系统';
+      const sourceLabel=appearanceSources.find(([v])=>v===draft.colorSource)?.[1]||'预设调色板';
+      const paletteLabel=appearancePalettes.find(([v])=>v===draft.presetColor)?.[1]||'杏橙';
+      return `<div class="ks-form">
+        ${selectionControl('appearance-mode','明暗模式',modeLabel,icon('sun-moon'))}
+        ${selectionControl('appearance-source','配色来源',sourceLabel,icon('palette'))}
+        ${draft.colorSource==='PRESET'?selectionControl('appearance-palette','调色板',paletteLabel,icon('swatch-book')):''}
         ${draft.colorSource==='CUSTOM'?`<label class="ks-custom-color-row"><input type="color" data-custom-picker aria-label="选择主色" value="${normalizeHex(draft.customColor)||style.customColor}"><input type="text" data-custom-hex aria-label="主色 HEX" value="${escapeText(draft.customColor)}" placeholder="#C47A4A" maxlength="7" spellcheck="false"></label>`:''}
-        ${draft.colorSource==='SYSTEM'?`<div class="ks-setting">${icon('sparkles')}<span>使用系统壁纸配色</span><small>Android 12+</small></div>`:''}
+        ${draft.colorSource==='SYSTEM'?`<div class="ks-settings"><div class="ks-setting">${icon('sparkles')}<span>使用系统壁纸配色</span><small>Android 12+</small></div></div>`:''}
       </div>
       <button type="button" class="ks-text-btn cursor-interaction" data-action="reset-appearance">恢复默认</button>
       <div data-appearance-editor hidden>
@@ -138,9 +141,7 @@
         <fieldset><legend class="ks-label">收支类型</legend><div class="ks-choices">
           ${[['EXPENSE','支出'],['INCOME','收入']].map(([code,label])=>`<button type="button" class="ks-choice cursor-interaction" data-financial-scope="${code}" aria-pressed="${scope===code}">${label}</button>`).join('')}
         </div></fieldset>
-        ${wallet?`<label><span class="ks-label">${escapeText(name)} · ${scope==='EXPENSE'?'支出':'收入'}分类来源</span>
-          <select class="ks-control" data-category-mode><option value="DEFAULT" ${mode==='DEFAULT'?'selected':''}>使用通用分类</option><option value="CUSTOM" ${mode==='CUSTOM'?'selected':''}>使用本钱包专属分类</option></select>
-        </label>`:''}
+        ${wallet?selectionControl('category-mode',`${name} · ${scope==='EXPENSE'?'支出':'收入'}分类来源`,mode==='DEFAULT'?'使用通用分类':'使用本钱包专属分类'):''}
         <p class="ks-note">${wallet?(mode==='DEFAULT'?'使用通用分类。切为专属后，不会与通用列表混合。':'使用本钱包专属分类；即使没有自定义项，也只保留“未分类”。'):'通用类别供未开启专属分类的钱包使用。'}</p>
         ${section((wallet?escapeText(name)+' · ':'')+(scope==='EXPENSE'?'支出':'收入')+'分类')}
         ${financialCategoryRows(shown,editable,true)}

@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
@@ -746,6 +747,7 @@ class NavigationTest {
             compose.onNodeWithText("筛选").performClick()
             compose.onNode(methodChooser).performScrollTo().performClick()
             compose.onNode(hasText(methodName) and hasAnyAncestor(isDialog())).performClick()
+            compose.onNode(hasText("应用") and hasAnyAncestor(isDialog())).performClick()
             compose.onNodeWithText(prepName).performScrollTo().performClick()
             compose.onNodeWithContentDescription("菜品／备注关键词").performScrollTo().performTextReplacement(keyword)
             compose.onNodeWithText("应用筛选").performScrollTo().performSemanticsAction(SemanticsActions.OnClick)
@@ -757,6 +759,7 @@ class NavigationTest {
             compose.onNodeWithText("筛选").performClick()
             compose.onNode(methodChooser).performScrollTo().performClick()
             compose.onNode(hasText(methodName) and hasAnyAncestor(isDialog())).performClick()
+            compose.onNode(hasText("应用") and hasAnyAncestor(isDialog())).performClick()
             compose.onNodeWithText(prepName).performScrollTo().performClick()
             compose.onNodeWithText("应用筛选").performScrollTo().performSemanticsAction(SemanticsActions.OnClick)
             compose.waitUntilExactlyOneExists(hasText(methodName), 10_000)
@@ -779,9 +782,10 @@ class NavigationTest {
                 repository.saveMethod(null, markerName, order = null, archived = false, show = false)
             }
             compose.onNodeWithText("筛选").performClick()
+            compose.onNode(methodChooser and hasText("全部方式")).performScrollTo().assertExists()
             compose.onNode(methodChooser).performScrollTo().performClick()
             compose.waitUntilExactlyOneExists(hasText(markerName) and hasAnyAncestor(isDialog()), 10_000)
-            compose.onNode(hasText("全部方式") and hasAnyAncestor(isDialog())).assertIsSelected()
+            compose.onNode(hasText(methodName) and hasAnyAncestor(isDialog())).assertIsOff()
             compose.onNodeWithContentDescription("关闭").performClick()
             compose.onNodeWithText(prepName).performScrollTo().assertIsNotSelected()
             compose.onNodeWithContentDescription("返回").performClick()
