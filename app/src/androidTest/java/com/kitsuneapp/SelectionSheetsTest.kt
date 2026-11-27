@@ -1,6 +1,7 @@
 package com.kitsuneapp
 
 import android.os.Build
+import android.os.ParcelFileDescriptor
 import android.view.inspector.WindowInspector
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
@@ -11,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -196,7 +198,7 @@ class SelectionSheetsTest {
             compose.runOnIdle { assertNull(applied.value) }
         }
 
-        // Flat multi-select changes stay in draft and are discarded on close / scrim tap / header swipe.
+        // Flat multi-select changes stay in draft and are discarded on close / system Back / scrim tap / header swipe.
         open()
         list().performScrollToNode(hasText("未填写方式"))
         sheetText("未填写方式").performClick().assertIsSelected()
@@ -205,20 +207,27 @@ class SelectionSheetsTest {
         assertCanceled()
 
         open()
+        list().performScrollToNode(hasText("早餐"))
+        sheetText("早餐").assertIsNotSelected().performClick().assertIsSelected()
+        waitForSheetWindowFocus()
+        runShellCommand("input keyevent KEYCODE_BACK")
+        assertCanceled()
+
+        open()
         list().performScrollToNode(hasText("未填写方式"))
         sheetText("未填写方式").assertIsNotSelected().performClick().assertIsSelected()
-        val title = sheetText("筛选用餐").fetchSemanticsNode().boundsInWindow
-        automation.executeShellCommand("input tap ${title.center.x.toInt()} ${(title.top / 3).toInt()}").close()
+        tapScrimAboveSheet("筛选用餐")
         assertCanceled()
 
         open()
         list().performScrollToNode(hasText("午餐"))
         sheetText("午餐").performClick().assertIsSelected()
+        waitForSheetWindowFocus()
         val heading = sheetText("筛选用餐").fetchSemanticsNode().boundsInWindow
         val displayHeight = compose.activity.resources.displayMetrics.heightPixels
         val x = heading.center.x.toInt()
         val y = heading.center.y.toInt()
-        automation.executeShellCommand("input swipe $x $y $x ${displayHeight - 2} 250").close()
+        runShellCommand("input swipe $x $y $x ${displayHeight - 2} 250")
         assertCanceled()
 
         // Activity restoration preserves open sheet and multi-select draft, then apply commits.
@@ -245,8 +254,24 @@ class SelectionSheetsTest {
             assertEquals("番茄", applied.value?.query)
         }
 
-        // Reset restores defaults and applying empty filter yields isEmpty == true.
+        // Tapping outside while a filter is already applied discards the unapplied draft and keeps applied state intact.
         open()
+        list().performScrollToNode(hasText("早餐"))
+        sheetText("早餐").assertIsSelected().performClick().assertIsNotSelected()
+        sheetText("午餐").assertIsNotSelected().performClick().assertIsSelected()
+        tapScrimAboveSheet("筛选用餐")
+        compose.waitUntilDoesNotExist(isDialog(), 5_000)
+        compose.runOnIdle {
+            assertEquals(listOf(MealSlot.BREAKFAST, MealSlot.DINNER), applied.value?.slots)
+            assertEquals(listOf(MealFilter.NO_METHOD), applied.value?.methods)
+            assertEquals("番茄", applied.value?.query)
+        }
+
+        // Reopening restores the committed filter (without leaked draft), and reset + apply yields isEmpty == true.
+        open()
+        list().performScrollToNode(hasText("早餐"))
+        sheetText("早餐").assertIsSelected()
+        sheetText("午餐").assertIsNotSelected()
         sheetText("重置条件").performClick()
         sheetText("应用筛选").performClick()
         compose.waitUntilDoesNotExist(isDialog(), 5_000)
@@ -359,21 +384,22 @@ class SelectionSheetsTest {
         close()
         assertCanceled()
         open()
-        automation.executeShellCommand("input keyevent KEYCODE_BACK").close()
+        waitForSheetWindowFocus()
+        runShellCommand("input keyevent KEYCODE_BACK")
         assertCanceled()
 
         open()
         // Tap the scrim above the sheet.
-        val title = sheetText("流水筛选").assertIsDisplayed().fetchSemanticsNode().boundsInWindow
-        automation.executeShellCommand("input tap ${title.center.x.toInt()} ${(title.top / 3).toInt()}").close()
+        tapScrimAboveSheet("流水筛选")
         assertCanceled()
 
         open()
+        waitForSheetWindowFocus()
         val heading = sheetText("流水筛选").fetchSemanticsNode().boundsInWindow
         val displayHeight = compose.activity.resources.displayMetrics.heightPixels
         val x = heading.center.x.toInt()
         val y = heading.center.y.toInt()
-        automation.executeShellCommand("input swipe $x $y $x ${displayHeight - 2} 250").close()
+        runShellCommand("input swipe $x $y $x ${displayHeight - 2} 250")
         assertCanceled()
 
         open()
@@ -491,6 +517,48 @@ class SelectionSheetsTest {
     private fun list() = compose.onNode(hasScrollToNodeAction() and inDialog)
     private fun sheetText(text: String) = compose.onNode(hasText(text) and inDialog)
     private fun close() = compose.onNodeWithContentDescription("关闭").performClick()
+
+    private fun waitForSheetWindowFocus() {
+        val activityDecor = compose.activity.window.decorView
+        compose.waitUntil("sheet dialog window has focus", 5_000) {
+            compose.runOnUiThread {
+                if (Build.VERSION.SDK_INT >= 29) {
+                    WindowInspector.getGlobalWindowViews().any { it !== activityDecor && it.hasWindowFocus() }
+                } else {
+                    true
+                }
+            }
+        }
+    }
+
+    private fun tapScrimAboveSheet(titleText: String) {
+        compose.waitForIdle()
+        waitForSheetWindowFocus()
+        val titleBounds = sheetText(titleText).assertIsDisplayed().fetchSemanticsNode().boundsInWindow
+        val activityDecor = compose.activity.window.decorView
+        val (windowX, windowY, statusBarTop) = compose.runOnUiThread {
+            val dialogDecor = if (Build.VERSION.SDK_INT >= 29) {
+                WindowInspector.getGlobalWindowViews().firstOrNull { it !== activityDecor && it.hasWindowFocus() }
+                    ?: activityDecor
+            } else {
+                activityDecor
+            }
+            val location = IntArray(2)
+            dialogDecor.getLocationOnScreen(location)
+            val topInset = ViewCompat.getRootWindowInsets(dialogDecor)
+                ?.getInsets(WindowInsetsCompat.Type.statusBars())?.top ?: 0
+            Triple(location[0], location[1], topInset)
+        }
+        val scrimTop = (windowY + statusBarTop).toFloat()
+        val sheetTop = windowY + titleBounds.top - with(compose.density) { 45.dp.toPx() }
+        val x = (windowX + titleBounds.center.x).toInt()
+        val y = ((scrimTop + sheetTop.coerceAtLeast(scrimTop + 8f)) / 2f).toInt()
+        runShellCommand("input tap $x $y")
+    }
+
+    private fun runShellCommand(command: String) {
+        ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand(command)).use { it.readBytes() }
+    }
 }
 
 internal fun selectionRecords(): Records {

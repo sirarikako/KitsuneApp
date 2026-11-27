@@ -217,4 +217,5 @@
 - 实现无条件自动回到按日浏览（A1）：应用空筛选、点击条件标签的关闭图标逐个移除至最后一个条件、点击“清除筛选”、引用的方式／分类被删除导致条件归零，或在 Android 筛选结果页按系统返回键，均立即清除记录筛选并回到按日浏览。
 - 从记录筛选结果点开已有记录进入编辑页时，顶栏右侧提供“查看当天”按钮（B1），点击后丢弃编辑草稿、清除记录筛选并定位到该条记录所属日期的按日浏览（使用普通子页滑出过渡）。
 - 同步更新 `docs/features/03-meals.md`、`docs/features/01-common.md`、`docs/testing/ACCEPTANCE.md`、`docs/ui/README.md` 与 `docs/ui/src/` 离线网页预览；补充 `MealFilterTest` 单元测试，并更新 `SelectionSheetsTest` 与 `NavigationTest` 用例。
+- 排查 PR #45 的 API 35 仪器测试超时：诊断截图与 `dumpsys window`／`logcat` 确认冷启动阶段 `com.google.android.apps.nexuslauncher` 首帧耗时临界触发系统 ANR 弹窗（`Application Not Responding: com.google.android.apps.nexuslauncher`），长期占据顶层窗口焦点并拦截软键盘、`KEYCODE_BACK` 与遮罩 `input tap`；新增 `.github/scripts/prepare-android-emulator.sh` 在开测前抑制并清理冷启动系统异常弹窗，同时修正仪器测试中 `executeShellCommand` 未等待管道结束与弹窗／主窗口焦点切换的竞态，补充真实页面遮罩点击丢弃草稿及系统返回键／边缘返回手势回到原浏览日期的端到端断言。
 

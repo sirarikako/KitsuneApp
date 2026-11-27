@@ -15,8 +15,7 @@ on_exit() {
 trap on_exit EXIT
 
 mkdir -p "$report_dir"
-adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.gestural
-adb shell settings put secure show_ime_with_hard_keyboard 1
+bash .github/scripts/prepare-android-emulator.sh --gestural-ime
 adb shell getprop ro.build.fingerprint | tee "$report_dir/build-fingerprint.txt"
 
 run_connected_tests() {

@@ -2,10 +2,13 @@ package com.kitsuneapp
 
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.os.Build
 import android.os.ParcelFileDescriptor
+import android.view.inspector.WindowInspector
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -483,10 +486,49 @@ class NavigationTest {
     private fun swipeFromLeftEdge() {
         val decor = compose.activity.window.decorView
         val (endX, y) = compose.runOnUiThread { decor.width / 2 to decor.height / 2 }
+        runShellCommand("input swipe 1 $y $endX $y 300")
+    }
+
+    private fun runShellCommand(command: String) {
         val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
         ParcelFileDescriptor.AutoCloseInputStream(
-            automation.executeShellCommand("input swipe 1 $y $endX $y 300"),
+            automation.executeShellCommand(command),
         ).use { it.readBytes() }
+    }
+
+    private fun tapSheetScrim(titleText: String) {
+        val inSheet = hasAnyAncestor(isDialog())
+        compose.waitForIdle()
+        val activityDecor = compose.activity.window.decorView
+        compose.waitUntil("sheet dialog window has focus", 5_000) {
+            compose.runOnUiThread {
+                if (Build.VERSION.SDK_INT >= 29) {
+                    WindowInspector.getGlobalWindowViews().any { it !== activityDecor && it.hasWindowFocus() }
+                } else {
+                    true
+                }
+            }
+        }
+        val titleBounds = compose.onNode(hasText(titleText) and inSheet)
+            .assertIsDisplayed().fetchSemanticsNode().boundsInWindow
+        val (windowX, windowY, statusBarTop) = compose.runOnUiThread {
+            val dialogDecor = if (Build.VERSION.SDK_INT >= 29) {
+                WindowInspector.getGlobalWindowViews().firstOrNull { it !== activityDecor && it.hasWindowFocus() }
+                    ?: activityDecor
+            } else {
+                activityDecor
+            }
+            val location = IntArray(2)
+            dialogDecor.getLocationOnScreen(location)
+            val topInset = ViewCompat.getRootWindowInsets(dialogDecor)
+                ?.getInsets(WindowInsetsCompat.Type.statusBars())?.top ?: 0
+            Triple(location[0], location[1], topInset)
+        }
+        val scrimTop = (windowY + statusBarTop).toFloat()
+        val sheetTop = windowY + titleBounds.top - with(compose.density) { 45.dp.toPx() }
+        val x = (windowX + titleBounds.center.x).toInt()
+        val y = ((scrimTop + sheetTop.coerceAtLeast(scrimTop + 8f)) / 2f).toInt()
+        runShellCommand("input tap $x $y")
     }
 
     @Test
@@ -854,9 +896,24 @@ class NavigationTest {
         fun sheetNode(text: String) = compose.onNode(hasText(text) and inSheet)
         try {
             compose.onNodeWithText("用餐").performClick()
-            // 1. Apply multi-select slots + preparation + keyword, remove chips one by one until empty -> daily browse.
+            val browsedDate = LocalDate.now().minusWeeks(1).toString()
+            compose.onNodeWithText("上一周").performClick()
+            compose.onNodeWithText(browsedDate, useUnmergedTree = true).assertIsDisplayed()
+
+            // 1. Tapping outside the filter sheet on daily browse closes the sheet and discards unapplied draft.
             compose.onNodeWithText("筛选").performClick()
-            sheetList().performScrollToNode(hasText("早餐"))
+            sheetList().performScrollToNode(hasText("午餐"))
+            sheetNode("午餐").assertIsNotSelected().performClick().assertIsSelected()
+            tapSheetScrim("筛选用餐")
+            compose.waitUntilDoesNotExist(isDialog(), 10_000)
+            compose.onNodeWithText("三餐记录").assertIsDisplayed()
+            compose.onNodeWithText(browsedDate, useUnmergedTree = true).assertIsDisplayed()
+            compose.onNodeWithText("筛选").assertIsDisplayed().assertIsNotSelected()
+
+            // 2. Re-open to verify draft was discarded, apply multi-select conditions, and remove chips one by one -> daily browse.
+            compose.onNodeWithText("筛选").performClick()
+            sheetList().performScrollToNode(hasText("午餐"))
+            sheetNode("午餐").assertIsNotSelected()
             sheetNode("早餐").performClick().assertIsSelected()
             sheetNode("晚餐").performClick().assertIsSelected()
             sheetList().performScrollToNode(hasText(prepName))
@@ -882,19 +939,43 @@ class NavigationTest {
 
             compose.onNodeWithContentDescription("移除筛选条件：关键词：$dishName").performClick()
             compose.waitUntilAtLeastOneExists(hasText("三餐记录"), 10_000)
+            compose.onNodeWithText(browsedDate, useUnmergedTree = true).assertIsDisplayed()
 
-            // 2. Re-apply filter and press system Back -> clears filter and returns to daily browse.
+            // 3. Re-apply filter, verify scrim tap discards extra draft while keeping active filter, then press system Back -> daily browse.
             compose.onNodeWithText("筛选").performClick()
             compose.onNode(hasContentDescription("菜品／备注关键词") and inSheet).performTextReplacement(dishName)
             sheetNode("应用筛选").performSemanticsAction(SemanticsActions.OnClick)
             compose.waitUntilDoesNotExist(isDialog(), 10_000)
             compose.waitUntilExactlyOneExists(hasText("筛选 (1)"), 10_000)
-            compose.waitUntil(5_000) { !keyboardIsVisible() }
-            InstrumentationRegistry.getInstrumentation().uiAutomation
-                .executeShellCommand("input keyevent KEYCODE_BACK").close()
-            compose.waitUntilAtLeastOneExists(hasText("三餐记录"), 10_000)
 
-            // 3. Re-apply filter, open meal from results, tap "查看当天" -> clears filter and selects pastDate with daily summary.
+            compose.onNodeWithText("筛选 (1)").performClick()
+            sheetList().performScrollToNode(hasText("午餐"))
+            sheetNode("午餐").assertIsNotSelected().performClick().assertIsSelected()
+            tapSheetScrim("筛选用餐")
+            compose.waitUntilDoesNotExist(isDialog(), 10_000)
+            compose.onNodeWithText("筛选 (1)").assertIsDisplayed()
+            compose.onNodeWithText("关键词：$dishName").assertIsDisplayed()
+
+            waitForEntryFormWindow()
+            compose.waitUntil(5_000) { !keyboardIsVisible() }
+            runShellCommand("input keyevent KEYCODE_BACK")
+            compose.waitUntilAtLeastOneExists(hasText("三餐记录"), 10_000)
+            compose.onNodeWithText(browsedDate, useUnmergedTree = true).assertIsDisplayed()
+            compose.onNodeWithText("筛选").assertIsDisplayed().assertIsNotSelected()
+
+            // 4. Re-apply filter and verify gestural system Back also clears filter and returns to daily browse.
+            compose.onNodeWithText("筛选").performClick()
+            sheetList().performScrollToNode(hasText("早餐"))
+            sheetNode("早餐").assertIsNotSelected().performClick().assertIsSelected()
+            sheetNode("应用筛选").performSemanticsAction(SemanticsActions.OnClick)
+            compose.waitUntilDoesNotExist(isDialog(), 10_000)
+            compose.waitUntilExactlyOneExists(hasText("筛选 (1)"), 10_000)
+            waitForEntryFormWindow()
+            swipeFromLeftEdge()
+            compose.waitUntilAtLeastOneExists(hasText("三餐记录"), 10_000)
+            compose.onNodeWithText(browsedDate, useUnmergedTree = true).assertIsDisplayed()
+
+            // 5. Re-apply filter, open meal from results, tap "查看当天" -> clears filter and selects pastDate with daily summary.
             compose.onNodeWithText("筛选").performClick()
             compose.onNode(hasContentDescription("菜品／备注关键词") and inSheet).performTextReplacement(dishName)
             sheetNode("应用筛选").performSemanticsAction(SemanticsActions.OnClick)
