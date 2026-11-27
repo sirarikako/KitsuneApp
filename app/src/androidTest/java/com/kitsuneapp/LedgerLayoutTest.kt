@@ -670,9 +670,11 @@ class LedgerLayoutTest {
         val wallet = Wallet("regular", "日常钱包", "日常钱包", "CNY", 2, 0, 0, false, false,
             CategoryMode.DEFAULT, CategoryMode.DEFAULT, now, now)
         val category = Category("food", Scope.EXPENSE, null, "", "餐饮", "餐饮", 0, false, false, now, now)
-        val entries = (28 downTo 1).map { index ->
-            FinancialEntry("entry-$index", YearMonth.now().atDay(index).toString(), "12:00", EntryType.EXPENSE,
-                wallet.id, 100, category.id, null, null, null, "第 $index 笔", now, now)
+        val entries = (50 downTo 1).map { index ->
+            val day = ((index - 1) % 28) + 1
+            val hour = 10 + (index - 1) / 28
+            FinancialEntry("entry-$index", YearMonth.now().atDay(day).toString(), "%02d:00".format(hour),
+                EntryType.EXPENSE, wallet.id, 100, category.id, null, null, null, "第 $index 笔", now, now)
         }
         val records = Records(DataState(installationId = "test", datasetId = "test", arrayElements = 0),
             ThemePreferences(), emptyList(), listOf(category), emptyList(), emptyMap(), listOf(wallet), entries)
@@ -696,18 +698,43 @@ class LedgerLayoutTest {
         val expandedWidth = expandedBounds.width
         assertEquals(0f, listPosition(), 0f)
 
-        // Start on the left half of the expanded FAB so the gesture also exercises mid-drag FAB shrinking.
-        compose.onRoot().performTouchInput {
-            val startX = expandedBounds.left + expandedBounds.width * 0.25f
-            swipe(
-                start = Offset(startX, expandedBounds.center.y),
-                end = Offset(startX, (expandedBounds.center.y - 360.dp.toPx()).coerceAtLeast(8f)),
-                durationMillis = 240,
-            )
+        // 1. Real touch click on expanded FAB opens new entry without leaking to underlying rows.
+        compose.onRoot().performTouchInput { click(expandedBounds.center) }
+        compose.runOnIdle {
+            assertEquals("entryForm/-", route)
+            assertEquals(null, detail)
+        }
+        route = null
+
+        // 2. Fast vertical swipe starting on the left half of the expanded FAB continues with inertial fling after release.
+        val positionAtRelease: Float
+        val positionAfterFling: Float
+        compose.mainClock.autoAdvance = false
+        try {
+            compose.onRoot().performTouchInput {
+                val startX = expandedBounds.left + expandedBounds.width * 0.25f
+                val step = 45.dp.toPx()
+                down(Offset(startX, expandedBounds.center.y))
+                repeat(5) {
+                    advanceEventTime(12L)
+                    moveBy(Offset(0f, -step))
+                }
+            }
+            compose.mainClock.advanceTimeByFrame()
+            positionAtRelease = listPosition()
+            assertTrue("Dragging upward from the expanded FAB should scroll the list", positionAtRelease > 0f)
+            compose.onRoot().performTouchInput { up() }
+            compose.mainClock.advanceTimeBy(1_000L)
+            compose.mainClock.advanceTimeByFrame()
+            positionAfterFling = listPosition()
+        } finally {
+            compose.mainClock.autoAdvance = true
         }
         compose.waitForIdle()
-        val scrolledAfterFirstDrag = listPosition()
-        assertTrue("Starting a vertical swipe on the expanded FAB should scroll the list", scrolledAfterFirstDrag > 0f)
+        assertTrue(
+            "Fast swipe release on the FAB should continue scrolling with inertial fling",
+            positionAfterFling > positionAtRelease,
+        )
         val compactBounds = fabBounds()
         assertTrue("Scrolling from the FAB should collapse the FAB to its compact width", compactBounds.width < expandedWidth)
         compose.runOnIdle {
@@ -715,22 +742,44 @@ class LedgerLayoutTest {
             assertEquals(null, detail)
         }
 
-        compose.onRoot().performTouchInput {
-            swipe(
-                start = compactBounds.center,
-                end = Offset(compactBounds.center.x, (compactBounds.center.y - 360.dp.toPx()).coerceAtLeast(8f)),
-                durationMillis = 240,
-            )
+        // 3. Fast drag followed by pausing before release must not produce extra inertial scrolling.
+        val positionAfterPause: Float
+        val positionAfterPausedRelease: Float
+        compose.mainClock.autoAdvance = false
+        try {
+            compose.onRoot().performTouchInput {
+                val step = 45.dp.toPx()
+                down(compactBounds.center)
+                repeat(5) {
+                    advanceEventTime(12L)
+                    moveBy(Offset(0f, -step))
+                }
+            }
+            compose.mainClock.advanceTimeBy(200L)
+            compose.mainClock.advanceTimeByFrame()
+            positionAfterPause = listPosition()
+            assertTrue("Dragging from the compact FAB should scroll further", positionAfterPause > positionAfterFling)
+            compose.onRoot().performTouchInput { up() }
+            compose.mainClock.advanceTimeBy(1_000L)
+            compose.mainClock.advanceTimeByFrame()
+            positionAfterPausedRelease = listPosition()
+        } finally {
+            compose.mainClock.autoAdvance = true
         }
         compose.waitForIdle()
-        assertTrue("A second swipe starting on the compact FAB should scroll further", listPosition() > scrolledAfterFirstDrag)
+        assertEquals(
+            "Pausing before lifting the finger on the FAB should not trigger extra fling scrolling",
+            positionAfterPause,
+            positionAfterPausedRelease,
+            0f,
+        )
         title.assertIsNotDisplayed()
         compose.runOnIdle {
             assertEquals(null, route)
             assertEquals(null, detail)
         }
 
-        // Pulling downward from the compact FAB should re-expand the collapsed header without clicking the FAB.
+        // 4. Pulling downward from the compact FAB re-expands the collapsed header without clicking the FAB.
         val compactBeforeReverse = fabBounds()
         compose.onRoot().performTouchInput {
             swipe(
@@ -746,18 +795,8 @@ class LedgerLayoutTest {
             assertEquals(null, detail)
         }
 
-        // Tapping the FAB still opens the new entry form without leaking to underlying rows.
-        fab.performClick()
-        compose.runOnIdle {
-            assertEquals("entryForm/-", route)
-            assertEquals(null, detail)
-        }
-
-        route = null
-        list.performScrollToIndex(0)
-        compose.waitForIdle()
-        assertEquals(expandedWidth, fabBounds().width, 1f)
-        fab.performClick()
+        // 5. Real touch click on compact FAB still opens the new entry form without leaking to underlying rows.
+        compose.onRoot().performTouchInput { click(fabBounds().center) }
         compose.runOnIdle {
             assertEquals("entryForm/-", route)
             assertEquals(null, detail)

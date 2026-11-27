@@ -33,6 +33,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
@@ -336,11 +337,14 @@ private fun Modifier.forwardVerticalScroll(
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)
         val target = targetProvider() ?: return@awaitEachGesture
+        val velocityTracker = VelocityTracker()
+        velocityTracker.addPointerInputChange(down)
         var overSlop = 0f
         val drag = awaitVerticalTouchSlopOrCancellation(down.id) { change, over ->
             change.consume()
             overSlop = over
         } ?: return@awaitEachGesture
+        velocityTracker.addPointerInputChange(drag)
 
         val deltas = Channel<Float>(Channel.UNLIMITED)
         val flingVelocity = CompletableDeferred<Float>()
@@ -373,11 +377,6 @@ private fun Modifier.forwardVerticalScroll(
             }
         }
 
-        val velocityTracker = VelocityTracker()
-        var trackedY = 0f
-        velocityTracker.addPosition(drag.previousUptimeMillis, Offset.Zero)
-        trackedY += drag.positionChange().y
-        velocityTracker.addPosition(drag.uptimeMillis, Offset(0f, trackedY))
         if (overSlop != 0f) deltas.trySend(overSlop)
 
         var activePointerId = drag.id
@@ -394,7 +393,7 @@ private fun Modifier.forwardVerticalScroll(
                     }
                     activePointerId = replacement.id
                     velocityTracker.resetTracking()
-                    velocityTracker.addPosition(replacement.uptimeMillis, Offset(0f, trackedY))
+                    velocityTracker.addPointerInputChange(replacement)
                     continue
                 }
                 if (change.isConsumed) {
@@ -406,15 +405,16 @@ private fun Modifier.forwardVerticalScroll(
                     if (otherPressed != null) {
                         activePointerId = otherPressed.id
                         velocityTracker.resetTracking()
-                        velocityTracker.addPosition(otherPressed.uptimeMillis, Offset(0f, trackedY))
+                        velocityTracker.addPointerInputChange(otherPressed)
                         continue
                     }
+                    // Record the UP event so VelocityTracker resets if the pointer paused before release.
+                    velocityTracker.addPointerInputChange(change)
                     completed = true
                     break
                 }
+                velocityTracker.addPointerInputChange(change)
                 val deltaY = change.positionChange().y
-                trackedY += deltaY
-                velocityTracker.addPosition(change.uptimeMillis, Offset(0f, trackedY))
                 if (deltaY != 0f) {
                     deltas.trySend(deltaY)
                     change.consume()
