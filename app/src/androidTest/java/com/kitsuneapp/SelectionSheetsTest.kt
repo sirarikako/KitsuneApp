@@ -224,13 +224,13 @@ class SelectionSheetsTest {
         // Selecting an extra preparation category via "更多分类" bottom sheet.
         compose.onNodeWithText("更多分类").performScrollTo().performClick()
         sheetText("选择制作分类").assertIsDisplayed()
-        compose.onNodeWithContentDescription("搜索分类").performTextReplacement("制作10")
+        compose.onNodeWithContentDescription("搜索分类").performTextReplacement("10")
         sheetText("制作10").performClick()
         close()
         compose.onNodeWithText("已选更多分类 · 制作10").assertDoesNotExist()
 
         compose.onNodeWithText("更多分类").performScrollTo().performClick()
-        compose.onNodeWithContentDescription("搜索分类").performTextReplacement("制作10")
+        compose.onNodeWithContentDescription("搜索分类").performTextReplacement("10")
         sheetText("制作10").performClick()
         sheetText("应用").performClick()
         compose.onNodeWithText("已选更多分类 · 制作10").performScrollTo().assertIsDisplayed()
