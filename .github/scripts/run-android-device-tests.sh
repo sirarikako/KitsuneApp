@@ -49,10 +49,3 @@ run_connected_tests '-Pandroid.testInstrumentationRunnerArguments.class=com.kits
 adb shell wm size reset
 adb shell wm density reset
 adb shell settings delete system font_scale
-
-if [[ "${CAPTURE_SELECTION_SHEETS:-false}" == true ]]; then
-  report_dir=device-reports/selection-sheets
-  adb install -r app/build/outputs/apk/debug/app-debug.apk
-  adb install -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-  bash .github/scripts/capture-selection-sheets.sh "$report_dir"
-fi

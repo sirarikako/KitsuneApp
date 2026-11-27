@@ -69,4 +69,5 @@ captures = list(Path(sys.argv[1]).glob("selection-*.png"))
 assert len(captures) == 32, f"Expected 32 sheet captures, found {len(captures)}"
 for capture in captures:
     assert capture.read_bytes().startswith(b"\x89PNG\r\n\x1a\n"), capture
+print(f"Validated {len(captures)} selection-sheet PNGs")
 PYTHON

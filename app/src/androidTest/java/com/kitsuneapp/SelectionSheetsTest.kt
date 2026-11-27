@@ -1,14 +1,10 @@
 package com.kitsuneapp
 
-import android.content.res.Configuration
-import android.graphics.Bitmap
 import android.os.Build
 import android.view.inspector.WindowInspector
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -47,18 +43,13 @@ import com.kitsuneapp.feature.ledger.EntryForm
 import com.kitsuneapp.feature.ledger.LedgerEntryFilterDialog
 import com.kitsuneapp.feature.ledger.WalletForm
 import com.kitsuneapp.feature.ledger.WalletRangeDialog
-import com.kitsuneapp.feature.ledger.LedgerPage
 import com.kitsuneapp.feature.meals.MealFilter
 import com.kitsuneapp.feature.meals.MealFilterPage
 import com.kitsuneapp.ui.KitsuneTheme
 import com.kitsuneapp.ui.Primary
-import java.io.File
 import java.time.LocalDate
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -84,6 +75,7 @@ class SelectionSheetsTest {
         compose.onNode(hasContentDescription("钱包") and hasText("日常钱包 · CNY")).assertExists()
         category.performScrollTo().performClick()
         sheetText("通用分类 · 支出").assertIsDisplayed()
+        sheetText("新增分类").assertIsDisplayed()
         sheetText("餐饮").performClick()
         compose.onNode(hasContentDescription("分类") and hasText("餐饮")).assertExists()
 
@@ -161,7 +153,7 @@ class SelectionSheetsTest {
         compose.onNode(hasContentDescription("币种") and hasText("JPY")).assertExists()
         currency.performClick()
         search.performTextReplacement("jpy")
-        sheetText("JPY").assertIsSelected()
+        sheetText("JPY").assertIsDisplayed().assertIsSelected()
         close()
         compose.runOnIdle { editing = true }
         currency.assertIsNotEnabled()
@@ -280,9 +272,13 @@ class SelectionSheetsTest {
             EntryType.entries.forEach { sheetText(it.label).assertIsDisplayed().assertIsSelected() }
         }
         openAndAssertStartsAtTop()
+        sheetText("支出").performClick().assertIsNotSelected()
         list().performScrollToNode(hasText("图书影音"))
         sheetText("图书影音").assertIsOn().performClick()
+        title.assertIsDisplayed()
         apply.assertIsDisplayed()
+        list().performScrollToIndex(0)
+        sheetText("支出").assertIsDisplayed().assertIsNotSelected()
         close()
         compose.waitUntilDoesNotExist(isDialog(), 10_000)
 
@@ -351,137 +347,7 @@ class SelectionSheetsTest {
     private fun close() = compose.onNodeWithContentDescription("关闭").performClick()
 }
 
-class SelectionSheetsScreenshotTest {
-    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
-    private val inDialog = hasAnyAncestor(isDialog())
-
-    @Test
-    fun capturesSelectionSheets() {
-        val profile = InstrumentationRegistry.getArguments().getString("selectionProfile")
-        assumeTrue("Run via capture-selection-sheets.sh", profile != null)
-        checkNotNull(profile)
-        val configuration = compose.activity.resources.configuration
-        val isDark = (configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-        if (profile == "narrow" || profile == "narrow-large") {
-            assertEquals(320, configuration.screenWidthDp)
-            assertEquals(if (profile == "narrow-large") 1.5f else 1f, configuration.fontScale, .01f)
-        }
-        assertEquals(profile == "dark", isDark)
-        val records = selectionRecords().withMoreFilterCategories()
-        val model = compose.runOnIdle { ViewModelProvider(compose.activity)[AppViewModel::class.java] }
-        var screen by mutableStateOf("entry")
-        val calculatorTheme = records.theme.copy(colorSource = ColorSource.CUSTOM, customSeedColor = "#386E78")
-        var reviewCustomCalculator by mutableStateOf(profile == "narrow-large")
-        compose.setContent {
-            val theme = if (reviewCustomCalculator) calculatorTheme else records.theme
-            KitsuneTheme(theme, forceDark = isDark) {
-                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    when (screen) {
-                        "entry" -> EntryForm(records, null, null, model, {}, {})
-                        "ledger" -> LedgerPage(records, open = {}, openDetails = {})
-                        "currency" -> WalletForm(records, null, model, {})
-                    }
-                }
-            }
-        }
-
-        compose.onNodeWithText("金额计算器").assertIsDisplayed()
-        val confirm = compose.onNodeWithText("确认金额").assertIsDisplayed()
-        listOf("1", "2", "8", ".", "5", "0", "+", "3", "6").forEach {
-            compose.onNodeWithText(it).performScrollTo().performClick()
-        }
-        compose.onNodeWithText("164.50").performScrollTo().assertIsDisplayed()
-        confirm.assertIsDisplayed()
-        capture("金额计算器", "calculator", profile)
-        compose.onNodeWithContentDescription("关闭").performClick()
-        compose.runOnIdle { reviewCustomCalculator = false }
-        compose.onNodeWithContentDescription("钱包").performScrollTo().performClick()
-        capture("选择钱包", "wallet", profile)
-        compose.onNodeWithContentDescription("关闭").performClick()
-        compose.onNodeWithContentDescription("分类").performScrollTo().performClick()
-        sheetText("新增分类").assertIsDisplayed()
-        capture("选择分类", "category", profile)
-        compose.onNodeWithContentDescription("关闭").performClick()
-
-        compose.runOnIdle { screen = "ledger" }
-        compose.onNodeWithText("筛选").performScrollTo().performClick()
-        val list = compose.onNode(hasScrollToNodeAction() and inDialog)
-        sheetText("应用").assertIsDisplayed()
-        EntryType.entries.forEach { sheetText(it.label).assertIsDisplayed().assertIsSelected() }
-        if (profile == "narrow") {
-            val chipRows = EntryType.entries.map { sheetText(it.label).fetchSemanticsNode().boundsInRoot.top }
-            assertEquals("320dp at the default font size should fit all types on one row", 1, chipRows.distinct().size)
-        }
-        capture("流水筛选", "ledger-filter", profile)
-
-        sheetText("支出").performClick().assertIsNotSelected()
-        list.performScrollToNode(hasText("餐饮"))
-        sheetText("餐饮").performClick()
-        list.performScrollToIndex(0)
-        sheetText("支出").assertIsDisplayed().assertIsNotSelected()
-        capture("流水筛选", "ledger-filter-partial", profile)
-
-        list.performScrollToNode(hasText("图书影音"))
-        sheetText("应用").assertIsDisplayed()
-        capture("流水筛选", "ledger-filter-categories", profile)
-        compose.onNodeWithContentDescription("关闭").performClick()
-
-        compose.onNodeWithContentDescription("钱包范围").performClick()
-        sheetText("手动选择").performClick()
-        sheetText("已选 2/3").assertIsDisplayed()
-        list.performScrollToNode(hasText("旧钱包"))
-        sheetText("应用").assertIsDisplayed()
-        capture("钱包范围", "wallet-range", profile)
-        compose.onNodeWithContentDescription("关闭").performClick()
-
-        compose.runOnIdle { screen = "currency" }
-        compose.onNodeWithContentDescription("币种").performScrollTo().performClick()
-        compose.onNodeWithContentDescription("搜索代码或名称").performTextReplacement("jpy")
-        sheetText("JPY").assertIsDisplayed()
-        capture("选择币种", "currency", profile)
-    }
-
-    private fun sheetText(text: String) = compose.onNode(hasText(text) and inDialog)
-
-    private fun capture(title: String, name: String, profile: String) {
-        sheetText(title).assertIsDisplayed()
-        compose.waitForIdle()
-        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
-        // A Compose node can be visible before Android presents the new dialog window.
-        automation.waitForIdle(300L, 5_000L)
-        if (Build.VERSION.SDK_INT >= 29) {
-            val frameCommitted = CountDownLatch(1)
-            compose.runOnUiThread {
-                val view = WindowInspector.getGlobalWindowViews().lastOrNull {
-                    it.hasWindowFocus() && it.isHardwareAccelerated
-                }
-                if (view != null) {
-                    view.viewTreeObserver.registerFrameCommitCallback { frameCommitted.countDown() }
-                    view.invalidate()
-                } else {
-                    frameCommitted.countDown()
-                }
-            }
-            check(frameCommitted.await(5, TimeUnit.SECONDS)) { "The selection sheet did not render a new frame." }
-        }
-        val bitmap = checkNotNull(automation.takeScreenshot())
-        val file = "selection-$profile-$name"
-        File(compose.activity.cacheDir, "$file.png").outputStream().use {
-            check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
-        }
-        val review = InstrumentationRegistry.getArguments().getString("selectionVisualReview") == "true"
-        if (review && (name == "wallet-range" || name.startsWith("ledger-filter"))) {
-            val width = minOf(bitmap.width, 420)
-            val height = bitmap.height * width / bitmap.width
-            val thumbnail = Bitmap.createScaledBitmap(bitmap, width, height, true)
-            File(compose.activity.cacheDir, "$file.jpg").outputStream().use {
-                check(thumbnail.compress(Bitmap.CompressFormat.JPEG, 78, it))
-            }
-        }
-    }
-}
-
-private fun selectionRecords(): Records {
+internal fun selectionRecords(): Records {
     val time = "2026-11-17T12:00:00Z"
     val daily = Wallet("regular", "日常钱包", "日常钱包", "CNY", 2, 0, 0, false, false,
         CategoryMode.DEFAULT, CategoryMode.DEFAULT, time, time)
@@ -500,7 +366,7 @@ private fun selectionRecords(): Records {
 }
 
 
-private fun Records.withMoreFilterCategories(): Records {
+internal fun Records.withMoreFilterCategories(): Records {
     val template = categories.first { it.id == "food" }
     val names = listOf("日常用品", "水电燃气", "公共交通", "医疗保健", "运动健身", "朋友聚餐",
         "通讯网络", "学习培训", "宠物用品", "个人护理", "礼物人情", "本地出行", "居家维修", "图书影音")
