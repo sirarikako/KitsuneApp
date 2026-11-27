@@ -278,8 +278,7 @@
     function closeMealMethodPicker(apply){
       if(apply){
         const all=mealFilterMethods().map(([value])=>value);
-        const picked=all.filter(v=>(state.mealMethodPickerDraft||[]).includes(v));
-        state.mealFilterDraft.methods=all.length>1&&picked.length===all.length?[]:picked;
+        state.mealFilterDraft.methods=all.filter(v=>(state.mealMethodPickerDraft||[]).includes(v));
       }
       state.mealMethodPickerDraft=null;render();
       phone.querySelector('[data-select-open="meal-methods"]')?.focus({preventScroll:true});

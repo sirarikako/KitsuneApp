@@ -39,35 +39,23 @@ data class MealFilter(
     val categories: List<String> = emptyList(),
     val query: String = "",
 ) : Serializable {
-    private fun allMethodsSelected(records: Records): Boolean =
-        records.methods.isNotEmpty() && NO_METHOD in methods && records.methods.all { it.id in methods }
-
-    private fun allCategoriesSelected(records: Records): Boolean =
-        records.preparationCategoryIds.size > 1 && records.preparationCategoryIds.all { it in categories }
-
     fun matches(meal: MealRecord, records: Records): Boolean =
         (start.isEmpty() || meal.date >= start) && (end.isEmpty() || meal.date <= end) &&
             (slots.isEmpty() || meal.mealSlot in slots) && (atHome.isEmpty() || meal.plannedAtHome in atHome) &&
-            (methods.isEmpty() || allMethodsSelected(records) || (meal.mealMethodId ?: NO_METHOD) in methods) &&
-            (categories.isEmpty() || allCategoriesSelected(records) || records.preparation[meal.id].orEmpty().any { it in categories }) &&
+            (methods.isEmpty() || (meal.mealMethodId ?: NO_METHOD) in methods) &&
+            (categories.isEmpty() || records.preparation[meal.id].orEmpty().any { it in categories }) &&
             (meal.dishes.contains(query.trim(), true) || meal.note.contains(query.trim(), true))
 
     fun labels(records: Records, includeDates: Boolean = true) = buildList {
         if (includeDates && (start.isNotEmpty() || end.isNotEmpty())) {
             add("${start.ifEmpty { "最早" }} ～ ${end.ifEmpty { "至今" }}")
         }
-        val activeSlots = MealSlot.entries.filter { it in slots }
-        if (activeSlots.size in 1 until MealSlot.entries.size) activeSlots.forEach { add(it.label) }
-        val activeHome = listOf(true, false).filter { it in atHome }
-        if (activeHome.size == 1) add("计划在家：${if (activeHome.single()) "是" else "否"}")
-        if (!allMethodsSelected(records)) {
-            methods.forEach { method ->
-                add(if (method == NO_METHOD) "方式未填写" else records.methodName(method))
-            }
+        MealSlot.entries.filter { it in slots }.forEach { add(it.label) }
+        listOf(true, false).filter { it in atHome }.forEach { add("计划在家：${if (it) "是" else "否"}") }
+        methods.forEach { method ->
+            add(if (method == NO_METHOD) "方式未填写" else records.methodName(method))
         }
-        if (!allCategoriesSelected(records)) {
-            addAll(categories.mapNotNull(records.categoryNames::get))
-        }
+        addAll(categories.mapNotNull(records.categoryNames::get))
         if (query.isNotBlank()) add("关键词：${query.trim()}")
     }
 
@@ -78,13 +66,9 @@ data class MealFilter(
      * Such stale IDs cannot match any record, cannot be shown as a label, and cannot be unchecked in the filter page.
      */
     fun validIn(records: Records): MealFilter {
-        val prunedMethods = methods.filter { it == NO_METHOD || it in records.methodNames }
-        val validMethods = if (records.methods.isNotEmpty() && NO_METHOD in prunedMethods &&
-            records.methods.all { it.id in prunedMethods }) emptyList() else prunedMethods
-        val prunedCategories = categories.filter { it in records.preparationCategoryIds }
-        val validCategories = if (records.preparationCategoryIds.size > 1 &&
-            records.preparationCategoryIds.all { it in prunedCategories }) emptyList() else prunedCategories
-        return if (validMethods == methods && validCategories == categories) this
+        val validMethods = methods.filter { it == NO_METHOD || it in records.methodNames }
+        val validCategories = categories.filter { it in records.preparationCategoryIds }
+        return if (validMethods.size == methods.size && validCategories.size == categories.size) this
         else copy(methods = validMethods, categories = validCategories)
     }
 
@@ -344,7 +328,7 @@ fun MealFilterPage(
     val methodSummary = remember(draft.methods, methodById, records) {
         val chosen = methodOptions.filter { it in draft.methods }
         when {
-            chosen.isEmpty() || (methodOptions.size > 1 && chosen.size == methodOptions.size) -> "全部方式"
+            chosen.isEmpty() -> "全部方式"
             chosen.size <= 2 -> chosen.joinToString("、", transform = ::methodOptionLabel)
             else -> "已选 ${chosen.size} 项 · ${chosen.take(2).joinToString("、", transform = ::methodOptionLabel)}等"
         }
@@ -399,7 +383,7 @@ fun MealFilterPage(
                 records.categories.filter { it.scope == Scope.PREPARATION }
             }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                FieldLabel("制作分类", "多选，不选或全选不限")
+                FieldLabel("制作分类", "多选，不选不限")
                 MultiCategories(prepCategories, draft.categories) {
                     draft = draft.copy(categories = it)
                 }
@@ -412,19 +396,11 @@ fun MealFilterPage(
                 Primary("应用筛选", {
                     error = draft.start.isNotEmpty() && draft.end.isNotEmpty() && draft.start > draft.end
                     if (!error) {
-                        val normalizedSlots = MealSlot.entries.filter { it in draft.slots }
-                            .takeUnless { it.size == MealSlot.entries.size }.orEmpty()
-                        val normalizedHome = listOf(true, false).filter { it in draft.atHome }
-                            .takeUnless { it.size == 2 }.orEmpty()
-                        val normalizedMethods = methodOptions.filter { it in draft.methods }
-                            .takeUnless { methodOptions.size > 1 && it.size == methodOptions.size }.orEmpty()
-                        val normalizedCategories = prepCategories.map { it.id }.filter { it in draft.categories }
-                            .takeUnless { prepCategories.size > 1 && it.size == prepCategories.size }.orEmpty()
                         apply(draft.copy(
-                            slots = normalizedSlots,
-                            atHome = normalizedHome,
-                            methods = normalizedMethods,
-                            categories = normalizedCategories,
+                            slots = MealSlot.entries.filter { it in draft.slots },
+                            atHome = listOf(true, false).filter { it in draft.atHome },
+                            methods = methodOptions.filter { it in draft.methods },
+                            categories = prepCategories.map { it.id }.filter { it in draft.categories },
                             query = draft.query.trim(),
                         ))
                     }
@@ -439,12 +415,9 @@ fun MealFilterPage(
             options = methodOptions,
             optionKey = { it },
             label = ::methodOptionLabel,
-            onApply = { picked ->
-                val normalized = picked.takeUnless { methodOptions.size > 1 && it.size == methodOptions.size }.orEmpty()
-                draft = draft.copy(methods = normalized)
-            },
+            onApply = { picked -> draft = draft.copy(methods = picked) },
             dismiss = { pickMethods = false },
-            subtitle = "不选或全选均表示全部方式",
+            subtitle = "全不选表示不限",
         )
     }
 }

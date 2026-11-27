@@ -58,7 +58,7 @@ class MealFilterTest {
 
         val allSlots = MealFilter(slots = MealSlot.entries)
         assertTrue(allSlots.matches(meal, rich))
-        assertTrue(allSlots.labels(rich).isEmpty())
+        assertEquals(listOf("早餐", "午餐", "晚餐"), allSlots.labels(rich))
 
         val homeOnly = MealFilter(atHome = listOf(true))
         assertTrue(homeOnly.matches(meal, rich))
@@ -68,7 +68,7 @@ class MealFilterTest {
         val bothHome = MealFilter(atHome = listOf(true, false))
         assertTrue(bothHome.matches(meal, rich))
         assertTrue(bothHome.matches(breakfast, rich))
-        assertTrue(bothHome.labels(rich).isEmpty())
+        assertEquals(listOf("计划在家：是", "计划在家：否"), bothHome.labels(rich))
 
         val methodFilter = MealFilter(methods = listOf(MealFilter.NO_METHOD, takeout.id))
         assertTrue(methodFilter.matches(breakfast, rich))
@@ -78,7 +78,7 @@ class MealFilterTest {
     }
 
     @Test
-    fun fullPreparationSelectionIsUnrestrictedIncludingUnfilledMealsWhileSingleOptionStillFilters() {
+    fun fullPreparationSelectionRetainsStateExcludesUnfilledAndIgnoresNewlyAddedOptions() {
         val premade = category("prep-premade", Scope.PREPARATION, "预制菜")
         val unfilledPrepMeal = MealRecord("meal-no-prep", "2026-11-24", MealSlot.DINNER, false, null, "外卖盖饭", "", now, now)
         val premadeMeal = MealRecord("meal-premade", "2026-11-25", MealSlot.BREAKFAST, true, cooking.id, "速冻饺子", "", now, now)
@@ -88,32 +88,38 @@ class MealFilterTest {
             preparation = mapOf(meal.id to listOf(stirFry.id), premadeMeal.id to listOf(premade.id)),
         )
 
-        // Partial selection excludes meals without preparation categories.
-        val partial = MealFilter(categories = listOf(stirFry.id))
-        assertEquals(listOf(meal), multiPrepRecords.meals.filter { partial.matches(it, multiPrepRecords) })
-        assertEquals(listOf("炒菜"), partial.labels(multiPrepRecords))
+        // Empty selection is unrestricted and includes meals without preparation categories.
+        assertEquals(multiPrepRecords.meals, multiPrepRecords.meals.filter { MealFilter().matches(it, multiPrepRecords) })
 
-        // Full selection (when >1 categories exist) is unrestricted and includes meals with no preparation categories.
+        // Full selection retains all selected categories and excludes meals with no preparation categories.
         val allPreps = MealFilter(categories = listOf(stirFry.id, premade.id))
-        assertEquals(multiPrepRecords.meals, multiPrepRecords.meals.filter { allPreps.matches(it, multiPrepRecords) })
-        assertTrue(allPreps.labels(multiPrepRecords).isEmpty())
-        assertEquals(MealFilter(), allPreps.validIn(multiPrepRecords))
+        assertEquals(listOf(meal, premadeMeal), multiPrepRecords.meals.filter { allPreps.matches(it, multiPrepRecords) })
+        assertEquals(listOf("炒菜", "预制菜"), allPreps.labels(multiPrepRecords))
+        assertSame(allPreps, allPreps.validIn(multiPrepRecords))
 
         // Stats filter with month range applies the exact same rule.
         val monthAllPreps = MealFilter.forMonth(java.time.YearMonth.of(2026, 11)).copy(categories = listOf(stirFry.id, premade.id))
-        assertEquals(3, multiPrepRecords.meals.count { monthAllPreps.matches(it, multiPrepRecords) })
-        assertTrue(monthAllPreps.labels(multiPrepRecords, includeDates = false).isEmpty())
+        assertEquals(2, multiPrepRecords.meals.count { monthAllPreps.matches(it, multiPrepRecords) })
+        assertEquals(listOf("炒菜", "预制菜"), monthAllPreps.labels(multiPrepRecords, includeDates = false))
 
-        // Single preparation category remaining still filters instead of collapsing to unrestricted.
-        val singlePrepRecords = multiPrepRecords.copy(categories = listOf(stirFry, expense))
-        val onlyStirFry = MealFilter(categories = listOf(stirFry.id))
-        assertEquals(listOf(meal), singlePrepRecords.meals.filter { onlyStirFry.matches(it, singlePrepRecords) })
-        assertEquals(listOf("炒菜"), onlyStirFry.labels(singlePrepRecords))
-        assertSame(onlyStirFry, onlyStirFry.validIn(singlePrepRecords))
+        // Adding a new preparation category does not auto-add it to the existing filter.
+        val soup = category("prep-soup", Scope.PREPARATION, "煲汤")
+        val soupMeal = MealRecord("meal-soup", "2026-11-26", MealSlot.DINNER, true, cooking.id, "排骨汤", "", now, now)
+        val withNewPrep = multiPrepRecords.copy(
+            categories = multiPrepRecords.categories + soup,
+            meals = multiPrepRecords.meals + soupMeal,
+            preparation = multiPrepRecords.preparation + (soupMeal.id to listOf(soup.id)),
+        )
+        assertTrue(!allPreps.matches(soupMeal, withNewPrep))
+        assertSame(allPreps, allPreps.validIn(withNewPrep))
+
+        // Deleting one category removes only the stale ID while keeping the remaining valid category.
+        val afterDelete = multiPrepRecords.copy(categories = listOf(stirFry, expense))
+        assertEquals(MealFilter(categories = listOf(stirFry.id)), allPreps.validIn(afterDelete))
     }
 
     @Test
-    fun singleRemainingUnfilledMethodStillFiltersWhileFullMultiMethodSelectionIsUnrestricted() {
+    fun fullMethodSelectionRetainsStateAndIgnoresNewlyAddedMethods() {
         val unfilledMeal = MealRecord("meal-unfilled", "2026-11-24", MealSlot.DINNER, false, null, "面条", "", now, now)
         val noMethodsRecords = records.copy(methods = emptyList(), meals = listOf(meal, unfilledMeal))
         val unfilledOnly = MealFilter(methods = listOf(MealFilter.NO_METHOD))
@@ -121,12 +127,19 @@ class MealFilterTest {
         assertEquals(listOf("方式未填写"), unfilledOnly.labels(noMethodsRecords))
         assertSame(unfilledOnly, unfilledOnly.validIn(noMethodsRecords))
 
-        // When user methods exist and both NO_METHOD and all methods are selected, treat as unrestricted.
+        // Full selection retains all selected methods instead of collapsing to empty.
         val withMethods = records.copy(meals = listOf(meal, unfilledMeal))
         val allMethods = MealFilter(methods = listOf(MealFilter.NO_METHOD, cooking.id))
         assertEquals(withMethods.meals, withMethods.meals.filter { allMethods.matches(it, withMethods) })
-        assertTrue(allMethods.labels(withMethods).isEmpty())
-        assertEquals(MealFilter(), allMethods.validIn(withMethods))
+        assertEquals(listOf("方式未填写", "下厨"), allMethods.labels(withMethods))
+        assertSame(allMethods, allMethods.validIn(withMethods))
+
+        // Adding a new method does not auto-add it to the existing filter.
+        val takeout = MealMethod("method-takeout", "外卖", "外卖", 1, false, false, now, now)
+        val takeoutMeal = MealRecord("meal-takeout", "2026-11-25", MealSlot.LUNCH, false, takeout.id, "盖饭", "", now, now)
+        val withNewMethod = withMethods.copy(methods = withMethods.methods + takeout, meals = withMethods.meals + takeoutMeal)
+        assertTrue(!allMethods.matches(takeoutMeal, withNewMethod))
+        assertSame(allMethods, allMethods.validIn(withNewMethod))
     }
 
     @Test

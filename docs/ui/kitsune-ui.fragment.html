@@ -567,28 +567,24 @@
       return f.from+' 至 '+f.to;
     }
     const allMealFilterPreparations=()=>[...new Set([...mealPreparations,...archivedMealPreparations,...allMeals().flatMap(m=>m.categories)])];
-    const allMealFilterMethodValues=()=>['none',...new Set([...mealMethods,...archivedMealMethods,...allMeals().map(m=>m.method).filter(Boolean)])];
-    const allMethodsChosen=selected=>{const all=allMealFilterMethodValues();return all.length>1&&all.every(v=>selected.includes(v));};
-    const allPreparationsChosen=selected=>{const all=allMealFilterPreparations();return all.length>1&&all.every(c=>selected.includes(c));};
     function mealFilterLabels(f,includeDates=true){
       const labels=[];
       if(includeDates&&(f.from||f.to))labels.push(`${f.from||'最早'} ～ ${f.to||'至今'}`);
-      if(f.slots.length>0&&f.slots.length<slots.length)slots.forEach((s,i)=>{if(f.slots.includes(String(i)))labels.push(s);});
-      if(f.atHome.length===1)labels.push(`计划在家：${f.atHome[0]==='yes'?'是':'否'}`);
-      if(!allMethodsChosen(f.methods))f.methods.forEach(m=>labels.push(m==='none'?'方式未填写':m));
-      if(!allPreparationsChosen(f.preparations))labels.push(...f.preparations);
+      slots.forEach((s,i)=>{if(f.slots.includes(String(i)))labels.push(s);});
+      if(f.atHome.includes('yes'))labels.push('计划在家：是');
+      if(f.atHome.includes('no'))labels.push('计划在家：否');
+      f.methods.forEach(m=>labels.push(m==='none'?'方式未填写':m));
+      labels.push(...f.preparations);
       if(f.keyword)labels.push(`关键词：${f.keyword}`);
       return labels;
     }
     function filteredMeals(f){
       const keyword=f.keyword.toLocaleLowerCase();
-      const anyMethod=!f.methods.length||allMethodsChosen(f.methods);
-      const anyPrep=!f.preparations.length||allPreparationsChosen(f.preparations);
       return allMeals().filter(m=>(!f.from||m.date>=f.from)&&(!f.to||m.date<=f.to)&&
         (!f.slots.length||f.slots.includes(String(m.slot)))&&
         (!f.atHome.length||f.atHome.includes(m.atHome?'yes':'no'))&&
-        (anyMethod||f.methods.includes(m.method||'none'))&&
-        (anyPrep||f.preparations.some(c=>m.categories.includes(c)))&&
+        (!f.methods.length||f.methods.includes(m.method||'none'))&&
+        (!f.preparations.length||f.preparations.some(c=>m.categories.includes(c)))&&
         (!keyword||m.dishes.toLocaleLowerCase().includes(keyword)||m.note.toLocaleLowerCase().includes(keyword)));
     }
     const records = () => state.records[state.date] || [null,null,null];
@@ -1257,7 +1253,7 @@
     const appearancePalettes=[['#c47a4a','杏橙'],['#5f7f64','茶绿'],['#587c9b','雾蓝'],['#8a729f','薰衣草'],['#a76f82','豆沙粉']];
     function mealMethodSummary(selected){
       const all=mealFilterMethods(),chosen=all.filter(([value])=>selected.includes(value));
-      if(!chosen.length||(all.length>1&&chosen.length===all.length))return '全部方式';
+      if(!chosen.length)return '全部方式';
       if(chosen.length<=2)return chosen.map(([,label])=>label).join('、');
       return `已选 ${chosen.length} 项 · ${chosen.slice(0,2).map(([,label])=>label).join('、')}等`;
     }
@@ -1340,7 +1336,7 @@
           <button type="button" class="ks-text-btn" data-meal-method-action="none">全不选</button>
         </div>
       </div>`;
-      const body=`<p class="ks-note">不选或全选均表示全部方式</p>`+
+      const body=`<p class="ks-note">全不选表示不限</p>`+
         all.map(([value,label])=>selectionCheck(label,`data-meal-method-option="${escapeText(value)}"`,selected.includes(value))).join('');
       const footer='<button type="button" class="ks-primary ks-full" data-meal-method-action="apply">应用</button>';
       return selectionPanel('选择用餐方式',body,footer,{header});
@@ -1588,7 +1584,7 @@
         <fieldset><legend class="ks-label">餐次<span class="ks-required">多选，不选不限</span></legend><div class="ks-preparation-choices">${slots.map((s,i)=>`<label class="ks-preparation-check cursor-interaction"><input type="checkbox" name="slot" value="${i}" ${f.slots.includes(String(i))?'checked':''}>${s}</label>`).join('')}</div></fieldset>
         <fieldset><legend class="ks-label">计划在家吃<span class="ks-required">多选，不选不限</span></legend><div class="ks-preparation-choices">${[['yes','是'],['no','否']].map(([v,l])=>`<label class="ks-preparation-check cursor-interaction"><input type="checkbox" name="atHome" value="${v}" ${f.atHome.includes(v)?'checked':''}>${l}</label>`).join('')}</div></fieldset>
         ${selectionControl('meal-methods','用餐方式',mealMethodSummary(f.methods))}
-        <fieldset><legend class="ks-label">制作分类<span class="ks-required">多选，不选或全选不限</span></legend><div class="ks-preparation-choices">${preparations.slice(0,8).map(c=>`<label class="ks-preparation-check cursor-interaction"><input type="checkbox" name="preparation" value="${escapeText(c)}" ${f.preparations.includes(c)?'checked':''}>${escapeText(mealPreparationLabel(c))}</label>`).join('')}${preparations.length>8?`<button type="button" class="ks-choice cursor-interaction" data-open-meal-preps="filter">${icon('list-filter')}更多分类</button>`:''}</div>${extraPreps.length?`<p class="ks-note">已选更多分类 · ${escapeText(extraPreps.join('、'))}</p>`:''}</fieldset>
+        <fieldset><legend class="ks-label">制作分类<span class="ks-required">多选，不选不限</span></legend><div class="ks-preparation-choices">${preparations.slice(0,8).map(c=>`<label class="ks-preparation-check cursor-interaction"><input type="checkbox" name="preparation" value="${escapeText(c)}" ${f.preparations.includes(c)?'checked':''}>${escapeText(mealPreparationLabel(c))}</label>`).join('')}${preparations.length>8?`<button type="button" class="ks-choice cursor-interaction" data-open-meal-preps="filter">${icon('list-filter')}更多分类</button>`:''}</div>${extraPreps.length?`<p class="ks-note">已选更多分类 · ${escapeText(extraPreps.join('、'))}</p>`:''}</fieldset>
         <label><span class="ks-label">菜品／备注关键词</span><input class="ks-control" type="search" name="keyword" value="${escapeText(f.keyword)}" placeholder="例如：番茄、和朋友" maxlength="100"></label>
         <p class="ks-note" style="margin:0">不同条件同时满足；未选择的条件不限制。</p>
         ${formFooter(`<div class="ks-form-actions"><button type="button" class="ks-choice cursor-interaction" data-action="reset-meal-filter">重置条件</button>${saveButton('应用筛选')}</div>`)}
@@ -2036,8 +2032,7 @@
     function closeMealMethodPicker(apply){
       if(apply){
         const all=mealFilterMethods().map(([value])=>value);
-        const picked=all.filter(v=>(state.mealMethodPickerDraft||[]).includes(v));
-        state.mealFilterDraft.methods=all.length>1&&picked.length===all.length?[]:picked;
+        state.mealFilterDraft.methods=all.filter(v=>(state.mealMethodPickerDraft||[]).includes(v));
       }
       state.mealMethodPickerDraft=null;render();
       phone.querySelector('[data-select-open="meal-methods"]')?.focus({preventScroll:true});
@@ -2708,10 +2703,10 @@
         const pickedPreps=allPreps.filter(c=>checkedInline.includes(c)||keptExtra.includes(c));
         const applied={
           from:from.value,to:to.value,
-          slots:pickedSlots.length===slots.length?[]:pickedSlots,
-          atHome:pickedHome.length===2?[]:pickedHome,
-          methods:allMethods.length>1&&pickedMethods.length===allMethods.length?[]:pickedMethods,
-          preparations:allPreps.length>1&&pickedPreps.length===allPreps.length?[]:pickedPreps,
+          slots:pickedSlots,
+          atHome:pickedHome,
+          methods:pickedMethods,
+          preparations:pickedPreps,
           keyword:keyword.value.trim(),
         };
         if(state.mealTab==='统计')state.mealStatsFilters=applied;

@@ -195,7 +195,7 @@ class SelectionSheetsTest {
     }
 
     @Test
-    fun mealFilterNormalizesFullMultiSelectionsAndUsesBottomSheetForExtraPreparationCategories() {
+    fun mealFilterRetainsFullMultiSelectionsAndUsesBottomSheetForExtraPreparationCategories() {
         val time = "2026-11-17T12:00:00Z"
         val methods = listOf(
             MealMethod("m-cook", "下厨", "下厨", 0, false, true, time, time),
@@ -214,10 +214,19 @@ class SelectionSheetsTest {
             }
         }
 
-        // Selecting all methods in the sheet normalizes back to "全部方式".
+        // Selecting all methods retains full selection instead of collapsing to empty.
         val chooser = compose.onNodeWithContentDescription("用餐方式")
         chooser.performScrollTo().performClick()
         sheetText("全选").performClick()
+        sheetText("应用").performClick()
+        compose.onNode(hasContentDescription("用餐方式") and hasText("已选 3 项 · 未填写方式、下厨等")).assertExists()
+
+        // Reopening the method sheet retains all checked states; clearing resets to "全部方式".
+        chooser.performScrollTo().performClick()
+        sheetText("未填写方式").assertIsOn()
+        sheetText("下厨").assertIsOn()
+        sheetText("外卖").assertIsOn()
+        sheetText("全不选").performClick()
         sheetText("应用").performClick()
         compose.onNode(hasContentDescription("用餐方式") and hasText("全部方式")).assertExists()
 
@@ -240,13 +249,17 @@ class SelectionSheetsTest {
             assertEquals(listOf("prep-10"), applied?.categories)
         }
 
-        // Selecting all preparation categories normalizes to unrestricted on apply.
+        // Selecting all methods and all preparation categories retains every selected ID on apply.
+        chooser.performScrollTo().performClick()
+        sheetText("全选").performClick()
+        sheetText("应用").performClick()
         compose.onNodeWithText("更多分类").performScrollTo().performClick()
         sheetText("全选").performClick()
         sheetText("应用").performClick()
         compose.onNodeWithText("应用筛选").performScrollTo().performClick()
         compose.runOnIdle {
-            assertEquals(emptyList<String>(), applied?.categories)
+            assertEquals(listOf(MealFilter.NO_METHOD, "m-cook", "m-takeout"), applied?.methods)
+            assertEquals((1..10).map { "prep-$it" }, applied?.categories)
         }
     }
 

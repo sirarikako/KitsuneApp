@@ -563,10 +563,10 @@
         const pickedPreps=allPreps.filter(c=>checkedInline.includes(c)||keptExtra.includes(c));
         const applied={
           from:from.value,to:to.value,
-          slots:pickedSlots.length===slots.length?[]:pickedSlots,
-          atHome:pickedHome.length===2?[]:pickedHome,
-          methods:allMethods.length>1&&pickedMethods.length===allMethods.length?[]:pickedMethods,
-          preparations:allPreps.length>1&&pickedPreps.length===allPreps.length?[]:pickedPreps,
+          slots:pickedSlots,
+          atHome:pickedHome,
+          methods:pickedMethods,
+          preparations:pickedPreps,
           keyword:keyword.value.trim(),
         };
         if(state.mealTab==='统计')state.mealStatsFilters=applied;

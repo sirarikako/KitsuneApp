@@ -10,7 +10,7 @@
     const appearancePalettes=[['#c47a4a','杏橙'],['#5f7f64','茶绿'],['#587c9b','雾蓝'],['#8a729f','薰衣草'],['#a76f82','豆沙粉']];
     function mealMethodSummary(selected){
       const all=mealFilterMethods(),chosen=all.filter(([value])=>selected.includes(value));
-      if(!chosen.length||(all.length>1&&chosen.length===all.length))return '全部方式';
+      if(!chosen.length)return '全部方式';
       if(chosen.length<=2)return chosen.map(([,label])=>label).join('、');
       return `已选 ${chosen.length} 项 · ${chosen.slice(0,2).map(([,label])=>label).join('、')}等`;
     }
@@ -93,7 +93,7 @@
           <button type="button" class="ks-text-btn" data-meal-method-action="none">全不选</button>
         </div>
       </div>`;
-      const body=`<p class="ks-note">不选或全选均表示全部方式</p>`+
+      const body=`<p class="ks-note">全不选表示不限</p>`+
         all.map(([value,label])=>selectionCheck(label,`data-meal-method-option="${escapeText(value)}"`,selected.includes(value))).join('');
       const footer='<button type="button" class="ks-primary ks-full" data-meal-method-action="apply">应用</button>';
       return selectionPanel('选择用餐方式',body,footer,{header});
@@ -341,7 +341,7 @@
         <fieldset><legend class="ks-label">餐次<span class="ks-required">多选，不选不限</span></legend><div class="ks-preparation-choices">${slots.map((s,i)=>`<label class="ks-preparation-check cursor-interaction"><input type="checkbox" name="slot" value="${i}" ${f.slots.includes(String(i))?'checked':''}>${s}</label>`).join('')}</div></fieldset>
         <fieldset><legend class="ks-label">计划在家吃<span class="ks-required">多选，不选不限</span></legend><div class="ks-preparation-choices">${[['yes','是'],['no','否']].map(([v,l])=>`<label class="ks-preparation-check cursor-interaction"><input type="checkbox" name="atHome" value="${v}" ${f.atHome.includes(v)?'checked':''}>${l}</label>`).join('')}</div></fieldset>
         ${selectionControl('meal-methods','用餐方式',mealMethodSummary(f.methods))}
-        <fieldset><legend class="ks-label">制作分类<span class="ks-required">多选，不选或全选不限</span></legend><div class="ks-preparation-choices">${preparations.slice(0,8).map(c=>`<label class="ks-preparation-check cursor-interaction"><input type="checkbox" name="preparation" value="${escapeText(c)}" ${f.preparations.includes(c)?'checked':''}>${escapeText(mealPreparationLabel(c))}</label>`).join('')}${preparations.length>8?`<button type="button" class="ks-choice cursor-interaction" data-open-meal-preps="filter">${icon('list-filter')}更多分类</button>`:''}</div>${extraPreps.length?`<p class="ks-note">已选更多分类 · ${escapeText(extraPreps.join('、'))}</p>`:''}</fieldset>
+        <fieldset><legend class="ks-label">制作分类<span class="ks-required">多选，不选不限</span></legend><div class="ks-preparation-choices">${preparations.slice(0,8).map(c=>`<label class="ks-preparation-check cursor-interaction"><input type="checkbox" name="preparation" value="${escapeText(c)}" ${f.preparations.includes(c)?'checked':''}>${escapeText(mealPreparationLabel(c))}</label>`).join('')}${preparations.length>8?`<button type="button" class="ks-choice cursor-interaction" data-open-meal-preps="filter">${icon('list-filter')}更多分类</button>`:''}</div>${extraPreps.length?`<p class="ks-note">已选更多分类 · ${escapeText(extraPreps.join('、'))}</p>`:''}</fieldset>
         <label><span class="ks-label">菜品／备注关键词</span><input class="ks-control" type="search" name="keyword" value="${escapeText(f.keyword)}" placeholder="例如：番茄、和朋友" maxlength="100"></label>
         <p class="ks-note" style="margin:0">不同条件同时满足；未选择的条件不限制。</p>
         ${formFooter(`<div class="ks-form-actions"><button type="button" class="ks-choice cursor-interaction" data-action="reset-meal-filter">重置条件</button>${saveButton('应用筛选')}</div>`)}

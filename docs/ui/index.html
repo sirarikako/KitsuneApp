@@ -2458,28 +2458,24 @@ html&gt;body{padding:0}&lt;/style&gt;
       return f.from+&#x27; 至 &#x27;+f.to;
     }
     const allMealFilterPreparations=()=&gt;[...new Set([...mealPreparations,...archivedMealPreparations,...allMeals().flatMap(m=&gt;m.categories)])];
-    const allMealFilterMethodValues=()=&gt;[&#x27;none&#x27;,...new Set([...mealMethods,...archivedMealMethods,...allMeals().map(m=&gt;m.method).filter(Boolean)])];
-    const allMethodsChosen=selected=&gt;{const all=allMealFilterMethodValues();return all.length&gt;1&amp;&amp;all.every(v=&gt;selected.includes(v));};
-    const allPreparationsChosen=selected=&gt;{const all=allMealFilterPreparations();return all.length&gt;1&amp;&amp;all.every(c=&gt;selected.includes(c));};
     function mealFilterLabels(f,includeDates=true){
       const labels=[];
       if(includeDates&amp;&amp;(f.from||f.to))labels.push(`${f.from||&#x27;最早&#x27;} ～ ${f.to||&#x27;至今&#x27;}`);
-      if(f.slots.length&gt;0&amp;&amp;f.slots.length&lt;slots.length)slots.forEach((s,i)=&gt;{if(f.slots.includes(String(i)))labels.push(s);});
-      if(f.atHome.length===1)labels.push(`计划在家：${f.atHome[0]===&#x27;yes&#x27;?&#x27;是&#x27;:&#x27;否&#x27;}`);
-      if(!allMethodsChosen(f.methods))f.methods.forEach(m=&gt;labels.push(m===&#x27;none&#x27;?&#x27;方式未填写&#x27;:m));
-      if(!allPreparationsChosen(f.preparations))labels.push(...f.preparations);
+      slots.forEach((s,i)=&gt;{if(f.slots.includes(String(i)))labels.push(s);});
+      if(f.atHome.includes(&#x27;yes&#x27;))labels.push(&#x27;计划在家：是&#x27;);
+      if(f.atHome.includes(&#x27;no&#x27;))labels.push(&#x27;计划在家：否&#x27;);
+      f.methods.forEach(m=&gt;labels.push(m===&#x27;none&#x27;?&#x27;方式未填写&#x27;:m));
+      labels.push(...f.preparations);
       if(f.keyword)labels.push(`关键词：${f.keyword}`);
       return labels;
     }
     function filteredMeals(f){
       const keyword=f.keyword.toLocaleLowerCase();
-      const anyMethod=!f.methods.length||allMethodsChosen(f.methods);
-      const anyPrep=!f.preparations.length||allPreparationsChosen(f.preparations);
       return allMeals().filter(m=&gt;(!f.from||m.date&gt;=f.from)&amp;&amp;(!f.to||m.date&lt;=f.to)&amp;&amp;
         (!f.slots.length||f.slots.includes(String(m.slot)))&amp;&amp;
         (!f.atHome.length||f.atHome.includes(m.atHome?&#x27;yes&#x27;:&#x27;no&#x27;))&amp;&amp;
-        (anyMethod||f.methods.includes(m.method||&#x27;none&#x27;))&amp;&amp;
-        (anyPrep||f.preparations.some(c=&gt;m.categories.includes(c)))&amp;&amp;
+        (!f.methods.length||f.methods.includes(m.method||&#x27;none&#x27;))&amp;&amp;
+        (!f.preparations.length||f.preparations.some(c=&gt;m.categories.includes(c)))&amp;&amp;
         (!keyword||m.dishes.toLocaleLowerCase().includes(keyword)||m.note.toLocaleLowerCase().includes(keyword)));
     }
     const records = () =&gt; state.records[state.date] || [null,null,null];
@@ -3148,7 +3144,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     const appearancePalettes=[[&#x27;#c47a4a&#x27;,&#x27;杏橙&#x27;],[&#x27;#5f7f64&#x27;,&#x27;茶绿&#x27;],[&#x27;#587c9b&#x27;,&#x27;雾蓝&#x27;],[&#x27;#8a729f&#x27;,&#x27;薰衣草&#x27;],[&#x27;#a76f82&#x27;,&#x27;豆沙粉&#x27;]];
     function mealMethodSummary(selected){
       const all=mealFilterMethods(),chosen=all.filter(([value])=&gt;selected.includes(value));
-      if(!chosen.length||(all.length&gt;1&amp;&amp;chosen.length===all.length))return &#x27;全部方式&#x27;;
+      if(!chosen.length)return &#x27;全部方式&#x27;;
       if(chosen.length&lt;=2)return chosen.map(([,label])=&gt;label).join(&#x27;、&#x27;);
       return `已选 ${chosen.length} 项 · ${chosen.slice(0,2).map(([,label])=&gt;label).join(&#x27;、&#x27;)}等`;
     }
@@ -3231,7 +3227,7 @@ html&gt;body{padding:0}&lt;/style&gt;
           &lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-meal-method-action=&quot;none&quot;&gt;全不选&lt;/button&gt;
         &lt;/div&gt;
       &lt;/div&gt;`;
-      const body=`&lt;p class=&quot;ks-note&quot;&gt;不选或全选均表示全部方式&lt;/p&gt;`+
+      const body=`&lt;p class=&quot;ks-note&quot;&gt;全不选表示不限&lt;/p&gt;`+
         all.map(([value,label])=&gt;selectionCheck(label,`data-meal-method-option=&quot;${escapeText(value)}&quot;`,selected.includes(value))).join(&#x27;&#x27;);
       const footer=&#x27;&lt;button type=&quot;button&quot; class=&quot;ks-primary ks-full&quot; data-meal-method-action=&quot;apply&quot;&gt;应用&lt;/button&gt;&#x27;;
       return selectionPanel(&#x27;选择用餐方式&#x27;,body,footer,{header});
@@ -3479,7 +3475,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;餐次&lt;span class=&quot;ks-required&quot;&gt;多选，不选不限&lt;/span&gt;&lt;/legend&gt;&lt;div class=&quot;ks-preparation-choices&quot;&gt;${slots.map((s,i)=&gt;`&lt;label class=&quot;ks-preparation-check cursor-interaction&quot;&gt;&lt;input type=&quot;checkbox&quot; name=&quot;slot&quot; value=&quot;${i}&quot; ${f.slots.includes(String(i))?&#x27;checked&#x27;:&#x27;&#x27;}&gt;${s}&lt;/label&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;&lt;/fieldset&gt;
         &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;计划在家吃&lt;span class=&quot;ks-required&quot;&gt;多选，不选不限&lt;/span&gt;&lt;/legend&gt;&lt;div class=&quot;ks-preparation-choices&quot;&gt;${[[&#x27;yes&#x27;,&#x27;是&#x27;],[&#x27;no&#x27;,&#x27;否&#x27;]].map(([v,l])=&gt;`&lt;label class=&quot;ks-preparation-check cursor-interaction&quot;&gt;&lt;input type=&quot;checkbox&quot; name=&quot;atHome&quot; value=&quot;${v}&quot; ${f.atHome.includes(v)?&#x27;checked&#x27;:&#x27;&#x27;}&gt;${l}&lt;/label&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;&lt;/fieldset&gt;
         ${selectionControl(&#x27;meal-methods&#x27;,&#x27;用餐方式&#x27;,mealMethodSummary(f.methods))}
-        &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;制作分类&lt;span class=&quot;ks-required&quot;&gt;多选，不选或全选不限&lt;/span&gt;&lt;/legend&gt;&lt;div class=&quot;ks-preparation-choices&quot;&gt;${preparations.slice(0,8).map(c=&gt;`&lt;label class=&quot;ks-preparation-check cursor-interaction&quot;&gt;&lt;input type=&quot;checkbox&quot; name=&quot;preparation&quot; value=&quot;${escapeText(c)}&quot; ${f.preparations.includes(c)?&#x27;checked&#x27;:&#x27;&#x27;}&gt;${escapeText(mealPreparationLabel(c))}&lt;/label&gt;`).join(&#x27;&#x27;)}${preparations.length&gt;8?`&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-open-meal-preps=&quot;filter&quot;&gt;${icon(&#x27;list-filter&#x27;)}更多分类&lt;/button&gt;`:&#x27;&#x27;}&lt;/div&gt;${extraPreps.length?`&lt;p class=&quot;ks-note&quot;&gt;已选更多分类 · ${escapeText(extraPreps.join(&#x27;、&#x27;))}&lt;/p&gt;`:&#x27;&#x27;}&lt;/fieldset&gt;
+        &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;制作分类&lt;span class=&quot;ks-required&quot;&gt;多选，不选不限&lt;/span&gt;&lt;/legend&gt;&lt;div class=&quot;ks-preparation-choices&quot;&gt;${preparations.slice(0,8).map(c=&gt;`&lt;label class=&quot;ks-preparation-check cursor-interaction&quot;&gt;&lt;input type=&quot;checkbox&quot; name=&quot;preparation&quot; value=&quot;${escapeText(c)}&quot; ${f.preparations.includes(c)?&#x27;checked&#x27;:&#x27;&#x27;}&gt;${escapeText(mealPreparationLabel(c))}&lt;/label&gt;`).join(&#x27;&#x27;)}${preparations.length&gt;8?`&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-open-meal-preps=&quot;filter&quot;&gt;${icon(&#x27;list-filter&#x27;)}更多分类&lt;/button&gt;`:&#x27;&#x27;}&lt;/div&gt;${extraPreps.length?`&lt;p class=&quot;ks-note&quot;&gt;已选更多分类 · ${escapeText(extraPreps.join(&#x27;、&#x27;))}&lt;/p&gt;`:&#x27;&#x27;}&lt;/fieldset&gt;
         &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;菜品／备注关键词&lt;/span&gt;&lt;input class=&quot;ks-control&quot; type=&quot;search&quot; name=&quot;keyword&quot; value=&quot;${escapeText(f.keyword)}&quot; placeholder=&quot;例如：番茄、和朋友&quot; maxlength=&quot;100&quot;&gt;&lt;/label&gt;
         &lt;p class=&quot;ks-note&quot; style=&quot;margin:0&quot;&gt;不同条件同时满足；未选择的条件不限制。&lt;/p&gt;
         ${formFooter(`&lt;div class=&quot;ks-form-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-action=&quot;reset-meal-filter&quot;&gt;重置条件&lt;/button&gt;${saveButton(&#x27;应用筛选&#x27;)}&lt;/div&gt;`)}
@@ -3927,8 +3923,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     function closeMealMethodPicker(apply){
       if(apply){
         const all=mealFilterMethods().map(([value])=&gt;value);
-        const picked=all.filter(v=&gt;(state.mealMethodPickerDraft||[]).includes(v));
-        state.mealFilterDraft.methods=all.length&gt;1&amp;&amp;picked.length===all.length?[]:picked;
+        state.mealFilterDraft.methods=all.filter(v=&gt;(state.mealMethodPickerDraft||[]).includes(v));
       }
       state.mealMethodPickerDraft=null;render();
       phone.querySelector(&#x27;[data-select-open=&quot;meal-methods&quot;]&#x27;)?.focus({preventScroll:true});
@@ -4599,10 +4594,10 @@ html&gt;body{padding:0}&lt;/style&gt;
         const pickedPreps=allPreps.filter(c=&gt;checkedInline.includes(c)||keptExtra.includes(c));
         const applied={
           from:from.value,to:to.value,
-          slots:pickedSlots.length===slots.length?[]:pickedSlots,
-          atHome:pickedHome.length===2?[]:pickedHome,
-          methods:allMethods.length&gt;1&amp;&amp;pickedMethods.length===allMethods.length?[]:pickedMethods,
-          preparations:allPreps.length&gt;1&amp;&amp;pickedPreps.length===allPreps.length?[]:pickedPreps,
+          slots:pickedSlots,
+          atHome:pickedHome,
+          methods:pickedMethods,
+          preparations:pickedPreps,
           keyword:keyword.value.trim(),
         };
         if(state.mealTab===&#x27;统计&#x27;)state.mealStatsFilters=applied;
