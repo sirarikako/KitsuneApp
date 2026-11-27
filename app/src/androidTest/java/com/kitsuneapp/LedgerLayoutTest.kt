@@ -56,13 +56,13 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
+import androidx.compose.ui.test.waitUntilDoesNotExist
 import androidx.compose.ui.test.waitUntilExactlyOneExists
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
-import androidx.test.platform.app.InstrumentationRegistry
 import com.kitsuneapp.data.*
 import com.kitsuneapp.feature.ledger.EntryForm
 import com.kitsuneapp.feature.ledger.LedgerPage
@@ -70,7 +70,6 @@ import com.kitsuneapp.feature.ledger.Calculator
 import com.kitsuneapp.ui.DateControl
 import com.kitsuneapp.ui.KitsuneTheme
 import com.kitsuneapp.ui.TimeControl
-import java.io.File
 import java.time.LocalDate
 import java.time.YearMonth
 import org.junit.Assert.assertEquals
@@ -85,38 +84,59 @@ class LedgerLayoutTest {
 
     @Test
     fun incomeWalletTotalsAndGroupedFiltersUseTheSelectedWalletRange() {
-        val now = "2026-11-17T12:00:00Z"
+        val today = LocalDate.now()
+        val now = "${today}T12:00:00Z"
         val source = Wallet("first", "收款钱包", "收款钱包", "CNY", 2, 0, 0, false, false,
             CategoryMode.DEFAULT, CategoryMode.DEFAULT, now, now, defaultToIncome = true)
-        val second = source.copy(id = "second", name = "另一钱包")
+        val second = source.copy(id = "second", name = "另一钱包", normalizedName = "另一钱包")
+        val separate = source.copy(id = "separate", name = "独立钱包", normalizedName = "独立钱包",
+            separateAccounting = true)
         val income = Category("income", Scope.INCOME, null, "", "奖金", "奖金", 0, false, false, now, now)
         val expense = income.copy(id = "expense", scope = Scope.EXPENSE, walletId = second.id, ownerKey = second.id)
         val other = expense.copy(id = "other", name = "日用", normalizedName = "日用")
+        val outsideRange = expense.copy(id = "outside", walletId = separate.id, ownerKey = separate.id,
+            name = "范围外分类", normalizedName = "范围外分类")
         fun entry(id: String, wallet: Wallet, type: EntryType, amount: Long, category: Category) =
-            FinancialEntry(id, LocalDate.now().toString(), "12:00", type, wallet.id, amount, category.id,
+            FinancialEntry(id, today.toString(), "12:00", type, wallet.id, amount, category.id,
                 null, null, null, if (id == "one") "独有备注" else "", now, now)
         val records = Records(DataState(installationId = "test", datasetId = "test", arrayElements = 0),
-            ThemePreferences(), emptyList(), listOf(income, expense, other), emptyList(), emptyMap(), listOf(source, second),
+            ThemePreferences(), emptyList(), listOf(income, expense, other, outsideRange), emptyList(), emptyMap(),
+            listOf(source, second, separate),
             listOf(entry("one", source, EntryType.INCOME, 800, income),
                 entry("two", second, EntryType.EXPENSE, 200, expense),
-                entry("three", second, EntryType.EXPENSE, 100, other)))
+                entry("three", second, EntryType.EXPENSE, 100, other),
+                entry("four", separate, EntryType.EXPENSE, 500, outsideRange)))
         compose.setContent {
             KitsuneTheme(records.theme, forceDark = true) {
                 Surface(Modifier.width(320.dp).fillMaxHeight()) { LedgerPage(records, open = {}, openDetails = {}) }
             }
         }
-        val month = YearMonth.now().monthValue
+        val month = today.monthValue
         compose.onNodeWithText("$month 月 收入 · CNY").assertIsDisplayed()
         compose.onNodeWithText("8.00").assertIsDisplayed()
         compose.onNodeWithText("净支出 3.00").assertIsDisplayed()
 
         val inDialog = hasAnyAncestor(isDialog())
-        fun openFilters() = compose.onNodeWithText("筛选").performClick()
-        fun apply() = compose.onNode(hasText("应用") and inDialog).performClick()
-        val body = compose.onNode(hasScrollToNodeAction() and inDialog)
+        val filterTitle = hasText("流水筛选") and inDialog
+        val bodyMatcher = hasScrollToNodeAction() and inDialog
+        val body = compose.onNode(bodyMatcher)
+        val applyButton = compose.onNode(hasText("应用") and inDialog)
+        fun openFilters() {
+            compose.onNode(hasText("筛选") and !inDialog).assertIsDisplayed().performClick()
+            compose.waitUntil("ledger filter sheet and footer visible", 10_000) {
+                body.isDisplayed() && applyButton.isDisplayed()
+            }
+        }
+        fun assertEntryCount(count: Int) {
+            compose.waitUntilDoesNotExist(filterTitle, 10_000)
+            val displayedCount = hasText("$count 笔") and !inDialog
+            compose.waitUntilExactlyOneExists(displayedCount, 10_000)
+            compose.onNode(displayedCount).assertExists()
+        }
         fun bulk(description: String) {
             body.performScrollToNode(hasContentDescription(description))
-            compose.onNodeWithContentDescription(description).performSemanticsAction(SemanticsActions.OnClick)
+            compose.onNode(hasContentDescription(description) and inDialog)
+                .performSemanticsAction(SemanticsActions.OnClick)
         }
         fun choose(name: String) {
             body.performScrollToNode(hasText(name))
@@ -129,33 +149,34 @@ class LedgerLayoutTest {
         choose("支出")
         bulk("全不选分类")
         compose.onNode(hasText("0/2") and inDialog).assertExists()
+        compose.onNode(hasText("范围外分类") and inDialog).assertDoesNotExist()
         choose("奖金")
         compose.onNode(hasText("1/2") and inDialog).assertExists()
-        apply()
-        compose.onNodeWithText("2 笔").assertExists()
+        applyButton.performSemanticsAction(SemanticsActions.OnClick)
+        assertEntryCount(2)
         compose.onNodeWithText("净支出 3.00").assertIsDisplayed()
 
         openFilters()
         bulk("全不选分类")
-        apply()
-        compose.onNodeWithText("0 笔").assertExists()
+        applyButton.performSemanticsAction(SemanticsActions.OnClick)
+        assertEntryCount(0)
 
         openFilters()
         bulk("全选类型")
         bulk("全选分类")
-        apply()
-        compose.onNodeWithText("3 笔").assertExists()
+        applyButton.performSemanticsAction(SemanticsActions.OnClick)
+        assertEntryCount(3)
 
         openFilters()
-        body.performScrollToNode(hasContentDescription("备注关键词"))
-        compose.onNodeWithContentDescription("备注关键词").performTextReplacement("独有备注")
-        compose.onNode(hasText("应用") and inDialog).assertIsDisplayed()
-        apply()
-        compose.onNodeWithText("1 笔").assertExists()
+        val note = hasContentDescription("备注关键词") and inDialog
+        body.performScrollToNode(note)
+        compose.onNode(note).performTextReplacement("独有备注")
+        applyButton.assertIsDisplayed().performSemanticsAction(SemanticsActions.OnClick)
+        assertEntryCount(1)
         openFilters()
         bulk("全不选类型")
-        compose.onNodeWithContentDescription("关闭").performClick()
-        compose.onNodeWithText("1 笔").assertExists()
+        compose.onNode(hasContentDescription("关闭") and inDialog).performSemanticsAction(SemanticsActions.OnClick)
+        assertEntryCount(1)
     }
 
     @Test
@@ -229,9 +250,6 @@ class LedgerLayoutTest {
         compose.onNodeWithText("旅行钱包", substring = true).assertDoesNotExist()
         val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
         assertEquals(0xFF271F1A.toInt(), bitmap.getPixel(8, 8))
-        File(compose.activity.cacheDir, "kitsune-ledger-narrow-dark.png").outputStream().use {
-            check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
-        }
         compose.onNodeWithText("餐饮").performClick()
         compose.runOnIdle { assertEquals(entry.id, detail) }
         compose.onNodeWithText("钱包").performClick()
@@ -254,7 +272,6 @@ class LedgerLayoutTest {
         compose.onNodeWithText("旅行钱包 · JPY").assertIsDisplayed()
         compose.onNodeWithText("独立核算").assertIsDisplayed()
         compose.onNodeWithText("已归档").assertIsDisplayed()
-        saveScreenshot("kitsune-wallets-narrow-dark")
     }
 
     @Test
@@ -285,7 +302,6 @@ class LedgerLayoutTest {
         assertTrue(modes.zipWithNext().all { (first, next) -> kotlin.math.abs(first.width - next.width) <= 1f })
         daily.assertDoesNotExist()
         savings.assertDoesNotExist()
-        saveScreenshot("kitsune-wallet-range-regular")
 
         manual.performClick().assertIsSelected()
         inDialog("选择钱包").assertIsDisplayed()
@@ -293,7 +309,6 @@ class LedgerLayoutTest {
         daily.assertIsOn()
         savings.assertIsOff()
         history.assertIsOn()
-        saveScreenshot("kitsune-wallet-range-manual")
         daily.performClick().assertIsOff()
         history.performClick().assertIsOff()
         inDialog("已选 0/3").assertIsDisplayed()
@@ -439,14 +454,12 @@ class LedgerLayoutTest {
         february.assertIsNotEnabled()
         confirm.assertIsNotEnabled()
         year.performTextReplacement("2024")
-        saveScreenshot("kitsune-calendar-year-month")
         february.performScrollTo().performClick()
         compose.onNodeWithText("2024 年 2 月").assertIsDisplayed()
         compose.onNodeWithContentDescription("下个月").performClick()
         compose.onNodeWithText("2024 年 3 月").assertIsDisplayed()
         compose.onNodeWithContentDescription("上个月").performClick()
         leapDay.performScrollTo().performClick().assertIsSelected()
-        saveScreenshot("kitsune-calendar-leap-day")
         compose.onNodeWithText("取消").performClick()
         compose.runOnIdle { assertEquals("2026-11-17", date) }
 
@@ -476,7 +489,6 @@ class LedgerLayoutTest {
         openInput()
         hour.assertIsFocused().assertTextEquals("09")
         assertEquals(TextRange(0, 2), hour.fetchSemanticsNode().config[SemanticsProperties.TextSelectionRange])
-        saveScreenshot("kitsune-time-input")
         hour.performTextInput("2")
         confirm.assertIsNotEnabled()
         hour.performTextInput("4")
@@ -513,7 +525,6 @@ class LedgerLayoutTest {
         val minuteCenter = compose.onNodeWithText("59").fetchSemanticsNode().boundsInRoot.center.x
         assertEquals("The dial is centered in the dialog", dialogCenter, dialTop.fetchSemanticsNode().boundsInRoot.center.x, 1f)
         assertEquals("The time display is centered in the dialog", dialogCenter, (hourCenter + minuteCenter) / 2, 1f)
-        saveScreenshot("kitsune-time-clock")
         compose.onNodeWithContentDescription("输入时间").performClick()
         waitForFocus("小时")
         hour.assertIsFocused().assertTextEquals("23")
@@ -686,7 +697,6 @@ class LedgerLayoutTest {
         restoration.emulateSavedInstanceStateRestore()
         expression.performScrollTo().assertTextEquals("1÷3×100")
         result.assertIsDisplayed().assertTextEquals("33.33")
-        saveScreenshot("kitsune-calculator")
 
         press("=")
         restoration.emulateSavedInstanceStateRestore()
@@ -790,10 +800,4 @@ class LedgerLayoutTest {
         compose.onNodeWithText("金额计算器").assertDoesNotExist()
     }
 
-    private fun saveScreenshot(name: String) {
-        val bitmap = checkNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
-        File(compose.activity.cacheDir, "$name.png").outputStream().use {
-            check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
-        }
-    }
 }

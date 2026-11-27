@@ -213,14 +213,21 @@ fun EntryForm(
     var initialCalculatorHandled by rememberSaveable { mutableStateOf(false) }
     val focus = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
-    fun openCalculator(field: Int) {
+    fun clearFormInputFocus() {
         focus.clearFocus()
         keyboard?.hide()
+    }
+    fun openCalculator(field: Int) {
+        clearFormInputFocus()
         initialCalculatorHandled = true
         calculator = field
     }
     var walletSheet by rememberSaveable { mutableIntStateOf(0) }
     var categorySheet by rememberSaveable { mutableStateOf(false) }
+    fun openWalletSheet(field: Int) {
+        clearFormInputFocus()
+        walletSheet = field
+    }
     val busy by model.busy.collectAsState()
     val error by model.error.collectAsState()
     LaunchedEffect(readyForSheet, wallet, id, expenseId) {
@@ -294,17 +301,17 @@ fun EntryForm(
             if (scope == null) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     SelectionControl(if (type == EntryType.TRANSFER) "转出钱包" else "钱包", ledger.walletLabel(walletId),
-                        { walletSheet = 1 }, Modifier.weight(1f))
+                        { openWalletSheet(1) }, Modifier.weight(1f))
                     if (type == EntryType.TRANSFER) {
-                        SelectionControl("到账钱包", ledger.walletLabel(targetId), { walletSheet = 2 }, Modifier.weight(1f))
+                        SelectionControl("到账钱包", ledger.walletLabel(targetId), { openWalletSheet(2) }, Modifier.weight(1f))
                     }
                 }
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SelectionControl("钱包", ledger.walletLabel(walletId), { walletSheet = 1 }, Modifier.weight(1f))
+                    SelectionControl("钱包", ledger.walletLabel(walletId), { openWalletSheet(1) }, Modifier.weight(1f))
                     val current = remember(ledger, categoryId) { ledger.categories.firstOrNull { it.id == categoryId } }
                     SelectionControl("分类", current?.let { ledger.categoryLabel(it.id) } ?: "请选择",
-                        { categorySheet = true }, Modifier.weight(1f), enabled = wallet != null,
+                        { clearFormInputFocus(); categorySheet = true }, Modifier.weight(1f), enabled = wallet != null,
                         icon = current?.let { categoryGlyph(it.icon) })
                 }
             }
