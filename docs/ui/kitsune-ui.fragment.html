@@ -402,6 +402,8 @@
     const blankLedgerFilters=()=>({types:null,categoryNames:null,note:''});
     state.ledgerFilters=blankLedgerFilters();state.ledgerFilterDraft=null;
     state.githubDemo={backedUp:false,review:null,scenario:'normal',wifi:false,draftWifi:false,editing:false,uploading:false};
+    state.localBackupDemo={scenario:'normal',restoreOpen:false};
+    state.csvDemo={kind:'MEALS',guideOpen:false,previewOpen:false,errors:0,additions:3,duplicates:1};
     const demoMealMonth=demoToday.slice(0,7);
     function mealMonthDates(month){
       const from=month+'-01',end=new Date(from+'T00:00:00Z');
@@ -931,13 +933,98 @@
         <button type="button" class="ks-primary ks-full cursor-interaction" data-action="save-wallet">保存</button>
       </section><p class="ks-footnote">交互预览 · 示例数据</p>`;
     }
-    function pageCsvMapping(){
-      const wallet=wallets.find(w=>w.id===state.csvWallet);
+    const localBackupScenarios={
+      normal:['自动备份正常','Documents/KitsuneBackup'],
+      checking:['正在检查备份完整性','Documents/KitsuneBackup'],
+      failed:['无法访问备份目录，请检查目录是否可用或重试','Documents/KitsuneBackup'],
+      reauth:['备份目录授权已失效，请重新授权','Documents/KitsuneBackup'],
+      unconfigured:['未配置',''],
+    };
+    const localBackupCandidates=[
+      {time:'2026-11-18 09:30:15 (+08:00)',size:'18.4 KB'},
+      {time:'2026-11-17 21:12:04 (+08:00)',size:'17.9 KB'},
+    ];
+    function pageLocalBackup(){
+      const demo=state.localBackupDemo,sc=localBackupScenarios[demo.scenario];
+      const configured=demo.scenario!=='unconfigured',reauth=demo.scenario==='reauth',failed=demo.scenario==='failed';
       return `<div class="ks-form">
-        ${section('CSV 映射示例')}
-        ${selectionControl('csv-method','映射 外送',state.csvMethod)}
-        ${selectionControl('csv-wallet','映射 随身账户 · CNY',wallet?.name)}
+        ${section('自动备份')}
+        <section class="ks-money-card ks-form">
+          <div role="status">
+            <h3 class="ks-backup-status" ${failed||reauth?'style="color:var(--ks-danger)"':''}>${sc[0]}</h3>
+            ${configured?'<p class="ks-note">上次成功 · 2026-11-18 09:30:15 (+08:00)</p>':''}
+            ${configured?`<p class="ks-note">备份目录 · ${escapeText(sc[1])}</p>`:'<p class="ks-note">授权本地目录后，数据变更会自动备份并在进入页面时校验完整性。</p>'}
+          </div>
+          ${!configured?'<button type="button" class="ks-primary ks-full cursor-interaction" data-local-backup-action="configure">设置目录</button>'
+            :reauth?'<button type="button" class="ks-primary ks-full cursor-interaction" data-local-backup-action="configure">重新授权目录</button>'
+            :failed?'<div class="ks-choices"><button type="button" class="ks-primary cursor-interaction" style="flex:1" data-local-backup-action="retry">重试</button><button type="button" class="ks-choice cursor-interaction" style="flex:1" data-local-backup-action="configure">更改目录</button></div>'
+            :'<button type="button" class="ks-choice ks-full cursor-interaction" data-local-backup-action="configure">更改目录</button>'}
+        </section>
+        ${section('备份与恢复')}
+        <div class="ks-settings">
+          <button type="button" class="ks-setting ks-setting-link cursor-interaction" data-local-backup-action="manual">${icon('files')}<span>手动备份<small class="ks-note" style="display:block">导出完整 JSON 到自选位置，不参与自动清理</small></span>${icon('chevron-right')}</button>
+          <button type="button" class="ks-setting ks-setting-link cursor-interaction" data-local-backup-action="open-restore">${icon('undo-2')}<span>恢复备份<small class="ks-note" style="display:block">从自动备份候选或本地 JSON 文件恢复</small></span>${icon('chevron-right')}</button>
+        </div>
+        <p class="ks-note">完整备份包含所有业务数据和外观。文件为可读 JSON，不含凭据。</p>
+        <label class="ks-footnote">交互预览 · 自动备份状态
+          <select data-local-backup-scenario aria-label="本地自动备份示例状态">
+            ${[['normal','自动备份正常'],['checking','正在检查完整性'],['failed','目录暂时无法访问'],['reauth','目录授权异常'],['unconfigured','未配置目录']].map(([v,l])=>`<option value="${v}" ${demo.scenario===v?'selected':''}>${l}</option>`).join('')}
+          </select>
+        </label>
       </div>`;
+    }
+    function localRestoreDialog(){
+      const demo=state.localBackupDemo,ok=demo.scenario==='normal'||demo.scenario==='checking';
+      const body=demo.scenario==='reauth'?'<p class="ks-note">自动备份目录授权异常，无法读取目录中的备份。仍可选择其他本地备份文件。</p>'
+        :demo.scenario==='unconfigured'?'<p class="ks-note">尚未配置自动备份目录，可直接选择本地备份文件。</p>'
+        :demo.scenario==='failed'?'<p class="ks-error">无法读取已授权目录中的自动备份</p>'
+        :`<p class="ks-note">已授权目录中的自动备份（按时间倒序）</p><div class="ks-form">${localBackupCandidates.map(c=>`<button type="button" class="ks-choice ks-full cursor-interaction" style="justify-content:space-between" data-local-backup-action="pick-candidate"><span><strong>${c.time}</strong><small class="ks-note" style="display:block;text-align:left">${c.size}</small></span>${icon('chevron-right')}</button>`).join('')}</div>`;
+      return `<div class="ks-modal-overlay ks-delete-overlay"><section class="ks-delete-sheet" role="alertdialog" aria-modal="true" aria-label="恢复备份">
+        <h3>恢复备份</h3>
+        ${body}
+        <button type="button" class="ks-choice ks-full cursor-interaction" data-local-backup-action="pick-file">${icon('files')}选择其他备份文件</button>
+        <div class="ks-period-actions"><button type="button" class="ks-text-btn cursor-interaction" data-local-backup-action="close-restore">取消</button></div>
+      </section></div>`;
+    }
+    function pageCsvTransfer(){
+      const demo=state.csvDemo,meals=demo.kind==='MEALS',label=meals?'用餐':'记账';
+      const guide=meals
+        ?`<p class="ks-note">表头：id, date, meal_slot, planned_at_home, meal_method, preparation_categories, dishes, note</p><p class="ks-note">日期：YYYY-MM-DD；餐次：BREAKFAST / LUNCH / DINNER；计划在家：true / false（必填）。</p>`
+        :`<p class="ks-note">表头：id, date, time, type, wallet, currency, amount, category, to_wallet, to_currency, to_amount, original_expense_id, note</p><p class="ks-note">日期：YYYY-MM-DD；时间：24 小时制 HH:mm（必填）；类型：INCOME / EXPENSE / TRANSFER / REFUND。</p>`;
+      return `<div class="ks-tabs" role="tablist" aria-label="CSV 类型">
+        ${[['MEALS','用餐'],['LEDGER','记账']].map(([v,l])=>`<button type="button" role="tab" class="cursor-interaction" data-csv-kind="${v}" aria-selected="${demo.kind===v}">${l}</button>`).join('')}
+      </div>
+      <div class="ks-form">
+        ${section('导入')}
+        <section class="ks-money-card ks-form">
+          <button type="button" class="ks-primary ks-full cursor-interaction" data-csv-action="preview">选择 CSV 文件</button>
+          <button type="button" class="ks-choice ks-full cursor-interaction" data-csv-action="template">导出 CSV 模板</button>
+          <button type="button" class="ks-setting ks-setting-link cursor-interaction" data-csv-action="toggle-guide"><span>CSV 格式说明</span><small class="ks-note">${demo.guideOpen?'收起':'展开'}</small>${icon('chevron-down')}</button>
+          ${demo.guideOpen?`<div class="ks-form">${guide}</div>`:''}
+        </section>
+        ${section('导出')}
+        <section class="ks-money-card ks-form">
+          <p class="ks-note">导出全部${label}记录为 UTF-8 CSV 文件，保留稳定记录 ID。</p>
+          <button type="button" class="ks-choice ks-full cursor-interaction" data-csv-action="export">导出全部${label}记录</button>
+        </section>
+      </div>`;
+    }
+    function csvPreviewDialog(){
+      const demo=state.csvDemo,meals=demo.kind==='MEALS',wallet=wallets.find(w=>w.id===state.csvWallet);
+      const canCommit=demo.additions>0&&demo.errors===0;
+      return `<div class="ks-modal-overlay ks-delete-overlay"><section class="ks-delete-sheet" role="alertdialog" aria-modal="true" aria-label="${meals?'用餐':'记账'} CSV 导入预览">
+        <h3>${meals?'用餐':'记账'} CSV 导入预览</h3>
+        <div class="ks-choices">
+          <div class="ks-money-card" style="flex:1;text-align:center;padding:8px"><span class="ks-note">新增</span><strong style="display:block">${demo.additions}</strong></div>
+          <div class="ks-money-card" style="flex:1;text-align:center;padding:8px"><span class="ks-note">重复</span><strong style="display:block">${demo.duplicates}</strong></div>
+          <div class="ks-money-card" style="flex:1;text-align:center;padding:8px"><span class="ks-note">错误</span><strong style="display:block;${demo.errors?'color:var(--ks-danger)':''}">${demo.errors}</strong></div>
+        </div>
+        ${meals?selectionControl('csv-method','映射 外送',state.csvMethod):selectionControl('csv-wallet','映射 随身账户 · CNY',wallet?.name)}
+        <div class="ks-period-actions">
+          <button type="button" class="ks-text-btn cursor-interaction" data-csv-action="close-preview">取消</button>
+          <button type="button" class="ks-primary cursor-interaction" data-csv-action="commit" ${canCommit?'':'disabled'}>确认导入（${demo.additions} 条）</button>
+        </div>
+      </section></div>`;
     }
     function pageSettings(){
       const item=(glyph,label,attrs='',detail='')=>`<${attrs?'button type="button"':'div'} class="ks-setting ${attrs?'ks-setting-link cursor-interaction':''}" ${attrs}>${icon(glyph)}<span>${label}</span>${detail}${icon('chevron-right')}</${attrs?'button':'div'}>`;
@@ -949,10 +1036,10 @@
       </div>
       ${section('个性化')}<div class="ks-settings">${item('palette','外观与调色板','data-action="open-appearance"')}</div>
       ${section('数据与备份')}<div class="ks-settings">
-        ${item('files','导入与导出','data-action="open-csv-mapping"')}
-        ${item('hard-drive','本地文件夹备份')}
+        ${item('hard-drive','本地备份与恢复','data-action="open-local-backup"')}
         ${item('cloud','GitHub 备份','data-github-action="open"',githubPause()
           ? '<small class="ks-backup-warning"><span aria-hidden="true">⚠</span> 自动备份已暂停</small>' : '')}
+        ${item('files','CSV 导入与导出','data-action="open-csv-transfer"')}
       </div>`;
     }
     function pageAppearance(){
@@ -1467,7 +1554,7 @@
     const discard=group=>()=>group?.remove();
     const pageNode=()=>phone.querySelector(':scope > .ks-page-motion');
     const modalNode=()=>phone.querySelector(':scope > .ks-modal-overlay');
-    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.singleSelection?'single-selection':state.walletPickerOpen?'wallet':state.periodDraft?'period':state.ledgerFilterDraft?'ledger-filters':state.githubDemo.review?'github-review':state.mealCalendar?'date-calendar':state.entryTimeDraft?'entry-time':state.addingEntryCategory?'entry-category':state.addingMealOption?'meal-option':null;
+    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.singleSelection?'single-selection':state.walletPickerOpen?'wallet':state.periodDraft?'period':state.ledgerFilterDraft?'ledger-filters':state.githubDemo.review?'github-review':state.localBackupDemo.restoreOpen?'local-restore':state.csvDemo.previewOpen?'csv-preview':state.mealCalendar?'date-calendar':state.entryTimeDraft?'entry-time':state.addingEntryCategory?'entry-category':state.addingMealOption?'meal-option':null;
     const primary=page=>navs.some(n=>n[0]===page);
     const localKey=()=>state.page==='meals'?JSON.stringify([state.mealTab,state.date,state.mealStatsFilters,state.mealListMode,state.mealFilters]):state.page==='ledger'?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds,state.ledgerFilters]):'';
     const localNodes=()=>{
@@ -1592,10 +1679,10 @@
       const sourceRect=entrance;entrance=null;if(leavingPrimary&&!sourceRect)recordOrigin=null;
       rendering=true;
       const form=!primary(state.page);
-      const titles={home:'日常记录',meals:'用餐',ledger:'记账',settings:'设置',appearance:'外观与调色板','csv-mapping':'导入与导出','wallet-edit':'编辑钱包', 'meal-form':`${state.editing?'编辑':'记录'}${slots[state.slot]}`,'meal-filter':'筛选用餐',entry:'记一笔','entry-detail':'账目详情','category-manager':'分类管理','category-owned':'钱包专属分类','category-detail':state.editingFinancialCategoryId?'编辑分类':'新增分类',github:'GitHub 备份'};
+      const titles={home:'日常记录',meals:'用餐',ledger:'记账',settings:'设置',appearance:'外观与调色板','local-backup':'本地备份与恢复','csv-transfer':'CSV 导入与导出','wallet-edit':'编辑钱包', 'meal-form':`${state.editing?'编辑':'记录'}${slots[state.slot]}`,'meal-filter':'筛选用餐',entry:'记一笔','entry-detail':'账目详情','category-manager':'分类管理','category-owned':'钱包专属分类','category-detail':state.editingFinancialCategoryId?'编辑分类':'新增分类',github:'GitHub 备份'};
       const heading=`<h2 class="ks-title">${titles[state.page]}</h2>`;
       const header=state.page==='home'?`<div class="ks-home-brand"><span class="ks-app-mark"><img src="data:image/webp;base64,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" alt=""></span><div>${heading}<p class="ks-sub">11 月 17 日 · 星期二</p></div></div>`:form?`<button type="button" class="ks-icon-btn cursor-interaction" data-action="back" aria-label="返回">${icon('arrow-left')}</button>${heading}`:heading;
-      const pages={home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,appearance:pageAppearance,'csv-mapping':pageCsvMapping,'wallet-edit':pageWalletEdit,'meal-form':pageMealForm,'meal-filter':pageMealFilter,entry:pageEntry,'entry-detail':pageEntryDetail,'category-manager':pageCategoryManager,'category-owned':pageOwnedCategories,'category-detail':pageCategoryDetail,github:pageGitHubBackup};
+      const pages={home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,appearance:pageAppearance,'local-backup':pageLocalBackup,'csv-transfer':pageCsvTransfer,'wallet-edit':pageWalletEdit,'meal-form':pageMealForm,'meal-filter':pageMealFilter,entry:pageEntry,'entry-detail':pageEntryDetail,'category-manager':pageCategoryManager,'category-owned':pageOwnedCategories,'category-detail':pageCategoryDetail,github:pageGitHubBackup};
       const ledger=state.page==='ledger',fab=ledger&&state.ledgerTab==='流水';
       const settingsScreen=state.page==='settings'||state.page==='github'?`ks-${state.page}-screen`:'';
       const top=`<header class="ks-top ${form?'ks-subpage':''}">${header}</header>`;
@@ -1617,6 +1704,16 @@
         phone.insertAdjacentHTML('beforeend',githubDemoDialog());
         for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
         phone.querySelector('[data-github-action=cancel]').focus({preventScroll:true});
+      }
+      if(state.localBackupDemo.restoreOpen){
+        phone.insertAdjacentHTML('beforeend',localRestoreDialog());
+        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
+        phone.querySelector('[data-local-backup-action=close-restore]').focus({preventScroll:true});
+      }
+      if(state.csvDemo.previewOpen&&!state.singleSelection){
+        phone.insertAdjacentHTML('beforeend',csvPreviewDialog());
+        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
+        phone.querySelector('[data-csv-action=close-preview]').focus({preventScroll:true});
       }
       if(state.mealCalendar){
         phone.insertAdjacentHTML('beforeend',mealCalendarDialog());
@@ -1926,7 +2023,29 @@
       if(b.dataset.selectOpen){state.singleSelection=b.dataset.selectOpen;render();return;}
       if(b.dataset.selectValue!==undefined){closeSingleSelection(b.dataset.selectValue);return;}
       if(b.dataset.action==='add-entry-category'){state.singleSelection=null;state.addingEntryCategory=true;render();return;}
-      if(b.dataset.action==='open-csv-mapping'){state.page='csv-mapping';render();return;}
+      if(b.dataset.action==='open-local-backup'){state.page='local-backup';render();return;}
+      if(b.dataset.action==='open-csv-transfer'){state.page='csv-transfer';render();return;}
+      if(b.dataset.localBackupAction){
+        const action=b.dataset.localBackupAction,demo=state.localBackupDemo;
+        if(action==='configure'){demo.scenario='normal';state.notice='备份目录已更新';}
+        else if(action==='retry'){demo.scenario='normal';state.notice='自动备份检查通过';}
+        else if(action==='manual'){state.notice='完整备份已导出并校验（示意）';}
+        else if(action==='open-restore'){demo.restoreOpen=true;}
+        else if(action==='close-restore'){demo.restoreOpen=false;}
+        else if(action==='pick-candidate'||action==='pick-file'){demo.restoreOpen=false;state.notice='已进入完整恢复预览（示意）';}
+        render();return;
+      }
+      if(b.dataset.csvKind){state.csvDemo.kind=b.dataset.csvKind;render();return;}
+      if(b.dataset.csvAction){
+        const action=b.dataset.csvAction,demo=state.csvDemo;
+        if(action==='toggle-guide'){demo.guideOpen=!demo.guideOpen;}
+        else if(action==='preview'){demo.previewOpen=true;}
+        else if(action==='close-preview'){demo.previewOpen=false;}
+        else if(action==='commit'){demo.previewOpen=false;state.notice=`CSV 导入已提交（新增 ${demo.additions} 条）`;}
+        else if(action==='template'){state.notice=`${demo.kind==='MEALS'?'用餐':'记账'} CSV 模板已导出（示意）`;}
+        else if(action==='export'){state.notice=`${demo.kind==='MEALS'?'用餐':'记账'} CSV 已导出（示意）`;}
+        render();return;
+      }
       if(b.dataset.action==='cancel-entry-category'){closeEntryCategory();return;}
       if(b.dataset.action==='open-entry-time'){
         const [hour,minute]=state.entryDraft.dateTime.slice(-5).split(':');
@@ -2153,7 +2272,7 @@
         });
         return;
       }
-      if(b.dataset.action==='back'){state.page=state.page==='entry'?state.entryReturn:state.page==='category-detail'?state.categoryDetailReturn:state.page==='category-owned'?'category-manager':state.page==='category-manager'?state.categoryReturn:['appearance','github','csv-mapping'].includes(state.page)?'settings':state.page==='meal-filter'?'meals':state.page==='meal-form'?state.mealReturn:'ledger';render();return;}
+      if(b.dataset.action==='back'){state.page=state.page==='entry'?state.entryReturn:state.page==='category-detail'?state.categoryDetailReturn:state.page==='category-owned'?'category-manager':state.page==='category-manager'?state.categoryReturn:['appearance','github','local-backup','csv-transfer'].includes(state.page)?'settings':state.page==='meal-filter'?'meals':state.page==='meal-form'?state.mealReturn:'ledger';render();return;}
       if(b.dataset.addMealOption){state.addingMealOption=b.dataset.addMealOption;render();return;}
       if(b.dataset.action==='cancel-meal-option'){closeMealOption();return;}
     });
@@ -2200,7 +2319,9 @@
         event.preventDefault();
         if(state.githubDemo.review){
           state.githubDemo.review=null;render();phone.querySelector('[data-github-action=restore-preview]')?.focus({preventScroll:true});
-        }else if(state.addingMealOption)closeMealOption();
+        }else if(state.localBackupDemo.restoreOpen){state.localBackupDemo.restoreOpen=false;render();}
+        else if(state.csvDemo.previewOpen&&!state.singleSelection){state.csvDemo.previewOpen=false;render();}
+        else if(state.addingMealOption)closeMealOption();
         else if(state.mealCalendar)closeMealCalendar(false);
         else if(state.entryTimeDraft)closeEntryTime(false);
         else if(state.addingEntryCategory)closeEntryCategory();
@@ -2238,6 +2359,9 @@
       if(e.matches('[data-github-scenario]')){
         state.githubDemo.scenario=e.value;state.githubDemo.editing=false;state.githubDemo.uploading=false;
         state.githubDemo.review=githubPause()?'notice':null;render();return;
+      }
+      if(e.matches('[data-local-backup-scenario]')){
+        state.localBackupDemo.scenario=e.value;state.localBackupDemo.restoreOpen=false;render();return;
       }
       if(e.matches('[data-category-mode]')){const wallet=wallets.find(w=>w.id===state.categoryWalletId);if(wallet){wallet[state.financialScope==='INCOME'?'incomeCategoryMode':'expenseCategoryMode']=e.value;state.editingFinancialCategoryId=null;render();}return;}
       if(e.matches('[data-wallet-option]')){

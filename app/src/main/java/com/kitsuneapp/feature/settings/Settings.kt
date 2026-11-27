@@ -61,13 +61,13 @@ fun SettingsPage(githubPaused: Boolean, navigate: (String) -> Unit) {
             Section("数据与备份")
             Paper(padding = 0) {
                 Column(Modifier.padding(horizontal = 16.dp)) {
-                    Setting("导入与导出", designIcon(R.drawable.ks_files)) { navigate("data") }
-                    HorizontalDivider()
-                    Setting("本地文件夹备份", designIcon(R.drawable.ks_hard_drive)) { navigate("folder") }
+                    Setting("本地备份与恢复", designIcon(R.drawable.ks_hard_drive)) { navigate("localBackup") }
                     HorizontalDivider()
                     Setting("GitHub 备份", designIcon(R.drawable.ks_cloud), warning = GITHUB_PAUSED.takeIf { githubPaused }) {
                         navigate("github")
                     }
+                    HorizontalDivider()
+                    Setting("CSV 导入与导出", designIcon(R.drawable.ks_files)) { navigate("csv") }
                 }
             }
         }

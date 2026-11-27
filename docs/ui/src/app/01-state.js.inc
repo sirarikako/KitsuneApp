@@ -30,6 +30,8 @@
     const blankLedgerFilters=()=>({types:null,categoryNames:null,note:''});
     state.ledgerFilters=blankLedgerFilters();state.ledgerFilterDraft=null;
     state.githubDemo={backedUp:false,review:null,scenario:'normal',wifi:false,draftWifi:false,editing:false,uploading:false};
+    state.localBackupDemo={scenario:'normal',restoreOpen:false};
+    state.csvDemo={kind:'MEALS',guideOpen:false,previewOpen:false,errors:0,additions:3,duplicates:1};
     const demoMealMonth=demoToday.slice(0,7);
     function mealMonthDates(month){
       const from=month+'-01',end=new Date(from+'T00:00:00Z');

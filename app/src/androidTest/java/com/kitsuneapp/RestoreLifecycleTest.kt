@@ -24,7 +24,7 @@ import com.kitsuneapp.data.StagedSnapshot
 import com.kitsuneapp.data.ThemeMode
 import com.kitsuneapp.data.ThemePreferences
 import com.kitsuneapp.data.newId
-import com.kitsuneapp.feature.settings.DataManagementPage
+import com.kitsuneapp.feature.settings.LocalBackupPage
 import com.kitsuneapp.ui.KitsuneTheme
 import java.io.File
 import kotlinx.coroutines.runBlocking
@@ -142,7 +142,7 @@ class RestoreLifecycleTest {
             activity.setContent {
                 val state by retained.state.collectAsState()
                 state.records?.let { records ->
-                    KitsuneTheme(records.theme) { DataManagementPage(records, retained) {} }
+                    KitsuneTheme(records.theme) { LocalBackupPage(records, retained) {} }
                 }
             }
         }

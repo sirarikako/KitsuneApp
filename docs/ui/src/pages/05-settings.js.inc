@@ -1,10 +1,95 @@
-    function pageCsvMapping(){
-      const wallet=wallets.find(w=>w.id===state.csvWallet);
+    const localBackupScenarios={
+      normal:['自动备份正常','Documents/KitsuneBackup'],
+      checking:['正在检查备份完整性','Documents/KitsuneBackup'],
+      failed:['无法访问备份目录，请检查目录是否可用或重试','Documents/KitsuneBackup'],
+      reauth:['备份目录授权已失效，请重新授权','Documents/KitsuneBackup'],
+      unconfigured:['未配置',''],
+    };
+    const localBackupCandidates=[
+      {time:'2026-11-18 09:30:15 (+08:00)',size:'18.4 KB'},
+      {time:'2026-11-17 21:12:04 (+08:00)',size:'17.9 KB'},
+    ];
+    function pageLocalBackup(){
+      const demo=state.localBackupDemo,sc=localBackupScenarios[demo.scenario];
+      const configured=demo.scenario!=='unconfigured',reauth=demo.scenario==='reauth',failed=demo.scenario==='failed';
       return `<div class="ks-form">
-        ${section('CSV 映射示例')}
-        ${selectionControl('csv-method','映射 外送',state.csvMethod)}
-        ${selectionControl('csv-wallet','映射 随身账户 · CNY',wallet?.name)}
+        ${section('自动备份')}
+        <section class="ks-money-card ks-form">
+          <div role="status">
+            <h3 class="ks-backup-status" ${failed||reauth?'style="color:var(--ks-danger)"':''}>${sc[0]}</h3>
+            ${configured?'<p class="ks-note">上次成功 · 2026-11-18 09:30:15 (+08:00)</p>':''}
+            ${configured?`<p class="ks-note">备份目录 · ${escapeText(sc[1])}</p>`:'<p class="ks-note">授权本地目录后，数据变更会自动备份并在进入页面时校验完整性。</p>'}
+          </div>
+          ${!configured?'<button type="button" class="ks-primary ks-full cursor-interaction" data-local-backup-action="configure">设置目录</button>'
+            :reauth?'<button type="button" class="ks-primary ks-full cursor-interaction" data-local-backup-action="configure">重新授权目录</button>'
+            :failed?'<div class="ks-choices"><button type="button" class="ks-primary cursor-interaction" style="flex:1" data-local-backup-action="retry">重试</button><button type="button" class="ks-choice cursor-interaction" style="flex:1" data-local-backup-action="configure">更改目录</button></div>'
+            :'<button type="button" class="ks-choice ks-full cursor-interaction" data-local-backup-action="configure">更改目录</button>'}
+        </section>
+        ${section('备份与恢复')}
+        <div class="ks-settings">
+          <button type="button" class="ks-setting ks-setting-link cursor-interaction" data-local-backup-action="manual">${icon('files')}<span>手动备份<small class="ks-note" style="display:block">导出完整 JSON 到自选位置，不参与自动清理</small></span>${icon('chevron-right')}</button>
+          <button type="button" class="ks-setting ks-setting-link cursor-interaction" data-local-backup-action="open-restore">${icon('undo-2')}<span>恢复备份<small class="ks-note" style="display:block">从自动备份候选或本地 JSON 文件恢复</small></span>${icon('chevron-right')}</button>
+        </div>
+        <p class="ks-note">完整备份包含所有业务数据和外观。文件为可读 JSON，不含凭据。</p>
+        <label class="ks-footnote">交互预览 · 自动备份状态
+          <select data-local-backup-scenario aria-label="本地自动备份示例状态">
+            ${[['normal','自动备份正常'],['checking','正在检查完整性'],['failed','目录暂时无法访问'],['reauth','目录授权异常'],['unconfigured','未配置目录']].map(([v,l])=>`<option value="${v}" ${demo.scenario===v?'selected':''}>${l}</option>`).join('')}
+          </select>
+        </label>
       </div>`;
+    }
+    function localRestoreDialog(){
+      const demo=state.localBackupDemo,ok=demo.scenario==='normal'||demo.scenario==='checking';
+      const body=demo.scenario==='reauth'?'<p class="ks-note">自动备份目录授权异常，无法读取目录中的备份。仍可选择其他本地备份文件。</p>'
+        :demo.scenario==='unconfigured'?'<p class="ks-note">尚未配置自动备份目录，可直接选择本地备份文件。</p>'
+        :demo.scenario==='failed'?'<p class="ks-error">无法读取已授权目录中的自动备份</p>'
+        :`<p class="ks-note">已授权目录中的自动备份（按时间倒序）</p><div class="ks-form">${localBackupCandidates.map(c=>`<button type="button" class="ks-choice ks-full cursor-interaction" style="justify-content:space-between" data-local-backup-action="pick-candidate"><span><strong>${c.time}</strong><small class="ks-note" style="display:block;text-align:left">${c.size}</small></span>${icon('chevron-right')}</button>`).join('')}</div>`;
+      return `<div class="ks-modal-overlay ks-delete-overlay"><section class="ks-delete-sheet" role="alertdialog" aria-modal="true" aria-label="恢复备份">
+        <h3>恢复备份</h3>
+        ${body}
+        <button type="button" class="ks-choice ks-full cursor-interaction" data-local-backup-action="pick-file">${icon('files')}选择其他备份文件</button>
+        <div class="ks-period-actions"><button type="button" class="ks-text-btn cursor-interaction" data-local-backup-action="close-restore">取消</button></div>
+      </section></div>`;
+    }
+    function pageCsvTransfer(){
+      const demo=state.csvDemo,meals=demo.kind==='MEALS',label=meals?'用餐':'记账';
+      const guide=meals
+        ?`<p class="ks-note">表头：id, date, meal_slot, planned_at_home, meal_method, preparation_categories, dishes, note</p><p class="ks-note">日期：YYYY-MM-DD；餐次：BREAKFAST / LUNCH / DINNER；计划在家：true / false（必填）。</p>`
+        :`<p class="ks-note">表头：id, date, time, type, wallet, currency, amount, category, to_wallet, to_currency, to_amount, original_expense_id, note</p><p class="ks-note">日期：YYYY-MM-DD；时间：24 小时制 HH:mm（必填）；类型：INCOME / EXPENSE / TRANSFER / REFUND。</p>`;
+      return `<div class="ks-tabs" role="tablist" aria-label="CSV 类型">
+        ${[['MEALS','用餐'],['LEDGER','记账']].map(([v,l])=>`<button type="button" role="tab" class="cursor-interaction" data-csv-kind="${v}" aria-selected="${demo.kind===v}">${l}</button>`).join('')}
+      </div>
+      <div class="ks-form">
+        ${section('导入')}
+        <section class="ks-money-card ks-form">
+          <button type="button" class="ks-primary ks-full cursor-interaction" data-csv-action="preview">选择 CSV 文件</button>
+          <button type="button" class="ks-choice ks-full cursor-interaction" data-csv-action="template">导出 CSV 模板</button>
+          <button type="button" class="ks-setting ks-setting-link cursor-interaction" data-csv-action="toggle-guide"><span>CSV 格式说明</span><small class="ks-note">${demo.guideOpen?'收起':'展开'}</small>${icon('chevron-down')}</button>
+          ${demo.guideOpen?`<div class="ks-form">${guide}</div>`:''}
+        </section>
+        ${section('导出')}
+        <section class="ks-money-card ks-form">
+          <p class="ks-note">导出全部${label}记录为 UTF-8 CSV 文件，保留稳定记录 ID。</p>
+          <button type="button" class="ks-choice ks-full cursor-interaction" data-csv-action="export">导出全部${label}记录</button>
+        </section>
+      </div>`;
+    }
+    function csvPreviewDialog(){
+      const demo=state.csvDemo,meals=demo.kind==='MEALS',wallet=wallets.find(w=>w.id===state.csvWallet);
+      const canCommit=demo.additions>0&&demo.errors===0;
+      return `<div class="ks-modal-overlay ks-delete-overlay"><section class="ks-delete-sheet" role="alertdialog" aria-modal="true" aria-label="${meals?'用餐':'记账'} CSV 导入预览">
+        <h3>${meals?'用餐':'记账'} CSV 导入预览</h3>
+        <div class="ks-choices">
+          <div class="ks-money-card" style="flex:1;text-align:center;padding:8px"><span class="ks-note">新增</span><strong style="display:block">${demo.additions}</strong></div>
+          <div class="ks-money-card" style="flex:1;text-align:center;padding:8px"><span class="ks-note">重复</span><strong style="display:block">${demo.duplicates}</strong></div>
+          <div class="ks-money-card" style="flex:1;text-align:center;padding:8px"><span class="ks-note">错误</span><strong style="display:block;${demo.errors?'color:var(--ks-danger)':''}">${demo.errors}</strong></div>
+        </div>
+        ${meals?selectionControl('csv-method','映射 外送',state.csvMethod):selectionControl('csv-wallet','映射 随身账户 · CNY',wallet?.name)}
+        <div class="ks-period-actions">
+          <button type="button" class="ks-text-btn cursor-interaction" data-csv-action="close-preview">取消</button>
+          <button type="button" class="ks-primary cursor-interaction" data-csv-action="commit" ${canCommit?'':'disabled'}>确认导入（${demo.additions} 条）</button>
+        </div>
+      </section></div>`;
     }
     function pageSettings(){
       const item=(glyph,label,attrs='',detail='')=>`<${attrs?'button type="button"':'div'} class="ks-setting ${attrs?'ks-setting-link cursor-interaction':''}" ${attrs}>${icon(glyph)}<span>${label}</span>${detail}${icon('chevron-right')}</${attrs?'button':'div'}>`;
@@ -16,10 +101,10 @@
       </div>
       ${section('个性化')}<div class="ks-settings">${item('palette','外观与调色板','data-action="open-appearance"')}</div>
       ${section('数据与备份')}<div class="ks-settings">
-        ${item('files','导入与导出','data-action="open-csv-mapping"')}
-        ${item('hard-drive','本地文件夹备份')}
+        ${item('hard-drive','本地备份与恢复','data-action="open-local-backup"')}
         ${item('cloud','GitHub 备份','data-github-action="open"',githubPause()
           ? '<small class="ks-backup-warning"><span aria-hidden="true">⚠</span> 自动备份已暂停</small>' : '')}
+        ${item('files','CSV 导入与导出','data-action="open-csv-transfer"')}
       </div>`;
     }
     function pageAppearance(){
