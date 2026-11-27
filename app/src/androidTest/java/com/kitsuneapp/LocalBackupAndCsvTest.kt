@@ -1,5 +1,7 @@
 package com.kitsuneapp
 
+import androidx.activity.compose.setContent
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -134,6 +136,73 @@ class CsvPreviewDialogTest {
             compose.onNodeWithText("确认导入（3 条）").assertIsEnabled()
         } finally {
             database.close()
+        }
+    }
+
+    @Test
+    fun failedCheckWaitingForBackgroundRetryShowsErrorAndEnabledRetryButton() {
+        val base = InstrumentationRegistry.getInstrumentation().targetContext
+        val installation = newId()
+        val context = object : android.content.ContextWrapper(base) {
+            override fun getSharedPreferences(name: String, mode: Int) =
+                base.getSharedPreferences("$name-$installation", mode)
+        }
+        val database = Room.inMemoryDatabaseBuilder(context, KitsuneDatabase::class.java).build()
+        val repository = Repository(database, installation)
+        val state = runBlocking {
+            repository.initialize(true)
+            repository.ownedState()
+        }
+        val uri = "content://com.kitsuneapp.test.retry/tree/primary%3ADocuments%2FKitsuneBackup"
+        val binding = java.security.MessageDigest.getInstance("SHA-256").digest(uri.encodeToByteArray())
+            .joinToString("") { "%02x".format(it.toInt() and 255) }
+        val workName = "kitsune-folder-$installation-${state.generation}-$binding"
+        val manager = androidx.work.WorkManager.getInstance(base)
+        check(context.getSharedPreferences("backup-targets", android.content.Context.MODE_PRIVATE).edit()
+            .putString(
+                "folder",
+                com.google.gson.Gson().toJson(
+                    com.kitsuneapp.backup.FolderState(
+                        installation = installation,
+                        uri = uri,
+                        revision = state.revision,
+                        generation = state.generation,
+                        error = "备份检查或写入超时，请重试",
+                        failedRevision = state.revision,
+                    ),
+                ),
+            ).commit())
+        val backup = com.kitsuneapp.backup.BackupCoordinator(context, repository)
+        try {
+            // Simulate a WorkManager background retry waiting in backoff.
+            manager.enqueueUniqueWork(
+                workName,
+                androidx.work.ExistingWorkPolicy.REPLACE,
+                androidx.work.OneTimeWorkRequestBuilder<com.kitsuneapp.backup.FolderWorker>()
+                    .setInitialDelay(10, java.util.concurrent.TimeUnit.MINUTES)
+                    .build(),
+            ).result.get()
+
+            compose.activityRule.scenario.onActivity { activity ->
+                val model = AppViewModel(activity.application) { repository to backup }
+                activity.setContent {
+                    val appState by model.state.collectAsState()
+                    appState.records?.let { records ->
+                        KitsuneTheme(records.theme) {
+                            com.kitsuneapp.feature.settings.LocalBackupPage(records, model) {}
+                        }
+                    }
+                }
+            }
+            compose.waitUntilAtLeastOneExists(hasText("备份检查或写入超时，请重试"), 15_000)
+            compose.onNodeWithText("自动备份正常").assertDoesNotExist()
+            compose.onNodeWithText("正在检查备份完整性").assertDoesNotExist()
+            compose.onNodeWithText("重试").performScrollTo().assertIsDisplayed().assertIsEnabled()
+        } finally {
+            manager.cancelUniqueWork(workName).result.get()
+            database.close()
+            base.deleteSharedPreferences("backup-targets-$installation")
+            base.deleteSharedPreferences("github-target-$installation")
         }
     }
 }

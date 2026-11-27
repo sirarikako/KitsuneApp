@@ -18,6 +18,7 @@ import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -153,14 +154,16 @@ class BackupCoordinator internal constructor(private val context: Context, priva
             val scheduled = manager.getWorkInfosForUniqueWork(name).get()
             val hasPending = scheduled.any { it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.BLOCKED }
             val hasRunning = scheduled.any { it.state == WorkInfo.State.RUNNING }
+            val waitingRetry = scheduled.any { it.state == WorkInfo.State.ENQUEUED && it.runAttemptCount > 0 }
+            val healthy = current && folder.error == null && !folder.authError
             if (hasPending && (!force || hasRunning)) {
-                if ((verify || force) && current && mutableActivity.value == FolderActivity.IDLE) {
+                if ((verify || force) && healthy && !waitingRetry && mutableActivity.value == FolderActivity.IDLE) {
                     mutableActivity.value = FolderActivity.CHECKING
                 }
                 return@withLock
             }
             val policy = if (force && !hasRunning) ExistingWorkPolicy.REPLACE else ExistingWorkPolicy.APPEND_OR_REPLACE
-            val markChecking = (verify || force) && current && mutableActivity.value == FolderActivity.IDLE
+            val markChecking = (verify || force) && healthy && mutableActivity.value == FolderActivity.IDLE
             if (markChecking) mutableActivity.value = FolderActivity.CHECKING
             try {
                 manager.enqueueUniqueWork(name, policy,
@@ -175,6 +178,41 @@ class BackupCoordinator internal constructor(private val context: Context, priva
             }
         }
     }
+
+    internal suspend fun runFolderWithTimeout(
+        installation: String?,
+        generation: Long,
+        binding: String?,
+        timeoutMs: Long = 8 * 60 * 1000L,
+    ): Boolean {
+        val completed = withTimeoutOrNull(timeoutMs) {
+            runFolder(installation, generation, binding)
+        }
+        if (completed != null) return completed
+        recordFolderTimeout(installation, generation, binding)
+        return false
+    }
+
+    private suspend fun recordFolderTimeout(installation: String?, generation: Long, binding: String?) =
+        withContext(NonCancellable + Dispatchers.IO) {
+            publication.withLock {
+                try {
+                    val state = repository.ownedState()
+                    val target = directory.value ?: return@withLock
+                    if (installation != state.installationId || generation != state.generation || binding != target.uri.shaKey())
+                        return@withLock
+                    if (target.installation != state.installationId ||
+                        target.generation == state.generation && target.revision > state.revision) return@withLock
+                    persistFolder(target.copy(
+                        error = "备份检查或写入超时，请重试",
+                        failedRevision = state.revision,
+                        authError = false,
+                    ))
+                } finally {
+                    mutableActivity.value = FolderActivity.IDLE
+                }
+            }
+        }
 
     internal suspend fun runFolder(installation: String?, generation: Long, binding: String?): Boolean = withContext(Dispatchers.IO) {
         publication.withLock {
@@ -191,7 +229,10 @@ class BackupCoordinator internal constructor(private val context: Context, priva
                         mutableActivity.value = FolderActivity.CHECKING
                         when (finishCleanup(folder, target)) {
                             FolderCleanup.COMPLETE -> return@withLock true
-                            FolderCleanup.RETRY -> return@withLock false
+                            FolderCleanup.RETRY -> {
+                                if (!target.cleanupPending) persistFolder(target.copy(cleanupPending = true))
+                                return@withLock false
+                            }
                             FolderCleanup.MISSING_PUBLICATION -> Unit
                         }
                     }
@@ -330,8 +371,11 @@ class FolderWorker(context: Context, parameters: WorkerParameters) : CoroutineWo
         } catch (error: OwnershipException) {
             return Result.success()
         }
-        val done = withTimeoutOrNull(8 * 60 * 1000L) { backup.runFolder(inputData.getString("installation"),
-            inputData.getLong("generation", -1L), inputData.getString("binding")) } == true
+        val done = backup.runFolderWithTimeout(
+            inputData.getString("installation"),
+            inputData.getLong("generation", -1L),
+            inputData.getString("binding"),
+        )
         return if (done) {
             backup.changed()
             Result.success()
