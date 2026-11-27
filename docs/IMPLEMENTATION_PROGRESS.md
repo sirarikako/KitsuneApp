@@ -196,3 +196,10 @@
 - 记录和统计的已应用筛选会移除指向已删除方式或制作分类的条件并同步写回原筛选状态，保留其他有效条件及默认本月统计逻辑，避免恢复旧备份后已解除的条件重新生效；标签、计数与结果保持一致；方式为空显示“未填写”，无法解析的方式显示“已删除的方式”。
 - 用餐数据按日期倒序、同日按早餐、午餐、晚餐读取，修正此前按餐次标识字母排序的问题。
 - 本地 Debug／Release 构建、JVM 测试（新增 `MealFilterTest`）、Debug／Release lint 及仪器测试 APK 构建通过。新增的 Room 和 Compose 设备用例由 CI 的 API 35／36 模拟器运行；本机无 KVM，未在本地运行设备用例。
+
+## 底部弹窗拖动关闭手势统一优化
+
+- 公共组件 `FloatingSheet`（覆盖流水筛选、钱包范围、分类选择、钱包选择、币种选择、用餐方式、CSV 映射与金额计算器）保留顶部小横条与现有布局配色，并将拖动关闭严格限定于顶部小横条及整个标题区；按初始触摸点锁定当次手势性质，中途跨区域不切换行为。
+- 顶部标题区下拉达到阈值（默认 `100dp`，小屏按面板高度适配且不低于 `56dp`）或明显快速下拉（`≥ 800dp/s` 且位移 `≥ 24dp`）时平滑关闭，轻微拖动使用共用缓动自动回弹；内容区滚动（含列表到顶及不可滚动短内容）与底部操作按钮区通过 `BlockSheetNestedScroll` 与垂直拖动拦截完全隔离，不会触发误关闭。
+- 检查 `DesignSheet` 及日期／时间选择弹窗：`DesignSheet` 同步接入内容与底部手势隔离；日期选择（`DateSelectionDialog`／`LedgerPeriodDialog`／`MonthPickerDialog`）与时间选择（`TimeControl`）均为居中弹窗（`Dialog`／`AlertDialog`），无下拉关闭手势。
+- 同步更新 `docs/features/01-common.md`、`docs/features/05-ledger.md`、`docs/testing/ACCEPTANCE.md` 与离线网页预览（headless Chrome 验证通过，无脚本错误）。本地通过 Debug／Release 构建、38 项 JVM 单元测试（含 `SheetGestureTest`）、Debug／Release lint（0 错误）及仪器测试 APK 构建；新增 `BottomSheetGestureTest` Compose 手势回归用例交由 GitHub Actions API 35／36 模拟器及固定签名覆盖安装作业验证。

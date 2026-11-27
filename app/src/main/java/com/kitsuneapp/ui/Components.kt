@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.vectorResource
@@ -410,15 +411,29 @@ internal fun DesignSheet(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
-    ModalBottomSheet(onDismissRequest = dismiss, containerColor = Color.Transparent, scrimColor = Color.Black.copy(alpha = .33f),
-        dragHandle = null, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        Surface(Modifier.fillMaxWidth().padding(9.dp), shape = DialogShape,
-            color = colors.surface, border = BorderStroke(1.dp, colors.outlineVariant)) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                val body = if (footer == null) Modifier else Modifier.weight(1f, fill = false)
-                Column(body.verticalScroll(scroll),
-                    verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
-                footer?.invoke(this)
+    ModalBottomSheet(
+        onDismissRequest = dismiss,
+        containerColor = Color.Transparent,
+        scrimColor = Color.Black.copy(alpha = .33f),
+        dragHandle = null,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        contentWindowInsets = { WindowInsets(0) },
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .nestedScroll(BlockSheetNestedScroll)
+                .blockVerticalSheetDrag()
+                .windowInsetsPadding(BottomSheetDefaults.windowInsets),
+        ) {
+            Surface(Modifier.fillMaxWidth().padding(9.dp), shape = DialogShape,
+                color = colors.surface, border = BorderStroke(1.dp, colors.outlineVariant)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val body = if (footer == null) Modifier else Modifier.weight(1f, fill = false)
+                    Column(body.verticalScroll(scroll),
+                        verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
+                    footer?.invoke(this)
+                }
             }
         }
     }

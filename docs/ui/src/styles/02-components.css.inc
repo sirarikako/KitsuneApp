@@ -43,7 +43,7 @@
   #kitsune-preview .ks-selection-panel{display:flex;flex-direction:column;gap:4px;width:100%;max-height:100%;overflow:hidden;background:var(--ks-card-surface);color:var(--ks-ink);border-radius:var(--ks-dialog-radius);padding:8px 16px 12px}
   #kitsune-preview .ks-selection-handle{display:grid;place-items:center;min-height:12px;touch-action:none}
   #kitsune-preview .ks-selection-handle span{width:32px;height:4px;border-radius:4px;background:var(--ks-line)}
-  #kitsune-preview .ks-selection-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  #kitsune-preview .ks-selection-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;touch-action:none}
   #kitsune-preview .ks-selection-heading h3{font-size:1.286em;font-weight:600;margin:0;line-height:1.33}
   #kitsune-preview .ks-selection-close{display:grid;place-items:center;width:48px;height:48px;flex:none;border:0;border-radius:50%;background:transparent;color:var(--ks-ink)}
   #kitsune-preview .ks-selection-close svg{width:22px;height:22px}
