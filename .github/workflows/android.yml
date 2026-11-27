@@ -1,7 +1,7 @@
 name: Android
 on:
   push:
-    branches: [main, 'feat/**', 'fix/selection-sheet-spacing', 'fix/android-instrumentation-stability', 'fix/bottom-sheet-drag-gesture', 'codex/android-16']
+    branches: [main, 'feat/**', 'fix/selection-sheet-spacing', 'fix/android-instrumentation-stability', 'fix/bottom-sheet-drag-gesture', 'fix/ledger-fab-scroll-forwarding', 'codex/android-16']
   pull_request:
     branches: [main, 'feat/android-full-implementation']
   workflow_dispatch:
@@ -62,6 +62,7 @@ jobs:
       github.ref == 'refs/heads/fix/selection-sheet-spacing' ||
       github.ref == 'refs/heads/fix/android-instrumentation-stability' ||
       github.ref == 'refs/heads/fix/bottom-sheet-drag-gesture' ||
+      github.ref == 'refs/heads/fix/ledger-fab-scroll-forwarding' ||
       github.ref == 'refs/heads/feat/category-icons' ||
       github.ref == 'refs/heads/feat/meal-record-fixes' ||
       github.ref == 'refs/heads/feat/local-backup-csv-ui' ||

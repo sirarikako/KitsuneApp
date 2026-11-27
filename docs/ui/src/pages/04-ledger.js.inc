@@ -65,6 +65,45 @@
         previous=main.scrollTop;
       });
       parts.forEach(part=>observer.observe(part.firstElementChild));
+      if(fab){
+        let drag=null,suppressClick=false;
+        fab.addEventListener('wheel',event=>{
+          if(!event.deltaY)return;
+          event.preventDefault();
+          main.scrollTop+=event.deltaY;
+        },{passive:false});
+        fab.addEventListener('pointerdown',event=>{
+          if(!event.isPrimary||(event.pointerType==='mouse'&&event.button!==0))return;
+          drag={id:event.pointerId,x:event.clientX,y:event.clientY,lastY:event.clientY,dragging:false};
+        });
+        fab.addEventListener('pointermove',event=>{
+          if(drag?.id!==event.pointerId)return;
+          const dy=event.clientY-drag.y,dx=event.clientX-drag.x;
+          if(!drag.dragging){
+            if(Math.abs(dy)<=8||Math.abs(dy)<Math.abs(dx))return;
+            drag.dragging=true;suppressClick=true;
+            try{fab.setPointerCapture(event.pointerId);}catch{}
+            main.scrollTop-=dy;
+          }else{
+            main.scrollTop-=event.clientY-drag.lastY;
+          }
+          drag.lastY=event.clientY;
+        });
+        const finishDrag=event=>{
+          if(drag?.id!==event.pointerId)return;
+          const wasDragging=drag.dragging;
+          drag=null;
+          if(wasDragging)setTimeout(()=>{suppressClick=false;},0);
+        };
+        fab.addEventListener('pointerup',finishDrag);
+        fab.addEventListener('pointercancel',finishDrag);
+        fab.addEventListener('click',event=>{
+          if(!suppressClick)return;
+          suppressClick=false;
+          event.preventDefault();
+          event.stopPropagation();
+        });
+      }
     }
     function ledgerFiltersDialog(){
       const draft=state.ledgerFilterDraft;

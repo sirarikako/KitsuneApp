@@ -2256,7 +2256,7 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-ledger-list-actions{display:flex;align-items:center;gap:8px}
   #kitsune-preview .ks-ledger-list-actions .ks-choice{display:flex;align-items:center;gap:6px}
   #kitsune-preview .ks-ledger-list-actions svg{width:18px;height:18px}
-  #kitsune-preview .ks-ledger-fab{position:absolute;z-index:1;inset:auto 16px 16px auto;border-radius:999px;min-height:56px;min-width:56px;justify-content:center;gap:0;padding:8px 16px;box-shadow:0 4px 10px #0003}
+  #kitsune-preview .ks-ledger-fab{position:absolute;z-index:1;inset:auto 16px 16px auto;border-radius:999px;min-height:56px;min-width:56px;justify-content:center;gap:0;padding:8px 16px;box-shadow:0 4px 10px #0003;touch-action:pan-x}
   #kitsune-preview .ks-ledger-fab span{display:block;overflow:hidden;white-space:nowrap;max-width:7em;padding-left:8px;transition:max-width 180ms ease,padding-left 180ms ease,opacity 140ms ease}
   #kitsune-preview .ks-ledger-fab.ks-fab-compact span{max-width:0;padding-left:0;opacity:0}
   @media(prefers-reduced-motion:reduce){#kitsune-preview .ks-ledger-fab span{transition:none}}
@@ -2717,6 +2717,45 @@ html&gt;body{padding:0}&lt;/style&gt;
         previous=main.scrollTop;
       });
       parts.forEach(part=&gt;observer.observe(part.firstElementChild));
+      if(fab){
+        let drag=null,suppressClick=false;
+        fab.addEventListener(&#x27;wheel&#x27;,event=&gt;{
+          if(!event.deltaY)return;
+          event.preventDefault();
+          main.scrollTop+=event.deltaY;
+        },{passive:false});
+        fab.addEventListener(&#x27;pointerdown&#x27;,event=&gt;{
+          if(!event.isPrimary||(event.pointerType===&#x27;mouse&#x27;&amp;&amp;event.button!==0))return;
+          drag={id:event.pointerId,x:event.clientX,y:event.clientY,lastY:event.clientY,dragging:false};
+        });
+        fab.addEventListener(&#x27;pointermove&#x27;,event=&gt;{
+          if(drag?.id!==event.pointerId)return;
+          const dy=event.clientY-drag.y,dx=event.clientX-drag.x;
+          if(!drag.dragging){
+            if(Math.abs(dy)&lt;=8||Math.abs(dy)&lt;Math.abs(dx))return;
+            drag.dragging=true;suppressClick=true;
+            try{fab.setPointerCapture(event.pointerId);}catch{}
+            main.scrollTop-=dy;
+          }else{
+            main.scrollTop-=event.clientY-drag.lastY;
+          }
+          drag.lastY=event.clientY;
+        });
+        const finishDrag=event=&gt;{
+          if(drag?.id!==event.pointerId)return;
+          const wasDragging=drag.dragging;
+          drag=null;
+          if(wasDragging)setTimeout(()=&gt;{suppressClick=false;},0);
+        };
+        fab.addEventListener(&#x27;pointerup&#x27;,finishDrag);
+        fab.addEventListener(&#x27;pointercancel&#x27;,finishDrag);
+        fab.addEventListener(&#x27;click&#x27;,event=&gt;{
+          if(!suppressClick)return;
+          suppressClick=false;
+          event.preventDefault();
+          event.stopPropagation();
+        });
+      }
     }
     function ledgerFiltersDialog(){
       const draft=state.ledgerFilterDraft;

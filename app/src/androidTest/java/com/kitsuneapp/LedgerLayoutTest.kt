@@ -665,6 +665,145 @@ class LedgerLayoutTest {
     }
 
     @Test
+    fun verticalDragStartingOnLedgerFabScrollsListWithoutTriggeringClick() {
+        val now = "2026-11-17T12:00:00Z"
+        val wallet = Wallet("regular", "日常钱包", "日常钱包", "CNY", 2, 0, 0, false, false,
+            CategoryMode.DEFAULT, CategoryMode.DEFAULT, now, now)
+        val category = Category("food", Scope.EXPENSE, null, "", "餐饮", "餐饮", 0, false, false, now, now)
+        val entries = (50 downTo 1).map { index ->
+            val day = ((index - 1) % 28) + 1
+            val hour = 10 + (index - 1) / 28
+            FinancialEntry("entry-$index", YearMonth.now().atDay(day).toString(), "%02d:00".format(hour),
+                EntryType.EXPENSE, wallet.id, 100, category.id, null, null, null, "第 $index 笔", now, now)
+        }
+        val records = Records(DataState(installationId = "test", datasetId = "test", arrayElements = 0),
+            ThemePreferences(), emptyList(), listOf(category), emptyList(), emptyMap(), listOf(wallet), entries)
+        var route: String? = null
+        var detail: String? = null
+        compose.setContent {
+            KitsuneTheme(records.theme) {
+                Box(Modifier.width(360.dp).height(640.dp)) {
+                    LedgerPage(records, { route = it }, { detail = it })
+                }
+            }
+        }
+
+        val title = compose.onNodeWithText("记账")
+        val fab = compose.onNodeWithContentDescription("记一笔")
+        val list = compose.onNode(hasScrollToNodeAction())
+        fun fabBounds() = fab.fetchSemanticsNode().boundsInRoot
+        fun listPosition() = list.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value()
+
+        val expandedBounds = fabBounds()
+        val expandedWidth = expandedBounds.width
+        assertEquals(0f, listPosition(), 0f)
+
+        // 1. Real touch click on expanded FAB opens new entry without leaking to underlying rows.
+        compose.onRoot().performTouchInput { click(expandedBounds.center) }
+        compose.runOnIdle {
+            assertEquals("entryForm/-", route)
+            assertEquals(null, detail)
+        }
+        route = null
+
+        // 2. Fast vertical swipe starting on the left half of the expanded FAB continues with inertial fling after release.
+        val positionAtRelease: Float
+        val positionAfterFling: Float
+        compose.mainClock.autoAdvance = false
+        try {
+            compose.onRoot().performTouchInput {
+                val startX = expandedBounds.left + expandedBounds.width * 0.25f
+                val step = 45.dp.toPx()
+                down(Offset(startX, expandedBounds.center.y))
+                repeat(5) {
+                    advanceEventTime(12L)
+                    moveBy(Offset(0f, -step))
+                }
+            }
+            compose.mainClock.advanceTimeByFrame()
+            positionAtRelease = listPosition()
+            assertTrue("Dragging upward from the expanded FAB should scroll the list", positionAtRelease > 0f)
+            compose.onRoot().performTouchInput { up() }
+            compose.mainClock.advanceTimeBy(1_000L)
+            compose.mainClock.advanceTimeByFrame()
+            positionAfterFling = listPosition()
+        } finally {
+            compose.mainClock.autoAdvance = true
+        }
+        compose.waitForIdle()
+        assertTrue(
+            "Fast swipe release on the FAB should continue scrolling with inertial fling",
+            positionAfterFling > positionAtRelease,
+        )
+        val compactBounds = fabBounds()
+        assertTrue("Scrolling from the FAB should collapse the FAB to its compact width", compactBounds.width < expandedWidth)
+        compose.runOnIdle {
+            assertEquals(null, route)
+            assertEquals(null, detail)
+        }
+
+        // 3. Fast drag followed by pausing before release must not produce extra inertial scrolling.
+        val positionAfterPause: Float
+        val positionAfterPausedRelease: Float
+        compose.mainClock.autoAdvance = false
+        try {
+            compose.onRoot().performTouchInput {
+                val step = 45.dp.toPx()
+                down(compactBounds.center)
+                repeat(5) {
+                    advanceEventTime(12L)
+                    moveBy(Offset(0f, -step))
+                }
+            }
+            compose.mainClock.advanceTimeBy(200L)
+            compose.mainClock.advanceTimeByFrame()
+            positionAfterPause = listPosition()
+            assertTrue("Dragging from the compact FAB should scroll further", positionAfterPause > positionAfterFling)
+            compose.onRoot().performTouchInput { up() }
+            compose.mainClock.advanceTimeBy(1_000L)
+            compose.mainClock.advanceTimeByFrame()
+            positionAfterPausedRelease = listPosition()
+        } finally {
+            compose.mainClock.autoAdvance = true
+        }
+        compose.waitForIdle()
+        assertEquals(
+            "Pausing before lifting the finger on the FAB should not trigger extra fling scrolling",
+            positionAfterPause,
+            positionAfterPausedRelease,
+            0f,
+        )
+        title.assertIsNotDisplayed()
+        compose.runOnIdle {
+            assertEquals(null, route)
+            assertEquals(null, detail)
+        }
+
+        // 4. Pulling downward from the compact FAB re-expands the collapsed header without clicking the FAB.
+        val compactBeforeReverse = fabBounds()
+        compose.onRoot().performTouchInput {
+            swipe(
+                start = Offset(compactBeforeReverse.center.x, compactBeforeReverse.top + 6.dp.toPx()),
+                end = Offset(compactBeforeReverse.center.x, height - 2f),
+                durationMillis = 300,
+            )
+        }
+        compose.waitForIdle()
+        title.assertIsDisplayed()
+        compose.runOnIdle {
+            assertEquals(null, route)
+            assertEquals(null, detail)
+        }
+
+        // 5. Real touch click on compact FAB still opens the new entry form without leaking to underlying rows.
+        compose.onRoot().performTouchInput { click(fabBounds().center) }
+        compose.runOnIdle {
+            assertEquals("entryForm/-", route)
+            assertEquals(null, detail)
+        }
+    }
+
+    @Test
     fun calculatorUsesKeypadAndRestoresExpressionBeforeApplying() {
         var amount: String? = null
         var dismissed = false
