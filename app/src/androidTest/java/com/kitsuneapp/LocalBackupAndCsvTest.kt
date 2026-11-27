@@ -76,7 +76,7 @@ class LocalBackupAndCsvTest {
         compose.onNodeWithText("记账").assertIsSelected()
         compose.onNodeWithText("用餐").assertIsNotSelected()
         compose.onNodeWithText("导出全部记账记录").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("original_expense_id", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("to_wallet, to_currency, to_amount", substring = true).performScrollTo().assertIsDisplayed()
     }
 }
 

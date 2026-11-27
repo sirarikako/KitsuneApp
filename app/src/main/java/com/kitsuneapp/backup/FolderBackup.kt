@@ -136,14 +136,16 @@ internal class FolderBackup(private val context: Context, tree: Uri) {
         for ((marker, data, mFile) in publishedFrom(docs)) {
             currentCoroutineContext().ensureActive()
             if (marker.datasetId != keep.datasetId || marker == keep) continue
-            val valid = try {
+            val removable = try {
                 open(marker, data, store).use { true }
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
+            } catch (_: FolderCorruptedException) {
+                true
             } catch (_: Exception) {
                 false
             }
-            if (valid && (!remove(data) || !remove(mFile))) cleaned = false
+            if (removable && (!remove(data) || !remove(mFile))) cleaned = false
         }
         if (cleaned) FolderCleanup.COMPLETE else FolderCleanup.RETRY
     }
