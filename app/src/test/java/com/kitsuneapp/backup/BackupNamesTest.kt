@@ -48,4 +48,18 @@ class BackupNamesTest {
         assertNull(AutoBackupName.parse("kitsune-auto-20261131T003015+0800-0001.json"))
         assertNull(AutoBackupName.parse("kitsune-auto-20261118T003015+0800-0001.json.ok"))
     }
+
+    @Test
+    fun formatsReadableTimeFileSizeAndTreePath() {
+        val time = Instant.parse("2026-11-17T16:30:15Z")
+        assertEquals("2026-11-18 00:30:15 (+08:00)", backupReadableTime(time))
+        assertEquals("0 B", formatBackupSize(-5L))
+        assertEquals("512 B", formatBackupSize(512L))
+        assertEquals("1.5 KB", formatBackupSize(1536L))
+        assertEquals("2.50 MB", formatBackupSize(2L * 1024 * 1024 + 512 * 1024))
+        assertEquals("Documents/KitsuneBackup", readableTreePath("primary:Documents/KitsuneBackup"))
+        assertEquals("内部存储根目录", readableTreePath("primary:"))
+        assertEquals("SDCARD/Backups", readableTreePath("SDCARD:Backups"))
+        assertEquals("root", readableTreePath("root"))
+    }
 }

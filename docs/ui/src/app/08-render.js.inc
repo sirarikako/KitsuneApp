@@ -26,10 +26,10 @@
       const sourceRect=entrance;entrance=null;if(leavingPrimary&&!sourceRect)recordOrigin=null;
       rendering=true;
       const form=!primary(state.page);
-      const titles={home:'日常记录',meals:'用餐',ledger:'记账',settings:'设置',appearance:'外观与调色板','csv-mapping':'导入与导出','wallet-edit':'编辑钱包', 'meal-form':`${state.editing?'编辑':'记录'}${slots[state.slot]}`,'meal-filter':'筛选用餐',entry:'记一笔','entry-detail':'账目详情','category-manager':'分类管理','category-owned':'钱包专属分类','category-detail':state.editingFinancialCategoryId?'编辑分类':'新增分类',github:'GitHub 备份'};
+      const titles={home:'日常记录',meals:'用餐',ledger:'记账',settings:'设置',appearance:'外观与调色板','local-backup':'本地备份与恢复','csv-transfer':'CSV 导入与导出','wallet-edit':'编辑钱包', 'meal-form':`${state.editing?'编辑':'记录'}${slots[state.slot]}`,'meal-filter':'筛选用餐',entry:'记一笔','entry-detail':'账目详情','category-manager':'分类管理','category-owned':'钱包专属分类','category-detail':state.editingFinancialCategoryId?'编辑分类':'新增分类',github:'GitHub 备份'};
       const heading=`<h2 class="ks-title">${titles[state.page]}</h2>`;
       const header=state.page==='home'?`<div class="ks-home-brand"><span class="ks-app-mark"><img src="__KITSUNE_FOX_MARK__" alt=""></span><div>${heading}<p class="ks-sub">11 月 17 日 · 星期二</p></div></div>`:form?`<button type="button" class="ks-icon-btn cursor-interaction" data-action="back" aria-label="返回">${icon('arrow-left')}</button>${heading}`:heading;
-      const pages={home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,appearance:pageAppearance,'csv-mapping':pageCsvMapping,'wallet-edit':pageWalletEdit,'meal-form':pageMealForm,'meal-filter':pageMealFilter,entry:pageEntry,'entry-detail':pageEntryDetail,'category-manager':pageCategoryManager,'category-owned':pageOwnedCategories,'category-detail':pageCategoryDetail,github:pageGitHubBackup};
+      const pages={home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,appearance:pageAppearance,'local-backup':pageLocalBackup,'csv-transfer':pageCsvTransfer,'wallet-edit':pageWalletEdit,'meal-form':pageMealForm,'meal-filter':pageMealFilter,entry:pageEntry,'entry-detail':pageEntryDetail,'category-manager':pageCategoryManager,'category-owned':pageOwnedCategories,'category-detail':pageCategoryDetail,github:pageGitHubBackup};
       const ledger=state.page==='ledger',fab=ledger&&state.ledgerTab==='流水';
       const settingsScreen=state.page==='settings'||state.page==='github'?`ks-${state.page}-screen`:'';
       const top=`<header class="ks-top ${form?'ks-subpage':''}">${header}</header>`;
@@ -51,6 +51,16 @@
         phone.insertAdjacentHTML('beforeend',githubDemoDialog());
         for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
         phone.querySelector('[data-github-action=cancel]').focus({preventScroll:true});
+      }
+      if(state.localBackupDemo.restoreOpen){
+        phone.insertAdjacentHTML('beforeend',localRestoreDialog());
+        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
+        phone.querySelector('[data-local-backup-action=close-restore]').focus({preventScroll:true});
+      }
+      if(state.csvDemo.previewOpen&&!state.singleSelection){
+        phone.insertAdjacentHTML('beforeend',csvPreviewDialog());
+        for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
+        phone.querySelector('[data-csv-action=close-preview]').focus({preventScroll:true});
       }
       if(state.mealCalendar){
         phone.insertAdjacentHTML('beforeend',mealCalendarDialog());

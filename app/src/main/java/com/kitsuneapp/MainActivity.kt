@@ -145,8 +145,8 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
         if (stack.size > 1) {
             model.clearError()
             val old = stack.last()
-            if (old == "data" || old == "github") model.discardRestorePreview()
-            if (old == "data") model.clearLocalRestoreResult()
+            if (old == "localBackup" || old == "github") model.discardRestorePreview()
+            if (old == "localBackup") model.clearLocalRestoreResult()
             recordNavigation?.takeIf { it.detail == old }?.let { navigation ->
                 val stillVisible = if (old.startsWith("meal/")) {
                     val record = records.meals.find { it.id == navigation.id }
@@ -269,8 +269,8 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
                                 "categorySettings" -> CategorySettings(records, model, false, null, ::open, goBack)
                                 "walletCategories" -> CategorySettings(records, model, true, parts.getOrNull(1), ::open, goBack)
                                 "appearance" -> AppearancePage(records.theme, model, goBack)
-                                "data" -> DataManagementPage(records, model, goBack)
-                                "folder" -> FolderPage(records, model, ::open, goBack)
+                                "localBackup" -> LocalBackupPage(records, model, goBack)
+                                "csv" -> CsvPage(records, model, goBack)
                                 "github" -> GitHubPage(records, model, goBack)
                                 "ledger" -> LedgerPage(records, ::open,
                                     openDetails = { id -> openRecord("entry/$id", id) }, active = active)

@@ -56,9 +56,11 @@ class FolderBackupTest {
             val backup = BackupCoordinator(context, repository)
             suspend fun runBackup() = backup.runFolder(installation, state.generation, binding)
 
-            suspend fun verifyCurrent(): FolderState {
+            suspend fun verifyCurrent(extraUnverified: Int = 0): FolderState {
                 val current = checkNotNull(backup.directory.value)
-                val option = backup.folderOptions().single()
+                val options = backup.folderOptions()
+                assertEquals(1 + extraUnverified, options.size)
+                val option = options.first()
                 assertEquals(current.published, option.marker)
                 backup.openFolder(option).use {
                     assertEquals(state.datasetId, it.info.datasetId)
@@ -66,6 +68,7 @@ class FolderBackupTest {
                 }
                 assertNull(current.error)
                 assertFalse(current.cleanupPending)
+                assertEquals(FolderActivity.IDLE, backup.folderActivity.value)
                 return current
             }
 
@@ -81,6 +84,7 @@ class FolderBackupTest {
             assertFalse(runBackup())
             assertEquals(initial.succeededAt, backup.directory.value?.succeededAt)
             assertNotNull(backup.directory.value?.error)
+            assertEquals(FolderActivity.IDLE, backup.folderActivity.value)
 
             provider.canCreate = true
             assertTrue(runBackup())
@@ -97,6 +101,106 @@ class FolderBackupTest {
             assertNotEquals(afterDeletedJson.published, afterDeletedMarker.published)
             assertTrue(Instant.parse(afterDeletedMarker.succeededAt) > Instant.parse(afterDeletedJson.succeededAt))
             assertEquals(state.revision, repository.ownedState().revision)
+
+            // Confirmed JSON content corruption -> automatically rebuilt, and corrupted old file is NOT auto-deleted.
+            val corruptedJsonName = checkNotNull(afterDeletedMarker.published).name
+            File(folder, corruptedJsonName).writeText("{corrupted")
+            assertTrue(runBackup())
+            val afterCorruptedJson = verifyCurrent(extraUnverified = 1)
+            assertNotEquals(afterDeletedMarker.published, afterCorruptedJson.published)
+            assertTrue(Instant.parse(afterCorruptedJson.succeededAt) > Instant.parse(afterDeletedMarker.succeededAt))
+            assertEquals(state.revision, repository.ownedState().revision)
+            assertTrue(File(folder, corruptedJsonName).isFile)
+            assertTrue(File(folder, "$corruptedJsonName.ok").isFile)
+
+            // Confirmed completion marker corruption -> automatically rebuilt; previous valid backup IS cleaned, corrupted one stays.
+            val corruptedMarkerName = checkNotNull(afterCorruptedJson.published).name
+            File(folder, "$corruptedMarkerName.ok").writeText("not-valid-json")
+            assertTrue(runBackup())
+            val afterCorruptedMarker = verifyCurrent(extraUnverified = 1)
+            assertNotEquals(afterCorruptedJson.published, afterCorruptedMarker.published)
+            assertTrue(Instant.parse(afterCorruptedMarker.succeededAt) > Instant.parse(afterCorruptedJson.succeededAt))
+            assertEquals(state.revision, repository.ownedState().revision)
+            assertTrue(File(folder, corruptedJsonName).isFile)
+            assertTrue(File(folder, "$corruptedJsonName.ok").isFile)
+
+            // Temporary directory inaccessibility -> do NOT rebuild or delete valid backup.
+            val intactName = checkNotNull(afterCorruptedMarker.published).name
+            provider.queryReturnsNull = true
+            assertFalse(runBackup())
+            val afterNullQuery = checkNotNull(backup.directory.value)
+            assertEquals(afterCorruptedMarker.published, afterNullQuery.published)
+            assertEquals(afterCorruptedMarker.succeededAt, afterNullQuery.succeededAt)
+            assertNotNull(afterNullQuery.error)
+            assertFalse(afterNullQuery.authError)
+            assertEquals(FolderActivity.IDLE, backup.folderActivity.value)
+            assertTrue(File(folder, intactName).isFile)
+            assertTrue(File(folder, "$intactName.ok").isFile)
+
+            // Temporary file read failure -> do NOT rebuild or delete valid backup.
+            provider.queryReturnsNull = false
+            provider.failOpenFile = true
+            assertFalse(runBackup())
+            val afterReadError = checkNotNull(backup.directory.value)
+            assertEquals(afterCorruptedMarker.published, afterReadError.published)
+            assertEquals(afterCorruptedMarker.succeededAt, afterReadError.succeededAt)
+            assertNotNull(afterReadError.error)
+            assertFalse(afterReadError.authError)
+            assertEquals(FolderActivity.IDLE, backup.folderActivity.value)
+            assertTrue(File(folder, intactName).isFile)
+            assertTrue(File(folder, "$intactName.ok").isFile)
+
+            // Revoked authorization -> mark authError without deleting or rebuilding.
+            provider.failOpenFile = false
+            provider.throwSecurity = true
+            assertFalse(runBackup())
+            val afterAuthError = checkNotNull(backup.directory.value)
+            assertEquals(afterCorruptedMarker.published, afterAuthError.published)
+            assertEquals(afterCorruptedMarker.succeededAt, afterAuthError.succeededAt)
+            assertTrue(afterAuthError.authError)
+            assertNotNull(afterAuthError.error)
+            assertEquals(FolderActivity.IDLE, backup.folderActivity.value)
+            assertTrue(File(folder, intactName).isFile)
+            assertTrue(File(folder, "$intactName.ok").isFile)
+
+            // Once access returns and backup is intact -> clears error without rewriting or changing succeededAt.
+            provider.throwSecurity = false
+            assertTrue(runBackup())
+            val afterRecovered = verifyCurrent(extraUnverified = 1)
+            assertEquals(afterCorruptedMarker.published, afterRecovered.published)
+            assertEquals(afterCorruptedMarker.succeededAt, afterRecovered.succeededAt)
+            assertFalse(afterRecovered.authError)
+
+            // Check timeout -> records timeout error, resets activity to IDLE, preserves valid backup.
+            provider.openDelayMs = 250L
+            assertFalse(backup.runFolderWithTimeout(installation, state.generation, binding, timeoutMs = 40L))
+            provider.openDelayMs = 0L
+            val afterTimeout = checkNotNull(backup.directory.value)
+            assertEquals(FolderActivity.IDLE, backup.folderActivity.value)
+            assertNotNull(afterTimeout.error)
+            assertEquals(state.revision, afterTimeout.failedRevision)
+            assertFalse(afterTimeout.authError)
+            assertEquals(afterRecovered.published, afterTimeout.published)
+            assertEquals(afterRecovered.succeededAt, afterTimeout.succeededAt)
+            assertTrue(File(folder, intactName).isFile)
+
+            // Waiting for background retry -> scheduleFolder(verify = true) must NOT stick in CHECKING.
+            val workName = "kitsune-folder-$installation-${state.generation}-$binding"
+            val manager = androidx.work.WorkManager.getInstance(base)
+            try {
+                manager.enqueueUniqueWork(
+                    workName,
+                    androidx.work.ExistingWorkPolicy.REPLACE,
+                    androidx.work.OneTimeWorkRequestBuilder<FolderWorker>()
+                        .setInitialDelay(10, java.util.concurrent.TimeUnit.MINUTES)
+                        .build(),
+                ).result.get()
+                backup.scheduleFolder(verify = true)
+                assertEquals(FolderActivity.IDLE, backup.folderActivity.value)
+                assertNotNull(backup.directory.value?.error)
+            } finally {
+                manager.cancelUniqueWork(workName).result.get()
+            }
         } finally {
             database.close()
             base.deleteSharedPreferences("backup-targets-$installation")
@@ -107,12 +211,18 @@ class FolderBackupTest {
 
     private class BackupDocuments(private val folder: File) : ContentProvider() {
         var canCreate = true
+        var queryReturnsNull = false
+        var failOpenFile = false
+        var throwSecurity = false
+        var openDelayMs = 0L
 
         override fun onCreate() = true
         override fun getType(uri: Uri) = "application/octet-stream"
 
         override fun query(uri: Uri, projection: Array<out String>?, selection: String?,
-                           selectionArgs: Array<out String>?, sortOrder: String?): MatrixCursor {
+                           selectionArgs: Array<out String>?, sortOrder: String?): MatrixCursor? {
+            if (throwSecurity) throw SecurityException("Permission revoked")
+            if (queryReturnsNull) return null
             val columns = checkNotNull(projection).toList().toTypedArray()
             val files = if (uri.lastPathSegment == "children") folder.listFiles().orEmpty().toList()
                 else listOf(File(folder, DocumentsContract.getDocumentId(uri))).filter(File::isFile)
@@ -128,6 +238,7 @@ class FolderBackupTest {
         }
 
         override fun call(method: String, arg: String?, extras: Bundle?): Bundle = Bundle().apply {
+            if (throwSecurity) throw SecurityException("Permission revoked")
             val request = checkNotNull(extras)
             @Suppress("DEPRECATION")
             val uri = checkNotNull(request.getParcelable<Uri>("uri"))
@@ -142,8 +253,12 @@ class FolderBackupTest {
             }
         }
 
-        override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor =
-            ParcelFileDescriptor.open(File(folder, DocumentsContract.getDocumentId(uri)), ParcelFileDescriptor.parseMode(mode))
+        override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor {
+            if (throwSecurity) throw SecurityException("Permission revoked")
+            if (openDelayMs > 0L) Thread.sleep(openDelayMs)
+            if (failOpenFile) throw java.io.FileNotFoundException("Temporarily unavailable")
+            return ParcelFileDescriptor.open(File(folder, DocumentsContract.getDocumentId(uri)), ParcelFileDescriptor.parseMode(mode))
+        }
 
         override fun insert(uri: Uri, values: ContentValues?) = throw UnsupportedOperationException()
         override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<out String>?) =

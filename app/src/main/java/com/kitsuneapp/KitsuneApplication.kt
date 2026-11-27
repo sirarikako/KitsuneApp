@@ -51,7 +51,7 @@ class KitsuneApplication : Application() {
                 cleanupTemporaryBackups()
                 backupCoordinator = BackupCoordinator(this@KitsuneApplication, repository)
                 active = repository
-                backupCoordinator.changed()
+                backupCoordinator.startup()
                 repository
             } catch (error: Throwable) {
                 database.close()

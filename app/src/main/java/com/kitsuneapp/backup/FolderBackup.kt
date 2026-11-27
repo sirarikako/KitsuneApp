@@ -5,8 +5,12 @@ import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
 import com.google.gson.Gson
+import com.google.gson.JsonParseException
+import com.google.gson.stream.MalformedJsonException
 import com.kitsuneapp.data.*
+import java.io.EOFException
 import java.io.File
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.security.MessageDigest
@@ -30,6 +34,9 @@ internal data class Publication(
 
 internal data class Document(val name: String, val uri: Uri)
 internal enum class FolderCleanup { COMPLETE, MISSING_PUBLICATION, RETRY }
+internal class FolderAuthException(message: String, cause: Throwable? = null) : IllegalStateException(message, cause)
+internal class FolderAccessException(message: String, cause: Throwable? = null) : IllegalStateException(message, cause)
+internal class FolderCorruptedException(message: String, cause: Throwable? = null) : IllegalArgumentException(message, cause)
 
 internal class FolderBackup(private val context: Context, tree: Uri) {
     private val resolver = context.contentResolver
@@ -39,7 +46,13 @@ internal class FolderBackup(private val context: Context, tree: Uri) {
 
     fun list(): List<Document> {
         val columns = arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME)
-        val cursor = resolver.query(children, columns, null, null, null) ?: error("无法读取备份目录，请重新授权")
+        val cursor = try {
+            resolver.query(children, columns, null, null, null)
+        } catch (error: SecurityException) {
+            throw FolderAuthException("备份目录授权已失效，请重新授权", error)
+        } catch (error: IOException) {
+            throw FolderAccessException("无法读取备份目录，请检查目录是否可用或重试", error)
+        } ?: throw FolderAccessException("无法读取备份目录，请检查目录是否可用或重新授权")
         return cursor.use {
             buildList {
                 while (it.moveToNext()) add(Document(it.getString(1), DocumentsContract.buildDocumentUriUsingTree(parent, it.getString(0))))
@@ -87,12 +100,40 @@ internal class FolderBackup(private val context: Context, tree: Uri) {
     }
 
     suspend fun cleanup(keep: Publication, store: SnapshotStore): FolderCleanup = withContext(Dispatchers.IO) {
-        val current = published()
-        val keepCandidate = current.firstOrNull { it.first == keep } ?: return@withContext FolderCleanup.MISSING_PUBLICATION
-        val verified = open(keepCandidate.first, keepCandidate.second, store)
-        verified.close()
+        val docs = list()
+        val dataFile = docs.filter { it.name == keep.name }.singleOrNull()
+        val markerFile = docs.filter { it.name == "${keep.name}.ok" }.singleOrNull()
+        if (dataFile == null || markerFile == null) return@withContext FolderCleanup.MISSING_PUBLICATION
+
+        val markerBytes = try {
+            val stream = resolver.openInputStream(markerFile.uri)
+                ?: throw FolderAccessException("无法访问备份完成标记，请检查目录是否可用")
+            stream.use { it.readSmall(4096) }
+        } catch (error: SecurityException) {
+            throw FolderAuthException("备份目录授权已失效，请重新授权", error)
+        } catch (error: IOException) {
+            throw FolderAccessException("读取备份完成标记失败，请检查目录是否可用", error)
+        } catch (_: IllegalArgumentException) {
+            return@withContext FolderCleanup.MISSING_PUBLICATION
+        }
+        val parsedMarker = try {
+            gson.fromJson(markerBytes.decodeToString(), Publication::class.java)
+        } catch (_: Exception) {
+            null
+        }
+        if (parsedMarker != keep) return@withContext FolderCleanup.MISSING_PUBLICATION
+
+        try {
+            open(keep, dataFile, store).close()
+        } catch (_: FolderCorruptedException) {
+            return@withContext FolderCleanup.MISSING_PUBLICATION
+        }
+
+        val otherMarkers = docs.filter { it.name.endsWith(".json.ok") && it.uri != markerFile.uri }
+        if (otherMarkers.isEmpty()) return@withContext FolderCleanup.COMPLETE
+
         var cleaned = true
-        for ((marker, data, markerFile) in current) {
+        for ((marker, data, mFile) in publishedFrom(docs)) {
             currentCoroutineContext().ensureActive()
             if (marker.datasetId != keep.datasetId || marker == keep) continue
             val valid = try {
@@ -102,13 +143,14 @@ internal class FolderBackup(private val context: Context, tree: Uri) {
             } catch (_: Exception) {
                 false
             }
-            if (valid && (!remove(data) || !remove(markerFile))) cleaned = false
+            if (valid && (!remove(data) || !remove(mFile))) cleaned = false
         }
         if (cleaned) FolderCleanup.COMPLETE else FolderCleanup.RETRY
     }
 
-    fun published(): List<Triple<Publication, Document, Document>> {
-        val docs = list()
+    fun published(): List<Triple<Publication, Document, Document>> = publishedFrom(list())
+
+    private fun publishedFrom(docs: List<Document>): List<Triple<Publication, Document, Document>> {
         val data = docs.filter { it.name.startsWith("kitsune-auto-") && it.name.endsWith(".json") }.groupBy(Document::name)
         return docs.mapNotNull { marker ->
             if (!marker.name.endsWith(".json.ok")) return@mapNotNull null
@@ -127,15 +169,49 @@ internal class FolderBackup(private val context: Context, tree: Uri) {
     suspend fun open(marker: Publication, document: Document, store: SnapshotStore): StagedSnapshot = withContext(Dispatchers.IO) {
         val file = File.createTempFile("backup-check-", ".json", context.cacheDir)
         try {
-            val md = MessageDigest.getInstance("SHA-256")
-            val size = resolver.input(document.uri).use { input ->
-                file.outputStream().use { output -> copyChecked(input, output, marker.size, md) }
+            val stream = try {
+                resolver.openInputStream(document.uri)
+                    ?: throw FolderAccessException("无法访问备份文件，请检查目录是否可用")
+            } catch (error: SecurityException) {
+                throw FolderAuthException("备份目录授权已失效，请重新授权", error)
+            } catch (error: IOException) {
+                throw FolderAccessException("无法访问备份文件，请检查目录是否可用", error)
             }
-            require(size == marker.size && md.digest().hex() == marker.sha256) { "文件夹备份摘要不匹配" }
-            val staged = file.inputStream().use { store.stage(it) }
+            val md = MessageDigest.getInstance("SHA-256")
+            val size = try {
+                stream.use { input ->
+                    file.outputStream().use { output -> copyChecked(input, output, marker.size, md) }
+                }
+            } catch (error: SecurityException) {
+                throw FolderAuthException("备份目录授权已失效，请重新授权", error)
+            } catch (error: IOException) {
+                throw FolderAccessException("读取备份文件失败，请检查目录是否可用", error)
+            } catch (error: IllegalArgumentException) {
+                throw FolderCorruptedException("备份文件大小超过允许范围", error)
+            }
+            if (size != marker.size || md.digest().hex() != marker.sha256) {
+                throw FolderCorruptedException("文件夹备份摘要不匹配")
+            }
+            val staged = try {
+                file.inputStream().use { store.stage(it) }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (error: MalformedJsonException) {
+                throw FolderCorruptedException("备份文件内容已损坏", error)
+            } catch (error: EOFException) {
+                throw FolderCorruptedException("备份文件内容已损坏", error)
+            } catch (error: JsonParseException) {
+                throw FolderCorruptedException("备份文件内容已损坏", error)
+            } catch (error: IllegalArgumentException) {
+                throw FolderCorruptedException(error.message ?: "备份文件内容已损坏", error)
+            } catch (error: IllegalStateException) {
+                throw FolderCorruptedException(error.message ?: "备份文件内容已损坏", error)
+            } catch (error: IOException) {
+                throw FolderAccessException("校验备份文件时读取失败，请重试", error)
+            }
             if (staged.info.kind != BackupKind.AUTO || staged.info.datasetId != marker.datasetId || staged.info.snapshotId != marker.snapshotId) {
                 staged.close()
-                error("文件夹备份身份不匹配")
+                throw FolderCorruptedException("文件夹备份身份不匹配")
             }
             staged
         } finally {
@@ -155,7 +231,11 @@ internal class FolderBackup(private val context: Context, tree: Uri) {
     }
 
     private fun create(mime: String, name: String): Document {
-        val uri = DocumentsContract.createDocument(resolver, parent, mime, name) ?: error("备份目录无法创建文件")
+        val uri = try {
+            DocumentsContract.createDocument(resolver, parent, mime, name)
+        } catch (error: SecurityException) {
+            throw FolderAuthException("备份目录授权已失效，请重新授权", error)
+        } ?: error("备份目录无法创建文件")
         val column = DocumentsContract.Document.COLUMN_DISPLAY_NAME
         val actual = resolver.query(uri, arrayOf(column), null, null, null)?.use {
             if (it.moveToFirst()) it.getString(0) else null

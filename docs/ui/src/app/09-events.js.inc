@@ -22,7 +22,29 @@
       if(b.dataset.selectOpen){state.singleSelection=b.dataset.selectOpen;render();return;}
       if(b.dataset.selectValue!==undefined){closeSingleSelection(b.dataset.selectValue);return;}
       if(b.dataset.action==='add-entry-category'){state.singleSelection=null;state.addingEntryCategory=true;render();return;}
-      if(b.dataset.action==='open-csv-mapping'){state.page='csv-mapping';render();return;}
+      if(b.dataset.action==='open-local-backup'){state.page='local-backup';render();return;}
+      if(b.dataset.action==='open-csv-transfer'){state.page='csv-transfer';render();return;}
+      if(b.dataset.localBackupAction){
+        const action=b.dataset.localBackupAction,demo=state.localBackupDemo;
+        if(action==='configure'){demo.scenario='normal';state.notice='备份目录已更新';}
+        else if(action==='retry'){demo.scenario='normal';state.notice='自动备份检查通过';}
+        else if(action==='manual'){state.notice='完整备份已导出并校验（示意）';}
+        else if(action==='open-restore'){demo.restoreOpen=true;}
+        else if(action==='close-restore'){demo.restoreOpen=false;}
+        else if(action==='pick-candidate'||action==='pick-file'){demo.restoreOpen=false;state.notice='已进入完整恢复预览（示意）';}
+        render();return;
+      }
+      if(b.dataset.csvKind){state.csvDemo.kind=b.dataset.csvKind;render();return;}
+      if(b.dataset.csvAction){
+        const action=b.dataset.csvAction,demo=state.csvDemo;
+        if(action==='toggle-guide'){demo.guideOpen=!demo.guideOpen;}
+        else if(action==='preview'){demo.previewOpen=true;}
+        else if(action==='close-preview'){demo.previewOpen=false;}
+        else if(action==='commit'){demo.previewOpen=false;state.notice=`CSV 导入已提交（新增 ${demo.additions} 条）`;}
+        else if(action==='template'){state.notice=`${demo.kind==='MEALS'?'用餐':'记账'} CSV 模板已导出（示意）`;}
+        else if(action==='export'){state.notice=`${demo.kind==='MEALS'?'用餐':'记账'} CSV 已导出（示意）`;}
+        render();return;
+      }
       if(b.dataset.action==='cancel-entry-category'){closeEntryCategory();return;}
       if(b.dataset.action==='open-entry-time'){
         const [hour,minute]=state.entryDraft.dateTime.slice(-5).split(':');
@@ -249,7 +271,7 @@
         });
         return;
       }
-      if(b.dataset.action==='back'){state.page=state.page==='entry'?state.entryReturn:state.page==='category-detail'?state.categoryDetailReturn:state.page==='category-owned'?'category-manager':state.page==='category-manager'?state.categoryReturn:['appearance','github','csv-mapping'].includes(state.page)?'settings':state.page==='meal-filter'?'meals':state.page==='meal-form'?state.mealReturn:'ledger';render();return;}
+      if(b.dataset.action==='back'){state.page=state.page==='entry'?state.entryReturn:state.page==='category-detail'?state.categoryDetailReturn:state.page==='category-owned'?'category-manager':state.page==='category-manager'?state.categoryReturn:['appearance','github','local-backup','csv-transfer'].includes(state.page)?'settings':state.page==='meal-filter'?'meals':state.page==='meal-form'?state.mealReturn:'ledger';render();return;}
       if(b.dataset.addMealOption){state.addingMealOption=b.dataset.addMealOption;render();return;}
       if(b.dataset.action==='cancel-meal-option'){closeMealOption();return;}
     });
@@ -296,7 +318,9 @@
         event.preventDefault();
         if(state.githubDemo.review){
           state.githubDemo.review=null;render();phone.querySelector('[data-github-action=restore-preview]')?.focus({preventScroll:true});
-        }else if(state.addingMealOption)closeMealOption();
+        }else if(state.localBackupDemo.restoreOpen){state.localBackupDemo.restoreOpen=false;render();}
+        else if(state.csvDemo.previewOpen&&!state.singleSelection){state.csvDemo.previewOpen=false;render();}
+        else if(state.addingMealOption)closeMealOption();
         else if(state.mealCalendar)closeMealCalendar(false);
         else if(state.entryTimeDraft)closeEntryTime(false);
         else if(state.addingEntryCategory)closeEntryCategory();
@@ -334,6 +358,9 @@
       if(e.matches('[data-github-scenario]')){
         state.githubDemo.scenario=e.value;state.githubDemo.editing=false;state.githubDemo.uploading=false;
         state.githubDemo.review=githubPause()?'notice':null;render();return;
+      }
+      if(e.matches('[data-local-backup-scenario]')){
+        state.localBackupDemo.scenario=e.value;state.localBackupDemo.restoreOpen=false;render();return;
       }
       if(e.matches('[data-category-mode]')){const wallet=wallets.find(w=>w.id===state.categoryWalletId);if(wallet){wallet[state.financialScope==='INCOME'?'incomeCategoryMode':'expenseCategoryMode']=e.value;state.editingFinancialCategoryId=null;render();}return;}
       if(e.matches('[data-wallet-option]')){
