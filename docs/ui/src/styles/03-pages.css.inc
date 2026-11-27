@@ -130,7 +130,7 @@
   #kitsune-preview .ks-ledger-list-actions{display:flex;align-items:center;gap:8px}
   #kitsune-preview .ks-ledger-list-actions .ks-choice{display:flex;align-items:center;gap:6px}
   #kitsune-preview .ks-ledger-list-actions svg{width:18px;height:18px}
-  #kitsune-preview .ks-ledger-fab{position:absolute;z-index:1;inset:auto 16px 16px auto;border-radius:999px;min-height:56px;min-width:56px;justify-content:center;gap:0;padding:8px 16px;box-shadow:0 4px 10px #0003}
+  #kitsune-preview .ks-ledger-fab{position:absolute;z-index:1;inset:auto 16px 16px auto;border-radius:999px;min-height:56px;min-width:56px;justify-content:center;gap:0;padding:8px 16px;box-shadow:0 4px 10px #0003;touch-action:pan-x}
   #kitsune-preview .ks-ledger-fab span{display:block;overflow:hidden;white-space:nowrap;max-width:7em;padding-left:8px;transition:max-width 180ms ease,padding-left 180ms ease,opacity 140ms ease}
   #kitsune-preview .ks-ledger-fab.ks-fab-compact span{max-width:0;padding-left:0;opacity:0}
   @media(prefers-reduced-motion:reduce){#kitsune-preview .ks-ledger-fab span{transition:none}}

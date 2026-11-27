@@ -6,8 +6,16 @@ import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.foundation.MutatePriority
+import androidx.compose.foundation.gestures.FlingBehavior
+import androidx.compose.foundation.gestures.ScrollScope
+import androidx.compose.foundation.gestures.ScrollableDefaults
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitVerticalTouchSlopOrCancellation
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -22,6 +30,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
@@ -32,6 +43,7 @@ import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kitsuneapp.R
@@ -41,12 +53,21 @@ import java.math.BigInteger
 import java.math.MathContext
 import java.time.YearMonth
 import kotlin.math.roundToInt
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
 
 private data class LedgerContent(
     val page: Int,
     val period: LedgerPeriod,
     val wallets: WalletRange,
     val filters: LedgerEntryFilters = LedgerEntryFilters(),
+)
+
+private data class EntriesScrollTarget(
+    val listState: LazyListState,
+    val nestedScroll: NestedScrollConnection,
 )
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -66,6 +87,7 @@ fun LedgerPage(records: Records, open: (String) -> Unit, openDetails: (String) -
     var collapsed by remember(tab) { mutableFloatStateOf(0f) }
     var compactFab by remember(tab) { mutableStateOf(false) }
     val fullyCollapsed by remember(tab) { derivedStateOf { collapsed >= 1f } }
+    var entriesScrollTarget by remember { mutableStateOf<EntriesScrollTarget?>(null) }
 
     LaunchedEffect(active) {
         if (active) {
@@ -163,6 +185,14 @@ fun LedgerPage(records: Records, open: (String) -> Unit, openDetails: (String) -
                             }
                         }
                     }
+                    if (shown.page == 0) {
+                        DisposableEffect(list, scroll) {
+                            entriesScrollTarget = EntriesScrollTarget(list, scroll)
+                            onDispose {
+                                if (entriesScrollTarget?.listState === list) entriesScrollTarget = null
+                            }
+                        }
+                    }
                 }
                 LazyColumn(
                     modifier = if (visibleContent) Modifier.nestedScroll(scroll) else Modifier,
@@ -253,7 +283,7 @@ fun LedgerPage(records: Records, open: (String) -> Unit, openDetails: (String) -
         }
         if (tab == 0) {
             LedgerFab(!compactFab, { open(newEntryRoute(ledger)) },
-                Modifier.align(Alignment.BottomEnd).padding(16.dp))
+                Modifier.align(Alignment.BottomEnd).padding(16.dp), entriesScrollTarget)
         }
     }
 
@@ -298,11 +328,132 @@ private fun Modifier.ledgerHeaderPart(
     }
     .onSizeChanged { onHeight(it.height) }
 
+private fun Modifier.forwardVerticalScroll(
+    scope: CoroutineScope,
+    targetProvider: () -> EntriesScrollTarget?,
+    flingBehaviorProvider: () -> FlingBehavior,
+): Modifier = pointerInput(Unit) {
+    awaitEachGesture {
+        val down = awaitFirstDown(requireUnconsumed = false)
+        val target = targetProvider() ?: return@awaitEachGesture
+        var overSlop = 0f
+        val drag = awaitVerticalTouchSlopOrCancellation(down.id) { change, over ->
+            change.consume()
+            overSlop = over
+        } ?: return@awaitEachGesture
+
+        val deltas = Channel<Float>(Channel.UNLIMITED)
+        val flingVelocity = CompletableDeferred<Float>()
+        val flingBehavior = flingBehaviorProvider()
+        scope.launch {
+            target.listState.scroll(MutatePriority.UserInput) {
+                fun dispatch(dy: Float, source: NestedScrollSource): Float {
+                    val pre = target.nestedScroll.onPreScroll(Offset(0f, dy), source)
+                    val remaining = dy - pre.y
+                    val listConsumed = scrollBy(-remaining)
+                    val totalY = pre.y - listConsumed
+                    target.nestedScroll.onPostScroll(
+                        Offset(0f, totalY),
+                        Offset(0f, dy - totalY),
+                        source,
+                    )
+                    return totalY
+                }
+                for (dy in deltas) {
+                    dispatch(dy, NestedScrollSource.UserInput)
+                }
+                val velocityY = flingVelocity.await()
+                if (velocityY != 0f) {
+                    val flingScope = object : ScrollScope {
+                        override fun scrollBy(pixels: Float): Float =
+                            -dispatch(-pixels, NestedScrollSource.SideEffect)
+                    }
+                    with(flingBehavior) { flingScope.performFling(-velocityY) }
+                }
+            }
+        }
+
+        val velocityTracker = VelocityTracker()
+        var trackedY = 0f
+        velocityTracker.addPosition(drag.previousUptimeMillis, Offset.Zero)
+        trackedY += drag.positionChange().y
+        velocityTracker.addPosition(drag.uptimeMillis, Offset(0f, trackedY))
+        if (overSlop != 0f) deltas.trySend(overSlop)
+
+        var activePointerId = drag.id
+        var completed = false
+        try {
+            while (true) {
+                val event = awaitPointerEvent()
+                val change = event.changes.firstOrNull { it.id == activePointerId }
+                if (change == null) {
+                    val replacement = event.changes.firstOrNull { it.pressed }
+                    if (replacement == null) {
+                        completed = true
+                        break
+                    }
+                    activePointerId = replacement.id
+                    velocityTracker.resetTracking()
+                    velocityTracker.addPosition(replacement.uptimeMillis, Offset(0f, trackedY))
+                    continue
+                }
+                if (change.isConsumed) {
+                    completed = false
+                    break
+                }
+                if (!change.pressed) {
+                    val otherPressed = event.changes.firstOrNull { it.pressed }
+                    if (otherPressed != null) {
+                        activePointerId = otherPressed.id
+                        velocityTracker.resetTracking()
+                        velocityTracker.addPosition(otherPressed.uptimeMillis, Offset(0f, trackedY))
+                        continue
+                    }
+                    completed = true
+                    break
+                }
+                val deltaY = change.positionChange().y
+                trackedY += deltaY
+                velocityTracker.addPosition(change.uptimeMillis, Offset(0f, trackedY))
+                if (deltaY != 0f) {
+                    deltas.trySend(deltaY)
+                    change.consume()
+                }
+            }
+            if (completed) {
+                val maxVelocity = viewConfiguration.maximumFlingVelocity
+                val velocityY = velocityTracker.calculateVelocity(Velocity(maxVelocity, maxVelocity)).y
+                flingVelocity.complete(velocityY)
+            }
+        } finally {
+            flingVelocity.complete(0f)
+            deltas.close()
+        }
+    }
+}
+
 @Composable
-private fun LedgerFab(expanded: Boolean, addEntry: () -> Unit, modifier: Modifier = Modifier) {
+private fun LedgerFab(
+    expanded: Boolean,
+    addEntry: () -> Unit,
+    modifier: Modifier = Modifier,
+    scrollTarget: EntriesScrollTarget? = null,
+) {
     val colors = MaterialTheme.colorScheme
-    Surface(addEntry, modifier.semantics { contentDescription = "记一笔" }, shape = CircleShape,
-        color = colors.primary, contentColor = colors.onPrimary, shadowElevation = 4.dp) {
+    val scope = rememberCoroutineScope()
+    val flingBehavior = ScrollableDefaults.flingBehavior()
+    val currentTarget by rememberUpdatedState(scrollTarget)
+    val currentFling by rememberUpdatedState(flingBehavior)
+    Surface(
+        addEntry,
+        modifier
+            .forwardVerticalScroll(scope, { currentTarget }, { currentFling })
+            .semantics { contentDescription = "记一笔" },
+        shape = CircleShape,
+        color = colors.primary,
+        contentColor = colors.onPrimary,
+        shadowElevation = 4.dp,
+    ) {
         Row(Modifier.sizeIn(minWidth = 56.dp, minHeight = 56.dp).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
             Icon(designIcon(R.drawable.ks_plus), null, Modifier.size(24.dp))
