@@ -170,18 +170,28 @@ class SelectionSheetsTest {
                 MealFilterPage(records, filter, filter, filter, {}, { applied = it })
             }
         }
+        compose.onNodeWithText("早餐").performScrollTo().performClick()
+        compose.onNodeWithText("晚餐").performScrollTo().performClick()
+        compose.onNodeWithText("是").performScrollTo().performClick()
+
         val chooser = compose.onNodeWithContentDescription("用餐方式")
         chooser.performScrollTo().performClick()
-        sheetText("全部方式").assertIsSelected()
+        sheetText("选择用餐方式").assertIsDisplayed()
         sheetText("未填写方式").performClick()
+        sheetText("应用").performClick()
         compose.onNode(hasContentDescription("用餐方式") and hasText("未填写方式")).assertExists()
         compose.runOnIdle { assertNull(applied) }
+
         chooser.performClick()
-        sheetText("全部方式").assertIsDisplayed()
+        sheetText("全选").performClick()
         close()
         compose.onNode(hasContentDescription("用餐方式") and hasText("未填写方式")).assertExists()
         compose.onNodeWithText("应用筛选").performScrollTo().performClick()
-        compose.runOnIdle { assertEquals("none", applied?.method) }
+        compose.runOnIdle {
+            assertEquals(listOf(MealSlot.BREAKFAST, MealSlot.DINNER), applied?.slots)
+            assertEquals(listOf(true), applied?.atHome)
+            assertEquals(listOf(MealFilter.NO_METHOD), applied?.methods)
+        }
     }
 
     @Test

@@ -411,12 +411,12 @@
       return {from,to:end.toISOString().slice(0,10)};
     }
     const mealDatePresets={month:mealMonthDates(demoMealMonth),all:{from:'',to:''}};
-    const blankMealFilters=(dates=mealDatePresets.all)=>({...dates,slot:'any',atHome:'any',method:'any',preparations:[],keyword:''});
+    const blankMealFilters=(dates=mealDatePresets.all)=>({...dates,slots:[],atHome:[],methods:[],preparations:[],keyword:''});
     const mealDatePreset=({from,to})=>Object.keys(mealDatePresets).find(key=>{
       const dates=mealDatePresets[key];
       return dates.from===from&&dates.to===to;
     });
-    state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
+    state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealMethodPickerDraft=null;state.mealListMode=false;
     state.mealStatsFilters=blankMealFilters(mealDatePresets.month);
     const mealMethods=['下厨','外卖'],mealPreparations=['炒菜','预制菜'];
     // Archived items stay on the records that used them; only editing those records offers them again.
@@ -479,7 +479,7 @@
     state.defaultWalletId=wallets.find(w=>w.id===saved?.defaultWalletId&&!w.archived)?.id??null;
     if(Array.isArray(saved?.incomeDefaultWalletIds))wallets.forEach(w=>{w.defaultToIncome=saved.incomeDefaultWalletIds.includes(w.id);});
     state.deletedEntryIds=new Set();state.nextEntryId=1;state.deletePending=null;
-    if(saved){const s=saved;if(['light','dark','system'].includes(s.mode))style.mode=s.mode;if(/^\d{4}-(0[1-9]|1[0-2])$/.test(s.ledgerMonth||'')&&s.ledgerMonth.slice(0,4)!=='0000')state.ledgerMonth=s.ledgerMonth;if(s.walletFilterIds==='ALL')state.walletFilterIds='ALL';else if(Array.isArray(s.walletFilterIds)){const ids=wallets.filter(w=>s.walletFilterIds.includes(w.id)).map(w=>w.id);if(ids.length)state.walletFilterIds=ids;}if(Array.isArray(s.separateWalletIds))wallets.forEach(w=>{w.separateAccounting=s.separateWalletIds.includes(w.id);});const f=s.mealFilters;if(f&&typeof f==='object'){for(const key of ['from','to'])if(typeof f[key]==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(f[key]))state.mealFilters[key]=f[key];if(['any','0','1','2'].includes(f.slot))state.mealFilters.slot=f.slot;if(['any','yes','no'].includes(f.atHome))state.mealFilters.atHome=f.atHome;if(typeof f.method==='string')state.mealFilters.method=f.method.slice(0,80);if(typeof f.keyword==='string')state.mealFilters.keyword=f.keyword.slice(0,100);if(Array.isArray(f.preparations))state.mealFilters.preparations=f.preparations.filter(x=>typeof x==='string').slice(0,30).map(x=>x.slice(0,80));state.mealListMode=s.mealListMode===true;}}
+    if(saved){const s=saved;if(['light','dark','system'].includes(s.mode))style.mode=s.mode;if(/^\d{4}-(0[1-9]|1[0-2])$/.test(s.ledgerMonth||'')&&s.ledgerMonth.slice(0,4)!=='0000')state.ledgerMonth=s.ledgerMonth;if(s.walletFilterIds==='ALL')state.walletFilterIds='ALL';else if(Array.isArray(s.walletFilterIds)){const ids=wallets.filter(w=>s.walletFilterIds.includes(w.id)).map(w=>w.id);if(ids.length)state.walletFilterIds=ids;}if(Array.isArray(s.separateWalletIds))wallets.forEach(w=>{w.separateAccounting=s.separateWalletIds.includes(w.id);});const f=s.mealFilters;if(f&&typeof f==='object'){for(const key of ['from','to'])if(typeof f[key]==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(f[key]))state.mealFilters[key]=f[key];if(Array.isArray(f.slots))state.mealFilters.slots=[...new Set(f.slots.map(String).filter(x=>['0','1','2'].includes(x)))];if(Array.isArray(f.atHome))state.mealFilters.atHome=[...new Set(f.atHome.filter(x=>x==='yes'||x==='no'))];if(Array.isArray(f.methods))state.mealFilters.methods=[...new Set(f.methods.filter(x=>typeof x==='string').slice(0,30).map(x=>x.slice(0,80)))];if(typeof f.keyword==='string')state.mealFilters.keyword=f.keyword.slice(0,100);if(Array.isArray(f.preparations))state.mealFilters.preparations=f.preparations.filter(x=>typeof x==='string').slice(0,30).map(x=>x.slice(0,80));state.mealListMode=s.mealListMode===true;}}
     state.records['2026-11-17'] = [{atHome:true,method:'下厨',categories:[],dishes:'燕麦粥、煎蛋',note:''},{atHome:false,method:'外卖',categories:[],dishes:'照烧鸡腿饭',note:''},null];
     if(saved){const s=saved;if(['PRESET','CUSTOM','SYSTEM'].includes(s.colorSource))style.colorSource=s.colorSource;if(normalizeHex(s.presetColor))style.presetColor=s.presetColor.toLowerCase();if(normalizeHex(s.customColor))style.customColor=normalizeHex(s.customColor);}
     const isDate=value=>/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(value)&&value.slice(0,4)!=='0000'&&new Date(value).toJSON()?.slice(0,10)===value;
@@ -569,9 +569,9 @@
     function mealFilterLabels(f,includeDates=true){
       const labels=[];
       if(includeDates&&(f.from||f.to))labels.push(`${f.from||'最早'} ～ ${f.to||'至今'}`);
-      if(f.slot!=='any')labels.push(slots[Number(f.slot)]);
-      if(f.atHome!=='any')labels.push(`计划在家：${f.atHome==='yes'?'是':'否'}`);
-      if(f.method!=='any')labels.push(f.method==='none'?'方式未填写':f.method);
+      if(f.slots.length>0&&f.slots.length<slots.length)slots.forEach((s,i)=>{if(f.slots.includes(String(i)))labels.push(s);});
+      if(f.atHome.length===1)labels.push(`计划在家：${f.atHome[0]==='yes'?'是':'否'}`);
+      f.methods.forEach(m=>labels.push(m==='none'?'方式未填写':m));
       labels.push(...f.preparations);
       if(f.keyword)labels.push(`关键词：${f.keyword}`);
       return labels;
@@ -579,8 +579,9 @@
     function filteredMeals(f){
       const keyword=f.keyword.toLocaleLowerCase();
       return allMeals().filter(m=>(!f.from||m.date>=f.from)&&(!f.to||m.date<=f.to)&&
-        (f.slot==='any'||m.slot===Number(f.slot))&&(f.atHome==='any'||m.atHome===(f.atHome==='yes'))&&
-        (f.method==='any'||(f.method==='none'?!m.method:m.method===f.method))&&
+        (!f.slots.length||f.slots.includes(String(m.slot)))&&
+        (!f.atHome.length||f.atHome.includes(m.atHome?'yes':'no'))&&
+        (!f.methods.length||f.methods.includes(m.method||'none'))&&
         (!f.preparations.length||f.preparations.some(c=>m.categories.includes(c)))&&
         (!keyword||m.dishes.toLocaleLowerCase().includes(keyword)||m.note.toLocaleLowerCase().includes(keyword)));
     }
@@ -1083,12 +1084,15 @@
     }
     function pageAppearance(){
       const draft=state.appearanceDraft;
-      return `<div class="ks-settings">
-        <label class="ks-setting">${icon('sun-moon')}<span>明暗模式</span><select data-theme aria-label="明暗模式">${themeModes.map(([value,label])=>`<option value="${value}" ${draft.mode===value?'selected':''}>${label}</option>`).join('')}</select></label>
-        <label class="ks-setting">${icon('palette')}<span>配色来源</span><select data-color-source aria-label="配色来源">${[['PRESET','预设调色板'],['CUSTOM','自选主色'],['SYSTEM','跟随系统壁纸']].map(([v,n])=>`<option value="${v}" ${draft.colorSource===v?'selected':''}>${n}</option>`).join('')}</select></label>
-        ${draft.colorSource==='PRESET'?`<label class="ks-setting">${icon('swatch-book')}<span>调色板</span><select data-palette aria-label="调色板">${[['#c47a4a','杏橙'],['#5f7f64','茶绿'],['#587c9b','雾蓝'],['#8a729f','薰衣草'],['#a76f82','豆沙粉']].map(([v,n])=>`<option value="${v}" ${draft.presetColor===v?'selected':''}>${n}</option>`).join('')}</select></label>`:''}
+      const modeLabel=themeModes.find(([v])=>v===draft.mode)?.[1]||'跟随系统';
+      const sourceLabel=appearanceSources.find(([v])=>v===draft.colorSource)?.[1]||'预设调色板';
+      const paletteLabel=appearancePalettes.find(([v])=>v===draft.presetColor)?.[1]||'杏橙';
+      return `<div class="ks-form">
+        ${selectionControl('appearance-mode','明暗模式',modeLabel,icon('sun-moon'))}
+        ${selectionControl('appearance-source','配色来源',sourceLabel,icon('palette'))}
+        ${draft.colorSource==='PRESET'?selectionControl('appearance-palette','调色板',paletteLabel,icon('swatch-book')):''}
         ${draft.colorSource==='CUSTOM'?`<label class="ks-custom-color-row"><input type="color" data-custom-picker aria-label="选择主色" value="${normalizeHex(draft.customColor)||style.customColor}"><input type="text" data-custom-hex aria-label="主色 HEX" value="${escapeText(draft.customColor)}" placeholder="#C47A4A" maxlength="7" spellcheck="false"></label>`:''}
-        ${draft.colorSource==='SYSTEM'?`<div class="ks-setting">${icon('sparkles')}<span>使用系统壁纸配色</span><small>Android 12+</small></div>`:''}
+        ${draft.colorSource==='SYSTEM'?`<div class="ks-settings"><div class="ks-setting">${icon('sparkles')}<span>使用系统壁纸配色</span><small>Android 12+</small></div></div>`:''}
       </div>
       <button type="button" class="ks-text-btn cursor-interaction" data-action="reset-appearance">恢复默认</button>
       <div data-appearance-editor hidden>
@@ -1112,9 +1116,7 @@
         <fieldset><legend class="ks-label">收支类型</legend><div class="ks-choices">
           ${[['EXPENSE','支出'],['INCOME','收入']].map(([code,label])=>`<button type="button" class="ks-choice cursor-interaction" data-financial-scope="${code}" aria-pressed="${scope===code}">${label}</button>`).join('')}
         </div></fieldset>
-        ${wallet?`<label><span class="ks-label">${escapeText(name)} · ${scope==='EXPENSE'?'支出':'收入'}分类来源</span>
-          <select class="ks-control" data-category-mode><option value="DEFAULT" ${mode==='DEFAULT'?'selected':''}>使用通用分类</option><option value="CUSTOM" ${mode==='CUSTOM'?'selected':''}>使用本钱包专属分类</option></select>
-        </label>`:''}
+        ${wallet?selectionControl('category-mode',`${name} · ${scope==='EXPENSE'?'支出':'收入'}分类来源`,mode==='DEFAULT'?'使用通用分类':'使用本钱包专属分类'):''}
         <p class="ks-note">${wallet?(mode==='DEFAULT'?'使用通用分类。切为专属后，不会与通用列表混合。':'使用本钱包专属分类；即使没有自定义项，也只保留“未分类”。'):'通用类别供未开启专属分类的钱包使用。'}</p>
         ${section((wallet?escapeText(name)+' · ':'')+(scope==='EXPENSE'?'支出':'收入')+'分类')}
         ${financialCategoryRows(shown,editable,true)}
@@ -1243,8 +1245,16 @@
     const displayCurrency=new Intl.DisplayNames(['zh-CN'],{type:'currency'});
     const mealMethodLabel=m=>m+(archivedMealMethods.includes(m)?'（已停用）':'');
     const mealPreparationLabel=c=>c+(archivedMealPreparations.includes(c)?'（已停用）':'');
-    const mealFilterMethods=()=>[['any','全部方式'],['none','未填写方式'],
+    const mealFilterMethods=()=>[['none','未填写方式'],
       ...[...new Set([...mealMethods,...archivedMealMethods,...allMeals().map(m=>m.method).filter(Boolean)])].map(m=>[m,mealMethodLabel(m)])];
+    const appearanceSources=[['PRESET','预设调色板'],['CUSTOM','自选主色'],['SYSTEM','跟随系统壁纸']];
+    const appearancePalettes=[['#c47a4a','杏橙'],['#5f7f64','茶绿'],['#587c9b','雾蓝'],['#8a729f','薰衣草'],['#a76f82','豆沙粉']];
+    function mealMethodSummary(selected){
+      const all=mealFilterMethods(),chosen=all.filter(([value])=>selected.includes(value));
+      if(!chosen.length||chosen.length===all.length)return '全部方式';
+      if(chosen.length<=2)return chosen.map(([,label])=>label).join('、');
+      return `已选 ${chosen.length} 项 · ${chosen.slice(0,2).map(([,label])=>label).join('、')}等`;
+    }
     function selectionControl(kind,label,value,glyph='',disabled=false){
       return `<div class="ks-selection-field"><span class="ks-label" id="ks-choice-${kind}">${escapeText(label)}</span>
         <button type="button" class="ks-control ks-selection-trigger" data-select-open="${kind}" aria-labelledby="ks-choice-${kind} ks-choice-${kind}-value" aria-haspopup="dialog" ${disabled?'disabled':''}>
@@ -1278,6 +1288,7 @@
     }
     function singleSelectionPanel(){
       const kind=state.singleSelection,wallet=entryWallet(),scope=financialScopeOf(state.entryType);
+      const managedWallet=state.categoryWalletId==='GLOBAL'?null:wallets.find(w=>w.id===state.categoryWalletId);
       let title,choices,current,subtitle='',footer='';
       switch(kind){
         case 'entry-wallet':
@@ -1287,10 +1298,20 @@
           subtitle=(scopeMode(wallet,scope)==='CUSTOM'?'本钱包专属分类':'通用分类')+' · '+state.entryType;
           choices=effectiveFinancialCategories(wallet?.id,state.entryType).map(c=>[c.id,c.name,'',categoryGlyph(c.icon)]);
           footer=`<button type="button" class="ks-text-btn ks-selection-add" data-action="add-entry-category">${icon('plus')}新增分类</button>`;break;
-        case 'meal-method':
-          title='选择用餐方式';choices=mealFilterMethods();current=state.mealFilterDraft.method;break;
+        case 'meal-slot':
+          title='选择餐次';choices=slots.map((s,i)=>[String(i),s]);current=String(state.slot);break;
         case 'category-wallet':
           title='选择管理对象';choices=[['GLOBAL','通用分类'],...wallets.map(walletSelectionOption)];current=state.categoryWalletId;break;
+        case 'category-mode':
+          title=`选择${managedWallet?managedWallet.name+' · ':''}${state.financialScope==='EXPENSE'?'支出':'收入'}分类来源`;
+          choices=[['DEFAULT','使用通用分类'],['CUSTOM','使用本钱包专属分类']];
+          current=scopeMode(managedWallet,state.financialScope);break;
+        case 'appearance-mode':
+          title='选择明暗模式';choices=themeModes;current=state.appearanceDraft.mode;break;
+        case 'appearance-source':
+          title='选择配色来源';choices=appearanceSources;current=state.appearanceDraft.colorSource;break;
+        case 'appearance-palette':
+          title='选择调色板';choices=appearancePalettes;current=state.appearanceDraft.presetColor;break;
         case 'csv-method':
           title='选择映射 外送';choices=mealMethods.map(m=>[m,m]);current=state.csvMethod;break;
         case 'csv-wallet':
@@ -1303,6 +1324,21 @@
       return selectionPanel(title,(subtitle?`<p class="ks-note">${escapeText(subtitle)}</p>`:'')+
         (options||'<p class="ks-note">没有可选项目</p>'),footer);
     }
+    function mealMethodFilterDialog(){
+      const all=mealFilterMethods(),selected=state.mealMethodPickerDraft||[];
+      const count=all.filter(([value])=>selected.includes(value)).length;
+      const header=`<div class="ks-selection-group-heading">
+        <span class="ks-note">已选 ${count}/${all.length}</span>
+        <div class="ks-selection-group-actions">
+          <button type="button" class="ks-text-btn" data-meal-method-action="all">全选</button>
+          <button type="button" class="ks-text-btn" data-meal-method-action="none">全不选</button>
+        </div>
+      </div>`;
+      const body=`<p class="ks-note">不选或全选均表示全部方式</p>`+
+        all.map(([value,label])=>selectionCheck(label,`data-meal-method-option="${escapeText(value)}"`,selected.includes(value))).join('');
+      const footer='<button type="button" class="ks-primary ks-full" data-meal-method-action="apply">应用</button>';
+      return selectionPanel('选择用餐方式',body,footer,{header});
+    }
     const addMealOption = kind => `<button type="button" class="ks-icon-btn cursor-interaction" data-add-meal-option="${kind}" aria-label="新增${mealOptionLabels[kind]}">${icon('plus')}</button>`;
     // Editing keeps the original record's archived method and categories selectable; new records only list active items.
     const mealFormOptions=()=>{
@@ -1312,7 +1348,7 @@
       return {methods,preparations};
     };
     function pageMealForm(){const options=mealFormOptions();return `<form class="ks-form" data-meal-form>
-      <div class="ks-field-row"><label><span class="ks-label">日期</span><input type="date" name="date" class="ks-control" value="${state.date}" required></label><label><span class="ks-label">餐次</span><select name="slot" class="ks-control">${slots.map((s,i)=>`<option value="${i}" ${i===state.slot?'selected':''}>${s}</option>`).join('')}</select></label></div>
+      <div class="ks-field-row"><label><span class="ks-label">日期</span><input type="date" name="date" class="ks-control" value="${state.date}" required></label>${selectionControl('meal-slot','餐次',slots[state.slot])}</div>
       <fieldset><legend class="ks-label">是否计划在家吃<span class="ks-required">必选</span></legend><div class="ks-choices">${choice('是',true,state.atHome,'home-choice')}${choice('否',false,state.atHome,'home-choice')}</div></fieldset>
       <fieldset><legend class="ks-label">用餐方式<span class="ks-required">${state.atHome?'必选':'单选 · 可不填'}</span></legend><div class="ks-choices">${options.methods.map(m=>choice(escapeText(mealMethodLabel(m)),m,state.method,'method')).join('')}${addMealOption('method')}</div></fieldset>
       ${state.method==='下厨'?`<fieldset><legend class="ks-label">制作分类<span class="ks-required">多选 · 选填</span></legend><div class="ks-choices">${options.preparations.map(c=>choice(escapeText(mealPreparationLabel(c)),c,state.categories.includes(c)?c:null,'category')).join('')}${addMealOption('preparation')}</div></fieldset>`:''}
@@ -1514,14 +1550,14 @@
         </div>
         <input class="ks-control" type="date" id="meal-filter-${name}" name="${name}" value="${f[name]}" min="0001-01-01" max="9999-12-31">
       </div>`;
-      const select=(label,name,choices)=>`<label><span class="ks-label">${label}</span><select class="ks-control" name="${name}">${choices.map(([value,label])=>`<option value="${escapeText(value)}" ${f[name]===value?'selected':''}>${escapeText(label)}</option>`).join('')}</select></label>`;
       return `<form class="ks-form" data-meal-filter-form>
         <fieldset><legend class="ks-label">日期范围</legend>
           <div class="ks-choices">${choice('本月','month',datePreset,'meal-date-preset')}${choice('所有时间','all',datePreset,'meal-date-preset')}</div>
           <div class="ks-field-row">${dateField('from','开始日期')}${dateField('to','结束日期')}</div>
         </fieldset>
-        <div class="ks-field-row">${select('餐次','slot',[['any','全部餐次'],...slots.map((s,i)=>[String(i),s])])}${select('计划在家吃','atHome',[['any','不限'],['yes','是'],['no','否']])}</div>
-        ${selectionControl('meal-method','用餐方式',mealFilterMethods().find(([value])=>value===f.method)?.[1])}
+        <fieldset><legend class="ks-label">餐次<span class="ks-required">多选，不选不限</span></legend><div class="ks-preparation-choices">${slots.map((s,i)=>`<label class="ks-preparation-check cursor-interaction"><input type="checkbox" name="slot" value="${i}" ${f.slots.includes(String(i))?'checked':''}>${s}</label>`).join('')}</div></fieldset>
+        <fieldset><legend class="ks-label">计划在家吃<span class="ks-required">多选，不选不限</span></legend><div class="ks-preparation-choices">${[['yes','是'],['no','否']].map(([v,l])=>`<label class="ks-preparation-check cursor-interaction"><input type="checkbox" name="atHome" value="${v}" ${f.atHome.includes(v)?'checked':''}>${l}</label>`).join('')}</div></fieldset>
+        ${selectionControl('meal-methods','用餐方式',mealMethodSummary(f.methods))}
         <fieldset><legend class="ks-label">制作分类<span class="ks-required">多选，匹配任一项</span></legend><div class="ks-preparation-choices">${preparations.map(c=>`<label class="ks-preparation-check cursor-interaction"><input type="checkbox" name="preparation" value="${escapeText(c)}" ${f.preparations.includes(c)?'checked':''}>${escapeText(mealPreparationLabel(c))}</label>`).join('')}</div></fieldset>
         <label><span class="ks-label">菜品／备注关键词</span><input class="ks-control" type="search" name="keyword" value="${escapeText(f.keyword)}" placeholder="例如：番茄、和朋友" maxlength="100"></label>
         <p class="ks-note" style="margin:0">不同条件同时满足；未选择的条件不限制。</p>
@@ -1593,7 +1629,7 @@
     const discard=group=>()=>group?.remove();
     const pageNode=()=>phone.querySelector(':scope > .ks-page-motion');
     const modalNode=()=>phone.querySelector(':scope > .ks-modal-overlay');
-    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.singleSelection?'single-selection':state.walletPickerOpen?'wallet':state.periodDraft?'period':state.ledgerFilterDraft?'ledger-filters':state.githubDemo.review?'github-review':state.localBackupDemo.restoreOpen?'local-restore':state.csvDemo.previewOpen?'csv-preview':state.mealCalendar?'date-calendar':state.entryTimeDraft?'entry-time':state.addingEntryCategory?'entry-category':state.addingMealOption?'meal-option':null;
+    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.singleSelection?'single-selection':state.mealMethodPickerDraft?'meal-methods':state.walletPickerOpen?'wallet':state.periodDraft?'period':state.ledgerFilterDraft?'ledger-filters':state.githubDemo.review?'github-review':state.localBackupDemo.restoreOpen?'local-restore':state.csvDemo.previewOpen?'csv-preview':state.mealCalendar?'date-calendar':state.entryTimeDraft?'entry-time':state.addingEntryCategory?'entry-category':state.addingMealOption?'meal-option':null;
     const primary=page=>navs.some(n=>n[0]===page);
     const localKey=()=>state.page==='meals'?JSON.stringify([state.mealTab,state.date,state.mealStatsFilters,state.mealListMode,state.mealFilters]):state.page==='ledger'?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds,state.ledgerFilters]):'';
     const localNodes=()=>{
@@ -1728,8 +1764,8 @@
       phone.innerHTML=`<div class="ks-status"><span>9:41</span><span class="ks-signal">${icon('signal')}${icon('wifi')}${icon('battery-full')}</span></div><div class="ks-page-motion ${settingsScreen} ${ledger?'ks-ledger-screen':''} ${fab?'ks-ledger-with-fab':''}">${ledger?`<div class="ks-ledger-collapsible">${top}</div>${ledgerTabs()}${ledgerFilters()}`:top}<main class="ks-main">${pages[state.page]()}${state.notice?`<p class="ks-success" role="status">${escapeText(state.notice)}</p>`:''}</main>${fab?`<button type="button" class="ks-primary ks-ledger-fab" data-action="add-entry" aria-label="记一笔">${icon('plus')}<span>记一笔</span></button>`:''}</div>${form?'':`<nav class="ks-nav" aria-label="主导航">${navs.map(([id,name,ic])=>`<button type="button" data-page="${id}" class="cursor-interaction" ${state.page===id?'aria-current="page"':''}><span>${icon(ic)}</span>${name}</button>`).join('')}</nav>`}<div class="ks-home-indicator" aria-hidden="true"></div>`;
       if(state.calcOpen){phone.insertAdjacentHTML('beforeend',calculatorSheet());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;updateCalculatorReadout();phone.querySelector('[data-calc-action=cancel]').focus({preventScroll:true});}
       if(state.deletePending){phone.insertAdjacentHTML('beforeend',deleteConfirmation());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-delete-action=cancel]').focus({preventScroll:true});}
-      if(state.walletPickerOpen||state.ledgerFilterDraft||state.singleSelection){
-        const panel=state.walletPickerOpen?walletRangeDialog():state.ledgerFilterDraft?ledgerFiltersDialog():singleSelectionPanel();
+      if(state.walletPickerOpen||state.ledgerFilterDraft||state.singleSelection||state.mealMethodPickerDraft){
+        const panel=state.walletPickerOpen?walletRangeDialog():state.ledgerFilterDraft?ledgerFiltersDialog():state.mealMethodPickerDraft?mealMethodFilterDialog():singleSelectionPanel();
         phone.insertAdjacentHTML('beforeend',panel);
         for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
         phone.querySelector('.ks-selection-panel [data-select-close]').focus({preventScroll:true});
@@ -1801,7 +1837,7 @@
       const form=phone.querySelector('[data-meal-form]');
       if(form){
         state.dishes=form.elements.dishes.value;state.note=form.elements.note.value;
-        state.date=form.elements.date.value;state.slot=Number(form.elements.slot.value);
+        state.date=form.elements.date.value;
       }
       const entry=phone.querySelector('[data-entry-form]');
       if(entry){
@@ -1810,8 +1846,10 @@
       }
       const meal=phone.querySelector('[data-meal-filter-form]');
       if(meal){
-        const {from,to,slot,atHome,keyword}=meal.elements;
-        state.mealFilterDraft={...state.mealFilterDraft,from:from.value,to:to.value,slot:slot.value,atHome:atHome.value,
+        const {from,to,keyword}=meal.elements;
+        state.mealFilterDraft={...state.mealFilterDraft,from:from.value,to:to.value,
+          slots:[...meal.querySelectorAll('[name=slot]:checked')].map(e=>e.value),
+          atHome:[...meal.querySelectorAll('[name=atHome]:checked')].map(e=>e.value),
           keyword:keyword.value,preparations:[...meal.querySelectorAll('[name=preparation]:checked')].map(e=>e.value)};
       }
       if(state.page==='wallet-edit'){
@@ -1936,10 +1974,21 @@
           }
           case 'entry-category':
             state.entryDraft.category=value;state.followsWalletType=false;break;
-          case 'meal-method':
-            state.mealFilterDraft.method=value;break;
+          case 'meal-slot':
+            state.slot=Number(value);break;
           case 'category-wallet':
             state.categoryWalletId=value;state.editingFinancialCategoryId=null;break;
+          case 'category-mode': {
+            const wallet=wallets.find(w=>w.id===state.categoryWalletId);
+            if(wallet){wallet[state.financialScope==='INCOME'?'incomeCategoryMode':'expenseCategoryMode']=value;state.editingFinancialCategoryId=null;}
+            break;
+          }
+          case 'appearance-mode':
+            state.appearanceDraft.mode=value;break;
+          case 'appearance-source':
+            state.appearanceDraft.colorSource=value;break;
+          case 'appearance-palette':
+            state.appearanceDraft.presetColor=value;break;
           case 'csv-method':
             state.csvMethod=value;break;
           case 'csv-wallet':
@@ -1951,8 +2000,18 @@
       state.singleSelection=null;render();
       phone.querySelector(`[data-select-open="${kind}"]`)?.focus({preventScroll:true});
     }
+    function closeMealMethodPicker(apply){
+      if(apply){
+        const all=mealFilterMethods().map(([value])=>value);
+        const picked=all.filter(v=>(state.mealMethodPickerDraft||[]).includes(v));
+        state.mealFilterDraft.methods=picked.length===all.length?[]:picked;
+      }
+      state.mealMethodPickerDraft=null;render();
+      phone.querySelector('[data-select-open="meal-methods"]')?.focus({preventScroll:true});
+    }
     function cancelSelection(){
       if(state.singleSelection)closeSingleSelection();
+      else if(state.mealMethodPickerDraft)closeMealMethodPicker(false);
       else if(state.walletPickerOpen)closeWalletPicker('cancel');
       else if(state.ledgerFilterDraft)closeLedgerFilters(false);
     }
@@ -2059,7 +2118,15 @@
       const b=event.target.closest('button');if(!b)return;
       capture();state.notice='';
       if(b.hasAttribute('data-select-close')){cancelSelection();return;}
+      if(b.dataset.selectOpen==='meal-methods'){state.mealMethodPickerDraft=[...state.mealFilterDraft.methods];render();return;}
       if(b.dataset.selectOpen){state.singleSelection=b.dataset.selectOpen;render();return;}
+      if(b.dataset.mealMethodAction){
+        const action=b.dataset.mealMethodAction;
+        if(action==='all'){state.mealMethodPickerDraft=mealFilterMethods().map(([value])=>value);render();}
+        else if(action==='none'){state.mealMethodPickerDraft=[];render();}
+        else if(action==='apply')closeMealMethodPicker(true);
+        return;
+      }
       if(b.dataset.selectValue!==undefined){closeSingleSelection(b.dataset.selectValue);return;}
       if(b.dataset.action==='add-entry-category'){state.singleSelection=null;state.addingEntryCategory=true;render();return;}
       if(b.dataset.action==='open-local-backup'){state.page='local-backup';render();return;}
@@ -2396,7 +2463,7 @@
         else if(state.entryTimeDraft)closeEntryTime(false);
         else if(state.addingEntryCategory)closeEntryCategory();
         else if(state.periodDraft)closePeriod(false);
-        else if(state.singleSelection||state.ledgerFilterDraft||state.walletPickerOpen)cancelSelection();
+        else if(state.singleSelection||state.mealMethodPickerDraft||state.ledgerFilterDraft||state.walletPickerOpen)cancelSelection();
         else if(state.deletePending)cancelDelete();
         else closeCalculator(false);
       }else if(event.key==='Enter'&&event.target.matches('[data-ledger-filters] [name=note]')){
@@ -2424,6 +2491,13 @@
         updateLedgerFilterCount(group);
         return;
       }
+      if(e.matches('[data-meal-method-option]')){
+        const val=e.dataset.mealMethodOption,scroll=e.closest('.ks-selection-body').scrollTop;
+        const current=state.mealMethodPickerDraft||[];
+        state.mealMethodPickerDraft=e.checked?[...new Set([...current,val])]:current.filter(x=>x!==val);
+        render();phone.querySelector('.ks-selection-body').scrollTop=scroll;
+        phone.querySelector(`[data-meal-method-option="${CSS.escape(val)}"]`)?.focus({preventScroll:true});return;
+      }
       if(e.matches('[data-github-wifi]')){state.githubDemo.wifi=e.checked;return;}
       if(e.matches('[data-github-wifi-draft]')){state.githubDemo.draftWifi=e.checked;return;}
       if(e.matches('[data-github-scenario]')){
@@ -2433,7 +2507,6 @@
       if(e.matches('[data-local-backup-scenario]')){
         state.localBackupDemo.scenario=e.value;state.localBackupDemo.restoreOpen=false;render();return;
       }
-      if(e.matches('[data-category-mode]')){const wallet=wallets.find(w=>w.id===state.categoryWalletId);if(wallet){wallet[state.financialScope==='INCOME'?'incomeCategoryMode':'expenseCategoryMode']=e.value;state.editingFinancialCategoryId=null;render();}return;}
       if(e.matches('[data-wallet-option]')){
         const id=e.dataset.walletOption,scroll=e.closest('.ks-selection-body').scrollTop;
         state.walletDraftIds=e.checked?[...new Set([...state.walletDraftIds,id])]:state.walletDraftIds.filter(x=>x!==id);
@@ -2441,10 +2514,6 @@
         phone.querySelector(`[data-wallet-option=${id}]`).focus({preventScroll:true});return;
       }
       if(e.matches('[data-meal-filter-form] input[type=date]')){updateMealDatePresets(e.form);return;}
-      if(e.matches('[data-theme]')){state.appearanceDraft.mode=e.value;updateAppearancePreview();return;}
-      if(e.matches('[data-color-source]')){state.appearanceDraft.colorSource=e.value;render();return;}
-      if(e.matches('[data-palette]')){state.appearanceDraft.presetColor=e.value;updateAppearancePreview();return;}
-      if(e.matches('[data-meal-form] [name=slot]')){capture();render();}
     });
     phone.addEventListener('input',event=>{
       const e=event.target;
@@ -2547,10 +2616,17 @@
       if(f.matches('[data-ledger-filters]')){closeLedgerFilters(true);return;}
       if(f.matches('[data-period-form]')){closePeriod(true);return;}
       if(f.matches('[data-meal-filter-form]')){
-        const {from,to,slot,atHome,keyword}=f.elements;
+        const {from,to,keyword}=f.elements;
         if(from.value&&to.value&&from.value>to.value){error('开始日期不能晚于结束日期。');return;}
+        const pickedSlots=[...f.querySelectorAll('[name=slot]:checked')].map(e=>e.value);
+        const pickedHome=[...f.querySelectorAll('[name=atHome]:checked')].map(e=>e.value);
+        const allMethods=mealFilterMethods().map(([value])=>value);
+        const pickedMethods=allMethods.filter(v=>state.mealFilterDraft.methods.includes(v));
         const applied={
-          from:from.value,to:to.value,slot:slot.value,atHome:atHome.value,method:state.mealFilterDraft.method,
+          from:from.value,to:to.value,
+          slots:pickedSlots.length===slots.length?[]:pickedSlots,
+          atHome:pickedHome.length===2?[]:pickedHome,
+          methods:pickedMethods.length===allMethods.length?[]:pickedMethods,
           preparations:[...f.querySelectorAll('[name=preparation]:checked')].map(e=>e.value),keyword:keyword.value.trim(),
         };
         if(state.mealTab==='统计')state.mealStatsFilters=applied;

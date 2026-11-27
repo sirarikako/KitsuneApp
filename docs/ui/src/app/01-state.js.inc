@@ -39,12 +39,12 @@
       return {from,to:end.toISOString().slice(0,10)};
     }
     const mealDatePresets={month:mealMonthDates(demoMealMonth),all:{from:'',to:''}};
-    const blankMealFilters=(dates=mealDatePresets.all)=>({...dates,slot:'any',atHome:'any',method:'any',preparations:[],keyword:''});
+    const blankMealFilters=(dates=mealDatePresets.all)=>({...dates,slots:[],atHome:[],methods:[],preparations:[],keyword:''});
     const mealDatePreset=({from,to})=>Object.keys(mealDatePresets).find(key=>{
       const dates=mealDatePresets[key];
       return dates.from===from&&dates.to===to;
     });
-    state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealListMode=false;
+    state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealMethodPickerDraft=null;state.mealListMode=false;
     state.mealStatsFilters=blankMealFilters(mealDatePresets.month);
     const mealMethods=['下厨','外卖'],mealPreparations=['炒菜','预制菜'];
     // Archived items stay on the records that used them; only editing those records offers them again.
@@ -107,7 +107,7 @@
     state.defaultWalletId=wallets.find(w=>w.id===saved?.defaultWalletId&&!w.archived)?.id??null;
     if(Array.isArray(saved?.incomeDefaultWalletIds))wallets.forEach(w=>{w.defaultToIncome=saved.incomeDefaultWalletIds.includes(w.id);});
     state.deletedEntryIds=new Set();state.nextEntryId=1;state.deletePending=null;
-    if(saved){const s=saved;if(['light','dark','system'].includes(s.mode))style.mode=s.mode;if(/^\d{4}-(0[1-9]|1[0-2])$/.test(s.ledgerMonth||'')&&s.ledgerMonth.slice(0,4)!=='0000')state.ledgerMonth=s.ledgerMonth;if(s.walletFilterIds==='ALL')state.walletFilterIds='ALL';else if(Array.isArray(s.walletFilterIds)){const ids=wallets.filter(w=>s.walletFilterIds.includes(w.id)).map(w=>w.id);if(ids.length)state.walletFilterIds=ids;}if(Array.isArray(s.separateWalletIds))wallets.forEach(w=>{w.separateAccounting=s.separateWalletIds.includes(w.id);});const f=s.mealFilters;if(f&&typeof f==='object'){for(const key of ['from','to'])if(typeof f[key]==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(f[key]))state.mealFilters[key]=f[key];if(['any','0','1','2'].includes(f.slot))state.mealFilters.slot=f.slot;if(['any','yes','no'].includes(f.atHome))state.mealFilters.atHome=f.atHome;if(typeof f.method==='string')state.mealFilters.method=f.method.slice(0,80);if(typeof f.keyword==='string')state.mealFilters.keyword=f.keyword.slice(0,100);if(Array.isArray(f.preparations))state.mealFilters.preparations=f.preparations.filter(x=>typeof x==='string').slice(0,30).map(x=>x.slice(0,80));state.mealListMode=s.mealListMode===true;}}
+    if(saved){const s=saved;if(['light','dark','system'].includes(s.mode))style.mode=s.mode;if(/^\d{4}-(0[1-9]|1[0-2])$/.test(s.ledgerMonth||'')&&s.ledgerMonth.slice(0,4)!=='0000')state.ledgerMonth=s.ledgerMonth;if(s.walletFilterIds==='ALL')state.walletFilterIds='ALL';else if(Array.isArray(s.walletFilterIds)){const ids=wallets.filter(w=>s.walletFilterIds.includes(w.id)).map(w=>w.id);if(ids.length)state.walletFilterIds=ids;}if(Array.isArray(s.separateWalletIds))wallets.forEach(w=>{w.separateAccounting=s.separateWalletIds.includes(w.id);});const f=s.mealFilters;if(f&&typeof f==='object'){for(const key of ['from','to'])if(typeof f[key]==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(f[key]))state.mealFilters[key]=f[key];if(Array.isArray(f.slots))state.mealFilters.slots=[...new Set(f.slots.map(String).filter(x=>['0','1','2'].includes(x)))];if(Array.isArray(f.atHome))state.mealFilters.atHome=[...new Set(f.atHome.filter(x=>x==='yes'||x==='no'))];if(Array.isArray(f.methods))state.mealFilters.methods=[...new Set(f.methods.filter(x=>typeof x==='string').slice(0,30).map(x=>x.slice(0,80)))];if(typeof f.keyword==='string')state.mealFilters.keyword=f.keyword.slice(0,100);if(Array.isArray(f.preparations))state.mealFilters.preparations=f.preparations.filter(x=>typeof x==='string').slice(0,30).map(x=>x.slice(0,80));state.mealListMode=s.mealListMode===true;}}
     state.records['2026-11-17'] = [{atHome:true,method:'下厨',categories:[],dishes:'燕麦粥、煎蛋',note:''},{atHome:false,method:'外卖',categories:[],dishes:'照烧鸡腿饭',note:''},null];
     if(saved){const s=saved;if(['PRESET','CUSTOM','SYSTEM'].includes(s.colorSource))style.colorSource=s.colorSource;if(normalizeHex(s.presetColor))style.presetColor=s.presetColor.toLowerCase();if(normalizeHex(s.customColor))style.customColor=normalizeHex(s.customColor);}
     const isDate=value=>/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(value)&&value.slice(0,4)!=='0000'&&new Date(value).toJSON()?.slice(0,10)===value;
@@ -197,9 +197,9 @@
     function mealFilterLabels(f,includeDates=true){
       const labels=[];
       if(includeDates&&(f.from||f.to))labels.push(`${f.from||'最早'} ～ ${f.to||'至今'}`);
-      if(f.slot!=='any')labels.push(slots[Number(f.slot)]);
-      if(f.atHome!=='any')labels.push(`计划在家：${f.atHome==='yes'?'是':'否'}`);
-      if(f.method!=='any')labels.push(f.method==='none'?'方式未填写':f.method);
+      if(f.slots.length>0&&f.slots.length<slots.length)slots.forEach((s,i)=>{if(f.slots.includes(String(i)))labels.push(s);});
+      if(f.atHome.length===1)labels.push(`计划在家：${f.atHome[0]==='yes'?'是':'否'}`);
+      f.methods.forEach(m=>labels.push(m==='none'?'方式未填写':m));
       labels.push(...f.preparations);
       if(f.keyword)labels.push(`关键词：${f.keyword}`);
       return labels;
@@ -207,8 +207,9 @@
     function filteredMeals(f){
       const keyword=f.keyword.toLocaleLowerCase();
       return allMeals().filter(m=>(!f.from||m.date>=f.from)&&(!f.to||m.date<=f.to)&&
-        (f.slot==='any'||m.slot===Number(f.slot))&&(f.atHome==='any'||m.atHome===(f.atHome==='yes'))&&
-        (f.method==='any'||(f.method==='none'?!m.method:m.method===f.method))&&
+        (!f.slots.length||f.slots.includes(String(m.slot)))&&
+        (!f.atHome.length||f.atHome.includes(m.atHome?'yes':'no'))&&
+        (!f.methods.length||f.methods.includes(m.method||'none'))&&
         (!f.preparations.length||f.preparations.some(c=>m.categories.includes(c)))&&
         (!keyword||m.dishes.toLocaleLowerCase().includes(keyword)||m.note.toLocaleLowerCase().includes(keyword)));
     }

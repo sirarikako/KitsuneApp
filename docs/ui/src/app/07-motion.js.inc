@@ -63,7 +63,7 @@
     const discard=group=>()=>group?.remove();
     const pageNode=()=>phone.querySelector(':scope > .ks-page-motion');
     const modalNode=()=>phone.querySelector(':scope > .ks-modal-overlay');
-    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.singleSelection?'single-selection':state.walletPickerOpen?'wallet':state.periodDraft?'period':state.ledgerFilterDraft?'ledger-filters':state.githubDemo.review?'github-review':state.localBackupDemo.restoreOpen?'local-restore':state.csvDemo.previewOpen?'csv-preview':state.mealCalendar?'date-calendar':state.entryTimeDraft?'entry-time':state.addingEntryCategory?'entry-category':state.addingMealOption?'meal-option':null;
+    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.singleSelection?'single-selection':state.mealMethodPickerDraft?'meal-methods':state.walletPickerOpen?'wallet':state.periodDraft?'period':state.ledgerFilterDraft?'ledger-filters':state.githubDemo.review?'github-review':state.localBackupDemo.restoreOpen?'local-restore':state.csvDemo.previewOpen?'csv-preview':state.mealCalendar?'date-calendar':state.entryTimeDraft?'entry-time':state.addingEntryCategory?'entry-category':state.addingMealOption?'meal-option':null;
     const primary=page=>navs.some(n=>n[0]===page);
     const localKey=()=>state.page==='meals'?JSON.stringify([state.mealTab,state.date,state.mealStatsFilters,state.mealListMode,state.mealFilters]):state.page==='ledger'?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds,state.ledgerFilters]):'';
     const localNodes=()=>{
