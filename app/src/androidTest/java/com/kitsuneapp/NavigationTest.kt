@@ -11,7 +11,6 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
-import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
@@ -740,28 +739,30 @@ class NavigationTest {
             saved.methods.single { it.name == methodName } to
                 saved.categories.single { it.scope == Scope.PREPARATION && it.name == prepName }
         }
-        val methodChooser = hasContentDescription("用餐方式")
+        val inSheet = hasAnyAncestor(isDialog())
+        fun sheetList() = compose.onNode(hasScrollToNodeAction() and inSheet)
+        fun sheetNode(text: String) = compose.onNode(hasText(text) and inSheet)
         try {
             compose.onNodeWithText("用餐").performClick()
             // Records tab: apply deleted method + deleted prep + valid keyword.
             compose.onNodeWithText("筛选").performClick()
-            compose.onNode(methodChooser).performScrollTo().performClick()
-            compose.onNode(hasText(methodName) and hasAnyAncestor(isDialog())).performClick()
-            compose.onNode(hasText("应用") and hasAnyAncestor(isDialog())).performClick()
-            compose.onNodeWithText(prepName).performScrollTo().performClick()
-            compose.onNodeWithContentDescription("菜品／备注关键词").performScrollTo().performTextReplacement(keyword)
-            compose.onNodeWithText("应用筛选").performScrollTo().performSemanticsAction(SemanticsActions.OnClick)
+            compose.onNode(hasContentDescription("菜品／备注关键词") and inSheet).performTextReplacement(keyword)
+            sheetList().performScrollToNode(hasText(methodName))
+            sheetNode(methodName).performClick().assertIsSelected()
+            sheetList().performScrollToNode(hasText(prepName))
+            sheetNode(prepName).performClick().assertIsSelected()
+            sheetNode("应用筛选").performClick()
             compose.waitUntilExactlyOneExists(hasText("筛选 (3)"), 10_000)
 
             // Statistics tab: default current month + deleted method + deleted prep -> pruning returns to default current month.
             compose.onNodeWithText("统计").performClick()
             compose.onNodeWithText("本月").assertIsDisplayed()
             compose.onNodeWithText("筛选").performClick()
-            compose.onNode(methodChooser).performScrollTo().performClick()
-            compose.onNode(hasText(methodName) and hasAnyAncestor(isDialog())).performClick()
-            compose.onNode(hasText("应用") and hasAnyAncestor(isDialog())).performClick()
-            compose.onNodeWithText(prepName).performScrollTo().performClick()
-            compose.onNodeWithText("应用筛选").performScrollTo().performSemanticsAction(SemanticsActions.OnClick)
+            sheetList().performScrollToNode(hasText(methodName))
+            sheetNode(methodName).performClick().assertIsSelected()
+            sheetList().performScrollToNode(hasText(prepName))
+            sheetNode(prepName).performClick().assertIsSelected()
+            sheetNode("应用筛选").performClick()
             compose.waitUntilExactlyOneExists(hasText(methodName), 10_000)
 
             runBlocking {
@@ -782,14 +783,14 @@ class NavigationTest {
                 repository.saveMethod(null, markerName, order = null, archived = false, show = false)
             }
             compose.onNodeWithText("筛选").performClick()
-            compose.onNode(methodChooser and hasText("全部方式")).performScrollTo().assertExists()
-            compose.onNode(methodChooser).performScrollTo().performClick()
-            compose.waitUntilExactlyOneExists(hasText(markerName) and hasAnyAncestor(isDialog()), 10_000)
-            compose.onNode(hasText(methodName) and hasAnyAncestor(isDialog())).assertIsOff()
+            sheetList().performScrollToNode(hasText(markerName))
+            compose.waitUntilExactlyOneExists(hasText(markerName) and inSheet, 10_000)
+            sheetList().performScrollToNode(hasText(methodName))
+            sheetNode(methodName).assertIsNotSelected()
+            sheetList().performScrollToNode(hasText(prepName))
+            sheetNode(prepName).assertIsNotSelected()
             compose.onNodeWithContentDescription("关闭").performClick()
-            compose.onNodeWithText(prepName).performScrollTo().assertIsNotSelected()
-            compose.onNodeWithContentDescription("返回").performClick()
-            compose.waitForIdle()
+            compose.waitUntilDoesNotExist(isDialog(), 5_000)
             compose.onNodeWithText("本月").assertIsDisplayed()
             compose.onNodeWithText(methodName).assertDoesNotExist()
             compose.onNodeWithText(prepName).assertDoesNotExist()
@@ -801,14 +802,106 @@ class NavigationTest {
             compose.onNodeWithText(methodName).assertDoesNotExist()
             compose.onNodeWithText(prepName).assertDoesNotExist()
             compose.onNodeWithText("筛选 (1)").performClick()
-            compose.onNode(methodChooser and hasText("全部方式")).performScrollTo().assertExists()
-            compose.onNodeWithText(prepName).performScrollTo().assertIsNotSelected()
+            sheetList().performScrollToNode(hasText(methodName))
+            sheetNode(methodName).assertIsNotSelected()
+            sheetList().performScrollToNode(hasText(prepName))
+            sheetNode(prepName).assertIsNotSelected()
+            compose.onNodeWithContentDescription("关闭").performClick()
         } finally {
             runBlocking {
                 val saved = repository.read()
                 saved.methods.find { it.id == method.id }?.let { repository.deleteMethod(it.id) }
                 saved.methods.find { it.name == markerName }?.let { repository.deleteMethod(it.id) }
                 saved.categories.find { it.id == prep.id }?.let { repository.deleteCategory(it.id) }
+            }
+        }
+    }
+
+    @Test
+    fun mealFilterChipsSystemBackAndViewDayReturnToDailyBrowse() {
+        compose.waitUntilAtLeastOneExists(hasText("日常记录"), 20_000)
+        val repository = runBlocking { (compose.activity.application as KitsuneApplication).repository() }
+        val suffix = UUID.randomUUID().toString().take(8)
+        val pastDate = LocalDate.now().minusDays(10).toString()
+        val dishName = "查看当天菜品-$suffix"
+        val noteText = "餐次备注-$suffix"
+        val prepName = "芯片分类-$suffix"
+        val prepId = runBlocking {
+            repository.saveCategory(null, Scope.PREPARATION, null, prepName, order = null, archived = false)
+            val saved = repository.read()
+            val cooking = saved.methods.first { it.showPreparationCategories && !it.archived }
+            val prep = saved.categories.single { it.scope == Scope.PREPARATION && it.name == prepName }
+            repository.saveMeal(
+                MealDraft(
+                    date = pastDate,
+                    slot = MealSlot.DINNER,
+                    atHome = true,
+                    methodId = cooking.id,
+                    preparationIds = listOf(prep.id),
+                    newPreparations = emptyList(),
+                    dishes = dishName,
+                    note = noteText,
+                ),
+            )
+            prep.id
+        }
+        val inSheet = hasAnyAncestor(isDialog())
+        fun sheetList() = compose.onNode(hasScrollToNodeAction() and inSheet)
+        fun sheetNode(text: String) = compose.onNode(hasText(text) and inSheet)
+        try {
+            compose.onNodeWithText("用餐").performClick()
+            // 1. Apply multi-select slots + preparation + keyword, remove chips one by one until empty -> daily browse.
+            compose.onNodeWithText("筛选").performClick()
+            compose.onNode(hasContentDescription("菜品／备注关键词") and inSheet).performTextReplacement(dishName)
+            sheetList().performScrollToNode(hasText("早餐"))
+            sheetNode("早餐").performClick().assertIsSelected()
+            sheetNode("晚餐").performClick().assertIsSelected()
+            sheetList().performScrollToNode(hasText(prepName))
+            sheetNode(prepName).performClick().assertIsSelected()
+            sheetNode("应用筛选").performClick()
+            compose.waitUntilExactlyOneExists(hasText("筛选 (4)"), 10_000)
+            compose.onNodeWithText("范围：所有时间").assertIsDisplayed()
+            compose.onNodeWithText(dishName).assertIsDisplayed()
+
+            compose.onNodeWithContentDescription("移除筛选条件：早餐").performClick()
+            compose.waitUntilExactlyOneExists(hasText("筛选 (3)"), 10_000)
+            compose.onNodeWithText("晚餐").assertIsDisplayed()
+
+            compose.onNodeWithContentDescription("移除筛选条件：晚餐").performClick()
+            compose.waitUntilExactlyOneExists(hasText("筛选 (2)"), 10_000)
+
+            compose.onNodeWithContentDescription("移除筛选条件：$prepName").performClick()
+            compose.waitUntilExactlyOneExists(hasText("筛选 (1)"), 10_000)
+            compose.onNodeWithText("关键词：$dishName").assertIsDisplayed()
+
+            compose.onNodeWithContentDescription("移除筛选条件：关键词：$dishName").performClick()
+            compose.waitUntilAtLeastOneExists(hasText("三餐记录"), 10_000)
+
+            // 2. Re-apply filter and press system Back -> clears filter and returns to daily browse.
+            compose.onNodeWithText("筛选").performClick()
+            compose.onNode(hasContentDescription("菜品／备注关键词") and inSheet).performTextReplacement(dishName)
+            sheetNode("应用筛选").performClick()
+            compose.waitUntilExactlyOneExists(hasText("筛选 (1)"), 10_000)
+            InstrumentationRegistry.getInstrumentation().uiAutomation
+                .executeShellCommand("input keyevent KEYCODE_BACK").close()
+            compose.waitUntilAtLeastOneExists(hasText("三餐记录"), 10_000)
+
+            // 3. Re-apply filter, open meal from results, tap "查看当天" -> clears filter and selects pastDate with daily summary.
+            compose.onNodeWithText("筛选").performClick()
+            compose.onNode(hasContentDescription("菜品／备注关键词") and inSheet).performTextReplacement(dishName)
+            sheetNode("应用筛选").performClick()
+            compose.waitUntilExactlyOneExists(hasText(dishName), 10_000)
+            compose.onNodeWithText(dishName).performClick()
+            compose.waitUntilExactlyOneExists(hasText("查看当天"), 10_000)
+            compose.onNodeWithText("查看当天").performClick()
+            compose.waitUntilAtLeastOneExists(hasText("三餐记录"), 10_000)
+            compose.onNodeWithText(pastDate, useUnmergedTree = true).assertIsDisplayed()
+            compose.onNodeWithText("$prepName · 备注：$noteText").performScrollTo().assertIsDisplayed()
+        } finally {
+            runBlocking {
+                val saved = repository.read()
+                saved.meals.find { it.date == pastDate && it.mealSlot == MealSlot.DINNER }?.let { repository.deleteMeal(it.id) }
+                saved.categories.find { it.id == prepId }?.let { repository.deleteCategory(it.id) }
             }
         }
     }

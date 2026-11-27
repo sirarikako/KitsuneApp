@@ -54,6 +54,7 @@ import com.kitsuneapp.feature.meals.*
 import com.kitsuneapp.feature.ledger.*
 import com.kitsuneapp.feature.settings.*
 import com.kitsuneapp.ui.*
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -116,8 +117,9 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
     var stack by rememberSaveable { mutableStateOf<List<String>>(listOf("home")) }
     var storedFilter by rememberSaveable { mutableStateOf<MealFilter?>(null) }
     var storedStatsFilter by rememberSaveable { mutableStateOf<MealFilter?>(null) }
+    var mealDate by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
     // Conditions pointing at deleted methods or categories are dropped whenever the data changes.
-    val filter = storedFilter?.validIn(records)
+    val filter = storedFilter?.validIn(records)?.takeUnless { it.isEmpty }
     val mealStatsFilter = storedStatsFilter?.validIn(records)
     val holder = rememberSaveableStateHolder()
     var recordNavigation by remember { mutableStateOf<RecordNavigation?>(null) }
@@ -231,13 +233,14 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
                                 "home" -> Home(records, now, ::open, ::openMeal)
                                 "meals" -> MealsPage(
                                     records = records,
+                                    date = mealDate,
+                                    onDateChange = { mealDate = it },
                                     filter = filter,
                                     statsFilter = mealStatsFilter ?: currentMealMonth,
                                     currentMonth = currentMealMonth,
-                                    daily = { storedFilter = null },
-                                    clearConditions = { storedFilter = MealFilter() },
-                                    openFilter = { open("mealFilter") },
-                                    openStatsFilter = { open("mealFilter/statistics") },
+                                    active = active,
+                                    updateFilter = { next -> storedFilter = next?.takeUnless { it.isEmpty } },
+                                    updateStatsFilter = { next -> storedStatsFilter = next.takeUnless { it == currentMealMonth } },
                                     selectStatsMonth = { month ->
                                         storedStatsFilter = (mealStatsFilter ?: currentMealMonth).withMonth(month)
                                             .takeUnless { it == currentMealMonth }
@@ -246,16 +249,30 @@ private fun KitsuneApp(records: Records, model: AppViewModel, refresh: Int) {
                                 ) { meal ->
                                     openRecord("meal/${meal.date}/${meal.mealSlot.name}/${meal.id}", meal.id)
                                 }
-                                "meal" -> MealForm(records, parts[3].takeUnless { it == "-" }, parts[1], MealSlot.valueOf(parts[2]), model, goBack)
-                                "mealFilter" -> {
-                                    val statistics = parts.getOrNull(1) == "statistics"
-                                    val defaults = if (statistics) currentMealMonth else MealFilter()
-                                    val applied = if (statistics) mealStatsFilter else filter
-                                    MealFilterPage(records, applied ?: defaults, defaults, currentMealMonth, goBack) {
-                                        if (statistics) storedStatsFilter = it.takeUnless { it == currentMealMonth }
-                                        else storedFilter = it
-                                        back()
+                                "meal" -> {
+                                    val mealId = parts[3].takeUnless { it == "-" }
+                                    val originalMeal = mealId?.let { id -> records.meals.find { it.id == id } }
+                                    val canViewDay = rememberSaveable(path) {
+                                        originalMeal != null && filter != null && stack.dropLast(1).lastOrNull() == "meals"
                                     }
+                                    MealForm(
+                                        records = records,
+                                        id = mealId,
+                                        initialDate = parts[1],
+                                        slot = MealSlot.valueOf(parts[2]),
+                                        model = model,
+                                        back = goBack,
+                                        viewDay = if (canViewDay && originalMeal != null) {
+                                            {
+                                                if (!model.isBusy && path == stack.last()) {
+                                                    recordNavigation = null
+                                                    storedFilter = null
+                                                    mealDate = originalMeal.date
+                                                    back()
+                                                }
+                                            }
+                                        } else null,
+                                    )
                                 }
                                 "settings" -> {
                                     val config by model.backupServices.github.state.collectAsState()

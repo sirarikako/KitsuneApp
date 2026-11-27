@@ -312,11 +312,20 @@
   #kitsune-preview .ks-wallet-check>span{flex:1}
   #kitsune-preview .ks-wallet-check small{font-size:var(--ks-font-note);color:var(--ks-accent)}
   #kitsune-preview .ks-filter-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 15px}
-  #kitsune-preview .ks-filter-chip{border:var(--ks-card-border);background:var(--ks-card-surface);font-size:var(--ks-font-tag);padding:2px 6px;border-radius:6px;color:var(--ks-dim)}
+  #kitsune-preview .ks-filter-chip{display:inline-flex;align-items:center;gap:4px;min-height:32px;border:1px solid var(--ks-accent);background:var(--ks-accent-bg);font-size:var(--ks-font-note);font-weight:500;padding:4px 8px 4px 10px;border-radius:8px;color:var(--ks-accent)}
+  #kitsune-preview .ks-filter-chip svg{width:14px;height:14px;flex:none}
+  #kitsune-preview .ks-toolbar-action.ks-toolbar-active{background:var(--ks-accent-bg);border-color:var(--ks-accent);color:var(--ks-accent);font-weight:500}
+  #kitsune-preview .ks-subpage .ks-toolbar-action{flex-shrink:0}
+  #kitsune-preview .ks-subpage .ks-title{flex:1;min-width:0}
+  #kitsune-preview [data-meal-filter-form] .ks-selection-body{display:grid;gap:12px;padding-bottom:4px}
+  #kitsune-preview [data-meal-filter-form] .ks-selection-section{border:0;margin:0;padding:12px 0 0;border-top:1px solid var(--ks-line);min-width:0}
+  #kitsune-preview [data-meal-filter-form] .ks-selection-footer{flex-direction:column;align-items:stretch;gap:6px}
+  #kitsune-preview .ks-selection-footer-actions{display:flex;align-items:center;gap:8px;width:100%}
+  #kitsune-preview .ks-selection-footer-actions .ks-choice{min-height:48px}
+  #kitsune-preview .ks-selection-footer-actions .ks-primary{flex:1;min-height:48px}
+  #kitsune-preview .ks-meal-chip{display:inline-flex;align-items:center;gap:4px;min-height:36px;padding:6px 10px;border-radius:10px}
+  #kitsune-preview .ks-meal-chip svg{width:16px;height:16px;flex:none}
   #kitsune-preview .ks-record-ellipsis{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #kitsune-preview .ks-preparation-choices{display:flex;gap:8px;flex-wrap:wrap}
-  #kitsune-preview .ks-preparation-check{display:flex;align-items:center;gap:7px;min-height:var(--ks-control-height);padding:var(--ks-space-2) var(--ks-space-3);border:var(--ks-card-border);border-radius:var(--ks-control-radius);background:var(--ks-card-surface);font-size:var(--ks-font-body)}
-  #kitsune-preview .ks-preparation-check input{width:16px;height:16px;accent-color:var(--ks-accent)}
   #kitsune-preview .ks-form-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ks-space-2)}
   #kitsune-preview .ks-appearance-note{font-size:12px;color:var(--ks-dim);line-height:1.65;margin:0 0 14px}
   #kitsune-preview .ks-appearance-preview{border:var(--ks-card-border);border-radius:var(--ks-radius);color:var(--ks-ink);padding:var(--ks-space-3);background:var(--ks-bg);margin-bottom:var(--ks-space-3)}
@@ -333,9 +342,8 @@
   #kitsune-preview .ks-bar-fill{height:100%;background:var(--ks-accent);border-radius:4px}
   #kitsune-preview .ks-bar-income .ks-bar-fill{background:var(--ks-good)}
   #kitsune-preview .ks-bar-expense .ks-bar-fill{background:var(--ks-expense)}
-  @media(max-width:400px){#kitsune-preview .ks-stage{padding:12px 0;min-height:855px}#kitsune-preview .ks-main,#kitsune-preview .ks-top{padding-left:var(--ks-space-3);padding-right:var(--ks-space-3)}#kitsune-preview .ks-choice{padding-left:var(--ks-space-2);padding-right:var(--ks-space-2)}}
+  @media(max-width:400px){#kitsune-preview .ks-stage{padding:12px 0;min-height:855px}#kitsune-preview .ks-main,#kitsune-preview .ks-top{padding-left:var(--ks-space-3);padding-right:var(--ks-space-3)}#kitsune-preview .ks-choice{padding-left:var(--ks-space-2);padding-right:var(--ks-space-2)}#kitsune-preview [data-meal-filter-form] .ks-field-row{grid-template-columns:minmax(0,1fr)}#kitsune-preview .ks-subpage .ks-toolbar-action{padding-inline:var(--ks-space-2)}}
   @media(pointer:coarse){#kitsune-preview .ks-text-btn{min-height:44px}#kitsune-preview .ks-control{font-size:16px}}
-  #kitsune-preview .ks-preparation-check:has(input:checked){background:var(--ks-accent-bg);border-color:var(--ks-accent);color:var(--ks-accent)}
   #kitsune-preview .ks-detail-list>div:last-child{border-bottom:0}
   #kitsune-preview .ks-appearance-preview .ks-record{cursor:default}
   #kitsune-preview .ks-appearance-preview .ks-record:hover{background:var(--ks-card-surface)}
@@ -412,11 +420,13 @@
     }
     const mealDatePresets={month:mealMonthDates(demoMealMonth),all:{from:'',to:''}};
     const blankMealFilters=(dates=mealDatePresets.all)=>({...dates,slots:[],atHome:[],methods:[],preparations:[],keyword:''});
+    const isMealFilterEmpty=f=>!f.from&&!f.to&&!f.slots.length&&!f.atHome.length&&!f.methods.length&&!f.preparations.length&&!f.keyword.trim();
     const mealDatePreset=({from,to})=>Object.keys(mealDatePresets).find(key=>{
       const dates=mealDatePresets[key];
       return dates.from===from&&dates.to===to;
     });
-    state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealMethodPickerDraft=null;state.mealPrepPickerDraft=null;state.mealListMode=false;
+    state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealPrepPickerDraft=null;state.mealListMode=false;
+    state.mealFilterOpen=false;state.mealFromFilter=false;state.mealBrowseDate=state.date;
     state.mealStatsFilters=blankMealFilters(mealDatePresets.month);
     const mealMethods=['下厨','外卖'],mealPreparations=['炒菜','预制菜'];
     // Archived items stay on the records that used them; only editing those records offers them again.
@@ -566,17 +576,29 @@
       }
       return f.from+' 至 '+f.to;
     }
+    const allMealFilterMethods=()=>[...new Set([...mealMethods,...archivedMealMethods,...allMeals().map(m=>m.method).filter(Boolean)])];
     const allMealFilterPreparations=()=>[...new Set([...mealPreparations,...archivedMealPreparations,...allMeals().flatMap(m=>m.categories)])];
-    function mealFilterLabels(f,includeDates=true){
-      const labels=[];
-      if(includeDates&&(f.from||f.to))labels.push(`${f.from||'最早'} ～ ${f.to||'至今'}`);
-      slots.forEach((s,i)=>{if(f.slots.includes(String(i)))labels.push(s);});
-      if(f.atHome.includes('yes'))labels.push('计划在家：是');
-      if(f.atHome.includes('no'))labels.push('计划在家：否');
-      f.methods.forEach(m=>labels.push(m==='none'?'方式未填写':m));
-      labels.push(...f.preparations);
-      if(f.keyword)labels.push(`关键词：${f.keyword}`);
-      return labels;
+    function mealFilterChips(f,includeDates=true){
+      const chips=[];
+      if(includeDates&&(f.from||f.to))chips.push({key:'dates',label:`${f.from||'最早'} ～ ${f.to||'至今'}`});
+      slots.forEach((s,i)=>{if(f.slots.includes(String(i)))chips.push({key:`slot:${i}`,label:s});});
+      if(f.atHome.includes('yes'))chips.push({key:'atHome:yes',label:'计划在家：是'});
+      if(f.atHome.includes('no'))chips.push({key:'atHome:no',label:'计划在家：否'});
+      f.methods.forEach(m=>chips.push({key:`method:${m}`,label:m==='none'?'方式未填写':m}));
+      f.preparations.forEach(p=>chips.push({key:`prep:${p}`,label:p}));
+      if(f.keyword.trim())chips.push({key:'keyword',label:`关键词：${f.keyword.trim()}`});
+      return chips;
+    }
+    const mealFilterLabels=(f,includeDates=true)=>mealFilterChips(f,includeDates).map(c=>c.label);
+    function removeMealFilterKey(f,key){
+      const next={...f,slots:[...f.slots],atHome:[...f.atHome],methods:[...f.methods],preparations:[...f.preparations]};
+      if(key==='dates'){next.from='';next.to='';}
+      else if(key.startsWith('slot:'))next.slots=next.slots.filter(v=>v!==key.slice(5));
+      else if(key.startsWith('atHome:'))next.atHome=next.atHome.filter(v=>v!==key.slice(7));
+      else if(key.startsWith('method:'))next.methods=next.methods.filter(v=>v!==key.slice(7));
+      else if(key.startsWith('prep:'))next.preparations=next.preparations.filter(v=>v!==key.slice(5));
+      else if(key==='keyword')next.keyword='';
+      return next;
     }
     function filteredMeals(f){
       const keyword=f.keyword.toLocaleLowerCase();
@@ -646,7 +668,8 @@
     const deleteButton = (kind,label) => `<button type="button" class="ks-delete-btn cursor-interaction" data-action="delete-${kind}">${icon('trash-2')}${label}</button>`;
     const mealCards = () => `<div class="ks-record-list">${slots.map((slot,i)=>{
       const m=records()[i];
-      return `<button type="button" class="ks-record ${m?'':'ks-empty'} cursor-interaction" data-meal="${i}">${recordIcon(slotIcons[i])}<span class="ks-record-copy"><span class="ks-record-title">${slot}${m?`<span class="ks-pill">${escapeText(m.method||'方式未填写')}</span>`:''}</span><span class="ks-record-meta">${m?escapeText(m.dishes||'未填写菜品'):'添加记录'}</span></span>${icon(m?'chevron-right':'plus')}</button>`;
+      const meta=m?[...(m.categories||[]),m.note?.trim()?`备注：${m.note.replace(/\s+/g,' ').trim()}`:''].filter(Boolean).join(' · '):'';
+      return `<button type="button" class="ks-record ${m?'':'ks-empty'} cursor-interaction" data-meal="${i}">${recordIcon(slotIcons[i])}<span class="ks-record-copy"><span class="ks-record-title">${slot}${m?`<span class="ks-pill">${escapeText(m.method||'方式未填写')}</span>`:''}</span><span class="ks-record-meta">${m?escapeText(m.dishes||'未填写菜品'):'添加记录'}</span>${meta?`<span class="ks-record-meta ks-record-ellipsis">${escapeText(meta)}</span>`:''}</span>${icon(m?'chevron-right':'plus')}</button>`;
     }).join('')}</div>`;
     function moneyCard(code,entries,incomeFirst){
       const period=state.ledgerRange?'所选期间':`${Number(state.ledgerMonth.slice(5))} 月`;
@@ -735,13 +758,16 @@
     function pageMeals(){
       const tabs=`<div class="ks-segments" aria-label="用餐视图">${['记录','统计'].map(t=>`<button type="button" data-meal-tab="${t}" aria-pressed="${state.mealTab===t}" class="cursor-interaction">${t}</button>`).join('')}</div>`;
       if(state.mealTab==='记录'){
-        const labels=mealFilterLabels(state.mealFilters),filterButton=`<button type="button" class="ks-toolbar-action cursor-interaction" data-action="meal-filter">${icon('list-filter')}筛选${state.mealListMode&&labels.length?` (${labels.length})`:''}</button>`;
-        if(!state.mealListMode)return `${tabs}<div class="ks-toolbar"><button type="button" class="ks-control ks-date-trigger cursor-interaction" aria-label="用餐日期 ${state.date}" data-action="open-meal-calendar">${state.date}${icon('calendar-days')}</button>${filterButton}</div>${week()}${section('三餐记录')}${mealCards()}`;
+        const chips=mealFilterChips(state.mealFilters),active=state.mealListMode&&chips.length>0;
+        const filterButton=`<button type="button" class="ks-toolbar-action ${active?'ks-toolbar-active ':''}cursor-interaction" data-action="meal-filter" aria-pressed="${active}">${icon('list-filter')}筛选${active?` (${chips.length})`:''}</button>`;
+        if(!active)return `${tabs}<div class="ks-toolbar"><button type="button" class="ks-control ks-date-trigger cursor-interaction" aria-label="用餐日期 ${state.date}" data-action="open-meal-calendar">${state.date}${icon('calendar-days')}</button>${filterButton}</div>${week()}${section('三餐记录')}${mealCards()}`;
         const matches=filteredMeals(state.mealFilters).sort((a,b)=>b.date.localeCompare(a.date)||a.slot-b.slot);
-        const resultActions=`<div class="ks-row"><span class="ks-note" data-match-count>${matches.length} 条</span>${labels.length?'<button type="button" class="ks-text-btn cursor-interaction" data-action="clear-meal-filters">清空条件</button>':''}</div>`;
-        return `${tabs}<div class="ks-toolbar"><button type="button" class="ks-toolbar-action cursor-interaction" data-action="meal-daily">${icon('chevron-left')}按日浏览</button>${filterButton}</div>${labels.length?`<div class="ks-filter-chips" aria-label="已应用的筛选条件">${labels.map(label=>`<span class="ks-filter-chip">${escapeText(label)}</span>`).join('')}</div>`:''}${section('筛选结果',resultActions)}<div class="ks-record-list" data-meal-results aria-live="polite">${matches.map(mealResult).join('')}${!matches.length?'<p class="ks-empty-state">没有符合条件的记录<br>试试调整日期范围或筛选条件</p>':''}</div>`;
+        const resultActions=`<div class="ks-row"><span class="ks-note" data-match-count>${matches.length} 条</span><button type="button" class="ks-text-btn cursor-interaction" data-action="clear-meal-filters">清除筛选</button></div>`;
+        const rangeTrigger=`<button type="button" class="ks-control ks-date-trigger cursor-interaction" aria-label="选择筛选范围" data-action="meal-filter"><span>范围：${escapeText(mealDateSummary(state.mealFilters))}</span>${icon('chevron-down')}</button>`;
+        const chipList=`<div class="ks-filter-chips" aria-label="已应用的筛选条件">${chips.map(c=>`<button type="button" class="ks-filter-chip cursor-interaction" data-remove-meal-filter="${escapeText(c.key)}" aria-label="移除筛选条件：${escapeText(c.label)}"><span>${escapeText(c.label)}</span>${icon('x')}</button>`).join('')}</div>`;
+        return `${tabs}<div class="ks-toolbar">${rangeTrigger}${filterButton}</div>${chipList}${section('筛选结果',resultActions)}<div class="ks-record-list" data-meal-results aria-live="polite">${matches.map(mealResult).join('')}${!matches.length?'<p class="ks-empty-state">没有符合条件的记录<br>试试调整日期范围或筛选条件</p>':''}</div>`;
       }
-      const filters=state.mealStatsFilters,labels=mealFilterLabels(filters,false);
+      const filters=state.mealStatsFilters,chips=mealFilterChips(filters,false);
       const matches=filteredMeals(filters),total=matches.length;
       const homeCount=matches.filter(m=>m.atHome).length,awayCount=total-homeCount;
       const rows=methodCounts(matches).filter(row=>row.count>0);
@@ -749,9 +775,9 @@
       const planBar=total?`<div class="ks-plan-visual" aria-hidden="true"><span class="ks-plan-yes" style="width:${homeCount/total*100}%"></span><span class="ks-plan-no" style="width:${awayCount/total*100}%"></span></div>`:'';
       const period=escapeText(mealDateSummary(filters));
       return `${tabs}
-        <div class="ks-toolbar"><button type="button" class="ks-control ks-date-trigger cursor-interaction" data-action="choose-meal-month" aria-haspopup="dialog" aria-label="选择统计月份 ${period}"><span>${period}</span>${icon('chevron-down')}</button><button type="button" class="ks-toolbar-action cursor-interaction" data-action="meal-filter">${icon('list-filter')}筛选</button></div>
+        <div class="ks-toolbar"><button type="button" class="ks-control ks-date-trigger cursor-interaction" data-action="choose-meal-month" aria-haspopup="dialog" aria-label="选择统计月份 ${period}"><span>${period}</span>${icon('chevron-down')}</button><button type="button" class="ks-toolbar-action ${chips.length?'ks-toolbar-active ':''}cursor-interaction" data-action="meal-filter" aria-pressed="${chips.length>0}">${icon('list-filter')}筛选${chips.length?` (${chips.length})`:''}</button></div>
         <section data-meal-statistics aria-label="用餐统计" aria-live="polite">
-          ${labels.length?`<div class="ks-filter-chips" aria-label="已应用的筛选条件">${labels.map(label=>`<span class="ks-filter-chip">${escapeText(label)}</span>`).join('')}</div>`:''}
+          ${chips.length?`<div class="ks-filter-chips" aria-label="已应用的筛选条件">${chips.map(c=>`<button type="button" class="ks-filter-chip cursor-interaction" data-remove-meal-stat-filter="${escapeText(c.key)}" aria-label="移除筛选条件：${escapeText(c.label)}"><span>${escapeText(c.label)}</span>${icon('x')}</button>`).join('')}</div>`:''}
           ${section('用餐概览')}
           <div class="ks-summary"><div><span class="ks-note">已记录</span><strong data-meal-stat-count>${total} 餐</strong></div><div><span class="ks-note">计划在家吃</span><strong>${homeCount} 餐</strong></div></div>
           <div class="ks-stats-panel"><div class="ks-stat-row"><div class="ks-row"><span>计划在家：是 ${homeCount} 餐</span><span>否 ${awayCount} 餐</span></div>${planBar}</div></div>
@@ -1247,16 +1273,8 @@
     const displayCurrency=new Intl.DisplayNames(['zh-CN'],{type:'currency'});
     const mealMethodLabel=m=>m+(archivedMealMethods.includes(m)?'（已停用）':'');
     const mealPreparationLabel=c=>c+(archivedMealPreparations.includes(c)?'（已停用）':'');
-    const mealFilterMethods=()=>[['none','未填写方式'],
-      ...[...new Set([...mealMethods,...archivedMealMethods,...allMeals().map(m=>m.method).filter(Boolean)])].map(m=>[m,mealMethodLabel(m)])];
     const appearanceSources=[['PRESET','预设调色板'],['CUSTOM','自选主色'],['SYSTEM','跟随系统壁纸']];
     const appearancePalettes=[['#c47a4a','杏橙'],['#5f7f64','茶绿'],['#587c9b','雾蓝'],['#8a729f','薰衣草'],['#a76f82','豆沙粉']];
-    function mealMethodSummary(selected){
-      const all=mealFilterMethods(),chosen=all.filter(([value])=>selected.includes(value));
-      if(!chosen.length)return '全部方式';
-      if(chosen.length<=2)return chosen.map(([,label])=>label).join('、');
-      return `已选 ${chosen.length} 项 · ${chosen.slice(0,2).map(([,label])=>label).join('、')}等`;
-    }
     function selectionControl(kind,label,value,glyph='',disabled=false){
       return `<div class="ks-selection-field"><span class="ks-label" id="ks-choice-${kind}">${escapeText(label)}</span>
         <button type="button" class="ks-control ks-selection-trigger" data-select-open="${kind}" aria-labelledby="ks-choice-${kind} ks-choice-${kind}-value" aria-haspopup="dialog" ${disabled?'disabled':''}>
@@ -1325,21 +1343,6 @@
       const options=choices.map(option=>selectionOption(option,option[0]===current,'data-select-value')).join('');
       return selectionPanel(title,(subtitle?`<p class="ks-note">${escapeText(subtitle)}</p>`:'')+
         (options||'<p class="ks-note">没有可选项目</p>'),footer);
-    }
-    function mealMethodFilterDialog(){
-      const all=mealFilterMethods(),selected=state.mealMethodPickerDraft||[];
-      const count=all.filter(([value])=>selected.includes(value)).length;
-      const header=`<div class="ks-selection-group-heading">
-        <span class="ks-note">已选 ${count}/${all.length}</span>
-        <div class="ks-selection-group-actions">
-          <button type="button" class="ks-text-btn" data-meal-method-action="all">全选</button>
-          <button type="button" class="ks-text-btn" data-meal-method-action="none">全不选</button>
-        </div>
-      </div>`;
-      const body=`<p class="ks-note">全不选表示不限</p>`+
-        all.map(([value,label])=>selectionCheck(label,`data-meal-method-option="${escapeText(value)}"`,selected.includes(value))).join('');
-      const footer='<button type="button" class="ks-primary ks-full" data-meal-method-action="apply">应用</button>';
-      return selectionPanel('选择用餐方式',body,footer,{header});
     }
     function mealPrepTargetOptions(target){
       return target==='form'?mealFormOptions().preparations:allMealFilterPreparations();
@@ -1566,8 +1569,10 @@
         <button type="button" class="ks-primary" data-wallet-action="apply" ${canApply?'':'disabled'}>应用</button>`;
       return selectionPanel('钱包范围',body,footer);
     }
-    function pageMealFilter(){
-      const f=state.mealFilterDraft,preparations=allMealFilterPreparations(),extraPreps=preparations.slice(8).filter(c=>f.preparations.includes(c));
+    function mealFiltersDialog(){
+      const f=state.mealFilterDraft;
+      const preparations=allMealFilterPreparations();
+      const methods=allMealFilterMethods();
       const datePreset=mealDatePreset(f);
       const dateField=(name,label)=>`<div class="ks-meal-filter-date">
         <div class="ks-filter-field-heading">
@@ -1576,19 +1581,38 @@
         </div>
         <input class="ks-control" type="date" id="meal-filter-${name}" name="${name}" value="${f[name]}" min="0001-01-01" max="9999-12-31">
       </div>`;
-      return `<form class="ks-form" data-meal-filter-form>
-        <fieldset><legend class="ks-label">日期范围</legend>
-          <div class="ks-choices">${choice('本月','month',datePreset,'meal-date-preset')}${choice('所有时间','all',datePreset,'meal-date-preset')}</div>
+      const chip=(label,selected,attrs)=>`<button type="button" class="ks-choice ks-meal-chip cursor-interaction" ${attrs} aria-pressed="${selected}">${selected?icon('check'):''}<span>${escapeText(label)}</span></button>`;
+      const body=`
+        <div>
+          <div class="ks-filter-field-heading">
+            <label class="ks-label" for="meal-filter-keyword">菜品／备注关键词</label>
+            <button type="button" class="ks-text-btn" data-clear-meal-keyword aria-label="清空菜品／备注关键词" ${f.keyword?'':'hidden'}>清空</button>
+          </div>
+          <input class="ks-control" type="search" id="meal-filter-keyword" name="keyword" value="${escapeText(f.keyword)}" placeholder="例如：番茄、和朋友" maxlength="100">
+        </div>
+        <div class="ks-selection-section" role="group" aria-labelledby="ks-meal-filter-dates-label"><span class="ks-label" id="ks-meal-filter-dates-label">日期范围</span>
+          <div class="ks-choices">${chip('本月',datePreset==='month','data-meal-date-preset="month"')}${chip('所有时间',datePreset==='all','data-meal-date-preset="all"')}</div>
           <div class="ks-field-row">${dateField('from','开始日期')}${dateField('to','结束日期')}</div>
-        </fieldset>
-        <fieldset><legend class="ks-label">餐次<span class="ks-required">多选，不选不限</span></legend><div class="ks-preparation-choices">${slots.map((s,i)=>`<label class="ks-preparation-check cursor-interaction"><input type="checkbox" name="slot" value="${i}" ${f.slots.includes(String(i))?'checked':''}>${s}</label>`).join('')}</div></fieldset>
-        <fieldset><legend class="ks-label">计划在家吃<span class="ks-required">多选，不选不限</span></legend><div class="ks-preparation-choices">${[['yes','是'],['no','否']].map(([v,l])=>`<label class="ks-preparation-check cursor-interaction"><input type="checkbox" name="atHome" value="${v}" ${f.atHome.includes(v)?'checked':''}>${l}</label>`).join('')}</div></fieldset>
-        ${selectionControl('meal-methods','用餐方式',mealMethodSummary(f.methods))}
-        <fieldset><legend class="ks-label">制作分类<span class="ks-required">多选，不选不限</span></legend><div class="ks-preparation-choices">${preparations.slice(0,8).map(c=>`<label class="ks-preparation-check cursor-interaction"><input type="checkbox" name="preparation" value="${escapeText(c)}" ${f.preparations.includes(c)?'checked':''}>${escapeText(mealPreparationLabel(c))}</label>`).join('')}${preparations.length>8?`<button type="button" class="ks-choice cursor-interaction" data-open-meal-preps="filter">${icon('list-filter')}更多分类</button>`:''}</div>${extraPreps.length?`<p class="ks-note">已选更多分类 · ${escapeText(extraPreps.join('、'))}</p>`:''}</fieldset>
-        <label><span class="ks-label">菜品／备注关键词</span><input class="ks-control" type="search" name="keyword" value="${escapeText(f.keyword)}" placeholder="例如：番茄、和朋友" maxlength="100"></label>
-        <p class="ks-note" style="margin:0">不同条件同时满足；未选择的条件不限制。</p>
-        ${formFooter(`<div class="ks-form-actions"><button type="button" class="ks-choice cursor-interaction" data-action="reset-meal-filter">重置条件</button>${saveButton('应用筛选')}</div>`)}
-      </form>`;
+        </div>
+        <div class="ks-selection-section" role="group" aria-labelledby="ks-meal-filter-slot-label"><span class="ks-label" id="ks-meal-filter-slot-label">餐次<span class="ks-required">多选，不选不限</span></span>
+          <div class="ks-choices">${slots.map((s,i)=>chip(s,f.slots.includes(String(i)),`data-meal-filter-slot="${i}"`)).join('')}</div>
+        </div>
+        <div class="ks-selection-section" role="group" aria-labelledby="ks-meal-filter-home-label"><span class="ks-label" id="ks-meal-filter-home-label">是否计划在家吃<span class="ks-required">多选，不选不限</span></span>
+          <div class="ks-choices">${[['yes','是'],['no','否']].map(([v,l])=>chip(l,f.atHome.includes(v),`data-meal-filter-home="${v}"`)).join('')}</div>
+        </div>
+        <div class="ks-selection-section" role="group" aria-labelledby="ks-meal-filter-method-label"><span class="ks-label" id="ks-meal-filter-method-label">用餐方式<span class="ks-required">多选，不选不限</span></span>
+          <div class="ks-choices">${methods.map(m=>chip(mealMethodLabel(m),f.methods.includes(m),`data-meal-filter-method="${escapeText(m)}"`)).join('')}${chip('未填写方式',f.methods.includes('none'),'data-meal-filter-method="none"')}</div>
+        </div>
+        <div class="ks-selection-section" role="group" aria-labelledby="ks-meal-filter-prep-label"><span class="ks-label" id="ks-meal-filter-prep-label">制作分类<span class="ks-required">多选，不选不限</span></span>
+          <div class="ks-choices">${preparations.map(c=>chip(mealPreparationLabel(c),f.preparations.includes(c),`data-meal-filter-prep="${escapeText(c)}"`)).join('')}</div>
+        </div>
+        <p class="ks-note" style="margin:0">不同条件同时满足；未选择的条件不限制。</p>`;
+      const footer=`<p class="ks-error" role="alert" data-meal-filter-error></p>
+        <div class="ks-selection-footer-actions">
+          <button type="button" class="ks-choice cursor-interaction" data-action="reset-meal-filter">重置条件</button>
+          <button type="submit" class="ks-primary cursor-interaction">应用筛选</button>
+        </div>`;
+      return selectionPanel('筛选用餐',body,footer,{form:true,attrs:'data-meal-filter-form'});
     }
     // Motion is deliberately separate from the example business state. Leaving copies are inert,
     // contain no business selectors, and are removed on completion or the next render.
@@ -1655,7 +1679,7 @@
     const discard=group=>()=>group?.remove();
     const pageNode=()=>phone.querySelector(':scope > .ks-page-motion');
     const modalNode=()=>phone.querySelector(':scope > .ks-modal-overlay');
-    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.singleSelection?'single-selection':state.mealMethodPickerDraft?'meal-methods':state.mealPrepPickerDraft?'meal-preps':state.walletPickerOpen?'wallet':state.periodDraft?'period':state.ledgerFilterDraft?'ledger-filters':state.githubDemo.review?'github-review':state.localBackupDemo.restoreOpen?'local-restore':state.csvDemo.previewOpen?'csv-preview':state.mealCalendar?'date-calendar':state.entryTimeDraft?'entry-time':state.addingEntryCategory?'entry-category':state.addingMealOption?'meal-option':null;
+    const modalKind=()=>state.deletePending?'dialog':state.calcOpen?'calculator':state.singleSelection?'single-selection':state.mealPrepPickerDraft?'meal-preps':state.walletPickerOpen?'wallet':state.periodDraft?'period':state.ledgerFilterDraft?'ledger-filters':state.mealFilterOpen?'meal-filters':state.githubDemo.review?'github-review':state.localBackupDemo.restoreOpen?'local-restore':state.csvDemo.previewOpen?'csv-preview':state.mealCalendar?'date-calendar':state.entryTimeDraft?'entry-time':state.addingEntryCategory?'entry-category':state.addingMealOption?'meal-option':null;
     const primary=page=>navs.some(n=>n[0]===page);
     const localKey=()=>state.page==='meals'?JSON.stringify([state.mealTab,state.date,state.mealStatsFilters,state.mealListMode,state.mealFilters]):state.page==='ledger'?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds,state.ledgerFilters]):'';
     const localNodes=()=>{
@@ -1726,7 +1750,7 @@
       const opening=!!kind,group=opening?node:attachGhost(oldModal);
       const overlay=opening?node:group?.firstElementChild;
       if(!overlay)return;
-      const panel=overlay.firstElementChild,variant=opening?kind:previous,dialog=!['calculator','single-selection','wallet','ledger-filters'].includes(variant),duration=dialog?motion.dialog:motion.sheet;
+      const panel=overlay.firstElementChild,variant=opening?kind:previous,dialog=!['calculator','single-selection','meal-preps','wallet','ledger-filters','meal-filters'].includes(variant),duration=dialog?motion.dialog:motion.sheet;
       play(overlay,opening?[{opacity:0},{opacity:1}]:[{opacity:1},{opacity:0}],duration,opening?()=>{}:discard(group));
       play(panel,dialog?(opening?[{transform:'scale(.96)'},{transform:'scale(1)'}]:[{transform:'scale(1)'},{transform:'scale(.96)'}]):(opening?[{transform:'translateY(100%)'},{transform:'translateY(0)'}]:[{transform:'translateY(0)'},{transform:'translateY(100%)'}]),duration);
     }
@@ -1756,7 +1780,7 @@
     function render(){
       const previous=rendered,kind=modalKind(),key=localKey(),changingPage=previous&&previous.page!==state.page;
       if(previous?.page==='settings')settingsScrollTop=phone.querySelector('.ks-settings-screen .ks-main').scrollTop;
-      const keepingForm=previous?.page===state.page&&['meal-form','meal-filter','entry','wallet-edit'].includes(state.page);
+      const keepingForm=previous?.page===state.page&&['meal-form','entry','wallet-edit'].includes(state.page);
       const formPosition=keepingForm?phone.querySelector('.ks-main').scrollTop:0;
       const oldLedger=phone.querySelector('.ks-ledger-screen');
       const sameLedger=oldLedger&&state.page==='ledger'&&previous.local===key;
@@ -1780,18 +1804,19 @@
       const sourceRect=entrance;entrance=null;if(leavingPrimary&&!sourceRect)recordOrigin=null;
       rendering=true;
       const form=!primary(state.page);
-      const titles={home:'日常记录',meals:'用餐',ledger:'记账',settings:'设置',appearance:'外观与调色板','local-backup':'本地备份与恢复','csv-transfer':'CSV 导入与导出','wallet-edit':'编辑钱包', 'meal-form':`${state.editing?'编辑':'记录'}${slots[state.slot]}`,'meal-filter':'筛选用餐',entry:'记一笔','entry-detail':'账目详情','category-manager':'分类管理','category-owned':'钱包专属分类','category-detail':state.editingFinancialCategoryId?'编辑分类':'新增分类',github:'GitHub 备份'};
+      const titles={home:'日常记录',meals:'用餐',ledger:'记账',settings:'设置',appearance:'外观与调色板','local-backup':'本地备份与恢复','csv-transfer':'CSV 导入与导出','wallet-edit':'编辑钱包', 'meal-form':`${state.editing?'编辑':'记录'}${slots[state.slot]}`,entry:'记一笔','entry-detail':'账目详情','category-manager':'分类管理','category-owned':'钱包专属分类','category-detail':state.editingFinancialCategoryId?'编辑分类':'新增分类',github:'GitHub 备份'};
       const heading=`<h2 class="ks-title">${titles[state.page]}</h2>`;
-      const header=state.page==='home'?`<div class="ks-home-brand"><span class="ks-app-mark"><img src="data:image/webp;base64,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" alt=""></span><div>${heading}<p class="ks-sub">11 月 17 日 · 星期二</p></div></div>`:form?`<button type="button" class="ks-icon-btn cursor-interaction" data-action="back" aria-label="返回">${icon('arrow-left')}</button>${heading}`:heading;
-      const pages={home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,appearance:pageAppearance,'local-backup':pageLocalBackup,'csv-transfer':pageCsvTransfer,'wallet-edit':pageWalletEdit,'meal-form':pageMealForm,'meal-filter':pageMealFilter,entry:pageEntry,'entry-detail':pageEntryDetail,'category-manager':pageCategoryManager,'category-owned':pageOwnedCategories,'category-detail':pageCategoryDetail,github:pageGitHubBackup};
+      const mealViewDay=state.page==='meal-form'&&state.editing&&state.mealFromFilter?`<button type="button" class="ks-toolbar-action cursor-interaction" data-action="meal-view-day">${icon('calendar-days')}查看当天</button>`:'';
+      const header=state.page==='home'?`<div class="ks-home-brand"><span class="ks-app-mark"><img src="data:image/webp;base64,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" alt=""></span><div>${heading}<p class="ks-sub">11 月 17 日 · 星期二</p></div></div>`:form?`<button type="button" class="ks-icon-btn cursor-interaction" data-action="back" aria-label="返回">${icon('arrow-left')}</button>${heading}${mealViewDay}`:heading;
+      const pages={home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,appearance:pageAppearance,'local-backup':pageLocalBackup,'csv-transfer':pageCsvTransfer,'wallet-edit':pageWalletEdit,'meal-form':pageMealForm,entry:pageEntry,'entry-detail':pageEntryDetail,'category-manager':pageCategoryManager,'category-owned':pageOwnedCategories,'category-detail':pageCategoryDetail,github:pageGitHubBackup};
       const ledger=state.page==='ledger',fab=ledger&&state.ledgerTab==='流水';
       const settingsScreen=state.page==='settings'||state.page==='github'?`ks-${state.page}-screen`:'';
       const top=`<header class="ks-top ${form?'ks-subpage':''}">${header}</header>`;
       phone.innerHTML=`<div class="ks-status"><span>9:41</span><span class="ks-signal">${icon('signal')}${icon('wifi')}${icon('battery-full')}</span></div><div class="ks-page-motion ${settingsScreen} ${ledger?'ks-ledger-screen':''} ${fab?'ks-ledger-with-fab':''}">${ledger?`<div class="ks-ledger-collapsible">${top}</div>${ledgerTabs()}${ledgerFilters()}`:top}<main class="ks-main">${pages[state.page]()}${state.notice?`<p class="ks-success" role="status">${escapeText(state.notice)}</p>`:''}</main>${fab?`<button type="button" class="ks-primary ks-ledger-fab" data-action="add-entry" aria-label="记一笔">${icon('plus')}<span>记一笔</span></button>`:''}</div>${form?'':`<nav class="ks-nav" aria-label="主导航">${navs.map(([id,name,ic])=>`<button type="button" data-page="${id}" class="cursor-interaction" ${state.page===id?'aria-current="page"':''}><span>${icon(ic)}</span>${name}</button>`).join('')}</nav>`}<div class="ks-home-indicator" aria-hidden="true"></div>`;
       if(state.calcOpen){phone.insertAdjacentHTML('beforeend',calculatorSheet());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;updateCalculatorReadout();phone.querySelector('[data-calc-action=cancel]').focus({preventScroll:true});}
       if(state.deletePending){phone.insertAdjacentHTML('beforeend',deleteConfirmation());phone.querySelector('.ks-top').inert=true;phone.querySelector('.ks-main').inert=true;phone.querySelector('[data-delete-action=cancel]').focus({preventScroll:true});}
-      if(state.walletPickerOpen||state.ledgerFilterDraft||state.singleSelection||state.mealMethodPickerDraft||state.mealPrepPickerDraft){
-        const panel=state.walletPickerOpen?walletRangeDialog():state.ledgerFilterDraft?ledgerFiltersDialog():state.mealMethodPickerDraft?mealMethodFilterDialog():state.mealPrepPickerDraft?mealPreparationPickerDialog():singleSelectionPanel();
+      if(state.walletPickerOpen||state.ledgerFilterDraft||state.mealFilterOpen||state.singleSelection||state.mealPrepPickerDraft){
+        const panel=state.walletPickerOpen?walletRangeDialog():state.ledgerFilterDraft?ledgerFiltersDialog():state.mealFilterOpen?mealFiltersDialog():state.mealPrepPickerDraft?mealPreparationPickerDialog():singleSelectionPanel();
         phone.insertAdjacentHTML('beforeend',panel);
         for(const child of phone.children)if(!child.classList.contains('ks-modal-overlay'))child.inert=true;
         phone.querySelector('.ks-selection-panel [data-select-close]').focus({preventScroll:true});
@@ -1873,13 +1898,7 @@
       const meal=phone.querySelector('[data-meal-filter-form]');
       if(meal){
         const {from,to,keyword}=meal.elements;
-        const inlinePreps=new Set([...meal.querySelectorAll('[name=preparation]')].map(e=>e.value));
-        const checkedInline=[...meal.querySelectorAll('[name=preparation]:checked')].map(e=>e.value);
-        const keptExtra=state.mealFilterDraft.preparations.filter(c=>!inlinePreps.has(c));
-        state.mealFilterDraft={...state.mealFilterDraft,from:from.value,to:to.value,
-          slots:[...meal.querySelectorAll('[name=slot]:checked')].map(e=>e.value),
-          atHome:[...meal.querySelectorAll('[name=atHome]:checked')].map(e=>e.value),
-          keyword:keyword.value,preparations:[...checkedInline,...keptExtra]};
+        state.mealFilterDraft={...state.mealFilterDraft,from:from.value,to:to.value,keyword:keyword.value};
       }
       if(state.page==='wallet-edit'){
         const draft=state.walletEditDraft;
@@ -1921,7 +1940,7 @@
     function pageEntryDetail(){const e=financialEntries().find(e=>e.id===state.selectedEntryId);if(!e)return '<p class="ks-empty-state">这笔账目已不存在</p>';const w=walletById(e.walletId);return `<section class="ks-entry-detail"><div class="ks-detail-amount"><span class="ks-note">${e.type} · ${w.code}</span><div class="ks-amount ${e.type==='支出'?'ks-expense':'ks-income'}">${e.type==='支出'?'−':'+'}${money(e.cents,w.code)}</div></div><dl class="ks-detail-list">${[['日期时间',`${e.date} ${e.time}`],['钱包',`${w.name} · ${w.code}`],['分类',entryCategory(e)],['备注',e.note||'无']].map(([label,value])=>`<div><dt>${label}</dt><dd>${escapeText(value)}</dd></div>`).join('')}</dl>${deleteButton('entry','删除这笔账目')}<p class="ks-footnote">交互预览 · 示例数据</p></section>`;}
     function deleteConfirmation(){const p=state.deletePending;return `<div class="ks-modal-overlay ks-delete-overlay"><section class="ks-delete-sheet" role="alertdialog" aria-modal="true" aria-label="确认删除记录"><h3>${p.kind==='meal'?'删除这条用餐记录？':'删除这笔账目？'}</h3><p class="ks-delete-summary">${escapeText(p.summary)}</p><p class="ks-note">${p.kind==='meal'?'删除后，将更新今日进度、月度及全部记录统计。':'删除后，将更新流水、收支统计和钱包余额。'}</p><p class="ks-error" role="alert" data-delete-error></p><div class="ks-calc-actions"><button type="button" class="ks-choice cursor-interaction" data-delete-action="cancel">取消</button><button type="button" class="ks-primary ks-danger-confirm cursor-interaction" data-delete-action="confirm">确认删除</button></div></section></div>`;}
     function cancelDelete(){const action=state.deletePending.kind==='meal'?'delete-meal':'delete-entry';state.deletePending=null;render();phone.querySelector(`[data-action=${action}]`)?.focus({preventScroll:true});}
-    function confirmDelete(){const p=state.deletePending;if(p.kind==='meal'){if(state.records[p.date])state.records[p.date][p.slot]=null;state.date=p.date;state.page=state.mealReturn;state.editing=false;}else{if(financialEntries().some(e=>e.originalExpenseId===p.id)){phone.querySelector('[data-delete-error]').textContent='请先删除这笔支出关联的退款，再删除原支出。';return;}state.deletedEntryIds.add(p.id);state.page='ledger';state.ledgerTab='流水';}state.deletePending=null;state.notice='已从当前演示删除记录。';render();}
+    function confirmDelete(){const p=state.deletePending;if(p.kind==='meal'){if(state.records[p.date])state.records[p.date][p.slot]=null;state.date=state.mealBrowseDate;state.page=state.mealReturn;state.editing=false;}else{if(financialEntries().some(e=>e.originalExpenseId===p.id)){phone.querySelector('[data-delete-error]').textContent='请先删除这笔支出关联的退款，再删除原支出。';return;}state.deletedEntryIds.add(p.id);state.page='ledger';state.ledgerTab='流水';}state.deletePending=null;state.notice='已从当前演示删除记录。';render();}
     const calcOperators='+−×÷';
     function openCalculator(){
       if(!entryWallet()||modalKind())return;
@@ -2029,13 +2048,34 @@
       state.singleSelection=null;render();
       phone.querySelector(`[data-select-open="${kind}"]`)?.focus({preventScroll:true});
     }
-    function closeMealMethodPicker(apply){
+    function closeMealFilters(apply){
       if(apply){
-        const all=mealFilterMethods().map(([value])=>value);
-        state.mealFilterDraft.methods=all.filter(v=>(state.mealMethodPickerDraft||[]).includes(v));
+        const form=phone.querySelector('[data-meal-filter-form]');
+        const {from,to,keyword}=form.elements;
+        if(from.value&&to.value&&from.value>to.value){
+          form.querySelector('[data-meal-filter-error]').textContent='开始日期不能晚于结束日期。';
+          return;
+        }
+        const allMethods=[...allMealFilterMethods(),'none'];
+        const allPreps=allMealFilterPreparations();
+        const applied={
+          from:from.value,
+          to:to.value,
+          slots:['0','1','2'].filter(v=>state.mealFilterDraft.slots.includes(v)),
+          atHome:['yes','no'].filter(v=>state.mealFilterDraft.atHome.includes(v)),
+          methods:allMethods.filter(v=>state.mealFilterDraft.methods.includes(v)),
+          preparations:allPreps.filter(c=>state.mealFilterDraft.preparations.includes(c)),
+          keyword:keyword.value.trim(),
+        };
+        if(state.mealTab==='统计')state.mealStatsFilters=applied;
+        else{
+          state.mealFilters=applied;
+          state.mealListMode=!isMealFilterEmpty(applied);
+        }
       }
-      state.mealMethodPickerDraft=null;render();
-      phone.querySelector('[data-select-open="meal-methods"]')?.focus({preventScroll:true});
+      state.mealFilterOpen=false;render();
+      if(apply)persist();
+      phone.querySelector('[data-action=meal-filter]')?.focus({preventScroll:true});
     }
     function closeMealPrepPicker(apply){
       const draft=state.mealPrepPickerDraft;
@@ -2051,10 +2091,10 @@
     }
     function cancelSelection(){
       if(state.singleSelection)closeSingleSelection();
-      else if(state.mealMethodPickerDraft)closeMealMethodPicker(false);
       else if(state.mealPrepPickerDraft)closeMealPrepPicker(false);
       else if(state.walletPickerOpen)closeWalletPicker('cancel');
       else if(state.ledgerFilterDraft)closeLedgerFilters(false);
+      else if(state.mealFilterOpen)closeMealFilters(false);
     }
     function closeMealOption(){
       const kind=state.addingMealOption;
@@ -2138,16 +2178,6 @@
       if(cents<=0n)throw Error('舍入后金额必须大于零');
       return cents;
     }
-    function updateMealDatePresets(form){
-      const selected=mealDatePreset({from:form.elements.from.value,to:form.elements.to.value});
-      for(const button of form.querySelectorAll('[data-clear-meal-date]')){
-        button.hidden=!form.elements[button.dataset.clearMealDate].value;
-      }
-      for(const button of form.querySelectorAll('[data-meal-date-preset]')){
-        button.setAttribute('aria-pressed',String(button.dataset.mealDatePreset===selected));
-      }
-      form.querySelector('.ks-error').textContent='';
-    }
     phone.addEventListener('click',event=>{
       if(event.target.matches('.ks-calculator-overlay')){closeCalculator(false);return;}
       if(event.target.matches('.ks-selection-overlay')){cancelSelection();return;}
@@ -2159,15 +2189,7 @@
       const b=event.target.closest('button');if(!b)return;
       capture();state.notice='';
       if(b.hasAttribute('data-select-close')){cancelSelection();return;}
-      if(b.dataset.selectOpen==='meal-methods'){state.mealMethodPickerDraft=[...state.mealFilterDraft.methods];render();return;}
       if(b.dataset.selectOpen){state.singleSelection=b.dataset.selectOpen;render();return;}
-      if(b.dataset.mealMethodAction){
-        const action=b.dataset.mealMethodAction;
-        if(action==='all'){state.mealMethodPickerDraft=mealFilterMethods().map(([value])=>value);render();}
-        else if(action==='none'){state.mealMethodPickerDraft=[];render();}
-        else if(action==='apply')closeMealMethodPicker(true);
-        return;
-      }
       if(b.dataset.openMealPreps){
         const target=b.dataset.openMealPreps;
         const current=target==='form'?state.categories:state.mealFilterDraft.preparations;
@@ -2322,29 +2344,76 @@
         phone.querySelector('[data-period-month][aria-pressed=true]').focus({preventScroll:true});return;
       }
       if(b.dataset.action==='meal-filter'){
-        state.mealFilterDraft=state.mealTab==='统计'?state.mealStatsFilters:state.mealFilters;
-        state.page='meal-filter';render();return;
-      }
-      if(b.dataset.mealDatePreset){
-        const dates=mealDatePresets[b.dataset.mealDatePreset];
-        b.form.elements.from.value=dates.from;
-        b.form.elements.to.value=dates.to;
-        updateMealDatePresets(b.form);
-        return;
-      }
-      if(b.dataset.clearMealDate){
-        const date=b.form.elements[b.dataset.clearMealDate];
-        date.value='';
-        updateMealDatePresets(b.form);
-        date.focus({preventScroll:true});
-        return;
-      }
-      if(b.dataset.action==='reset-meal-filter'){
-        state.mealFilterDraft=blankMealFilters(state.mealTab==='统计'?mealDatePresets.month:mealDatePresets.all);
+        const source=state.mealTab==='统计'?state.mealStatsFilters:state.mealFilters;
+        state.mealFilterDraft={
+          ...source,
+          slots:[...source.slots],
+          atHome:[...source.atHome],
+          methods:[...source.methods],
+          preparations:[...source.preparations],
+        };
+        state.mealFilterOpen=true;
         render();return;
       }
-      if(b.dataset.action==='meal-daily'){state.mealListMode=false;render();persist();return;}
-      if(b.dataset.action==='clear-meal-filters'){state.mealFilters=blankMealFilters();render();persist();return;}
+      if(b.closest('[data-meal-filter-form]')){
+        const panelBody=phone.querySelector('.ks-selection-panel .ks-selection-body'),scroll=panelBody?panelBody.scrollTop:0;
+        let focusSelector='';
+        if(b.dataset.mealDatePreset){
+          const dates=mealDatePresets[b.dataset.mealDatePreset];
+          state.mealFilterDraft.from=dates.from;state.mealFilterDraft.to=dates.to;
+          focusSelector=`[data-meal-date-preset="${b.dataset.mealDatePreset}"]`;
+        }else if(b.dataset.clearMealDate){
+          state.mealFilterDraft[b.dataset.clearMealDate]='';
+          focusSelector=`#meal-filter-${b.dataset.clearMealDate}`;
+        }else if(b.hasAttribute('data-clear-meal-keyword')){
+          state.mealFilterDraft.keyword='';
+          focusSelector='#meal-filter-keyword';
+        }else if(b.dataset.mealFilterSlot!==undefined){
+          const v=b.dataset.mealFilterSlot,list=state.mealFilterDraft.slots;
+          state.mealFilterDraft.slots=list.includes(v)?list.filter(x=>x!==v):[...list,v];
+          focusSelector=`[data-meal-filter-slot="${v}"]`;
+        }else if(b.dataset.mealFilterHome){
+          const v=b.dataset.mealFilterHome,list=state.mealFilterDraft.atHome;
+          state.mealFilterDraft.atHome=list.includes(v)?list.filter(x=>x!==v):[...list,v];
+          focusSelector=`[data-meal-filter-home="${v}"]`;
+        }else if(b.dataset.mealFilterMethod){
+          const v=b.dataset.mealFilterMethod,list=state.mealFilterDraft.methods;
+          state.mealFilterDraft.methods=list.includes(v)?list.filter(x=>x!==v):[...list,v];
+          focusSelector=`[data-meal-filter-method="${CSS.escape(v)}"]`;
+        }else if(b.dataset.mealFilterPrep){
+          const v=b.dataset.mealFilterPrep,list=state.mealFilterDraft.preparations;
+          state.mealFilterDraft.preparations=list.includes(v)?list.filter(x=>x!==v):[...list,v];
+          focusSelector=`[data-meal-filter-prep="${CSS.escape(v)}"]`;
+        }else if(b.dataset.action==='reset-meal-filter'){
+          state.mealFilterDraft=blankMealFilters(state.mealTab==='统计'?mealDatePresets.month:mealDatePresets.all);
+          focusSelector='[data-action="reset-meal-filter"]';
+        }
+        if(focusSelector){
+          render();
+          const nextBody=phone.querySelector('.ks-selection-panel .ks-selection-body');
+          if(nextBody)nextBody.scrollTop=scroll;
+          phone.querySelector(focusSelector)?.focus({preventScroll:true});
+          return;
+        }
+      }
+      if(b.dataset.removeMealFilter){
+        state.mealFilters=removeMealFilterKey(state.mealFilters,b.dataset.removeMealFilter);
+        state.mealListMode=!isMealFilterEmpty(state.mealFilters);
+        render();persist();return;
+      }
+      if(b.dataset.removeMealStatFilter){
+        state.mealStatsFilters=removeMealFilterKey(state.mealStatsFilters,b.dataset.removeMealStatFilter);
+        render();persist();return;
+      }
+      if(b.dataset.action==='clear-meal-filters'){state.mealFilters=blankMealFilters();state.mealListMode=false;render();persist();return;}
+      if(b.dataset.action==='meal-view-day'){
+        recordOrigin=null;
+        state.mealFilters=blankMealFilters();
+        state.mealListMode=false;
+        state.date=state.editingDate;
+        state.page='meals';
+        render();persist();return;
+      }
       if(b.dataset.action==='manage-categories'){state.categoryReturn=state.page;state.categoryWalletId=b.dataset.categoryWallet||'GLOBAL';state.financialScope='EXPENSE';state.editingFinancialCategoryId=null;state.page='category-manager';render();return;}
       if(b.dataset.financialScope){state.financialScope=b.dataset.financialScope;state.editingFinancialCategoryId=null;render();return;}
       if(b.dataset.editFinancialCategory){
@@ -2399,7 +2468,7 @@
           phone.querySelector('.ks-day[aria-pressed=true]'))?.focus({preventScroll:true});
         return;
       }
-      if(b.dataset.meal!==undefined){if(state.page==='home')state.date='2026-11-17';else if(b.dataset.mealDate)state.date=b.dataset.mealDate;state.slot=Number(b.dataset.meal);state.mealReturn=state.page;const m=records()[state.slot];state.editing=!!m;if(m&&b.classList.contains('ks-record')){recordOrigin={page:state.page,date:state.date,slot:b.dataset.meal};entrance=visible(b)?rect(b):null;}else recordOrigin=null;state.editingDate=state.date;state.editingSlot=state.slot;state.atHome=m?m.atHome:true;state.method=m?m.method:'下厨';state.categories=[...(m?.categories||[])];state.dishes=m?.dishes||'';state.note=m?.note||'';state.page='meal-form';render();return;}
+      if(b.dataset.meal!==undefined){state.mealBrowseDate=state.date;state.mealFromFilter=state.page==='meals'&&state.mealTab==='记录'&&state.mealListMode&&!isMealFilterEmpty(state.mealFilters);if(state.page==='home')state.date='2026-11-17';else if(b.dataset.mealDate)state.date=b.dataset.mealDate;state.slot=Number(b.dataset.meal);state.mealReturn=state.page;const m=records()[state.slot];state.editing=!!m;if(m&&b.classList.contains('ks-record')){recordOrigin={page:state.page,date:state.date,slot:b.dataset.meal};entrance=visible(b)?rect(b):null;}else recordOrigin=null;state.editingDate=state.date;state.editingSlot=state.slot;state.atHome=m?m.atHome:true;state.method=m?m.method:'下厨';state.categories=[...(m?.categories||[])];state.dishes=m?.dishes||'';state.note=m?.note||'';state.page='meal-form';render();return;}
       if(b.dataset.homeChoice!==undefined){state.atHome=b.dataset.homeChoice==='true';render();return;}
       if(b.dataset.method){const m=b.dataset.method;state.method=state.method===m?null:m;render();return;}
       if(b.dataset.category){const c=b.dataset.category;state.categories=state.categories.includes(c)?state.categories.filter(x=>x!==c):[...state.categories,c];render();return;}
@@ -2433,7 +2502,7 @@
         });
         return;
       }
-      if(b.dataset.action==='back'){state.page=state.page==='entry'?state.entryReturn:state.page==='category-detail'?state.categoryDetailReturn:state.page==='category-owned'?'category-manager':state.page==='category-manager'?state.categoryReturn:['appearance','github','local-backup','csv-transfer'].includes(state.page)?'settings':state.page==='meal-filter'?'meals':state.page==='meal-form'?state.mealReturn:'ledger';render();return;}
+      if(b.dataset.action==='back'){if(state.page==='meal-form')state.date=state.mealBrowseDate;state.page=state.page==='entry'?state.entryReturn:state.page==='category-detail'?state.categoryDetailReturn:state.page==='category-owned'?'category-manager':state.page==='category-manager'?state.categoryReturn:['appearance','github','local-backup','csv-transfer'].includes(state.page)?'settings':state.page==='meal-form'?state.mealReturn:'ledger';render();return;}
       if(b.dataset.addMealOption){state.addingMealOption=b.dataset.addMealOption;render();return;}
       if(b.dataset.action==='cancel-meal-option'){closeMealOption();return;}
     });
@@ -2518,7 +2587,7 @@
         else if(state.entryTimeDraft)closeEntryTime(false);
         else if(state.addingEntryCategory)closeEntryCategory();
         else if(state.periodDraft)closePeriod(false);
-        else if(state.singleSelection||state.mealMethodPickerDraft||state.mealPrepPickerDraft||state.ledgerFilterDraft||state.walletPickerOpen)cancelSelection();
+        else if(state.singleSelection||state.mealPrepPickerDraft||state.ledgerFilterDraft||state.mealFilterOpen||state.walletPickerOpen)cancelSelection();
         else if(state.deletePending)cancelDelete();
         else closeCalculator(false);
       }else if(event.key==='Enter'&&event.target.matches('[data-ledger-filters] [name=note]')){
@@ -2546,13 +2615,6 @@
         updateLedgerFilterCount(group);
         return;
       }
-      if(e.matches('[data-meal-method-option]')){
-        const val=e.dataset.mealMethodOption,scroll=e.closest('.ks-selection-body').scrollTop;
-        const current=state.mealMethodPickerDraft||[];
-        state.mealMethodPickerDraft=e.checked?[...new Set([...current,val])]:current.filter(x=>x!==val);
-        render();phone.querySelector('.ks-selection-body').scrollTop=scroll;
-        phone.querySelector(`[data-meal-method-option="${CSS.escape(val)}"]`)?.focus({preventScroll:true});return;
-      }
       if(e.matches('[data-meal-prep-option]')){
         const draft=state.mealPrepPickerDraft;
         if(!draft)return;
@@ -2578,10 +2640,25 @@
         render();phone.querySelector('.ks-selection-body').scrollTop=scroll;
         phone.querySelector(`[data-wallet-option=${id}]`).focus({preventScroll:true});return;
       }
-      if(e.matches('[data-meal-filter-form] input[type=date]')){updateMealDatePresets(e.form);return;}
+      if(e.matches('[data-meal-filter-form] input[type=date]')){
+        const panelBody=phone.querySelector('.ks-selection-panel .ks-selection-body'),scroll=panelBody?panelBody.scrollTop:0;
+        const name=e.name;
+        state.mealFilterDraft[name]=e.value;
+        render();
+        const nextBody=phone.querySelector('.ks-selection-panel .ks-selection-body');
+        if(nextBody)nextBody.scrollTop=scroll;
+        phone.querySelector(`#meal-filter-${name}`)?.focus({preventScroll:true});
+        return;
+      }
     });
     phone.addEventListener('input',event=>{
       const e=event.target;
+      if(e.matches('[data-meal-filter-form] [name=keyword]')){
+        state.mealFilterDraft.keyword=e.value;
+        const clearBtn=e.form.querySelector('[data-clear-meal-keyword]');
+        if(clearBtn)clearBtn.hidden=!e.value;
+        return;
+      }
       if(e.matches('[data-currency-search]')){
         const body=e.closest('.ks-selection-panel').querySelector('.ks-selection-body');
         body.innerHTML=currencyOptions(e.value);
@@ -2689,30 +2766,7 @@
       }
       if(f.matches('[data-ledger-filters]')){closeLedgerFilters(true);return;}
       if(f.matches('[data-period-form]')){closePeriod(true);return;}
-      if(f.matches('[data-meal-filter-form]')){
-        const {from,to,keyword}=f.elements;
-        if(from.value&&to.value&&from.value>to.value){error('开始日期不能晚于结束日期。');return;}
-        const pickedSlots=[...f.querySelectorAll('[name=slot]:checked')].map(e=>e.value);
-        const pickedHome=[...f.querySelectorAll('[name=atHome]:checked')].map(e=>e.value);
-        const allMethods=mealFilterMethods().map(([value])=>value);
-        const pickedMethods=allMethods.filter(v=>state.mealFilterDraft.methods.includes(v));
-        const allPreps=allMealFilterPreparations();
-        const inlinePreps=new Set([...f.querySelectorAll('[name=preparation]')].map(e=>e.value));
-        const checkedInline=[...f.querySelectorAll('[name=preparation]:checked')].map(e=>e.value);
-        const keptExtra=state.mealFilterDraft.preparations.filter(c=>!inlinePreps.has(c));
-        const pickedPreps=allPreps.filter(c=>checkedInline.includes(c)||keptExtra.includes(c));
-        const applied={
-          from:from.value,to:to.value,
-          slots:pickedSlots,
-          atHome:pickedHome,
-          methods:pickedMethods,
-          preparations:pickedPreps,
-          keyword:keyword.value.trim(),
-        };
-        if(state.mealTab==='统计')state.mealStatsFilters=applied;
-        else{state.mealFilters=applied;state.mealListMode=true;}
-        state.page='meals';render();persist();return;
-      }
+      if(f.matches('[data-meal-filter-form]')){closeMealFilters(true);return;}
       if(f.matches('[data-meal-form]')){
         if(state.atHome===null){error('请先选择是否计划在家吃。');return;}
         if(state.atHome&&!state.method){error('计划在家吃时，请选择一种用餐方式。');return;}
@@ -2721,7 +2775,7 @@
         const original=state.editing?state.records[state.editingDate]?.[state.editingSlot]:null;
         const categories=state.method==='下厨'?[...state.categories]:state.method&&state.method===original?.method?[...(original.categories||[])]:[];
         if(state.editing&&(state.date!==state.editingDate||state.slot!==state.editingSlot))state.records[state.editingDate][state.editingSlot]=null;
-        state.records[state.date]||=[null,null,null];state.records[state.date][state.slot]={atHome:state.atHome,method:state.method,categories,dishes:state.dishes,note:state.note};state.page=state.mealReturn;state.notice='已保存到当前演示。';render();return;
+        state.records[state.date]||=[null,null,null];state.records[state.date][state.slot]={atHome:state.atHome,method:state.method,categories,dishes:state.dishes,note:state.note};state.date=state.mealBrowseDate;state.page=state.mealReturn;state.notice='已保存到当前演示。';render();return;
       }
       if(f.matches('[data-entry-form]')){
         try{

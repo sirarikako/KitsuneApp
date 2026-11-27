@@ -40,11 +40,13 @@
     }
     const mealDatePresets={month:mealMonthDates(demoMealMonth),all:{from:'',to:''}};
     const blankMealFilters=(dates=mealDatePresets.all)=>({...dates,slots:[],atHome:[],methods:[],preparations:[],keyword:''});
+    const isMealFilterEmpty=f=>!f.from&&!f.to&&!f.slots.length&&!f.atHome.length&&!f.methods.length&&!f.preparations.length&&!f.keyword.trim();
     const mealDatePreset=({from,to})=>Object.keys(mealDatePresets).find(key=>{
       const dates=mealDatePresets[key];
       return dates.from===from&&dates.to===to;
     });
-    state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealMethodPickerDraft=null;state.mealPrepPickerDraft=null;state.mealListMode=false;
+    state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealPrepPickerDraft=null;state.mealListMode=false;
+    state.mealFilterOpen=false;state.mealFromFilter=false;state.mealBrowseDate=state.date;
     state.mealStatsFilters=blankMealFilters(mealDatePresets.month);
     const mealMethods=['下厨','外卖'],mealPreparations=['炒菜','预制菜'];
     // Archived items stay on the records that used them; only editing those records offers them again.
@@ -194,17 +196,29 @@
       }
       return f.from+' 至 '+f.to;
     }
+    const allMealFilterMethods=()=>[...new Set([...mealMethods,...archivedMealMethods,...allMeals().map(m=>m.method).filter(Boolean)])];
     const allMealFilterPreparations=()=>[...new Set([...mealPreparations,...archivedMealPreparations,...allMeals().flatMap(m=>m.categories)])];
-    function mealFilterLabels(f,includeDates=true){
-      const labels=[];
-      if(includeDates&&(f.from||f.to))labels.push(`${f.from||'最早'} ～ ${f.to||'至今'}`);
-      slots.forEach((s,i)=>{if(f.slots.includes(String(i)))labels.push(s);});
-      if(f.atHome.includes('yes'))labels.push('计划在家：是');
-      if(f.atHome.includes('no'))labels.push('计划在家：否');
-      f.methods.forEach(m=>labels.push(m==='none'?'方式未填写':m));
-      labels.push(...f.preparations);
-      if(f.keyword)labels.push(`关键词：${f.keyword}`);
-      return labels;
+    function mealFilterChips(f,includeDates=true){
+      const chips=[];
+      if(includeDates&&(f.from||f.to))chips.push({key:'dates',label:`${f.from||'最早'} ～ ${f.to||'至今'}`});
+      slots.forEach((s,i)=>{if(f.slots.includes(String(i)))chips.push({key:`slot:${i}`,label:s});});
+      if(f.atHome.includes('yes'))chips.push({key:'atHome:yes',label:'计划在家：是'});
+      if(f.atHome.includes('no'))chips.push({key:'atHome:no',label:'计划在家：否'});
+      f.methods.forEach(m=>chips.push({key:`method:${m}`,label:m==='none'?'方式未填写':m}));
+      f.preparations.forEach(p=>chips.push({key:`prep:${p}`,label:p}));
+      if(f.keyword.trim())chips.push({key:'keyword',label:`关键词：${f.keyword.trim()}`});
+      return chips;
+    }
+    const mealFilterLabels=(f,includeDates=true)=>mealFilterChips(f,includeDates).map(c=>c.label);
+    function removeMealFilterKey(f,key){
+      const next={...f,slots:[...f.slots],atHome:[...f.atHome],methods:[...f.methods],preparations:[...f.preparations]};
+      if(key==='dates'){next.from='';next.to='';}
+      else if(key.startsWith('slot:'))next.slots=next.slots.filter(v=>v!==key.slice(5));
+      else if(key.startsWith('atHome:'))next.atHome=next.atHome.filter(v=>v!==key.slice(7));
+      else if(key.startsWith('method:'))next.methods=next.methods.filter(v=>v!==key.slice(7));
+      else if(key.startsWith('prep:'))next.preparations=next.preparations.filter(v=>v!==key.slice(5));
+      else if(key==='keyword')next.keyword='';
+      return next;
     }
     function filteredMeals(f){
       const keyword=f.keyword.toLocaleLowerCase();
@@ -274,7 +288,8 @@
     const deleteButton = (kind,label) => `<button type="button" class="ks-delete-btn cursor-interaction" data-action="delete-${kind}">${icon('trash-2')}${label}</button>`;
     const mealCards = () => `<div class="ks-record-list">${slots.map((slot,i)=>{
       const m=records()[i];
-      return `<button type="button" class="ks-record ${m?'':'ks-empty'} cursor-interaction" data-meal="${i}">${recordIcon(slotIcons[i])}<span class="ks-record-copy"><span class="ks-record-title">${slot}${m?`<span class="ks-pill">${escapeText(m.method||'方式未填写')}</span>`:''}</span><span class="ks-record-meta">${m?escapeText(m.dishes||'未填写菜品'):'添加记录'}</span></span>${icon(m?'chevron-right':'plus')}</button>`;
+      const meta=m?[...(m.categories||[]),m.note?.trim()?`备注：${m.note.replace(/\s+/g,' ').trim()}`:''].filter(Boolean).join(' · '):'';
+      return `<button type="button" class="ks-record ${m?'':'ks-empty'} cursor-interaction" data-meal="${i}">${recordIcon(slotIcons[i])}<span class="ks-record-copy"><span class="ks-record-title">${slot}${m?`<span class="ks-pill">${escapeText(m.method||'方式未填写')}</span>`:''}</span><span class="ks-record-meta">${m?escapeText(m.dishes||'未填写菜品'):'添加记录'}</span>${meta?`<span class="ks-record-meta ks-record-ellipsis">${escapeText(meta)}</span>`:''}</span>${icon(m?'chevron-right':'plus')}</button>`;
     }).join('')}</div>`;
     function moneyCard(code,entries,incomeFirst){
       const period=state.ledgerRange?'所选期间':`${Number(state.ledgerMonth.slice(5))} 月`;
