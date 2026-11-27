@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
@@ -781,9 +782,10 @@ class NavigationTest {
                 repository.saveMethod(null, markerName, order = null, archived = false, show = false)
             }
             compose.onNodeWithText("筛选").performClick()
+            compose.onNode(methodChooser and hasText("全部方式")).performScrollTo().assertExists()
             compose.onNode(methodChooser).performScrollTo().performClick()
             compose.waitUntilExactlyOneExists(hasText(markerName) and hasAnyAncestor(isDialog()), 10_000)
-            compose.onNode(hasText("全部方式") and hasAnyAncestor(isDialog())).assertIsSelected()
+            compose.onNode(hasText(methodName) and hasAnyAncestor(isDialog())).assertIsOff()
             compose.onNodeWithContentDescription("关闭").performClick()
             compose.onNodeWithText(prepName).performScrollTo().assertIsNotSelected()
             compose.onNodeWithContentDescription("返回").performClick()

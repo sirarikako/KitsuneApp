@@ -330,7 +330,7 @@ fun MealFilterPage(
     val methodSummary = remember(draft.methods, methodById, records) {
         val chosen = methodOptions.filter { it in draft.methods }
         when {
-            chosen.isEmpty() || chosen.size == methodOptions.size -> "全部方式"
+            chosen.isEmpty() || (methodOptions.size > 1 && chosen.size == methodOptions.size) -> "全部方式"
             chosen.size <= 2 -> chosen.joinToString("、", transform = ::methodOptionLabel)
             else -> "已选 ${chosen.size} 项 · ${chosen.take(2).joinToString("、", transform = ::methodOptionLabel)}等"
         }
@@ -400,7 +400,7 @@ fun MealFilterPage(
                         val normalizedHome = listOf(true, false).filter { it in draft.atHome }
                             .takeUnless { it.size == 2 }.orEmpty()
                         val normalizedMethods = methodOptions.filter { it in draft.methods }
-                            .takeUnless { it.size == methodOptions.size }.orEmpty()
+                            .takeUnless { methodOptions.size > 1 && it.size == methodOptions.size }.orEmpty()
                         apply(draft.copy(
                             slots = normalizedSlots,
                             atHome = normalizedHome,
@@ -420,7 +420,7 @@ fun MealFilterPage(
             optionKey = { it },
             label = ::methodOptionLabel,
             onApply = { picked ->
-                val normalized = picked.takeUnless { it.size == methodOptions.size }.orEmpty()
+                val normalized = picked.takeUnless { methodOptions.size > 1 && it.size == methodOptions.size }.orEmpty()
                 draft = draft.copy(methods = normalized)
             },
             dismiss = { pickMethods = false },
