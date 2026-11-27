@@ -67,7 +67,9 @@ jobs:
       github.ref == 'refs/heads/feat/meal-record-fixes' ||
       github.ref == 'refs/heads/feat/local-backup-csv-ui' ||
       github.ref == 'refs/heads/feat/upgrade-android-dependencies' ||
-      github.ref == 'refs/heads/feat/github-backup-ui-pauses' || github.ref == 'refs/heads/codex/android-16')
+      github.ref == 'refs/heads/feat/github-backup-ui-pauses' ||
+      github.ref == 'refs/heads/feat/unify-selectors-and-meal-multiselect' ||
+      github.ref == 'refs/heads/codex/android-16')
     needs: [verify, device-tests]
     runs-on: ubuntu-latest
     steps:

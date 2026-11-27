@@ -195,6 +195,62 @@ class SelectionSheetsTest {
     }
 
     @Test
+    fun mealFilterNormalizesFullMultiSelectionsAndUsesBottomSheetForExtraPreparationCategories() {
+        val time = "2026-11-17T12:00:00Z"
+        val methods = listOf(
+            MealMethod("m-cook", "下厨", "下厨", 0, false, true, time, time),
+            MealMethod("m-takeout", "外卖", "外卖", 1, false, false, time, time),
+        )
+        val preps = (1..10).map { i ->
+            Category("prep-$i", Scope.PREPARATION, null, GLOBAL_OWNER, "制作$i", "制作$i", i, false, false, time, time)
+        }
+        val base = selectionRecords()
+        val records = base.copy(methods = methods, categories = base.categories + preps)
+        var applied: MealFilter? = null
+        compose.setContent {
+            KitsuneTheme(records.theme) {
+                val filter = MealFilter()
+                MealFilterPage(records, filter, filter, filter, {}, { applied = it })
+            }
+        }
+
+        // Selecting all methods in the sheet normalizes back to "全部方式".
+        val chooser = compose.onNodeWithContentDescription("用餐方式")
+        chooser.performScrollTo().performClick()
+        sheetText("全选").performClick()
+        sheetText("应用").performClick()
+        compose.onNode(hasContentDescription("用餐方式") and hasText("全部方式")).assertExists()
+
+        // Selecting an extra preparation category via "更多分类" bottom sheet.
+        compose.onNodeWithText("更多分类").performScrollTo().performClick()
+        sheetText("选择制作分类").assertIsDisplayed()
+        compose.onNodeWithContentDescription("搜索分类").performTextReplacement("制作10")
+        sheetText("制作10").performClick()
+        close()
+        compose.onNodeWithText("已选更多分类 · 制作10").assertDoesNotExist()
+
+        compose.onNodeWithText("更多分类").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("搜索分类").performTextReplacement("制作10")
+        sheetText("制作10").performClick()
+        sheetText("应用").performClick()
+        compose.onNodeWithText("已选更多分类 · 制作10").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("应用筛选").performScrollTo().performClick()
+        compose.runOnIdle {
+            assertEquals(emptyList<String>(), applied?.methods)
+            assertEquals(listOf("prep-10"), applied?.categories)
+        }
+
+        // Selecting all preparation categories normalizes to unrestricted on apply.
+        compose.onNodeWithText("更多分类").performScrollTo().performClick()
+        sheetText("全选").performClick()
+        sheetText("应用").performClick()
+        compose.onNodeWithText("应用筛选").performScrollTo().performClick()
+        compose.runOnIdle {
+            assertEquals(emptyList<String>(), applied?.categories)
+        }
+    }
+
+    @Test
     fun dismissGesturesDoNotApplyAndARecreatedFilterRetainsItsDraft() {
         val records = selectionRecords()
         val applied = mutableStateOf(LedgerEntryFilters())

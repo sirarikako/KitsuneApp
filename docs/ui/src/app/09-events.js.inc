@@ -28,6 +28,20 @@
         else if(action==='apply')closeMealMethodPicker(true);
         return;
       }
+      if(b.dataset.openMealPreps){
+        const target=b.dataset.openMealPreps;
+        const current=target==='form'?state.categories:state.mealFilterDraft.preparations;
+        state.mealPrepPickerDraft={target,selected:[...current],query:''};render();return;
+      }
+      if(b.dataset.mealPrepAction){
+        const action=b.dataset.mealPrepAction,draft=state.mealPrepPickerDraft;
+        if(draft){
+          if(action==='all'){draft.selected=mealPrepTargetOptions(draft.target);render();}
+          else if(action==='none'){draft.selected=[];render();}
+          else if(action==='apply')closeMealPrepPicker(true);
+        }
+        return;
+      }
       if(b.dataset.selectValue!==undefined){closeSingleSelection(b.dataset.selectValue);return;}
       if(b.dataset.action==='add-entry-category'){state.singleSelection=null;state.addingEntryCategory=true;render();return;}
       if(b.dataset.action==='open-local-backup'){state.page='local-backup';render();return;}
@@ -364,7 +378,7 @@
         else if(state.entryTimeDraft)closeEntryTime(false);
         else if(state.addingEntryCategory)closeEntryCategory();
         else if(state.periodDraft)closePeriod(false);
-        else if(state.singleSelection||state.mealMethodPickerDraft||state.ledgerFilterDraft||state.walletPickerOpen)cancelSelection();
+        else if(state.singleSelection||state.mealMethodPickerDraft||state.mealPrepPickerDraft||state.ledgerFilterDraft||state.walletPickerOpen)cancelSelection();
         else if(state.deletePending)cancelDelete();
         else closeCalculator(false);
       }else if(event.key==='Enter'&&event.target.matches('[data-ledger-filters] [name=note]')){
@@ -399,6 +413,16 @@
         render();phone.querySelector('.ks-selection-body').scrollTop=scroll;
         phone.querySelector(`[data-meal-method-option="${CSS.escape(val)}"]`)?.focus({preventScroll:true});return;
       }
+      if(e.matches('[data-meal-prep-option]')){
+        const draft=state.mealPrepPickerDraft;
+        if(!draft)return;
+        const val=e.dataset.mealPrepOption;
+        draft.selected=e.checked?[...new Set([...draft.selected,val])]:draft.selected.filter(x=>x!==val);
+        const all=mealPrepTargetOptions(draft.target);
+        const countNode=phone.querySelector('[data-meal-prep-count]');
+        if(countNode)countNode.textContent=`已选 ${all.filter(c=>draft.selected.includes(c)).length}/${all.length}`;
+        return;
+      }
       if(e.matches('[data-github-wifi]')){state.githubDemo.wifi=e.checked;return;}
       if(e.matches('[data-github-wifi-draft]')){state.githubDemo.draftWifi=e.checked;return;}
       if(e.matches('[data-github-scenario]')){
@@ -423,6 +447,15 @@
         body.innerHTML=currencyOptions(e.value);
         body.scrollTop=0;
         globalThis.lucide?.createIcons({root:body,attrs:{width:18,height:18}});
+        return;
+      }
+      if(e.matches('[data-meal-prep-search]')){
+        const draft=state.mealPrepPickerDraft;
+        if(!draft)return;
+        draft.query=e.value;
+        const body=e.closest('.ks-selection-panel').querySelector('.ks-selection-body');
+        body.innerHTML=mealPrepOptionsMarkup(mealPrepTargetOptions(draft.target),draft.selected,draft.query);
+        body.scrollTop=0;
         return;
       }
       if(e.matches('[data-entry-time] input')){
@@ -523,12 +556,18 @@
         const pickedHome=[...f.querySelectorAll('[name=atHome]:checked')].map(e=>e.value);
         const allMethods=mealFilterMethods().map(([value])=>value);
         const pickedMethods=allMethods.filter(v=>state.mealFilterDraft.methods.includes(v));
+        const allPreps=allMealFilterPreparations();
+        const inlinePreps=new Set([...f.querySelectorAll('[name=preparation]')].map(e=>e.value));
+        const checkedInline=[...f.querySelectorAll('[name=preparation]:checked')].map(e=>e.value);
+        const keptExtra=state.mealFilterDraft.preparations.filter(c=>!inlinePreps.has(c));
+        const pickedPreps=allPreps.filter(c=>checkedInline.includes(c)||keptExtra.includes(c));
         const applied={
           from:from.value,to:to.value,
           slots:pickedSlots.length===slots.length?[]:pickedSlots,
           atHome:pickedHome.length===2?[]:pickedHome,
-          methods:pickedMethods.length===allMethods.length?[]:pickedMethods,
-          preparations:[...f.querySelectorAll('[name=preparation]:checked')].map(e=>e.value),keyword:keyword.value.trim(),
+          methods:allMethods.length>1&&pickedMethods.length===allMethods.length?[]:pickedMethods,
+          preparations:allPreps.length>1&&pickedPreps.length===allPreps.length?[]:pickedPreps,
+          keyword:keyword.value.trim(),
         };
         if(state.mealTab==='统计')state.mealStatsFilters=applied;
         else{state.mealFilters=applied;state.mealListMode=true;}

@@ -78,6 +78,58 @@ class MealFilterTest {
     }
 
     @Test
+    fun fullPreparationSelectionIsUnrestrictedIncludingUnfilledMealsWhileSingleOptionStillFilters() {
+        val premade = category("prep-premade", Scope.PREPARATION, "预制菜")
+        val unfilledPrepMeal = MealRecord("meal-no-prep", "2026-11-24", MealSlot.DINNER, false, null, "外卖盖饭", "", now, now)
+        val premadeMeal = MealRecord("meal-premade", "2026-11-25", MealSlot.BREAKFAST, true, cooking.id, "速冻饺子", "", now, now)
+        val multiPrepRecords = records.copy(
+            categories = listOf(stirFry, premade, expense),
+            meals = listOf(meal, unfilledPrepMeal, premadeMeal),
+            preparation = mapOf(meal.id to listOf(stirFry.id), premadeMeal.id to listOf(premade.id)),
+        )
+
+        // Partial selection excludes meals without preparation categories.
+        val partial = MealFilter(categories = listOf(stirFry.id))
+        assertEquals(listOf(meal), multiPrepRecords.meals.filter { partial.matches(it, multiPrepRecords) })
+        assertEquals(listOf("炒菜"), partial.labels(multiPrepRecords))
+
+        // Full selection (when >1 categories exist) is unrestricted and includes meals with no preparation categories.
+        val allPreps = MealFilter(categories = listOf(stirFry.id, premade.id))
+        assertEquals(multiPrepRecords.meals, multiPrepRecords.meals.filter { allPreps.matches(it, multiPrepRecords) })
+        assertTrue(allPreps.labels(multiPrepRecords).isEmpty())
+        assertEquals(MealFilter(), allPreps.validIn(multiPrepRecords))
+
+        // Stats filter with month range applies the exact same rule.
+        val monthAllPreps = MealFilter.forMonth(java.time.YearMonth.of(2026, 11)).copy(categories = listOf(stirFry.id, premade.id))
+        assertEquals(3, multiPrepRecords.meals.count { monthAllPreps.matches(it, multiPrepRecords) })
+        assertTrue(monthAllPreps.labels(multiPrepRecords, includeDates = false).isEmpty())
+
+        // Single preparation category remaining still filters instead of collapsing to unrestricted.
+        val singlePrepRecords = multiPrepRecords.copy(categories = listOf(stirFry, expense))
+        val onlyStirFry = MealFilter(categories = listOf(stirFry.id))
+        assertEquals(listOf(meal), singlePrepRecords.meals.filter { onlyStirFry.matches(it, singlePrepRecords) })
+        assertEquals(listOf("炒菜"), onlyStirFry.labels(singlePrepRecords))
+        assertSame(onlyStirFry, onlyStirFry.validIn(singlePrepRecords))
+    }
+
+    @Test
+    fun singleRemainingUnfilledMethodStillFiltersWhileFullMultiMethodSelectionIsUnrestricted() {
+        val unfilledMeal = MealRecord("meal-unfilled", "2026-11-24", MealSlot.DINNER, false, null, "面条", "", now, now)
+        val noMethodsRecords = records.copy(methods = emptyList(), meals = listOf(meal, unfilledMeal))
+        val unfilledOnly = MealFilter(methods = listOf(MealFilter.NO_METHOD))
+        assertEquals(listOf(unfilledMeal), noMethodsRecords.meals.filter { unfilledOnly.matches(it, noMethodsRecords) })
+        assertEquals(listOf("方式未填写"), unfilledOnly.labels(noMethodsRecords))
+        assertSame(unfilledOnly, unfilledOnly.validIn(noMethodsRecords))
+
+        // When user methods exist and both NO_METHOD and all methods are selected, treat as unrestricted.
+        val withMethods = records.copy(meals = listOf(meal, unfilledMeal))
+        val allMethods = MealFilter(methods = listOf(MealFilter.NO_METHOD, cooking.id))
+        assertEquals(withMethods.meals, withMethods.meals.filter { allMethods.matches(it, withMethods) })
+        assertTrue(allMethods.labels(withMethods).isEmpty())
+        assertEquals(MealFilter(), allMethods.validIn(withMethods))
+    }
+
+    @Test
     fun staleMethodAndCategoryConditionsAreDroppedAndOtherConditionsKept() {
         val stale = MealFilter(start = "2026-11-01", end = "2026-11-30", slots = listOf(MealSlot.LUNCH),
             methods = listOf("method-removed", cooking.id),

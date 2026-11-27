@@ -44,7 +44,7 @@
       const dates=mealDatePresets[key];
       return dates.from===from&&dates.to===to;
     });
-    state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealMethodPickerDraft=null;state.mealListMode=false;
+    state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealMethodPickerDraft=null;state.mealPrepPickerDraft=null;state.mealListMode=false;
     state.mealStatsFilters=blankMealFilters(mealDatePresets.month);
     const mealMethods=['下厨','外卖'],mealPreparations=['炒菜','预制菜'];
     // Archived items stay on the records that used them; only editing those records offers them again.
@@ -194,23 +194,29 @@
       }
       return f.from+' 至 '+f.to;
     }
+    const allMealFilterPreparations=()=>[...new Set([...mealPreparations,...archivedMealPreparations,...allMeals().flatMap(m=>m.categories)])];
+    const allMealFilterMethodValues=()=>['none',...new Set([...mealMethods,...archivedMealMethods,...allMeals().map(m=>m.method).filter(Boolean)])];
+    const allMethodsChosen=selected=>{const all=allMealFilterMethodValues();return all.length>1&&all.every(v=>selected.includes(v));};
+    const allPreparationsChosen=selected=>{const all=allMealFilterPreparations();return all.length>1&&all.every(c=>selected.includes(c));};
     function mealFilterLabels(f,includeDates=true){
       const labels=[];
       if(includeDates&&(f.from||f.to))labels.push(`${f.from||'最早'} ～ ${f.to||'至今'}`);
       if(f.slots.length>0&&f.slots.length<slots.length)slots.forEach((s,i)=>{if(f.slots.includes(String(i)))labels.push(s);});
       if(f.atHome.length===1)labels.push(`计划在家：${f.atHome[0]==='yes'?'是':'否'}`);
-      f.methods.forEach(m=>labels.push(m==='none'?'方式未填写':m));
-      labels.push(...f.preparations);
+      if(!allMethodsChosen(f.methods))f.methods.forEach(m=>labels.push(m==='none'?'方式未填写':m));
+      if(!allPreparationsChosen(f.preparations))labels.push(...f.preparations);
       if(f.keyword)labels.push(`关键词：${f.keyword}`);
       return labels;
     }
     function filteredMeals(f){
       const keyword=f.keyword.toLocaleLowerCase();
+      const anyMethod=!f.methods.length||allMethodsChosen(f.methods);
+      const anyPrep=!f.preparations.length||allPreparationsChosen(f.preparations);
       return allMeals().filter(m=>(!f.from||m.date>=f.from)&&(!f.to||m.date<=f.to)&&
         (!f.slots.length||f.slots.includes(String(m.slot)))&&
         (!f.atHome.length||f.atHome.includes(m.atHome?'yes':'no'))&&
-        (!f.methods.length||f.methods.includes(m.method||'none'))&&
-        (!f.preparations.length||f.preparations.some(c=>m.categories.includes(c)))&&
+        (anyMethod||f.methods.includes(m.method||'none'))&&
+        (anyPrep||f.preparations.some(c=>m.categories.includes(c)))&&
         (!keyword||m.dishes.toLocaleLowerCase().includes(keyword)||m.note.toLocaleLowerCase().includes(keyword)));
     }
     const records = () => state.records[state.date] || [null,null,null];
