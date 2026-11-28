@@ -209,3 +209,13 @@
 - 移除多余的内容区手势拦截和嵌套滚动拦截代码，仅在 `FloatingSheet` 顶部小横条及标题区保留自定义下拉关闭与回弹手势：下拉达到阈值（默认 `100dp`，小屏按面板高度适配且不低于 `56dp`）或明显快速下拉（`≥ 800dp/s`、位移 `≥ 24dp` 且松手前未停顿）时平滑关闭；轻微拖动或快速下拉后停顿（`≥ 100ms`）再松手则自动回弹。内容区连续滑动、列表到顶继续下滑与底部操作按钮均由原生控件独立处理，不会误关闭弹窗。
 - 检查日期选择（`DateSelectionDialog`／`LedgerPeriodDialog`／`MonthPickerDialog`）与时间选择（`TimeControl`）：均为居中弹窗（`Dialog`／`AlertDialog`），无下拉关闭手势。
 - 同步更新 `docs/features/01-common.md`、`docs/features/05-ledger.md`、`docs/testing/ACCEPTANCE.md` 与离线网页预览；补充 `SheetGestureTest`（含快速下拉停顿回弹单测）和 `BottomSheetGestureTest`（含连续快速上下滑、列表到顶反复下滑及快拉停顿松手回归）。本地通过 Debug／Release 构建、38 项 JVM 单元测试、Debug／Release lint（0 错误）及仪器测试 APK 构建；API 35／36 模拟器设备测试与固定签名覆盖安装由 GitHub Actions 验证。
+
+## 用餐记录筛选体验优化
+
+- 将原本全屏滑入的“筛选用餐”子页（含二级方式弹窗及更多分类弹窗）改造为与记账流水一致的共用底部悬浮筛选面板（`MealFilterDialog` / `mealFiltersDialog`），内含关键词前置、日期范围，以及餐次、计划在家吃、用餐方式与制作分类全维度平铺多选芯片（全不选为不限，全选保留选中态不自动折叠）和固定吸底“重置条件／应用筛选”操作；记录与统计共用同一面板并各自保留已应用条件，编辑页超过 8 个制作分类时继续使用统一底部多选面板。
+- 固定“用餐 → 记录”顶栏左右结构：筛选态移除重复的“按日浏览”返回按钮，左侧等宽框显示`范围：…`摘要并可点击调出筛选面板，右侧固定位置显示高亮的`筛选 (N)`（统计页存在非日期条件时同步高亮计数）；按日浏览已记录卡片有制作分类或备注时展示次要摘要行，缩小按日与筛选列表的视觉落差。
+- 实现无条件自动回到按日浏览（A1）：应用空筛选、点击条件标签的关闭图标逐个移除至最后一个条件、点击“清除筛选”、引用的方式／分类被删除导致条件归零，或在 Android 筛选结果页按系统返回键，均立即清除记录筛选并回到按日浏览。
+- 从记录筛选结果点开已有记录进入编辑页时，顶栏右侧提供“查看当天”按钮（B1），点击后丢弃编辑草稿、清除记录筛选并定位到该条记录所属日期的按日浏览（使用普通子页滑出过渡）。
+- 同步更新 `docs/features/03-meals.md`、`docs/features/01-common.md`、`docs/testing/ACCEPTANCE.md`、`docs/ui/README.md` 与 `docs/ui/src/` 离线网页预览；补充 `MealFilterTest` 单元测试，并更新 `SelectionSheetsTest` 与 `NavigationTest` 用例。
+- 排查 PR #45 的 API 35 仪器测试超时：诊断截图与 `dumpsys window`／`logcat` 确认冷启动阶段 `com.google.android.apps.nexuslauncher` 首帧耗时临界触发系统 ANR 弹窗（`Application Not Responding: com.google.android.apps.nexuslauncher`），长期占据顶层窗口焦点并拦截软键盘、`KEYCODE_BACK` 与遮罩 `input tap`；新增 `.github/scripts/prepare-android-emulator.sh` 在开测前抑制并清理冷启动系统异常弹窗，同时修正仪器测试中 `executeShellCommand` 未等待管道结束与弹窗／主窗口焦点切换的竞态，补充真实页面遮罩点击丢弃草稿及系统返回键／边缘返回手势回到原浏览日期的端到端断言。
+

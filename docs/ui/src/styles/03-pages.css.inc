@@ -77,11 +77,20 @@
   #kitsune-preview .ks-wallet-check>span{flex:1}
   #kitsune-preview .ks-wallet-check small{font-size:var(--ks-font-note);color:var(--ks-accent)}
   #kitsune-preview .ks-filter-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 15px}
-  #kitsune-preview .ks-filter-chip{border:var(--ks-card-border);background:var(--ks-card-surface);font-size:var(--ks-font-tag);padding:2px 6px;border-radius:6px;color:var(--ks-dim)}
+  #kitsune-preview .ks-filter-chip{display:inline-flex;align-items:center;gap:4px;min-height:32px;border:1px solid var(--ks-accent);background:var(--ks-accent-bg);font-size:var(--ks-font-note);font-weight:500;padding:4px 8px 4px 10px;border-radius:8px;color:var(--ks-accent)}
+  #kitsune-preview .ks-filter-chip svg{width:14px;height:14px;flex:none}
+  #kitsune-preview .ks-toolbar-action.ks-toolbar-active{background:var(--ks-accent-bg);border-color:var(--ks-accent);color:var(--ks-accent);font-weight:500}
+  #kitsune-preview .ks-subpage .ks-toolbar-action{flex-shrink:0}
+  #kitsune-preview .ks-subpage .ks-title{flex:1;min-width:0}
+  #kitsune-preview [data-meal-filter-form] .ks-selection-body{display:grid;gap:12px;padding-bottom:4px}
+  #kitsune-preview [data-meal-filter-form] .ks-selection-section{border:0;margin:0;padding:12px 0 0;border-top:1px solid var(--ks-line);min-width:0}
+  #kitsune-preview [data-meal-filter-form] .ks-selection-footer{flex-direction:column;align-items:stretch;gap:6px}
+  #kitsune-preview .ks-selection-footer-actions{display:flex;align-items:center;gap:8px;width:100%}
+  #kitsune-preview .ks-selection-footer-actions .ks-choice{min-height:48px}
+  #kitsune-preview .ks-selection-footer-actions .ks-primary{flex:1;min-height:48px}
+  #kitsune-preview .ks-meal-chip{display:inline-flex;align-items:center;gap:4px;min-height:36px;padding:6px 10px;border-radius:10px}
+  #kitsune-preview .ks-meal-chip svg{width:16px;height:16px;flex:none}
   #kitsune-preview .ks-record-ellipsis{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #kitsune-preview .ks-preparation-choices{display:flex;gap:8px;flex-wrap:wrap}
-  #kitsune-preview .ks-preparation-check{display:flex;align-items:center;gap:7px;min-height:var(--ks-control-height);padding:var(--ks-space-2) var(--ks-space-3);border:var(--ks-card-border);border-radius:var(--ks-control-radius);background:var(--ks-card-surface);font-size:var(--ks-font-body)}
-  #kitsune-preview .ks-preparation-check input{width:16px;height:16px;accent-color:var(--ks-accent)}
   #kitsune-preview .ks-form-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ks-space-2)}
   #kitsune-preview .ks-appearance-note{font-size:12px;color:var(--ks-dim);line-height:1.65;margin:0 0 14px}
   #kitsune-preview .ks-appearance-preview{border:var(--ks-card-border);border-radius:var(--ks-radius);color:var(--ks-ink);padding:var(--ks-space-3);background:var(--ks-bg);margin-bottom:var(--ks-space-3)}
@@ -98,9 +107,8 @@
   #kitsune-preview .ks-bar-fill{height:100%;background:var(--ks-accent);border-radius:4px}
   #kitsune-preview .ks-bar-income .ks-bar-fill{background:var(--ks-good)}
   #kitsune-preview .ks-bar-expense .ks-bar-fill{background:var(--ks-expense)}
-  @media(max-width:400px){#kitsune-preview .ks-stage{padding:12px 0;min-height:855px}#kitsune-preview .ks-main,#kitsune-preview .ks-top{padding-left:var(--ks-space-3);padding-right:var(--ks-space-3)}#kitsune-preview .ks-choice{padding-left:var(--ks-space-2);padding-right:var(--ks-space-2)}}
+  @media(max-width:400px){#kitsune-preview .ks-stage{padding:12px 0;min-height:855px}#kitsune-preview .ks-main,#kitsune-preview .ks-top{padding-left:var(--ks-space-3);padding-right:var(--ks-space-3)}#kitsune-preview .ks-choice{padding-left:var(--ks-space-2);padding-right:var(--ks-space-2)}#kitsune-preview [data-meal-filter-form] .ks-field-row{grid-template-columns:minmax(0,1fr)}#kitsune-preview .ks-subpage .ks-toolbar-action{padding-inline:var(--ks-space-2)}}
   @media(pointer:coarse){#kitsune-preview .ks-text-btn{min-height:44px}#kitsune-preview .ks-control{font-size:16px}}
-  #kitsune-preview .ks-preparation-check:has(input:checked){background:var(--ks-accent-bg);border-color:var(--ks-accent);color:var(--ks-accent)}
   #kitsune-preview .ks-detail-list>div:last-child{border-bottom:0}
   #kitsune-preview .ks-appearance-preview .ks-record{cursor:default}
   #kitsune-preview .ks-appearance-preview .ks-record:hover{background:var(--ks-card-surface)}

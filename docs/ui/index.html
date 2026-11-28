@@ -2203,11 +2203,20 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-wallet-check&gt;span{flex:1}
   #kitsune-preview .ks-wallet-check small{font-size:var(--ks-font-note);color:var(--ks-accent)}
   #kitsune-preview .ks-filter-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 15px}
-  #kitsune-preview .ks-filter-chip{border:var(--ks-card-border);background:var(--ks-card-surface);font-size:var(--ks-font-tag);padding:2px 6px;border-radius:6px;color:var(--ks-dim)}
+  #kitsune-preview .ks-filter-chip{display:inline-flex;align-items:center;gap:4px;min-height:32px;border:1px solid var(--ks-accent);background:var(--ks-accent-bg);font-size:var(--ks-font-note);font-weight:500;padding:4px 8px 4px 10px;border-radius:8px;color:var(--ks-accent)}
+  #kitsune-preview .ks-filter-chip svg{width:14px;height:14px;flex:none}
+  #kitsune-preview .ks-toolbar-action.ks-toolbar-active{background:var(--ks-accent-bg);border-color:var(--ks-accent);color:var(--ks-accent);font-weight:500}
+  #kitsune-preview .ks-subpage .ks-toolbar-action{flex-shrink:0}
+  #kitsune-preview .ks-subpage .ks-title{flex:1;min-width:0}
+  #kitsune-preview [data-meal-filter-form] .ks-selection-body{display:grid;gap:12px;padding-bottom:4px}
+  #kitsune-preview [data-meal-filter-form] .ks-selection-section{border:0;margin:0;padding:12px 0 0;border-top:1px solid var(--ks-line);min-width:0}
+  #kitsune-preview [data-meal-filter-form] .ks-selection-footer{flex-direction:column;align-items:stretch;gap:6px}
+  #kitsune-preview .ks-selection-footer-actions{display:flex;align-items:center;gap:8px;width:100%}
+  #kitsune-preview .ks-selection-footer-actions .ks-choice{min-height:48px}
+  #kitsune-preview .ks-selection-footer-actions .ks-primary{flex:1;min-height:48px}
+  #kitsune-preview .ks-meal-chip{display:inline-flex;align-items:center;gap:4px;min-height:36px;padding:6px 10px;border-radius:10px}
+  #kitsune-preview .ks-meal-chip svg{width:16px;height:16px;flex:none}
   #kitsune-preview .ks-record-ellipsis{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #kitsune-preview .ks-preparation-choices{display:flex;gap:8px;flex-wrap:wrap}
-  #kitsune-preview .ks-preparation-check{display:flex;align-items:center;gap:7px;min-height:var(--ks-control-height);padding:var(--ks-space-2) var(--ks-space-3);border:var(--ks-card-border);border-radius:var(--ks-control-radius);background:var(--ks-card-surface);font-size:var(--ks-font-body)}
-  #kitsune-preview .ks-preparation-check input{width:16px;height:16px;accent-color:var(--ks-accent)}
   #kitsune-preview .ks-form-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ks-space-2)}
   #kitsune-preview .ks-appearance-note{font-size:12px;color:var(--ks-dim);line-height:1.65;margin:0 0 14px}
   #kitsune-preview .ks-appearance-preview{border:var(--ks-card-border);border-radius:var(--ks-radius);color:var(--ks-ink);padding:var(--ks-space-3);background:var(--ks-bg);margin-bottom:var(--ks-space-3)}
@@ -2224,9 +2233,8 @@ html&gt;body{padding:0}&lt;/style&gt;
   #kitsune-preview .ks-bar-fill{height:100%;background:var(--ks-accent);border-radius:4px}
   #kitsune-preview .ks-bar-income .ks-bar-fill{background:var(--ks-good)}
   #kitsune-preview .ks-bar-expense .ks-bar-fill{background:var(--ks-expense)}
-  @media(max-width:400px){#kitsune-preview .ks-stage{padding:12px 0;min-height:855px}#kitsune-preview .ks-main,#kitsune-preview .ks-top{padding-left:var(--ks-space-3);padding-right:var(--ks-space-3)}#kitsune-preview .ks-choice{padding-left:var(--ks-space-2);padding-right:var(--ks-space-2)}}
+  @media(max-width:400px){#kitsune-preview .ks-stage{padding:12px 0;min-height:855px}#kitsune-preview .ks-main,#kitsune-preview .ks-top{padding-left:var(--ks-space-3);padding-right:var(--ks-space-3)}#kitsune-preview .ks-choice{padding-left:var(--ks-space-2);padding-right:var(--ks-space-2)}#kitsune-preview [data-meal-filter-form] .ks-field-row{grid-template-columns:minmax(0,1fr)}#kitsune-preview .ks-subpage .ks-toolbar-action{padding-inline:var(--ks-space-2)}}
   @media(pointer:coarse){#kitsune-preview .ks-text-btn{min-height:44px}#kitsune-preview .ks-control{font-size:16px}}
-  #kitsune-preview .ks-preparation-check:has(input:checked){background:var(--ks-accent-bg);border-color:var(--ks-accent);color:var(--ks-accent)}
   #kitsune-preview .ks-detail-list&gt;div:last-child{border-bottom:0}
   #kitsune-preview .ks-appearance-preview .ks-record{cursor:default}
   #kitsune-preview .ks-appearance-preview .ks-record:hover{background:var(--ks-card-surface)}
@@ -2303,11 +2311,13 @@ html&gt;body{padding:0}&lt;/style&gt;
     }
     const mealDatePresets={month:mealMonthDates(demoMealMonth),all:{from:&#x27;&#x27;,to:&#x27;&#x27;}};
     const blankMealFilters=(dates=mealDatePresets.all)=&gt;({...dates,slots:[],atHome:[],methods:[],preparations:[],keyword:&#x27;&#x27;});
+    const isMealFilterEmpty=f=&gt;!f.from&amp;&amp;!f.to&amp;&amp;!f.slots.length&amp;&amp;!f.atHome.length&amp;&amp;!f.methods.length&amp;&amp;!f.preparations.length&amp;&amp;!f.keyword.trim();
     const mealDatePreset=({from,to})=&gt;Object.keys(mealDatePresets).find(key=&gt;{
       const dates=mealDatePresets[key];
       return dates.from===from&amp;&amp;dates.to===to;
     });
-    state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealMethodPickerDraft=null;state.mealPrepPickerDraft=null;state.mealListMode=false;
+    state.mealFilters=blankMealFilters();state.mealFilterDraft=blankMealFilters();state.mealPrepPickerDraft=null;state.mealListMode=false;
+    state.mealFilterOpen=false;state.mealFromFilter=false;state.mealBrowseDate=state.date;
     state.mealStatsFilters=blankMealFilters(mealDatePresets.month);
     const mealMethods=[&#x27;下厨&#x27;,&#x27;外卖&#x27;],mealPreparations=[&#x27;炒菜&#x27;,&#x27;预制菜&#x27;];
     // Archived items stay on the records that used them; only editing those records offers them again.
@@ -2457,17 +2467,29 @@ html&gt;body{padding:0}&lt;/style&gt;
       }
       return f.from+&#x27; 至 &#x27;+f.to;
     }
+    const allMealFilterMethods=()=&gt;[...new Set([...mealMethods,...archivedMealMethods,...allMeals().map(m=&gt;m.method).filter(Boolean)])];
     const allMealFilterPreparations=()=&gt;[...new Set([...mealPreparations,...archivedMealPreparations,...allMeals().flatMap(m=&gt;m.categories)])];
-    function mealFilterLabels(f,includeDates=true){
-      const labels=[];
-      if(includeDates&amp;&amp;(f.from||f.to))labels.push(`${f.from||&#x27;最早&#x27;} ～ ${f.to||&#x27;至今&#x27;}`);
-      slots.forEach((s,i)=&gt;{if(f.slots.includes(String(i)))labels.push(s);});
-      if(f.atHome.includes(&#x27;yes&#x27;))labels.push(&#x27;计划在家：是&#x27;);
-      if(f.atHome.includes(&#x27;no&#x27;))labels.push(&#x27;计划在家：否&#x27;);
-      f.methods.forEach(m=&gt;labels.push(m===&#x27;none&#x27;?&#x27;方式未填写&#x27;:m));
-      labels.push(...f.preparations);
-      if(f.keyword)labels.push(`关键词：${f.keyword}`);
-      return labels;
+    function mealFilterChips(f,includeDates=true){
+      const chips=[];
+      if(includeDates&amp;&amp;(f.from||f.to))chips.push({key:&#x27;dates&#x27;,label:`${f.from||&#x27;最早&#x27;} ～ ${f.to||&#x27;至今&#x27;}`});
+      slots.forEach((s,i)=&gt;{if(f.slots.includes(String(i)))chips.push({key:`slot:${i}`,label:s});});
+      if(f.atHome.includes(&#x27;yes&#x27;))chips.push({key:&#x27;atHome:yes&#x27;,label:&#x27;计划在家：是&#x27;});
+      if(f.atHome.includes(&#x27;no&#x27;))chips.push({key:&#x27;atHome:no&#x27;,label:&#x27;计划在家：否&#x27;});
+      f.methods.forEach(m=&gt;chips.push({key:`method:${m}`,label:m===&#x27;none&#x27;?&#x27;方式未填写&#x27;:m}));
+      f.preparations.forEach(p=&gt;chips.push({key:`prep:${p}`,label:p}));
+      if(f.keyword.trim())chips.push({key:&#x27;keyword&#x27;,label:`关键词：${f.keyword.trim()}`});
+      return chips;
+    }
+    const mealFilterLabels=(f,includeDates=true)=&gt;mealFilterChips(f,includeDates).map(c=&gt;c.label);
+    function removeMealFilterKey(f,key){
+      const next={...f,slots:[...f.slots],atHome:[...f.atHome],methods:[...f.methods],preparations:[...f.preparations]};
+      if(key===&#x27;dates&#x27;){next.from=&#x27;&#x27;;next.to=&#x27;&#x27;;}
+      else if(key.startsWith(&#x27;slot:&#x27;))next.slots=next.slots.filter(v=&gt;v!==key.slice(5));
+      else if(key.startsWith(&#x27;atHome:&#x27;))next.atHome=next.atHome.filter(v=&gt;v!==key.slice(7));
+      else if(key.startsWith(&#x27;method:&#x27;))next.methods=next.methods.filter(v=&gt;v!==key.slice(7));
+      else if(key.startsWith(&#x27;prep:&#x27;))next.preparations=next.preparations.filter(v=&gt;v!==key.slice(5));
+      else if(key===&#x27;keyword&#x27;)next.keyword=&#x27;&#x27;;
+      return next;
     }
     function filteredMeals(f){
       const keyword=f.keyword.toLocaleLowerCase();
@@ -2537,7 +2559,8 @@ html&gt;body{padding:0}&lt;/style&gt;
     const deleteButton = (kind,label) =&gt; `&lt;button type=&quot;button&quot; class=&quot;ks-delete-btn cursor-interaction&quot; data-action=&quot;delete-${kind}&quot;&gt;${icon(&#x27;trash-2&#x27;)}${label}&lt;/button&gt;`;
     const mealCards = () =&gt; `&lt;div class=&quot;ks-record-list&quot;&gt;${slots.map((slot,i)=&gt;{
       const m=records()[i];
-      return `&lt;button type=&quot;button&quot; class=&quot;ks-record ${m?&#x27;&#x27;:&#x27;ks-empty&#x27;} cursor-interaction&quot; data-meal=&quot;${i}&quot;&gt;${recordIcon(slotIcons[i])}&lt;span class=&quot;ks-record-copy&quot;&gt;&lt;span class=&quot;ks-record-title&quot;&gt;${slot}${m?`&lt;span class=&quot;ks-pill&quot;&gt;${escapeText(m.method||&#x27;方式未填写&#x27;)}&lt;/span&gt;`:&#x27;&#x27;}&lt;/span&gt;&lt;span class=&quot;ks-record-meta&quot;&gt;${m?escapeText(m.dishes||&#x27;未填写菜品&#x27;):&#x27;添加记录&#x27;}&lt;/span&gt;&lt;/span&gt;${icon(m?&#x27;chevron-right&#x27;:&#x27;plus&#x27;)}&lt;/button&gt;`;
+      const meta=m?[...(m.categories||[]),m.note?.trim()?`备注：${m.note.replace(/\s+/g,&#x27; &#x27;).trim()}`:&#x27;&#x27;].filter(Boolean).join(&#x27; · &#x27;):&#x27;&#x27;;
+      return `&lt;button type=&quot;button&quot; class=&quot;ks-record ${m?&#x27;&#x27;:&#x27;ks-empty&#x27;} cursor-interaction&quot; data-meal=&quot;${i}&quot;&gt;${recordIcon(slotIcons[i])}&lt;span class=&quot;ks-record-copy&quot;&gt;&lt;span class=&quot;ks-record-title&quot;&gt;${slot}${m?`&lt;span class=&quot;ks-pill&quot;&gt;${escapeText(m.method||&#x27;方式未填写&#x27;)}&lt;/span&gt;`:&#x27;&#x27;}&lt;/span&gt;&lt;span class=&quot;ks-record-meta&quot;&gt;${m?escapeText(m.dishes||&#x27;未填写菜品&#x27;):&#x27;添加记录&#x27;}&lt;/span&gt;${meta?`&lt;span class=&quot;ks-record-meta ks-record-ellipsis&quot;&gt;${escapeText(meta)}&lt;/span&gt;`:&#x27;&#x27;}&lt;/span&gt;${icon(m?&#x27;chevron-right&#x27;:&#x27;plus&#x27;)}&lt;/button&gt;`;
     }).join(&#x27;&#x27;)}&lt;/div&gt;`;
     function moneyCard(code,entries,incomeFirst){
       const period=state.ledgerRange?&#x27;所选期间&#x27;:`${Number(state.ledgerMonth.slice(5))} 月`;
@@ -2626,13 +2649,16 @@ html&gt;body{padding:0}&lt;/style&gt;
     function pageMeals(){
       const tabs=`&lt;div class=&quot;ks-segments&quot; aria-label=&quot;用餐视图&quot;&gt;${[&#x27;记录&#x27;,&#x27;统计&#x27;].map(t=&gt;`&lt;button type=&quot;button&quot; data-meal-tab=&quot;${t}&quot; aria-pressed=&quot;${state.mealTab===t}&quot; class=&quot;cursor-interaction&quot;&gt;${t}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`;
       if(state.mealTab===&#x27;记录&#x27;){
-        const labels=mealFilterLabels(state.mealFilters),filterButton=`&lt;button type=&quot;button&quot; class=&quot;ks-toolbar-action cursor-interaction&quot; data-action=&quot;meal-filter&quot;&gt;${icon(&#x27;list-filter&#x27;)}筛选${state.mealListMode&amp;&amp;labels.length?` (${labels.length})`:&#x27;&#x27;}&lt;/button&gt;`;
-        if(!state.mealListMode)return `${tabs}&lt;div class=&quot;ks-toolbar&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-control ks-date-trigger cursor-interaction&quot; aria-label=&quot;用餐日期 ${state.date}&quot; data-action=&quot;open-meal-calendar&quot;&gt;${state.date}${icon(&#x27;calendar-days&#x27;)}&lt;/button&gt;${filterButton}&lt;/div&gt;${week()}${section(&#x27;三餐记录&#x27;)}${mealCards()}`;
+        const chips=mealFilterChips(state.mealFilters),active=state.mealListMode&amp;&amp;chips.length&gt;0;
+        const filterButton=`&lt;button type=&quot;button&quot; class=&quot;ks-toolbar-action ${active?&#x27;ks-toolbar-active &#x27;:&#x27;&#x27;}cursor-interaction&quot; data-action=&quot;meal-filter&quot; aria-pressed=&quot;${active}&quot;&gt;${icon(&#x27;list-filter&#x27;)}筛选${active?` (${chips.length})`:&#x27;&#x27;}&lt;/button&gt;`;
+        if(!active)return `${tabs}&lt;div class=&quot;ks-toolbar&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-control ks-date-trigger cursor-interaction&quot; aria-label=&quot;用餐日期 ${state.date}&quot; data-action=&quot;open-meal-calendar&quot;&gt;${state.date}${icon(&#x27;calendar-days&#x27;)}&lt;/button&gt;${filterButton}&lt;/div&gt;${week()}${section(&#x27;三餐记录&#x27;)}${mealCards()}`;
         const matches=filteredMeals(state.mealFilters).sort((a,b)=&gt;b.date.localeCompare(a.date)||a.slot-b.slot);
-        const resultActions=`&lt;div class=&quot;ks-row&quot;&gt;&lt;span class=&quot;ks-note&quot; data-match-count&gt;${matches.length} 条&lt;/span&gt;${labels.length?&#x27;&lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-action=&quot;clear-meal-filters&quot;&gt;清空条件&lt;/button&gt;&#x27;:&#x27;&#x27;}&lt;/div&gt;`;
-        return `${tabs}&lt;div class=&quot;ks-toolbar&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-toolbar-action cursor-interaction&quot; data-action=&quot;meal-daily&quot;&gt;${icon(&#x27;chevron-left&#x27;)}按日浏览&lt;/button&gt;${filterButton}&lt;/div&gt;${labels.length?`&lt;div class=&quot;ks-filter-chips&quot; aria-label=&quot;已应用的筛选条件&quot;&gt;${labels.map(label=&gt;`&lt;span class=&quot;ks-filter-chip&quot;&gt;${escapeText(label)}&lt;/span&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`:&#x27;&#x27;}${section(&#x27;筛选结果&#x27;,resultActions)}&lt;div class=&quot;ks-record-list&quot; data-meal-results aria-live=&quot;polite&quot;&gt;${matches.map(mealResult).join(&#x27;&#x27;)}${!matches.length?&#x27;&lt;p class=&quot;ks-empty-state&quot;&gt;没有符合条件的记录&lt;br&gt;试试调整日期范围或筛选条件&lt;/p&gt;&#x27;:&#x27;&#x27;}&lt;/div&gt;`;
+        const resultActions=`&lt;div class=&quot;ks-row&quot;&gt;&lt;span class=&quot;ks-note&quot; data-match-count&gt;${matches.length} 条&lt;/span&gt;&lt;button type=&quot;button&quot; class=&quot;ks-text-btn cursor-interaction&quot; data-action=&quot;clear-meal-filters&quot;&gt;清除筛选&lt;/button&gt;&lt;/div&gt;`;
+        const rangeTrigger=`&lt;button type=&quot;button&quot; class=&quot;ks-control ks-date-trigger cursor-interaction&quot; aria-label=&quot;选择筛选范围&quot; data-action=&quot;meal-filter&quot;&gt;&lt;span&gt;范围：${escapeText(mealDateSummary(state.mealFilters))}&lt;/span&gt;${icon(&#x27;chevron-down&#x27;)}&lt;/button&gt;`;
+        const chipList=`&lt;div class=&quot;ks-filter-chips&quot; aria-label=&quot;已应用的筛选条件&quot;&gt;${chips.map(c=&gt;`&lt;button type=&quot;button&quot; class=&quot;ks-filter-chip cursor-interaction&quot; data-remove-meal-filter=&quot;${escapeText(c.key)}&quot; aria-label=&quot;移除筛选条件：${escapeText(c.label)}&quot;&gt;&lt;span&gt;${escapeText(c.label)}&lt;/span&gt;${icon(&#x27;x&#x27;)}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`;
+        return `${tabs}&lt;div class=&quot;ks-toolbar&quot;&gt;${rangeTrigger}${filterButton}&lt;/div&gt;${chipList}${section(&#x27;筛选结果&#x27;,resultActions)}&lt;div class=&quot;ks-record-list&quot; data-meal-results aria-live=&quot;polite&quot;&gt;${matches.map(mealResult).join(&#x27;&#x27;)}${!matches.length?&#x27;&lt;p class=&quot;ks-empty-state&quot;&gt;没有符合条件的记录&lt;br&gt;试试调整日期范围或筛选条件&lt;/p&gt;&#x27;:&#x27;&#x27;}&lt;/div&gt;`;
       }
-      const filters=state.mealStatsFilters,labels=mealFilterLabels(filters,false);
+      const filters=state.mealStatsFilters,chips=mealFilterChips(filters,false);
       const matches=filteredMeals(filters),total=matches.length;
       const homeCount=matches.filter(m=&gt;m.atHome).length,awayCount=total-homeCount;
       const rows=methodCounts(matches).filter(row=&gt;row.count&gt;0);
@@ -2640,9 +2666,9 @@ html&gt;body{padding:0}&lt;/style&gt;
       const planBar=total?`&lt;div class=&quot;ks-plan-visual&quot; aria-hidden=&quot;true&quot;&gt;&lt;span class=&quot;ks-plan-yes&quot; style=&quot;width:${homeCount/total*100}%&quot;&gt;&lt;/span&gt;&lt;span class=&quot;ks-plan-no&quot; style=&quot;width:${awayCount/total*100}%&quot;&gt;&lt;/span&gt;&lt;/div&gt;`:&#x27;&#x27;;
       const period=escapeText(mealDateSummary(filters));
       return `${tabs}
-        &lt;div class=&quot;ks-toolbar&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-control ks-date-trigger cursor-interaction&quot; data-action=&quot;choose-meal-month&quot; aria-haspopup=&quot;dialog&quot; aria-label=&quot;选择统计月份 ${period}&quot;&gt;&lt;span&gt;${period}&lt;/span&gt;${icon(&#x27;chevron-down&#x27;)}&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-toolbar-action cursor-interaction&quot; data-action=&quot;meal-filter&quot;&gt;${icon(&#x27;list-filter&#x27;)}筛选&lt;/button&gt;&lt;/div&gt;
+        &lt;div class=&quot;ks-toolbar&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-control ks-date-trigger cursor-interaction&quot; data-action=&quot;choose-meal-month&quot; aria-haspopup=&quot;dialog&quot; aria-label=&quot;选择统计月份 ${period}&quot;&gt;&lt;span&gt;${period}&lt;/span&gt;${icon(&#x27;chevron-down&#x27;)}&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-toolbar-action ${chips.length?&#x27;ks-toolbar-active &#x27;:&#x27;&#x27;}cursor-interaction&quot; data-action=&quot;meal-filter&quot; aria-pressed=&quot;${chips.length&gt;0}&quot;&gt;${icon(&#x27;list-filter&#x27;)}筛选${chips.length?` (${chips.length})`:&#x27;&#x27;}&lt;/button&gt;&lt;/div&gt;
         &lt;section data-meal-statistics aria-label=&quot;用餐统计&quot; aria-live=&quot;polite&quot;&gt;
-          ${labels.length?`&lt;div class=&quot;ks-filter-chips&quot; aria-label=&quot;已应用的筛选条件&quot;&gt;${labels.map(label=&gt;`&lt;span class=&quot;ks-filter-chip&quot;&gt;${escapeText(label)}&lt;/span&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`:&#x27;&#x27;}
+          ${chips.length?`&lt;div class=&quot;ks-filter-chips&quot; aria-label=&quot;已应用的筛选条件&quot;&gt;${chips.map(c=&gt;`&lt;button type=&quot;button&quot; class=&quot;ks-filter-chip cursor-interaction&quot; data-remove-meal-stat-filter=&quot;${escapeText(c.key)}&quot; aria-label=&quot;移除筛选条件：${escapeText(c.label)}&quot;&gt;&lt;span&gt;${escapeText(c.label)}&lt;/span&gt;${icon(&#x27;x&#x27;)}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`:&#x27;&#x27;}
           ${section(&#x27;用餐概览&#x27;)}
           &lt;div class=&quot;ks-summary&quot;&gt;&lt;div&gt;&lt;span class=&quot;ks-note&quot;&gt;已记录&lt;/span&gt;&lt;strong data-meal-stat-count&gt;${total} 餐&lt;/strong&gt;&lt;/div&gt;&lt;div&gt;&lt;span class=&quot;ks-note&quot;&gt;计划在家吃&lt;/span&gt;&lt;strong&gt;${homeCount} 餐&lt;/strong&gt;&lt;/div&gt;&lt;/div&gt;
           &lt;div class=&quot;ks-stats-panel&quot;&gt;&lt;div class=&quot;ks-stat-row&quot;&gt;&lt;div class=&quot;ks-row&quot;&gt;&lt;span&gt;计划在家：是 ${homeCount} 餐&lt;/span&gt;&lt;span&gt;否 ${awayCount} 餐&lt;/span&gt;&lt;/div&gt;${planBar}&lt;/div&gt;&lt;/div&gt;
@@ -3138,16 +3164,8 @@ html&gt;body{padding:0}&lt;/style&gt;
     const displayCurrency=new Intl.DisplayNames([&#x27;zh-CN&#x27;],{type:&#x27;currency&#x27;});
     const mealMethodLabel=m=&gt;m+(archivedMealMethods.includes(m)?&#x27;（已停用）&#x27;:&#x27;&#x27;);
     const mealPreparationLabel=c=&gt;c+(archivedMealPreparations.includes(c)?&#x27;（已停用）&#x27;:&#x27;&#x27;);
-    const mealFilterMethods=()=&gt;[[&#x27;none&#x27;,&#x27;未填写方式&#x27;],
-      ...[...new Set([...mealMethods,...archivedMealMethods,...allMeals().map(m=&gt;m.method).filter(Boolean)])].map(m=&gt;[m,mealMethodLabel(m)])];
     const appearanceSources=[[&#x27;PRESET&#x27;,&#x27;预设调色板&#x27;],[&#x27;CUSTOM&#x27;,&#x27;自选主色&#x27;],[&#x27;SYSTEM&#x27;,&#x27;跟随系统壁纸&#x27;]];
     const appearancePalettes=[[&#x27;#c47a4a&#x27;,&#x27;杏橙&#x27;],[&#x27;#5f7f64&#x27;,&#x27;茶绿&#x27;],[&#x27;#587c9b&#x27;,&#x27;雾蓝&#x27;],[&#x27;#8a729f&#x27;,&#x27;薰衣草&#x27;],[&#x27;#a76f82&#x27;,&#x27;豆沙粉&#x27;]];
-    function mealMethodSummary(selected){
-      const all=mealFilterMethods(),chosen=all.filter(([value])=&gt;selected.includes(value));
-      if(!chosen.length)return &#x27;全部方式&#x27;;
-      if(chosen.length&lt;=2)return chosen.map(([,label])=&gt;label).join(&#x27;、&#x27;);
-      return `已选 ${chosen.length} 项 · ${chosen.slice(0,2).map(([,label])=&gt;label).join(&#x27;、&#x27;)}等`;
-    }
     function selectionControl(kind,label,value,glyph=&#x27;&#x27;,disabled=false){
       return `&lt;div class=&quot;ks-selection-field&quot;&gt;&lt;span class=&quot;ks-label&quot; id=&quot;ks-choice-${kind}&quot;&gt;${escapeText(label)}&lt;/span&gt;
         &lt;button type=&quot;button&quot; class=&quot;ks-control ks-selection-trigger&quot; data-select-open=&quot;${kind}&quot; aria-labelledby=&quot;ks-choice-${kind} ks-choice-${kind}-value&quot; aria-haspopup=&quot;dialog&quot; ${disabled?&#x27;disabled&#x27;:&#x27;&#x27;}&gt;
@@ -3216,21 +3234,6 @@ html&gt;body{padding:0}&lt;/style&gt;
       const options=choices.map(option=&gt;selectionOption(option,option[0]===current,&#x27;data-select-value&#x27;)).join(&#x27;&#x27;);
       return selectionPanel(title,(subtitle?`&lt;p class=&quot;ks-note&quot;&gt;${escapeText(subtitle)}&lt;/p&gt;`:&#x27;&#x27;)+
         (options||&#x27;&lt;p class=&quot;ks-note&quot;&gt;没有可选项目&lt;/p&gt;&#x27;),footer);
-    }
-    function mealMethodFilterDialog(){
-      const all=mealFilterMethods(),selected=state.mealMethodPickerDraft||[];
-      const count=all.filter(([value])=&gt;selected.includes(value)).length;
-      const header=`&lt;div class=&quot;ks-selection-group-heading&quot;&gt;
-        &lt;span class=&quot;ks-note&quot;&gt;已选 ${count}/${all.length}&lt;/span&gt;
-        &lt;div class=&quot;ks-selection-group-actions&quot;&gt;
-          &lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-meal-method-action=&quot;all&quot;&gt;全选&lt;/button&gt;
-          &lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-meal-method-action=&quot;none&quot;&gt;全不选&lt;/button&gt;
-        &lt;/div&gt;
-      &lt;/div&gt;`;
-      const body=`&lt;p class=&quot;ks-note&quot;&gt;全不选表示不限&lt;/p&gt;`+
-        all.map(([value,label])=&gt;selectionCheck(label,`data-meal-method-option=&quot;${escapeText(value)}&quot;`,selected.includes(value))).join(&#x27;&#x27;);
-      const footer=&#x27;&lt;button type=&quot;button&quot; class=&quot;ks-primary ks-full&quot; data-meal-method-action=&quot;apply&quot;&gt;应用&lt;/button&gt;&#x27;;
-      return selectionPanel(&#x27;选择用餐方式&#x27;,body,footer,{header});
     }
     function mealPrepTargetOptions(target){
       return target===&#x27;form&#x27;?mealFormOptions().preparations:allMealFilterPreparations();
@@ -3457,8 +3460,10 @@ html&gt;body{padding:0}&lt;/style&gt;
         &lt;button type=&quot;button&quot; class=&quot;ks-primary&quot; data-wallet-action=&quot;apply&quot; ${canApply?&#x27;&#x27;:&#x27;disabled&#x27;}&gt;应用&lt;/button&gt;`;
       return selectionPanel(&#x27;钱包范围&#x27;,body,footer);
     }
-    function pageMealFilter(){
-      const f=state.mealFilterDraft,preparations=allMealFilterPreparations(),extraPreps=preparations.slice(8).filter(c=&gt;f.preparations.includes(c));
+    function mealFiltersDialog(){
+      const f=state.mealFilterDraft;
+      const preparations=allMealFilterPreparations();
+      const methods=allMealFilterMethods();
       const datePreset=mealDatePreset(f);
       const dateField=(name,label)=&gt;`&lt;div class=&quot;ks-meal-filter-date&quot;&gt;
         &lt;div class=&quot;ks-filter-field-heading&quot;&gt;
@@ -3467,19 +3472,38 @@ html&gt;body{padding:0}&lt;/style&gt;
         &lt;/div&gt;
         &lt;input class=&quot;ks-control&quot; type=&quot;date&quot; id=&quot;meal-filter-${name}&quot; name=&quot;${name}&quot; value=&quot;${f[name]}&quot; min=&quot;0001-01-01&quot; max=&quot;9999-12-31&quot;&gt;
       &lt;/div&gt;`;
-      return `&lt;form class=&quot;ks-form&quot; data-meal-filter-form&gt;
-        &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;日期范围&lt;/legend&gt;
-          &lt;div class=&quot;ks-choices&quot;&gt;${choice(&#x27;本月&#x27;,&#x27;month&#x27;,datePreset,&#x27;meal-date-preset&#x27;)}${choice(&#x27;所有时间&#x27;,&#x27;all&#x27;,datePreset,&#x27;meal-date-preset&#x27;)}&lt;/div&gt;
+      const chip=(label,selected,attrs)=&gt;`&lt;button type=&quot;button&quot; class=&quot;ks-choice ks-meal-chip cursor-interaction&quot; ${attrs} aria-pressed=&quot;${selected}&quot;&gt;${selected?icon(&#x27;check&#x27;):&#x27;&#x27;}&lt;span&gt;${escapeText(label)}&lt;/span&gt;&lt;/button&gt;`;
+      const body=`
+        &lt;div&gt;
+          &lt;div class=&quot;ks-filter-field-heading&quot;&gt;
+            &lt;label class=&quot;ks-label&quot; for=&quot;meal-filter-keyword&quot;&gt;菜品／备注关键词&lt;/label&gt;
+            &lt;button type=&quot;button&quot; class=&quot;ks-text-btn&quot; data-clear-meal-keyword aria-label=&quot;清空菜品／备注关键词&quot; ${f.keyword?&#x27;&#x27;:&#x27;hidden&#x27;}&gt;清空&lt;/button&gt;
+          &lt;/div&gt;
+          &lt;input class=&quot;ks-control&quot; type=&quot;search&quot; id=&quot;meal-filter-keyword&quot; name=&quot;keyword&quot; value=&quot;${escapeText(f.keyword)}&quot; placeholder=&quot;例如：番茄、和朋友&quot; maxlength=&quot;100&quot;&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;ks-selection-section&quot; role=&quot;group&quot; aria-labelledby=&quot;ks-meal-filter-dates-label&quot;&gt;&lt;span class=&quot;ks-label&quot; id=&quot;ks-meal-filter-dates-label&quot;&gt;日期范围&lt;/span&gt;
+          &lt;div class=&quot;ks-choices&quot;&gt;${chip(&#x27;本月&#x27;,datePreset===&#x27;month&#x27;,&#x27;data-meal-date-preset=&quot;month&quot;&#x27;)}${chip(&#x27;所有时间&#x27;,datePreset===&#x27;all&#x27;,&#x27;data-meal-date-preset=&quot;all&quot;&#x27;)}&lt;/div&gt;
           &lt;div class=&quot;ks-field-row&quot;&gt;${dateField(&#x27;from&#x27;,&#x27;开始日期&#x27;)}${dateField(&#x27;to&#x27;,&#x27;结束日期&#x27;)}&lt;/div&gt;
-        &lt;/fieldset&gt;
-        &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;餐次&lt;span class=&quot;ks-required&quot;&gt;多选，不选不限&lt;/span&gt;&lt;/legend&gt;&lt;div class=&quot;ks-preparation-choices&quot;&gt;${slots.map((s,i)=&gt;`&lt;label class=&quot;ks-preparation-check cursor-interaction&quot;&gt;&lt;input type=&quot;checkbox&quot; name=&quot;slot&quot; value=&quot;${i}&quot; ${f.slots.includes(String(i))?&#x27;checked&#x27;:&#x27;&#x27;}&gt;${s}&lt;/label&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;&lt;/fieldset&gt;
-        &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;计划在家吃&lt;span class=&quot;ks-required&quot;&gt;多选，不选不限&lt;/span&gt;&lt;/legend&gt;&lt;div class=&quot;ks-preparation-choices&quot;&gt;${[[&#x27;yes&#x27;,&#x27;是&#x27;],[&#x27;no&#x27;,&#x27;否&#x27;]].map(([v,l])=&gt;`&lt;label class=&quot;ks-preparation-check cursor-interaction&quot;&gt;&lt;input type=&quot;checkbox&quot; name=&quot;atHome&quot; value=&quot;${v}&quot; ${f.atHome.includes(v)?&#x27;checked&#x27;:&#x27;&#x27;}&gt;${l}&lt;/label&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;&lt;/fieldset&gt;
-        ${selectionControl(&#x27;meal-methods&#x27;,&#x27;用餐方式&#x27;,mealMethodSummary(f.methods))}
-        &lt;fieldset&gt;&lt;legend class=&quot;ks-label&quot;&gt;制作分类&lt;span class=&quot;ks-required&quot;&gt;多选，不选不限&lt;/span&gt;&lt;/legend&gt;&lt;div class=&quot;ks-preparation-choices&quot;&gt;${preparations.slice(0,8).map(c=&gt;`&lt;label class=&quot;ks-preparation-check cursor-interaction&quot;&gt;&lt;input type=&quot;checkbox&quot; name=&quot;preparation&quot; value=&quot;${escapeText(c)}&quot; ${f.preparations.includes(c)?&#x27;checked&#x27;:&#x27;&#x27;}&gt;${escapeText(mealPreparationLabel(c))}&lt;/label&gt;`).join(&#x27;&#x27;)}${preparations.length&gt;8?`&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-open-meal-preps=&quot;filter&quot;&gt;${icon(&#x27;list-filter&#x27;)}更多分类&lt;/button&gt;`:&#x27;&#x27;}&lt;/div&gt;${extraPreps.length?`&lt;p class=&quot;ks-note&quot;&gt;已选更多分类 · ${escapeText(extraPreps.join(&#x27;、&#x27;))}&lt;/p&gt;`:&#x27;&#x27;}&lt;/fieldset&gt;
-        &lt;label&gt;&lt;span class=&quot;ks-label&quot;&gt;菜品／备注关键词&lt;/span&gt;&lt;input class=&quot;ks-control&quot; type=&quot;search&quot; name=&quot;keyword&quot; value=&quot;${escapeText(f.keyword)}&quot; placeholder=&quot;例如：番茄、和朋友&quot; maxlength=&quot;100&quot;&gt;&lt;/label&gt;
-        &lt;p class=&quot;ks-note&quot; style=&quot;margin:0&quot;&gt;不同条件同时满足；未选择的条件不限制。&lt;/p&gt;
-        ${formFooter(`&lt;div class=&quot;ks-form-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-action=&quot;reset-meal-filter&quot;&gt;重置条件&lt;/button&gt;${saveButton(&#x27;应用筛选&#x27;)}&lt;/div&gt;`)}
-      &lt;/form&gt;`;
+        &lt;/div&gt;
+        &lt;div class=&quot;ks-selection-section&quot; role=&quot;group&quot; aria-labelledby=&quot;ks-meal-filter-slot-label&quot;&gt;&lt;span class=&quot;ks-label&quot; id=&quot;ks-meal-filter-slot-label&quot;&gt;餐次&lt;span class=&quot;ks-required&quot;&gt;多选，不选不限&lt;/span&gt;&lt;/span&gt;
+          &lt;div class=&quot;ks-choices&quot;&gt;${slots.map((s,i)=&gt;chip(s,f.slots.includes(String(i)),`data-meal-filter-slot=&quot;${i}&quot;`)).join(&#x27;&#x27;)}&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;ks-selection-section&quot; role=&quot;group&quot; aria-labelledby=&quot;ks-meal-filter-home-label&quot;&gt;&lt;span class=&quot;ks-label&quot; id=&quot;ks-meal-filter-home-label&quot;&gt;是否计划在家吃&lt;span class=&quot;ks-required&quot;&gt;多选，不选不限&lt;/span&gt;&lt;/span&gt;
+          &lt;div class=&quot;ks-choices&quot;&gt;${[[&#x27;yes&#x27;,&#x27;是&#x27;],[&#x27;no&#x27;,&#x27;否&#x27;]].map(([v,l])=&gt;chip(l,f.atHome.includes(v),`data-meal-filter-home=&quot;${v}&quot;`)).join(&#x27;&#x27;)}&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;ks-selection-section&quot; role=&quot;group&quot; aria-labelledby=&quot;ks-meal-filter-method-label&quot;&gt;&lt;span class=&quot;ks-label&quot; id=&quot;ks-meal-filter-method-label&quot;&gt;用餐方式&lt;span class=&quot;ks-required&quot;&gt;多选，不选不限&lt;/span&gt;&lt;/span&gt;
+          &lt;div class=&quot;ks-choices&quot;&gt;${methods.map(m=&gt;chip(mealMethodLabel(m),f.methods.includes(m),`data-meal-filter-method=&quot;${escapeText(m)}&quot;`)).join(&#x27;&#x27;)}${chip(&#x27;未填写方式&#x27;,f.methods.includes(&#x27;none&#x27;),&#x27;data-meal-filter-method=&quot;none&quot;&#x27;)}&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;ks-selection-section&quot; role=&quot;group&quot; aria-labelledby=&quot;ks-meal-filter-prep-label&quot;&gt;&lt;span class=&quot;ks-label&quot; id=&quot;ks-meal-filter-prep-label&quot;&gt;制作分类&lt;span class=&quot;ks-required&quot;&gt;多选，不选不限&lt;/span&gt;&lt;/span&gt;
+          &lt;div class=&quot;ks-choices&quot;&gt;${preparations.map(c=&gt;chip(mealPreparationLabel(c),f.preparations.includes(c),`data-meal-filter-prep=&quot;${escapeText(c)}&quot;`)).join(&#x27;&#x27;)}&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;p class=&quot;ks-note&quot; style=&quot;margin:0&quot;&gt;不同条件同时满足；未选择的条件不限制。&lt;/p&gt;`;
+      const footer=`&lt;p class=&quot;ks-error&quot; role=&quot;alert&quot; data-meal-filter-error&gt;&lt;/p&gt;
+        &lt;div class=&quot;ks-selection-footer-actions&quot;&gt;
+          &lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-action=&quot;reset-meal-filter&quot;&gt;重置条件&lt;/button&gt;
+          &lt;button type=&quot;submit&quot; class=&quot;ks-primary cursor-interaction&quot;&gt;应用筛选&lt;/button&gt;
+        &lt;/div&gt;`;
+      return selectionPanel(&#x27;筛选用餐&#x27;,body,footer,{form:true,attrs:&#x27;data-meal-filter-form&#x27;});
     }
     // Motion is deliberately separate from the example business state. Leaving copies are inert,
     // contain no business selectors, and are removed on completion or the next render.
@@ -3546,7 +3570,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     const discard=group=&gt;()=&gt;group?.remove();
     const pageNode=()=&gt;phone.querySelector(&#x27;:scope &gt; .ks-page-motion&#x27;);
     const modalNode=()=&gt;phone.querySelector(&#x27;:scope &gt; .ks-modal-overlay&#x27;);
-    const modalKind=()=&gt;state.deletePending?&#x27;dialog&#x27;:state.calcOpen?&#x27;calculator&#x27;:state.singleSelection?&#x27;single-selection&#x27;:state.mealMethodPickerDraft?&#x27;meal-methods&#x27;:state.mealPrepPickerDraft?&#x27;meal-preps&#x27;:state.walletPickerOpen?&#x27;wallet&#x27;:state.periodDraft?&#x27;period&#x27;:state.ledgerFilterDraft?&#x27;ledger-filters&#x27;:state.githubDemo.review?&#x27;github-review&#x27;:state.localBackupDemo.restoreOpen?&#x27;local-restore&#x27;:state.csvDemo.previewOpen?&#x27;csv-preview&#x27;:state.mealCalendar?&#x27;date-calendar&#x27;:state.entryTimeDraft?&#x27;entry-time&#x27;:state.addingEntryCategory?&#x27;entry-category&#x27;:state.addingMealOption?&#x27;meal-option&#x27;:null;
+    const modalKind=()=&gt;state.deletePending?&#x27;dialog&#x27;:state.calcOpen?&#x27;calculator&#x27;:state.singleSelection?&#x27;single-selection&#x27;:state.mealPrepPickerDraft?&#x27;meal-preps&#x27;:state.walletPickerOpen?&#x27;wallet&#x27;:state.periodDraft?&#x27;period&#x27;:state.ledgerFilterDraft?&#x27;ledger-filters&#x27;:state.mealFilterOpen?&#x27;meal-filters&#x27;:state.githubDemo.review?&#x27;github-review&#x27;:state.localBackupDemo.restoreOpen?&#x27;local-restore&#x27;:state.csvDemo.previewOpen?&#x27;csv-preview&#x27;:state.mealCalendar?&#x27;date-calendar&#x27;:state.entryTimeDraft?&#x27;entry-time&#x27;:state.addingEntryCategory?&#x27;entry-category&#x27;:state.addingMealOption?&#x27;meal-option&#x27;:null;
     const primary=page=&gt;navs.some(n=&gt;n[0]===page);
     const localKey=()=&gt;state.page===&#x27;meals&#x27;?JSON.stringify([state.mealTab,state.date,state.mealStatsFilters,state.mealListMode,state.mealFilters]):state.page===&#x27;ledger&#x27;?JSON.stringify([state.ledgerTab,state.ledgerMonth,state.ledgerRange,state.walletFilterIds,state.ledgerFilters]):&#x27;&#x27;;
     const localNodes=()=&gt;{
@@ -3617,7 +3641,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       const opening=!!kind,group=opening?node:attachGhost(oldModal);
       const overlay=opening?node:group?.firstElementChild;
       if(!overlay)return;
-      const panel=overlay.firstElementChild,variant=opening?kind:previous,dialog=![&#x27;calculator&#x27;,&#x27;single-selection&#x27;,&#x27;wallet&#x27;,&#x27;ledger-filters&#x27;].includes(variant),duration=dialog?motion.dialog:motion.sheet;
+      const panel=overlay.firstElementChild,variant=opening?kind:previous,dialog=![&#x27;calculator&#x27;,&#x27;single-selection&#x27;,&#x27;meal-preps&#x27;,&#x27;wallet&#x27;,&#x27;ledger-filters&#x27;,&#x27;meal-filters&#x27;].includes(variant),duration=dialog?motion.dialog:motion.sheet;
       play(overlay,opening?[{opacity:0},{opacity:1}]:[{opacity:1},{opacity:0}],duration,opening?()=&gt;{}:discard(group));
       play(panel,dialog?(opening?[{transform:&#x27;scale(.96)&#x27;},{transform:&#x27;scale(1)&#x27;}]:[{transform:&#x27;scale(1)&#x27;},{transform:&#x27;scale(.96)&#x27;}]):(opening?[{transform:&#x27;translateY(100%)&#x27;},{transform:&#x27;translateY(0)&#x27;}]:[{transform:&#x27;translateY(0)&#x27;},{transform:&#x27;translateY(100%)&#x27;}]),duration);
     }
@@ -3647,7 +3671,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     function render(){
       const previous=rendered,kind=modalKind(),key=localKey(),changingPage=previous&amp;&amp;previous.page!==state.page;
       if(previous?.page===&#x27;settings&#x27;)settingsScrollTop=phone.querySelector(&#x27;.ks-settings-screen .ks-main&#x27;).scrollTop;
-      const keepingForm=previous?.page===state.page&amp;&amp;[&#x27;meal-form&#x27;,&#x27;meal-filter&#x27;,&#x27;entry&#x27;,&#x27;wallet-edit&#x27;].includes(state.page);
+      const keepingForm=previous?.page===state.page&amp;&amp;[&#x27;meal-form&#x27;,&#x27;entry&#x27;,&#x27;wallet-edit&#x27;].includes(state.page);
       const formPosition=keepingForm?phone.querySelector(&#x27;.ks-main&#x27;).scrollTop:0;
       const oldLedger=phone.querySelector(&#x27;.ks-ledger-screen&#x27;);
       const sameLedger=oldLedger&amp;&amp;state.page===&#x27;ledger&#x27;&amp;&amp;previous.local===key;
@@ -3671,18 +3695,19 @@ html&gt;body{padding:0}&lt;/style&gt;
       const sourceRect=entrance;entrance=null;if(leavingPrimary&amp;&amp;!sourceRect)recordOrigin=null;
       rendering=true;
       const form=!primary(state.page);
-      const titles={home:&#x27;日常记录&#x27;,meals:&#x27;用餐&#x27;,ledger:&#x27;记账&#x27;,settings:&#x27;设置&#x27;,appearance:&#x27;外观与调色板&#x27;,&#x27;local-backup&#x27;:&#x27;本地备份与恢复&#x27;,&#x27;csv-transfer&#x27;:&#x27;CSV 导入与导出&#x27;,&#x27;wallet-edit&#x27;:&#x27;编辑钱包&#x27;, &#x27;meal-form&#x27;:`${state.editing?&#x27;编辑&#x27;:&#x27;记录&#x27;}${slots[state.slot]}`,&#x27;meal-filter&#x27;:&#x27;筛选用餐&#x27;,entry:&#x27;记一笔&#x27;,&#x27;entry-detail&#x27;:&#x27;账目详情&#x27;,&#x27;category-manager&#x27;:&#x27;分类管理&#x27;,&#x27;category-owned&#x27;:&#x27;钱包专属分类&#x27;,&#x27;category-detail&#x27;:state.editingFinancialCategoryId?&#x27;编辑分类&#x27;:&#x27;新增分类&#x27;,github:&#x27;GitHub 备份&#x27;};
+      const titles={home:&#x27;日常记录&#x27;,meals:&#x27;用餐&#x27;,ledger:&#x27;记账&#x27;,settings:&#x27;设置&#x27;,appearance:&#x27;外观与调色板&#x27;,&#x27;local-backup&#x27;:&#x27;本地备份与恢复&#x27;,&#x27;csv-transfer&#x27;:&#x27;CSV 导入与导出&#x27;,&#x27;wallet-edit&#x27;:&#x27;编辑钱包&#x27;, &#x27;meal-form&#x27;:`${state.editing?&#x27;编辑&#x27;:&#x27;记录&#x27;}${slots[state.slot]}`,entry:&#x27;记一笔&#x27;,&#x27;entry-detail&#x27;:&#x27;账目详情&#x27;,&#x27;category-manager&#x27;:&#x27;分类管理&#x27;,&#x27;category-owned&#x27;:&#x27;钱包专属分类&#x27;,&#x27;category-detail&#x27;:state.editingFinancialCategoryId?&#x27;编辑分类&#x27;:&#x27;新增分类&#x27;,github:&#x27;GitHub 备份&#x27;};
       const heading=`&lt;h2 class=&quot;ks-title&quot;&gt;${titles[state.page]}&lt;/h2&gt;`;
-      const header=state.page===&#x27;home&#x27;?`&lt;div class=&quot;ks-home-brand&quot;&gt;&lt;span class=&quot;ks-app-mark&quot;&gt;&lt;img src=&quot;data:image/webp;base64,UklGRm4MAABXRUJQVlA4WAoAAAAQAAAAawAAawAAQUxQSLYEAAAB8ERtu2nbtm19f/7LsG3btm3bth2ybVvTtm3bts2Wc/7/L1BryaWUXFoPzpkiYgLw/0nKHAWA9CeT/chYRKRFesJs29LrbBFUVVr6FgEgmC6qGqqTFsGkDiYiMkUxKbW1CjZ+3WsOEwQZZhIARBGOeM2La0NapBaZCLLsL0h+fGdIKJEiaQWAINj5kyR/uKSEFpHhRDBdcR//kxL91gAtkQIpUujNxpT+wzug0yCoJ2CFv5i5J+O7loIWoBsANFj6fbTkbvaHpRGm1dimuJrJ3d0iv7UutKW4RLHhtxnN3T3yYjT1tIo0n2eecI/81ebQIRps/RtGn7ToHxOpLmCjaOZu5u6Jf9gc2g1TAMW2f2by6dn/tTZCbQ0uZzR3n/DEX6+H0A2YCNj090w+3SzydGhtAW9j9FbzyO8sg9ADgICVfszkbZ74UnWCBX5Ga3P3yA82Kn1ImO/TTF6a+dW5IDWIiEwL2Ch18MgHoG0iLaJ4ntGLjX9Zrg4UNDiSuYMlHgGFaKMBgARtgkBxGqOVuXFLaBWFDa5i7ODZf7u8NpjaKKbOJWv/zczLLfOQ2hQPMpqVeeIrwEI7X/TUB77y7W996d0PnbVpA7yfybsknoWmroBXMZp3NV7/7K9YGr9z2+3M3jnxytoE72Tq5pmkxZRyzjmlSJLZu5rP8Nr6PsTkPaaYzQstx+yTNrqPdLEpNZonXl3fB7q4DWPW5p54Tm0Bb62rPPMwaG0vMFpZtWbGrWtrcDtnfByZ/1gRobazmEaS+M15IHUpdqWPNPJ1UNQtWPrPNBtF4nn1iXyEyczqM//P+giVocG1jG5ebFNsqMTPiKD2gE2Sm/cxtEVejaY6SPgEU4c6s/9+ZYT6FGeOIvGDEIzhhVG4zewGrU6xi2erxKwo8dMhSGWizeeYvND6sV488TRoZXPhAiZvNbOeppp3zf7rpSRUNRc2+mu2Eq868zXQUJFgpe8ye6tN9mNm1mbW5om3AlJNwP4/YfZCM3Prpdi8OPGFVVCrzPNmMnuXduur1SbMM/9xDLSOgMs4E62kerMZ/mINCXUg4GqSPViJDePkd9dDQK0N9vngP3oonjDrLf30weWgqHn1DzMPYubmfds/L0bNuv35b/obvX8zdzMf9Bu3HroMpA6Z6yskbYAaSe4KrUNxDP9jPur/8u0SUGnAazhjQ9kgkb9aGdWILPgBWh5oSMv83bYIqFYw7/2JoyHfvx4UFQuwzpuYR2H+pd2BgKo1HPHjZKPw/KcboKg7yA5/YxpFNp4toTIEbPkbxp7M3fpLtJMQUL1i4+8z9mTWX+S/joRihIrlP8ice/KeLfGH20IxVeqCormTjNat/0S+YRk0GGkADvgumayOlPnHcwFFuVQEUSx6xz/pyYZLmXx5VQRBuaBuBTZ5rZMpD2LJyI/sAShGLgps+8q/yByz9WMpkXzfgUAIGH8IwLq3fI+kx5TNSiynaCR//cyOgChmxxCABfd/9PvOydRunPztG09aEhDF7BkUwDzbXPDiV38bWfin77/n2r0WB6CK2VVUMbn0JnudeP6V11xz8WmHbrvKXAAQVDALizaKrqFRwSwuQQuDYA4uc5T/0QlWUDggkgcAADAlAJ0BKmwAbAA+PRyKQ6IhoRWJ5aAgA8SyAEMLoP9Q/I38jvlZrP954BY3nYt/I+4DtAfnX2AP1V83T9gPcd5gP2X/Yr3a/8d/gPY36AH8+/tnWAfuB7AH6temj+5fwO/tl+4fwDfsD/8uAA2bv8V+Hn7Y9xD7K9oOXczj/ReWvfbtUbyRyH+f8RelQ+M+wB+WvQezkPmv+N/ZP4BP5T/U/+bwKP6uH/Iw1/9qcZqIOS67hkYKoBX0hmk33n8GauMQghjF51Mo26pz5rIQvfhWUDy6A/8DDNI4mdjXUpI4KA+aEI/w3WU8tuhYrE03qD4BwoLzJXjHq1qH1CzhRDzBUVwIuHKUGli5wfjwCyKt0DoBTzZeXYmRnAa+utSy6f1JXdnKu3lO2yHYywme9lVHAAD+/tAcDF49//fO8WQTrcpXY7a6vRJ+MBYAzCFCvRYkutvO+Kjq0IG5QMdyYDSYOShluOQdku7f+F+63XaX9ioF86XfJyh66wdHwyb4XqMO4JoZDE4R7n3KUwY+Mhjf0dUF5Ujb7YUAPUnP1Po/Mrstd37YHQnKMCPnpj2Xt7MjgduUyLOwdNq9sICgCEmWIb431dKSSGkkBaC+jLNvZMo9bwyPv76SoDJnBnrbzNPjcr5WCo3FYUJE9o8npYe8CiwhSBjX/8zhg4TfW4x1BTaL8HA65oBXtbVGk/rsp5mbmtCELX0//dIyNj+BwVrp+k8VtPPWsetlbr+sL2qjw/mzHhzyqePiHENwUwB3BjPCR7zPMH0y5CYT/VnfXhHPWqDJcsMo0PIEXjG3BQPVBRODeSpN68pc4FobUVHPAQrCYCT/mf3Wxz6GYrIEJLFi3PA2Ltw/GMva6YzHonLogWgf/sMY2cYxcMJi6lLxe7w6bfIHsEhCwVFFNpoiHQpQBKaexiohu2PE2GEU6uDpYWk27+KO/Ho9/Wr6tJYLE9LGjTQN8+1Wv1F0NWx2jThMTbE9Thm2lwy51PccsKDegUuP/Pfz3kvR8V6q3Rl5kPb5gKPJD+RCR1c0XMTASmV8Enhwnj31SHDPVn1Yeuq4LP46Kk3//GhJHnsbtwN/zxethb/4NMBunI989D9F7an2XauvBV3KDSIZV+FRNY+e5RWIF//aPzzxOE+H4O/qgCarkJOg/Q04pzwNZXGXoarBXsMeLP5e1uZzOfKYF/Q+Rt34RevN9eOVGGU37SJ7qD2172Bzdya5HD87MuSOvuzz2iAFtoxpA1vk83nUnrTPOepvOpbzM/PRhAURLhGCZy4bJyoQVFguyOEKvVn5BO7EgR12tFx3cRclGhQVH0z+pq+8m7i8CAUMT+ZxBjolTkjRJeFAFjpsIPeJKsePTnw/it4gD/Snp+apn5AeTT+kHfV+oWAvtvFCx1eIssZuVVGHlbFAGxoPHH033CU/oxGRAVei47bOeFDpml++ta6TMNBtWbCpkzS19kYlubo16fXufWDHxl1Ccp2w4v5+CU9y8AWw7fPlrWED5F1Ln92vwxK/SDxUUsCcDi5lOVW/M5d6h7OI+Xy2bK+i/Ey2MkCMF1DaSM3MjdEK4g0jGOa2umm1UPMR86TM/B7aWxYTs+zncDFs0D/561c7rUqrRafWymfKCW1nhK+Y/X5e/ecrDovGCE7JQFBFsqO5n4InYzm0ttawQYsDZrrt60t73Pr1yte1yw0G6KxSK8+otxO6UspAzrg9AE82s0bpoTxTo33PC/u7mi7CnpQC+KScydOWzheEJ6czn1EYuj2tpOiMuI+be2dTtSNkgReFK3a5Jg+FPhr4ui3jXH4jPwoypF+hXVFxepK0MBnHOwFh2HJnonhXdG8ERrQw9hl1vCLutj7M0T81Zc1mBW59f9/QJgifChWhpw6/ZzNuPtHKFaSwH637EQA2hV5c+IkV7jmzfWmlNZp8vImcgK8UuhUFKsXVGdb24uxSMH1H90r+LWwADU19zT80Xl/umMr4rly/BZQJckEqOK4Sz7hRRwfYnq3zPuKjzUTgf5r95OY8rgv/XQAo2M222fRRNwF/9Fv7P+LYWrgKiNmaq/dbLATYaJ2x7VQhnE+0F7jwagDrlz9YPbv7y8k0d4eaSC9W7mJj4eBMvAJKeuq9vofneQfG2+BCt9k7ZZfz+fxc1Ay0Vy9eBg8NP/sJKHbzNrny5vOgOoCuC8RDn6/eSKkaUeG2n4ylAyx/7G8EGtyGRBIPdksLBeD4MPdYVP9usbKnMRTaUDexHXF2UBGc/OBIaUt+1UL7v2IJUXIAKr8bo8TdvkwHjtZ0BrqydRFGP9oXM1djqGU/2qzjp1n3bDoYtFKr6Duvz94X7kNZwCPwPb8mYMcT6TTztfj5qS0QsUEjDPOuJnCZ9584AdqZ03bGO1c63iodZd5ncCsvrSekKxPF52uQrsCBzF57P4EqQq92V6lksZh2yJ/RmP+EaazBlQVs65sH+64orW7fZl5FzwFUej4tNxZQ3IRPvGTX32ut86V4VB8F2Tj6UGs1oFXsXCAX0G+1lwmYZAiDij0CvRCEmmrZ7X/o3dyvruYOK2OhSeCsTcCpQ99xTQMAkxBtDKAAAAAAAA==&quot; alt=&quot;&quot;&gt;&lt;/span&gt;&lt;div&gt;${heading}&lt;p class=&quot;ks-sub&quot;&gt;11 月 17 日 · 星期二&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;`:form?`&lt;button type=&quot;button&quot; class=&quot;ks-icon-btn cursor-interaction&quot; data-action=&quot;back&quot; aria-label=&quot;返回&quot;&gt;${icon(&#x27;arrow-left&#x27;)}&lt;/button&gt;${heading}`:heading;
-      const pages={home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,appearance:pageAppearance,&#x27;local-backup&#x27;:pageLocalBackup,&#x27;csv-transfer&#x27;:pageCsvTransfer,&#x27;wallet-edit&#x27;:pageWalletEdit,&#x27;meal-form&#x27;:pageMealForm,&#x27;meal-filter&#x27;:pageMealFilter,entry:pageEntry,&#x27;entry-detail&#x27;:pageEntryDetail,&#x27;category-manager&#x27;:pageCategoryManager,&#x27;category-owned&#x27;:pageOwnedCategories,&#x27;category-detail&#x27;:pageCategoryDetail,github:pageGitHubBackup};
+      const mealViewDay=state.page===&#x27;meal-form&#x27;&amp;&amp;state.editing&amp;&amp;state.mealFromFilter?`&lt;button type=&quot;button&quot; class=&quot;ks-toolbar-action cursor-interaction&quot; data-action=&quot;meal-view-day&quot;&gt;${icon(&#x27;calendar-days&#x27;)}查看当天&lt;/button&gt;`:&#x27;&#x27;;
+      const header=state.page===&#x27;home&#x27;?`&lt;div class=&quot;ks-home-brand&quot;&gt;&lt;span class=&quot;ks-app-mark&quot;&gt;&lt;img src=&quot;data:image/webp;base64,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&quot; alt=&quot;&quot;&gt;&lt;/span&gt;&lt;div&gt;${heading}&lt;p class=&quot;ks-sub&quot;&gt;11 月 17 日 · 星期二&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;`:form?`&lt;button type=&quot;button&quot; class=&quot;ks-icon-btn cursor-interaction&quot; data-action=&quot;back&quot; aria-label=&quot;返回&quot;&gt;${icon(&#x27;arrow-left&#x27;)}&lt;/button&gt;${heading}${mealViewDay}`:heading;
+      const pages={home:pageHome,meals:pageMeals,ledger:pageLedger,settings:pageSettings,appearance:pageAppearance,&#x27;local-backup&#x27;:pageLocalBackup,&#x27;csv-transfer&#x27;:pageCsvTransfer,&#x27;wallet-edit&#x27;:pageWalletEdit,&#x27;meal-form&#x27;:pageMealForm,entry:pageEntry,&#x27;entry-detail&#x27;:pageEntryDetail,&#x27;category-manager&#x27;:pageCategoryManager,&#x27;category-owned&#x27;:pageOwnedCategories,&#x27;category-detail&#x27;:pageCategoryDetail,github:pageGitHubBackup};
       const ledger=state.page===&#x27;ledger&#x27;,fab=ledger&amp;&amp;state.ledgerTab===&#x27;流水&#x27;;
       const settingsScreen=state.page===&#x27;settings&#x27;||state.page===&#x27;github&#x27;?`ks-${state.page}-screen`:&#x27;&#x27;;
       const top=`&lt;header class=&quot;ks-top ${form?&#x27;ks-subpage&#x27;:&#x27;&#x27;}&quot;&gt;${header}&lt;/header&gt;`;
       phone.innerHTML=`&lt;div class=&quot;ks-status&quot;&gt;&lt;span&gt;9:41&lt;/span&gt;&lt;span class=&quot;ks-signal&quot;&gt;${icon(&#x27;signal&#x27;)}${icon(&#x27;wifi&#x27;)}${icon(&#x27;battery-full&#x27;)}&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;ks-page-motion ${settingsScreen} ${ledger?&#x27;ks-ledger-screen&#x27;:&#x27;&#x27;} ${fab?&#x27;ks-ledger-with-fab&#x27;:&#x27;&#x27;}&quot;&gt;${ledger?`&lt;div class=&quot;ks-ledger-collapsible&quot;&gt;${top}&lt;/div&gt;${ledgerTabs()}${ledgerFilters()}`:top}&lt;main class=&quot;ks-main&quot;&gt;${pages[state.page]()}${state.notice?`&lt;p class=&quot;ks-success&quot; role=&quot;status&quot;&gt;${escapeText(state.notice)}&lt;/p&gt;`:&#x27;&#x27;}&lt;/main&gt;${fab?`&lt;button type=&quot;button&quot; class=&quot;ks-primary ks-ledger-fab&quot; data-action=&quot;add-entry&quot; aria-label=&quot;记一笔&quot;&gt;${icon(&#x27;plus&#x27;)}&lt;span&gt;记一笔&lt;/span&gt;&lt;/button&gt;`:&#x27;&#x27;}&lt;/div&gt;${form?&#x27;&#x27;:`&lt;nav class=&quot;ks-nav&quot; aria-label=&quot;主导航&quot;&gt;${navs.map(([id,name,ic])=&gt;`&lt;button type=&quot;button&quot; data-page=&quot;${id}&quot; class=&quot;cursor-interaction&quot; ${state.page===id?&#x27;aria-current=&quot;page&quot;&#x27;:&#x27;&#x27;}&gt;&lt;span&gt;${icon(ic)}&lt;/span&gt;${name}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/nav&gt;`}&lt;div class=&quot;ks-home-indicator&quot; aria-hidden=&quot;true&quot;&gt;&lt;/div&gt;`;
       if(state.calcOpen){phone.insertAdjacentHTML(&#x27;beforeend&#x27;,calculatorSheet());phone.querySelector(&#x27;.ks-top&#x27;).inert=true;phone.querySelector(&#x27;.ks-main&#x27;).inert=true;updateCalculatorReadout();phone.querySelector(&#x27;[data-calc-action=cancel]&#x27;).focus({preventScroll:true});}
       if(state.deletePending){phone.insertAdjacentHTML(&#x27;beforeend&#x27;,deleteConfirmation());phone.querySelector(&#x27;.ks-top&#x27;).inert=true;phone.querySelector(&#x27;.ks-main&#x27;).inert=true;phone.querySelector(&#x27;[data-delete-action=cancel]&#x27;).focus({preventScroll:true});}
-      if(state.walletPickerOpen||state.ledgerFilterDraft||state.singleSelection||state.mealMethodPickerDraft||state.mealPrepPickerDraft){
-        const panel=state.walletPickerOpen?walletRangeDialog():state.ledgerFilterDraft?ledgerFiltersDialog():state.mealMethodPickerDraft?mealMethodFilterDialog():state.mealPrepPickerDraft?mealPreparationPickerDialog():singleSelectionPanel();
+      if(state.walletPickerOpen||state.ledgerFilterDraft||state.mealFilterOpen||state.singleSelection||state.mealPrepPickerDraft){
+        const panel=state.walletPickerOpen?walletRangeDialog():state.ledgerFilterDraft?ledgerFiltersDialog():state.mealFilterOpen?mealFiltersDialog():state.mealPrepPickerDraft?mealPreparationPickerDialog():singleSelectionPanel();
         phone.insertAdjacentHTML(&#x27;beforeend&#x27;,panel);
         for(const child of phone.children)if(!child.classList.contains(&#x27;ks-modal-overlay&#x27;))child.inert=true;
         phone.querySelector(&#x27;.ks-selection-panel [data-select-close]&#x27;).focus({preventScroll:true});
@@ -3764,13 +3789,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       const meal=phone.querySelector(&#x27;[data-meal-filter-form]&#x27;);
       if(meal){
         const {from,to,keyword}=meal.elements;
-        const inlinePreps=new Set([...meal.querySelectorAll(&#x27;[name=preparation]&#x27;)].map(e=&gt;e.value));
-        const checkedInline=[...meal.querySelectorAll(&#x27;[name=preparation]:checked&#x27;)].map(e=&gt;e.value);
-        const keptExtra=state.mealFilterDraft.preparations.filter(c=&gt;!inlinePreps.has(c));
-        state.mealFilterDraft={...state.mealFilterDraft,from:from.value,to:to.value,
-          slots:[...meal.querySelectorAll(&#x27;[name=slot]:checked&#x27;)].map(e=&gt;e.value),
-          atHome:[...meal.querySelectorAll(&#x27;[name=atHome]:checked&#x27;)].map(e=&gt;e.value),
-          keyword:keyword.value,preparations:[...checkedInline,...keptExtra]};
+        state.mealFilterDraft={...state.mealFilterDraft,from:from.value,to:to.value,keyword:keyword.value};
       }
       if(state.page===&#x27;wallet-edit&#x27;){
         const draft=state.walletEditDraft;
@@ -3812,7 +3831,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     function pageEntryDetail(){const e=financialEntries().find(e=&gt;e.id===state.selectedEntryId);if(!e)return &#x27;&lt;p class=&quot;ks-empty-state&quot;&gt;这笔账目已不存在&lt;/p&gt;&#x27;;const w=walletById(e.walletId);return `&lt;section class=&quot;ks-entry-detail&quot;&gt;&lt;div class=&quot;ks-detail-amount&quot;&gt;&lt;span class=&quot;ks-note&quot;&gt;${e.type} · ${w.code}&lt;/span&gt;&lt;div class=&quot;ks-amount ${e.type===&#x27;支出&#x27;?&#x27;ks-expense&#x27;:&#x27;ks-income&#x27;}&quot;&gt;${e.type===&#x27;支出&#x27;?&#x27;−&#x27;:&#x27;+&#x27;}${money(e.cents,w.code)}&lt;/div&gt;&lt;/div&gt;&lt;dl class=&quot;ks-detail-list&quot;&gt;${[[&#x27;日期时间&#x27;,`${e.date} ${e.time}`],[&#x27;钱包&#x27;,`${w.name} · ${w.code}`],[&#x27;分类&#x27;,entryCategory(e)],[&#x27;备注&#x27;,e.note||&#x27;无&#x27;]].map(([label,value])=&gt;`&lt;div&gt;&lt;dt&gt;${label}&lt;/dt&gt;&lt;dd&gt;${escapeText(value)}&lt;/dd&gt;&lt;/div&gt;`).join(&#x27;&#x27;)}&lt;/dl&gt;${deleteButton(&#x27;entry&#x27;,&#x27;删除这笔账目&#x27;)}&lt;p class=&quot;ks-footnote&quot;&gt;交互预览 · 示例数据&lt;/p&gt;&lt;/section&gt;`;}
     function deleteConfirmation(){const p=state.deletePending;return `&lt;div class=&quot;ks-modal-overlay ks-delete-overlay&quot;&gt;&lt;section class=&quot;ks-delete-sheet&quot; role=&quot;alertdialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;确认删除记录&quot;&gt;&lt;h3&gt;${p.kind===&#x27;meal&#x27;?&#x27;删除这条用餐记录？&#x27;:&#x27;删除这笔账目？&#x27;}&lt;/h3&gt;&lt;p class=&quot;ks-delete-summary&quot;&gt;${escapeText(p.summary)}&lt;/p&gt;&lt;p class=&quot;ks-note&quot;&gt;${p.kind===&#x27;meal&#x27;?&#x27;删除后，将更新今日进度、月度及全部记录统计。&#x27;:&#x27;删除后，将更新流水、收支统计和钱包余额。&#x27;}&lt;/p&gt;&lt;p class=&quot;ks-error&quot; role=&quot;alert&quot; data-delete-error&gt;&lt;/p&gt;&lt;div class=&quot;ks-calc-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;ks-choice cursor-interaction&quot; data-delete-action=&quot;cancel&quot;&gt;取消&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;ks-primary ks-danger-confirm cursor-interaction&quot; data-delete-action=&quot;confirm&quot;&gt;确认删除&lt;/button&gt;&lt;/div&gt;&lt;/section&gt;&lt;/div&gt;`;}
     function cancelDelete(){const action=state.deletePending.kind===&#x27;meal&#x27;?&#x27;delete-meal&#x27;:&#x27;delete-entry&#x27;;state.deletePending=null;render();phone.querySelector(`[data-action=${action}]`)?.focus({preventScroll:true});}
-    function confirmDelete(){const p=state.deletePending;if(p.kind===&#x27;meal&#x27;){if(state.records[p.date])state.records[p.date][p.slot]=null;state.date=p.date;state.page=state.mealReturn;state.editing=false;}else{if(financialEntries().some(e=&gt;e.originalExpenseId===p.id)){phone.querySelector(&#x27;[data-delete-error]&#x27;).textContent=&#x27;请先删除这笔支出关联的退款，再删除原支出。&#x27;;return;}state.deletedEntryIds.add(p.id);state.page=&#x27;ledger&#x27;;state.ledgerTab=&#x27;流水&#x27;;}state.deletePending=null;state.notice=&#x27;已从当前演示删除记录。&#x27;;render();}
+    function confirmDelete(){const p=state.deletePending;if(p.kind===&#x27;meal&#x27;){if(state.records[p.date])state.records[p.date][p.slot]=null;state.date=state.mealBrowseDate;state.page=state.mealReturn;state.editing=false;}else{if(financialEntries().some(e=&gt;e.originalExpenseId===p.id)){phone.querySelector(&#x27;[data-delete-error]&#x27;).textContent=&#x27;请先删除这笔支出关联的退款，再删除原支出。&#x27;;return;}state.deletedEntryIds.add(p.id);state.page=&#x27;ledger&#x27;;state.ledgerTab=&#x27;流水&#x27;;}state.deletePending=null;state.notice=&#x27;已从当前演示删除记录。&#x27;;render();}
     const calcOperators=&#x27;+−×÷&#x27;;
     function openCalculator(){
       if(!entryWallet()||modalKind())return;
@@ -3920,13 +3939,34 @@ html&gt;body{padding:0}&lt;/style&gt;
       state.singleSelection=null;render();
       phone.querySelector(`[data-select-open=&quot;${kind}&quot;]`)?.focus({preventScroll:true});
     }
-    function closeMealMethodPicker(apply){
+    function closeMealFilters(apply){
       if(apply){
-        const all=mealFilterMethods().map(([value])=&gt;value);
-        state.mealFilterDraft.methods=all.filter(v=&gt;(state.mealMethodPickerDraft||[]).includes(v));
+        const form=phone.querySelector(&#x27;[data-meal-filter-form]&#x27;);
+        const {from,to,keyword}=form.elements;
+        if(from.value&amp;&amp;to.value&amp;&amp;from.value&gt;to.value){
+          form.querySelector(&#x27;[data-meal-filter-error]&#x27;).textContent=&#x27;开始日期不能晚于结束日期。&#x27;;
+          return;
+        }
+        const allMethods=[...allMealFilterMethods(),&#x27;none&#x27;];
+        const allPreps=allMealFilterPreparations();
+        const applied={
+          from:from.value,
+          to:to.value,
+          slots:[&#x27;0&#x27;,&#x27;1&#x27;,&#x27;2&#x27;].filter(v=&gt;state.mealFilterDraft.slots.includes(v)),
+          atHome:[&#x27;yes&#x27;,&#x27;no&#x27;].filter(v=&gt;state.mealFilterDraft.atHome.includes(v)),
+          methods:allMethods.filter(v=&gt;state.mealFilterDraft.methods.includes(v)),
+          preparations:allPreps.filter(c=&gt;state.mealFilterDraft.preparations.includes(c)),
+          keyword:keyword.value.trim(),
+        };
+        if(state.mealTab===&#x27;统计&#x27;)state.mealStatsFilters=applied;
+        else{
+          state.mealFilters=applied;
+          state.mealListMode=!isMealFilterEmpty(applied);
+        }
       }
-      state.mealMethodPickerDraft=null;render();
-      phone.querySelector(&#x27;[data-select-open=&quot;meal-methods&quot;]&#x27;)?.focus({preventScroll:true});
+      state.mealFilterOpen=false;render();
+      if(apply)persist();
+      phone.querySelector(&#x27;[data-action=meal-filter]&#x27;)?.focus({preventScroll:true});
     }
     function closeMealPrepPicker(apply){
       const draft=state.mealPrepPickerDraft;
@@ -3942,10 +3982,10 @@ html&gt;body{padding:0}&lt;/style&gt;
     }
     function cancelSelection(){
       if(state.singleSelection)closeSingleSelection();
-      else if(state.mealMethodPickerDraft)closeMealMethodPicker(false);
       else if(state.mealPrepPickerDraft)closeMealPrepPicker(false);
       else if(state.walletPickerOpen)closeWalletPicker(&#x27;cancel&#x27;);
       else if(state.ledgerFilterDraft)closeLedgerFilters(false);
+      else if(state.mealFilterOpen)closeMealFilters(false);
     }
     function closeMealOption(){
       const kind=state.addingMealOption;
@@ -4029,16 +4069,6 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(cents&lt;=0n)throw Error(&#x27;舍入后金额必须大于零&#x27;);
       return cents;
     }
-    function updateMealDatePresets(form){
-      const selected=mealDatePreset({from:form.elements.from.value,to:form.elements.to.value});
-      for(const button of form.querySelectorAll(&#x27;[data-clear-meal-date]&#x27;)){
-        button.hidden=!form.elements[button.dataset.clearMealDate].value;
-      }
-      for(const button of form.querySelectorAll(&#x27;[data-meal-date-preset]&#x27;)){
-        button.setAttribute(&#x27;aria-pressed&#x27;,String(button.dataset.mealDatePreset===selected));
-      }
-      form.querySelector(&#x27;.ks-error&#x27;).textContent=&#x27;&#x27;;
-    }
     phone.addEventListener(&#x27;click&#x27;,event=&gt;{
       if(event.target.matches(&#x27;.ks-calculator-overlay&#x27;)){closeCalculator(false);return;}
       if(event.target.matches(&#x27;.ks-selection-overlay&#x27;)){cancelSelection();return;}
@@ -4050,15 +4080,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       const b=event.target.closest(&#x27;button&#x27;);if(!b)return;
       capture();state.notice=&#x27;&#x27;;
       if(b.hasAttribute(&#x27;data-select-close&#x27;)){cancelSelection();return;}
-      if(b.dataset.selectOpen===&#x27;meal-methods&#x27;){state.mealMethodPickerDraft=[...state.mealFilterDraft.methods];render();return;}
       if(b.dataset.selectOpen){state.singleSelection=b.dataset.selectOpen;render();return;}
-      if(b.dataset.mealMethodAction){
-        const action=b.dataset.mealMethodAction;
-        if(action===&#x27;all&#x27;){state.mealMethodPickerDraft=mealFilterMethods().map(([value])=&gt;value);render();}
-        else if(action===&#x27;none&#x27;){state.mealMethodPickerDraft=[];render();}
-        else if(action===&#x27;apply&#x27;)closeMealMethodPicker(true);
-        return;
-      }
       if(b.dataset.openMealPreps){
         const target=b.dataset.openMealPreps;
         const current=target===&#x27;form&#x27;?state.categories:state.mealFilterDraft.preparations;
@@ -4213,29 +4235,76 @@ html&gt;body{padding:0}&lt;/style&gt;
         phone.querySelector(&#x27;[data-period-month][aria-pressed=true]&#x27;).focus({preventScroll:true});return;
       }
       if(b.dataset.action===&#x27;meal-filter&#x27;){
-        state.mealFilterDraft=state.mealTab===&#x27;统计&#x27;?state.mealStatsFilters:state.mealFilters;
-        state.page=&#x27;meal-filter&#x27;;render();return;
-      }
-      if(b.dataset.mealDatePreset){
-        const dates=mealDatePresets[b.dataset.mealDatePreset];
-        b.form.elements.from.value=dates.from;
-        b.form.elements.to.value=dates.to;
-        updateMealDatePresets(b.form);
-        return;
-      }
-      if(b.dataset.clearMealDate){
-        const date=b.form.elements[b.dataset.clearMealDate];
-        date.value=&#x27;&#x27;;
-        updateMealDatePresets(b.form);
-        date.focus({preventScroll:true});
-        return;
-      }
-      if(b.dataset.action===&#x27;reset-meal-filter&#x27;){
-        state.mealFilterDraft=blankMealFilters(state.mealTab===&#x27;统计&#x27;?mealDatePresets.month:mealDatePresets.all);
+        const source=state.mealTab===&#x27;统计&#x27;?state.mealStatsFilters:state.mealFilters;
+        state.mealFilterDraft={
+          ...source,
+          slots:[...source.slots],
+          atHome:[...source.atHome],
+          methods:[...source.methods],
+          preparations:[...source.preparations],
+        };
+        state.mealFilterOpen=true;
         render();return;
       }
-      if(b.dataset.action===&#x27;meal-daily&#x27;){state.mealListMode=false;render();persist();return;}
-      if(b.dataset.action===&#x27;clear-meal-filters&#x27;){state.mealFilters=blankMealFilters();render();persist();return;}
+      if(b.closest(&#x27;[data-meal-filter-form]&#x27;)){
+        const panelBody=phone.querySelector(&#x27;.ks-selection-panel .ks-selection-body&#x27;),scroll=panelBody?panelBody.scrollTop:0;
+        let focusSelector=&#x27;&#x27;;
+        if(b.dataset.mealDatePreset){
+          const dates=mealDatePresets[b.dataset.mealDatePreset];
+          state.mealFilterDraft.from=dates.from;state.mealFilterDraft.to=dates.to;
+          focusSelector=`[data-meal-date-preset=&quot;${b.dataset.mealDatePreset}&quot;]`;
+        }else if(b.dataset.clearMealDate){
+          state.mealFilterDraft[b.dataset.clearMealDate]=&#x27;&#x27;;
+          focusSelector=`#meal-filter-${b.dataset.clearMealDate}`;
+        }else if(b.hasAttribute(&#x27;data-clear-meal-keyword&#x27;)){
+          state.mealFilterDraft.keyword=&#x27;&#x27;;
+          focusSelector=&#x27;#meal-filter-keyword&#x27;;
+        }else if(b.dataset.mealFilterSlot!==undefined){
+          const v=b.dataset.mealFilterSlot,list=state.mealFilterDraft.slots;
+          state.mealFilterDraft.slots=list.includes(v)?list.filter(x=&gt;x!==v):[...list,v];
+          focusSelector=`[data-meal-filter-slot=&quot;${v}&quot;]`;
+        }else if(b.dataset.mealFilterHome){
+          const v=b.dataset.mealFilterHome,list=state.mealFilterDraft.atHome;
+          state.mealFilterDraft.atHome=list.includes(v)?list.filter(x=&gt;x!==v):[...list,v];
+          focusSelector=`[data-meal-filter-home=&quot;${v}&quot;]`;
+        }else if(b.dataset.mealFilterMethod){
+          const v=b.dataset.mealFilterMethod,list=state.mealFilterDraft.methods;
+          state.mealFilterDraft.methods=list.includes(v)?list.filter(x=&gt;x!==v):[...list,v];
+          focusSelector=`[data-meal-filter-method=&quot;${CSS.escape(v)}&quot;]`;
+        }else if(b.dataset.mealFilterPrep){
+          const v=b.dataset.mealFilterPrep,list=state.mealFilterDraft.preparations;
+          state.mealFilterDraft.preparations=list.includes(v)?list.filter(x=&gt;x!==v):[...list,v];
+          focusSelector=`[data-meal-filter-prep=&quot;${CSS.escape(v)}&quot;]`;
+        }else if(b.dataset.action===&#x27;reset-meal-filter&#x27;){
+          state.mealFilterDraft=blankMealFilters(state.mealTab===&#x27;统计&#x27;?mealDatePresets.month:mealDatePresets.all);
+          focusSelector=&#x27;[data-action=&quot;reset-meal-filter&quot;]&#x27;;
+        }
+        if(focusSelector){
+          render();
+          const nextBody=phone.querySelector(&#x27;.ks-selection-panel .ks-selection-body&#x27;);
+          if(nextBody)nextBody.scrollTop=scroll;
+          phone.querySelector(focusSelector)?.focus({preventScroll:true});
+          return;
+        }
+      }
+      if(b.dataset.removeMealFilter){
+        state.mealFilters=removeMealFilterKey(state.mealFilters,b.dataset.removeMealFilter);
+        state.mealListMode=!isMealFilterEmpty(state.mealFilters);
+        render();persist();return;
+      }
+      if(b.dataset.removeMealStatFilter){
+        state.mealStatsFilters=removeMealFilterKey(state.mealStatsFilters,b.dataset.removeMealStatFilter);
+        render();persist();return;
+      }
+      if(b.dataset.action===&#x27;clear-meal-filters&#x27;){state.mealFilters=blankMealFilters();state.mealListMode=false;render();persist();return;}
+      if(b.dataset.action===&#x27;meal-view-day&#x27;){
+        recordOrigin=null;
+        state.mealFilters=blankMealFilters();
+        state.mealListMode=false;
+        state.date=state.editingDate;
+        state.page=&#x27;meals&#x27;;
+        render();persist();return;
+      }
       if(b.dataset.action===&#x27;manage-categories&#x27;){state.categoryReturn=state.page;state.categoryWalletId=b.dataset.categoryWallet||&#x27;GLOBAL&#x27;;state.financialScope=&#x27;EXPENSE&#x27;;state.editingFinancialCategoryId=null;state.page=&#x27;category-manager&#x27;;render();return;}
       if(b.dataset.financialScope){state.financialScope=b.dataset.financialScope;state.editingFinancialCategoryId=null;render();return;}
       if(b.dataset.editFinancialCategory){
@@ -4290,7 +4359,7 @@ html&gt;body{padding:0}&lt;/style&gt;
           phone.querySelector(&#x27;.ks-day[aria-pressed=true]&#x27;))?.focus({preventScroll:true});
         return;
       }
-      if(b.dataset.meal!==undefined){if(state.page===&#x27;home&#x27;)state.date=&#x27;2026-11-17&#x27;;else if(b.dataset.mealDate)state.date=b.dataset.mealDate;state.slot=Number(b.dataset.meal);state.mealReturn=state.page;const m=records()[state.slot];state.editing=!!m;if(m&amp;&amp;b.classList.contains(&#x27;ks-record&#x27;)){recordOrigin={page:state.page,date:state.date,slot:b.dataset.meal};entrance=visible(b)?rect(b):null;}else recordOrigin=null;state.editingDate=state.date;state.editingSlot=state.slot;state.atHome=m?m.atHome:true;state.method=m?m.method:&#x27;下厨&#x27;;state.categories=[...(m?.categories||[])];state.dishes=m?.dishes||&#x27;&#x27;;state.note=m?.note||&#x27;&#x27;;state.page=&#x27;meal-form&#x27;;render();return;}
+      if(b.dataset.meal!==undefined){state.mealBrowseDate=state.date;state.mealFromFilter=state.page===&#x27;meals&#x27;&amp;&amp;state.mealTab===&#x27;记录&#x27;&amp;&amp;state.mealListMode&amp;&amp;!isMealFilterEmpty(state.mealFilters);if(state.page===&#x27;home&#x27;)state.date=&#x27;2026-11-17&#x27;;else if(b.dataset.mealDate)state.date=b.dataset.mealDate;state.slot=Number(b.dataset.meal);state.mealReturn=state.page;const m=records()[state.slot];state.editing=!!m;if(m&amp;&amp;b.classList.contains(&#x27;ks-record&#x27;)){recordOrigin={page:state.page,date:state.date,slot:b.dataset.meal};entrance=visible(b)?rect(b):null;}else recordOrigin=null;state.editingDate=state.date;state.editingSlot=state.slot;state.atHome=m?m.atHome:true;state.method=m?m.method:&#x27;下厨&#x27;;state.categories=[...(m?.categories||[])];state.dishes=m?.dishes||&#x27;&#x27;;state.note=m?.note||&#x27;&#x27;;state.page=&#x27;meal-form&#x27;;render();return;}
       if(b.dataset.homeChoice!==undefined){state.atHome=b.dataset.homeChoice===&#x27;true&#x27;;render();return;}
       if(b.dataset.method){const m=b.dataset.method;state.method=state.method===m?null:m;render();return;}
       if(b.dataset.category){const c=b.dataset.category;state.categories=state.categories.includes(c)?state.categories.filter(x=&gt;x!==c):[...state.categories,c];render();return;}
@@ -4324,7 +4393,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         });
         return;
       }
-      if(b.dataset.action===&#x27;back&#x27;){state.page=state.page===&#x27;entry&#x27;?state.entryReturn:state.page===&#x27;category-detail&#x27;?state.categoryDetailReturn:state.page===&#x27;category-owned&#x27;?&#x27;category-manager&#x27;:state.page===&#x27;category-manager&#x27;?state.categoryReturn:[&#x27;appearance&#x27;,&#x27;github&#x27;,&#x27;local-backup&#x27;,&#x27;csv-transfer&#x27;].includes(state.page)?&#x27;settings&#x27;:state.page===&#x27;meal-filter&#x27;?&#x27;meals&#x27;:state.page===&#x27;meal-form&#x27;?state.mealReturn:&#x27;ledger&#x27;;render();return;}
+      if(b.dataset.action===&#x27;back&#x27;){if(state.page===&#x27;meal-form&#x27;)state.date=state.mealBrowseDate;state.page=state.page===&#x27;entry&#x27;?state.entryReturn:state.page===&#x27;category-detail&#x27;?state.categoryDetailReturn:state.page===&#x27;category-owned&#x27;?&#x27;category-manager&#x27;:state.page===&#x27;category-manager&#x27;?state.categoryReturn:[&#x27;appearance&#x27;,&#x27;github&#x27;,&#x27;local-backup&#x27;,&#x27;csv-transfer&#x27;].includes(state.page)?&#x27;settings&#x27;:state.page===&#x27;meal-form&#x27;?state.mealReturn:&#x27;ledger&#x27;;render();return;}
       if(b.dataset.addMealOption){state.addingMealOption=b.dataset.addMealOption;render();return;}
       if(b.dataset.action===&#x27;cancel-meal-option&#x27;){closeMealOption();return;}
     });
@@ -4409,7 +4478,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         else if(state.entryTimeDraft)closeEntryTime(false);
         else if(state.addingEntryCategory)closeEntryCategory();
         else if(state.periodDraft)closePeriod(false);
-        else if(state.singleSelection||state.mealMethodPickerDraft||state.mealPrepPickerDraft||state.ledgerFilterDraft||state.walletPickerOpen)cancelSelection();
+        else if(state.singleSelection||state.mealPrepPickerDraft||state.ledgerFilterDraft||state.mealFilterOpen||state.walletPickerOpen)cancelSelection();
         else if(state.deletePending)cancelDelete();
         else closeCalculator(false);
       }else if(event.key===&#x27;Enter&#x27;&amp;&amp;event.target.matches(&#x27;[data-ledger-filters] [name=note]&#x27;)){
@@ -4437,13 +4506,6 @@ html&gt;body{padding:0}&lt;/style&gt;
         updateLedgerFilterCount(group);
         return;
       }
-      if(e.matches(&#x27;[data-meal-method-option]&#x27;)){
-        const val=e.dataset.mealMethodOption,scroll=e.closest(&#x27;.ks-selection-body&#x27;).scrollTop;
-        const current=state.mealMethodPickerDraft||[];
-        state.mealMethodPickerDraft=e.checked?[...new Set([...current,val])]:current.filter(x=&gt;x!==val);
-        render();phone.querySelector(&#x27;.ks-selection-body&#x27;).scrollTop=scroll;
-        phone.querySelector(`[data-meal-method-option=&quot;${CSS.escape(val)}&quot;]`)?.focus({preventScroll:true});return;
-      }
       if(e.matches(&#x27;[data-meal-prep-option]&#x27;)){
         const draft=state.mealPrepPickerDraft;
         if(!draft)return;
@@ -4469,10 +4531,25 @@ html&gt;body{padding:0}&lt;/style&gt;
         render();phone.querySelector(&#x27;.ks-selection-body&#x27;).scrollTop=scroll;
         phone.querySelector(`[data-wallet-option=${id}]`).focus({preventScroll:true});return;
       }
-      if(e.matches(&#x27;[data-meal-filter-form] input[type=date]&#x27;)){updateMealDatePresets(e.form);return;}
+      if(e.matches(&#x27;[data-meal-filter-form] input[type=date]&#x27;)){
+        const panelBody=phone.querySelector(&#x27;.ks-selection-panel .ks-selection-body&#x27;),scroll=panelBody?panelBody.scrollTop:0;
+        const name=e.name;
+        state.mealFilterDraft[name]=e.value;
+        render();
+        const nextBody=phone.querySelector(&#x27;.ks-selection-panel .ks-selection-body&#x27;);
+        if(nextBody)nextBody.scrollTop=scroll;
+        phone.querySelector(`#meal-filter-${name}`)?.focus({preventScroll:true});
+        return;
+      }
     });
     phone.addEventListener(&#x27;input&#x27;,event=&gt;{
       const e=event.target;
+      if(e.matches(&#x27;[data-meal-filter-form] [name=keyword]&#x27;)){
+        state.mealFilterDraft.keyword=e.value;
+        const clearBtn=e.form.querySelector(&#x27;[data-clear-meal-keyword]&#x27;);
+        if(clearBtn)clearBtn.hidden=!e.value;
+        return;
+      }
       if(e.matches(&#x27;[data-currency-search]&#x27;)){
         const body=e.closest(&#x27;.ks-selection-panel&#x27;).querySelector(&#x27;.ks-selection-body&#x27;);
         body.innerHTML=currencyOptions(e.value);
@@ -4580,30 +4657,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       }
       if(f.matches(&#x27;[data-ledger-filters]&#x27;)){closeLedgerFilters(true);return;}
       if(f.matches(&#x27;[data-period-form]&#x27;)){closePeriod(true);return;}
-      if(f.matches(&#x27;[data-meal-filter-form]&#x27;)){
-        const {from,to,keyword}=f.elements;
-        if(from.value&amp;&amp;to.value&amp;&amp;from.value&gt;to.value){error(&#x27;开始日期不能晚于结束日期。&#x27;);return;}
-        const pickedSlots=[...f.querySelectorAll(&#x27;[name=slot]:checked&#x27;)].map(e=&gt;e.value);
-        const pickedHome=[...f.querySelectorAll(&#x27;[name=atHome]:checked&#x27;)].map(e=&gt;e.value);
-        const allMethods=mealFilterMethods().map(([value])=&gt;value);
-        const pickedMethods=allMethods.filter(v=&gt;state.mealFilterDraft.methods.includes(v));
-        const allPreps=allMealFilterPreparations();
-        const inlinePreps=new Set([...f.querySelectorAll(&#x27;[name=preparation]&#x27;)].map(e=&gt;e.value));
-        const checkedInline=[...f.querySelectorAll(&#x27;[name=preparation]:checked&#x27;)].map(e=&gt;e.value);
-        const keptExtra=state.mealFilterDraft.preparations.filter(c=&gt;!inlinePreps.has(c));
-        const pickedPreps=allPreps.filter(c=&gt;checkedInline.includes(c)||keptExtra.includes(c));
-        const applied={
-          from:from.value,to:to.value,
-          slots:pickedSlots,
-          atHome:pickedHome,
-          methods:pickedMethods,
-          preparations:pickedPreps,
-          keyword:keyword.value.trim(),
-        };
-        if(state.mealTab===&#x27;统计&#x27;)state.mealStatsFilters=applied;
-        else{state.mealFilters=applied;state.mealListMode=true;}
-        state.page=&#x27;meals&#x27;;render();persist();return;
-      }
+      if(f.matches(&#x27;[data-meal-filter-form]&#x27;)){closeMealFilters(true);return;}
       if(f.matches(&#x27;[data-meal-form]&#x27;)){
         if(state.atHome===null){error(&#x27;请先选择是否计划在家吃。&#x27;);return;}
         if(state.atHome&amp;&amp;!state.method){error(&#x27;计划在家吃时，请选择一种用餐方式。&#x27;);return;}
@@ -4612,7 +4666,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         const original=state.editing?state.records[state.editingDate]?.[state.editingSlot]:null;
         const categories=state.method===&#x27;下厨&#x27;?[...state.categories]:state.method&amp;&amp;state.method===original?.method?[...(original.categories||[])]:[];
         if(state.editing&amp;&amp;(state.date!==state.editingDate||state.slot!==state.editingSlot))state.records[state.editingDate][state.editingSlot]=null;
-        state.records[state.date]||=[null,null,null];state.records[state.date][state.slot]={atHome:state.atHome,method:state.method,categories,dishes:state.dishes,note:state.note};state.page=state.mealReturn;state.notice=&#x27;已保存到当前演示。&#x27;;render();return;
+        state.records[state.date]||=[null,null,null];state.records[state.date][state.slot]={atHome:state.atHome,method:state.method,categories,dishes:state.dishes,note:state.note};state.date=state.mealBrowseDate;state.page=state.mealReturn;state.notice=&#x27;已保存到当前演示。&#x27;;render();return;
       }
       if(f.matches(&#x27;[data-entry-form]&#x27;)){
         try{

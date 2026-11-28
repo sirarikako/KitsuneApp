@@ -1,6 +1,7 @@
 package com.kitsuneapp
 
 import android.os.Build
+import android.os.ParcelFileDescriptor
 import android.view.inspector.WindowInspector
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
@@ -11,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -44,7 +46,8 @@ import com.kitsuneapp.feature.ledger.LedgerEntryFilterDialog
 import com.kitsuneapp.feature.ledger.WalletForm
 import com.kitsuneapp.feature.ledger.WalletRangeDialog
 import com.kitsuneapp.feature.meals.MealFilter
-import com.kitsuneapp.feature.meals.MealFilterPage
+import com.kitsuneapp.feature.meals.MealFilterDialog
+import com.kitsuneapp.feature.meals.MealForm
 import com.kitsuneapp.ui.KitsuneTheme
 import com.kitsuneapp.ui.Primary
 import java.time.LocalDate
@@ -161,44 +164,125 @@ class SelectionSheetsTest {
     }
 
     @Test
-    fun mealMethodSelectionChangesOnlyTheFilterDraftUntilApply() {
+    fun mealFilterSheetIsolatesDraftDiscardsOnDismissRestoresStateAndResets() {
         val records = selectionRecords()
-        var applied: MealFilter? = null
-        compose.setContent {
+        val applied = mutableStateOf<MealFilter?>(null)
+        val defaults = MealFilter()
+        val currentMonth = MealFilter(start = "2026-11-01", end = "2026-11-30")
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
             KitsuneTheme(records.theme) {
-                val filter = MealFilter()
-                MealFilterPage(records, filter, filter, filter, {}, { applied = it })
+                var open by rememberSaveable { mutableStateOf(false) }
+                Box(Modifier.fillMaxSize()) { Primary("打开用餐筛选", { open = true }) }
+                if (open) {
+                    MealFilterDialog(
+                        records = records,
+                        initial = applied.value ?: defaults,
+                        defaults = defaults,
+                        currentMonth = currentMonth,
+                        dismiss = { open = false },
+                    ) {
+                        applied.value = it
+                        open = false
+                    }
+                }
             }
         }
-        compose.onNodeWithText("早餐").performScrollTo().performClick()
-        compose.onNodeWithText("晚餐").performScrollTo().performClick()
-        compose.onNodeWithText("是").performScrollTo().performClick()
 
-        val chooser = compose.onNodeWithContentDescription("用餐方式")
-        chooser.performScrollTo().performClick()
-        sheetText("选择用餐方式").assertIsDisplayed()
-        sheetText("未填写方式").performClick()
-        sheetText("应用").performClick()
-        compose.onNode(hasContentDescription("用餐方式") and hasText("未填写方式")).assertExists()
-        compose.runOnIdle { assertNull(applied) }
-
-        chooser.performClick()
-        sheetText("全选").performClick()
-        close()
-        compose.onNode(hasContentDescription("用餐方式") and hasText("未填写方式")).assertExists()
-        compose.onNodeWithText("应用筛选").performScrollTo().performClick()
-        compose.runOnIdle {
-            assertEquals(listOf(MealSlot.BREAKFAST, MealSlot.DINNER), applied?.slots)
-            assertEquals(listOf(true), applied?.atHome)
-            assertEquals(listOf(MealFilter.NO_METHOD), applied?.methods)
+        fun open() {
+            compose.onNodeWithText("打开用餐筛选").performClick()
+            sheetText("筛选用餐").assertIsDisplayed()
         }
+        fun assertCanceled() {
+            compose.waitUntil(5_000) { compose.onAllNodes(hasText("筛选用餐") and inDialog).fetchSemanticsNodes().isEmpty() }
+            compose.runOnIdle { assertNull(applied.value) }
+        }
+
+        // Flat multi-select changes stay in draft and are discarded on close / system Back / scrim tap / header swipe.
+        open()
+        list().performScrollToNode(hasText("未填写方式"))
+        sheetText("未填写方式").performClick().assertIsSelected()
+        compose.runOnIdle { assertNull(applied.value) }
+        close()
+        assertCanceled()
+
+        open()
+        list().performScrollToNode(hasText("早餐"))
+        sheetText("早餐").assertIsNotSelected().performClick().assertIsSelected()
+        waitForSheetWindowFocus()
+        runShellCommand("input keyevent KEYCODE_BACK")
+        assertCanceled()
+
+        open()
+        list().performScrollToNode(hasText("未填写方式"))
+        sheetText("未填写方式").assertIsNotSelected().performClick().assertIsSelected()
+        tapScrimAboveSheet("筛选用餐")
+        assertCanceled()
+
+        open()
+        list().performScrollToNode(hasText("午餐"))
+        sheetText("午餐").performClick().assertIsSelected()
+        waitForSheetWindowFocus()
+        val heading = sheetText("筛选用餐").fetchSemanticsNode().boundsInWindow
+        val displayHeight = compose.activity.resources.displayMetrics.heightPixels
+        val x = heading.center.x.toInt()
+        val y = heading.center.y.toInt()
+        runShellCommand("input swipe $x $y $x ${displayHeight - 2} 250")
+        assertCanceled()
+
+        // Activity restoration preserves open sheet and multi-select draft, then apply commits.
+        open()
+        list().performScrollToNode(hasText("早餐"))
+        sheetText("早餐").performClick().assertIsSelected()
+        sheetText("晚餐").performClick().assertIsSelected()
+        list().performScrollToNode(hasText("未填写方式"))
+        sheetText("未填写方式").performClick().assertIsSelected()
+        list().performScrollToNode(hasContentDescription("菜品／备注关键词"))
+        compose.onNodeWithContentDescription("菜品／备注关键词").performTextReplacement("番茄")
+        restoration.emulateSavedInstanceStateRestore()
+        list().performScrollToNode(hasContentDescription("菜品／备注关键词"))
+        compose.onNode(hasContentDescription("菜品／备注关键词") and hasText("番茄")).assertIsDisplayed()
+        list().performScrollToNode(hasText("早餐"))
+        sheetText("早餐").assertIsSelected()
+        list().performScrollToNode(hasText("未填写方式"))
+        sheetText("未填写方式").assertIsSelected()
+        sheetText("应用筛选").assertIsDisplayed().performClick()
+        compose.waitUntilDoesNotExist(isDialog(), 5_000)
+        compose.runOnIdle {
+            assertEquals(listOf(MealSlot.BREAKFAST, MealSlot.DINNER), applied.value?.slots)
+            assertEquals(listOf(MealFilter.NO_METHOD), applied.value?.methods)
+            assertEquals("番茄", applied.value?.query)
+        }
+
+        // Tapping outside while a filter is already applied discards the unapplied draft and keeps applied state intact.
+        open()
+        list().performScrollToNode(hasText("早餐"))
+        sheetText("早餐").assertIsSelected().performClick().assertIsNotSelected()
+        sheetText("午餐").assertIsNotSelected().performClick().assertIsSelected()
+        tapScrimAboveSheet("筛选用餐")
+        compose.waitUntilDoesNotExist(isDialog(), 5_000)
+        compose.runOnIdle {
+            assertEquals(listOf(MealSlot.BREAKFAST, MealSlot.DINNER), applied.value?.slots)
+            assertEquals(listOf(MealFilter.NO_METHOD), applied.value?.methods)
+            assertEquals("番茄", applied.value?.query)
+        }
+
+        // Reopening restores the committed filter (without leaked draft), and reset + apply yields isEmpty == true.
+        open()
+        list().performScrollToNode(hasText("早餐"))
+        sheetText("早餐").assertIsSelected()
+        sheetText("午餐").assertIsNotSelected()
+        sheetText("重置条件").performClick()
+        sheetText("应用筛选").performClick()
+        compose.waitUntilDoesNotExist(isDialog(), 5_000)
+        compose.runOnIdle { assertEquals(true, applied.value?.isEmpty) }
     }
 
     @Test
-    fun mealFilterRetainsFullMultiSelectionsAndUsesBottomSheetForExtraPreparationCategories() {
+    fun mealFilterDialogRetainsFullMultiSelectionsAndMealFormUsesBottomSheetForExtraCategories() {
         val time = "2026-11-17T12:00:00Z"
         val methods = listOf(
-            MealMethod("m-cook", "下厨", "下厨", 0, false, true, time, time),
+            MealMethod(DEFAULT_COOKING_METHOD_ID, "下厨", "下厨", 0, false, true, time, time),
             MealMethod("m-takeout", "外卖", "外卖", 1, false, false, time, time),
         )
         val preps = (1..10).map { i ->
@@ -206,31 +290,57 @@ class SelectionSheetsTest {
         }
         val base = selectionRecords()
         val records = base.copy(methods = methods, categories = base.categories + preps)
-        var applied: MealFilter? = null
+        val model = compose.runOnIdle { ViewModelProvider(compose.activity)[AppViewModel::class.java] }
+        val applied = mutableStateOf(MealFilter())
+        val openFilter = mutableStateOf(true)
         compose.setContent {
             KitsuneTheme(records.theme) {
-                val filter = MealFilter()
-                MealFilterPage(records, filter, filter, filter, {}, { applied = it })
+                MealForm(records, null, "2026-11-17", MealSlot.DINNER, model, {})
+                if (openFilter.value) {
+                    MealFilterDialog(
+                        records = records,
+                        initial = applied.value,
+                        defaults = MealFilter(),
+                        currentMonth = MealFilter(start = "2026-11-01", end = "2026-11-30"),
+                        dismiss = { openFilter.value = false },
+                    ) {
+                        applied.value = it
+                        openFilter.value = false
+                    }
+                }
             }
         }
 
-        // Selecting all methods retains full selection instead of collapsing to empty.
-        val chooser = compose.onNodeWithContentDescription("用餐方式")
-        chooser.performScrollTo().performClick()
-        sheetText("全选").performClick()
-        sheetText("应用").performClick()
-        compose.onNode(hasContentDescription("用餐方式") and hasText("已选 3 项 · 未填写方式、下厨等")).assertExists()
+        // Selecting all slots, atHome, methods, and categories in MealFilterDialog retains every item without collapsing to empty.
+        list().performScrollToNode(hasText("早餐"))
+        sheetText("早餐").performClick().assertIsSelected()
+        sheetText("午餐").performClick().assertIsSelected()
+        sheetText("晚餐").performClick().assertIsSelected()
+        list().performScrollToNode(hasText("是"))
+        sheetText("是").performClick().assertIsSelected()
+        sheetText("否").performClick().assertIsSelected()
+        list().performScrollToNode(hasText("未填写方式"))
+        sheetText("下厨").performClick().assertIsSelected()
+        sheetText("外卖").performClick().assertIsSelected()
+        sheetText("未填写方式").performClick().assertIsSelected()
+        list().performScrollToNode(hasText("制作10"))
+        sheetText("制作1").performClick().assertIsSelected()
+        sheetText("制作10").performClick().assertIsSelected()
+        sheetText("应用筛选").performClick()
+        compose.waitUntilDoesNotExist(isDialog(), 5_000)
+        compose.runOnIdle {
+            assertEquals(MealSlot.entries, applied.value.slots)
+            assertEquals(listOf(true, false), applied.value.atHome)
+            assertEquals(listOf(DEFAULT_COOKING_METHOD_ID, "m-takeout", MealFilter.NO_METHOD), applied.value.methods)
+            assertEquals(listOf("prep-1", "prep-10"), applied.value.categories)
+        }
 
-        // Reopening the method sheet retains all checked states; clearing resets to "全部方式".
-        chooser.performScrollTo().performClick()
-        sheetText("未填写方式").assertIsOn()
-        sheetText("下厨").assertIsOn()
-        sheetText("外卖").assertIsOn()
-        sheetText("全不选").performClick()
-        sheetText("应用").performClick()
-        compose.onNode(hasContentDescription("用餐方式") and hasText("全部方式")).assertExists()
+        // MealForm still uses MultiSelectSheet for extra (>8) preparation categories and SingleSelectSheet for slot.
+        compose.onNodeWithContentDescription("餐次").performScrollTo().performClick()
+        sheetText("选择餐次").assertIsDisplayed()
+        sheetText("午餐").performClick()
+        compose.onNodeWithText("记录午餐").assertIsDisplayed()
 
-        // Selecting an extra preparation category via "更多分类" bottom sheet.
         compose.onNodeWithText("更多分类").performScrollTo().performClick()
         sheetText("选择制作分类").assertIsDisplayed()
         compose.onNodeWithContentDescription("搜索分类").performTextReplacement("10")
@@ -243,24 +353,6 @@ class SelectionSheetsTest {
         sheetText("制作10").performClick()
         sheetText("应用").performClick()
         compose.onNodeWithText("已选更多分类 · 制作10").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("应用筛选").performScrollTo().performClick()
-        compose.runOnIdle {
-            assertEquals(emptyList<String>(), applied?.methods)
-            assertEquals(listOf("prep-10"), applied?.categories)
-        }
-
-        // Selecting all methods and all preparation categories retains every selected ID on apply.
-        chooser.performScrollTo().performClick()
-        sheetText("全选").performClick()
-        sheetText("应用").performClick()
-        compose.onNodeWithText("更多分类").performScrollTo().performClick()
-        sheetText("全选").performClick()
-        sheetText("应用").performClick()
-        compose.onNodeWithText("应用筛选").performScrollTo().performClick()
-        compose.runOnIdle {
-            assertEquals(listOf(MealFilter.NO_METHOD, "m-cook", "m-takeout"), applied?.methods)
-            assertEquals((1..10).map { "prep-$it" }, applied?.categories)
-        }
     }
 
     @Test
@@ -292,21 +384,22 @@ class SelectionSheetsTest {
         close()
         assertCanceled()
         open()
-        automation.executeShellCommand("input keyevent KEYCODE_BACK").close()
+        waitForSheetWindowFocus()
+        runShellCommand("input keyevent KEYCODE_BACK")
         assertCanceled()
 
         open()
         // Tap the scrim above the sheet.
-        val title = sheetText("流水筛选").assertIsDisplayed().fetchSemanticsNode().boundsInWindow
-        automation.executeShellCommand("input tap ${title.center.x.toInt()} ${(title.top / 3).toInt()}").close()
+        tapScrimAboveSheet("流水筛选")
         assertCanceled()
 
         open()
+        waitForSheetWindowFocus()
         val heading = sheetText("流水筛选").fetchSemanticsNode().boundsInWindow
         val displayHeight = compose.activity.resources.displayMetrics.heightPixels
         val x = heading.center.x.toInt()
         val y = heading.center.y.toInt()
-        automation.executeShellCommand("input swipe $x $y $x ${displayHeight - 2} 250").close()
+        runShellCommand("input swipe $x $y $x ${displayHeight - 2} 250")
         assertCanceled()
 
         open()
@@ -424,6 +517,48 @@ class SelectionSheetsTest {
     private fun list() = compose.onNode(hasScrollToNodeAction() and inDialog)
     private fun sheetText(text: String) = compose.onNode(hasText(text) and inDialog)
     private fun close() = compose.onNodeWithContentDescription("关闭").performClick()
+
+    private fun waitForSheetWindowFocus() {
+        val activityDecor = compose.activity.window.decorView
+        compose.waitUntil("sheet dialog window has focus", 5_000) {
+            compose.runOnUiThread {
+                if (Build.VERSION.SDK_INT >= 29) {
+                    WindowInspector.getGlobalWindowViews().any { it !== activityDecor && it.hasWindowFocus() }
+                } else {
+                    true
+                }
+            }
+        }
+    }
+
+    private fun tapScrimAboveSheet(titleText: String) {
+        compose.waitForIdle()
+        waitForSheetWindowFocus()
+        val titleBounds = sheetText(titleText).assertIsDisplayed().fetchSemanticsNode().boundsInWindow
+        val activityDecor = compose.activity.window.decorView
+        val (windowX, windowY, statusBarTop) = compose.runOnUiThread {
+            val dialogDecor = if (Build.VERSION.SDK_INT >= 29) {
+                WindowInspector.getGlobalWindowViews().firstOrNull { it !== activityDecor && it.hasWindowFocus() }
+                    ?: activityDecor
+            } else {
+                activityDecor
+            }
+            val location = IntArray(2)
+            dialogDecor.getLocationOnScreen(location)
+            val topInset = ViewCompat.getRootWindowInsets(dialogDecor)
+                ?.getInsets(WindowInsetsCompat.Type.statusBars())?.top ?: 0
+            Triple(location[0], location[1], topInset)
+        }
+        val scrimTop = (windowY + statusBarTop).toFloat()
+        val sheetTop = windowY + titleBounds.top - with(compose.density) { 45.dp.toPx() }
+        val x = (windowX + titleBounds.center.x).toInt()
+        val y = ((scrimTop + sheetTop.coerceAtLeast(scrimTop + 8f)) / 2f).toInt()
+        runShellCommand("input tap $x $y")
+    }
+
+    private fun runShellCommand(command: String) {
+        ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand(command)).use { it.readBytes() }
+    }
 }
 
 internal fun selectionRecords(): Records {

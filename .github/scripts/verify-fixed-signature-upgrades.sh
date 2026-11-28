@@ -19,6 +19,7 @@ run_upgrade_test() {
   grep -Eq '^OK \(1 test\)' "upgrade-reports/$report.log"
 }
 
+bash .github/scripts/prepare-android-emulator.sh
 adb install apk-signed/app-debug.apk
 adb install -t apk-signed/app-debug-androidTest.apk
 run_upgrade_test seed debug-seed

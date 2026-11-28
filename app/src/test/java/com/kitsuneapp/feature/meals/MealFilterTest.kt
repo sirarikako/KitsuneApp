@@ -181,4 +181,75 @@ class MealFilterTest {
         assertEquals(MealFilter(query = "番茄"), storedRecordFilter?.validIn(beforeDelete))
         assertEquals(currentMonth, (storedStatsFilter?.validIn(beforeDelete) ?: currentMonth))
     }
+
+    @Test
+    fun staleConditionsReducingFilterToEmptyNormalizesStoredFilterToNull() {
+        val currentMonth = MealFilter.forMonth(java.time.YearMonth.of(2026, 11))
+        var storedRecordFilter: MealFilter? = MealFilter(methods = listOf("method-removed"), categories = listOf("prep-removed"))
+        storedRecordFilter = storedRecordFilter?.validIn(records)?.takeUnless { it.isEmpty }
+        assertEquals(null, storedRecordFilter)
+
+        // Statistics keeps its date range even when non-date conditions are pruned.
+        var storedStatsFilter: MealFilter? = currentMonth.copy(methods = listOf("method-removed"))
+        storedStatsFilter = storedStatsFilter?.validIn(records)?.takeUnless { it == currentMonth }
+        assertEquals(null, storedStatsFilter)
+    }
+
+    @Test
+    fun removingIndividualChipsUpdatesMultiSelectFilterAndClearingLastReturnsEmpty() {
+        val takeout = MealMethod("method-takeout", "外卖", "外卖", 1, false, false, now, now)
+        val snack = category("prep-snack", Scope.PREPARATION, "快手")
+        val expanded = records.copy(
+            methods = records.methods + takeout,
+            categories = records.categories + snack,
+        )
+        val full = MealFilter(
+            start = "2026-11-01",
+            end = "2026-11-30",
+            slots = listOf(MealSlot.BREAKFAST, MealSlot.DINNER),
+            atHome = listOf(true, false),
+            methods = listOf(cooking.id, MealFilter.NO_METHOD),
+            categories = listOf(stirFry.id, snack.id),
+            query = "番茄",
+        )
+        val chips = full.chips(expanded)
+        assertEquals(
+            listOf(
+                "2026-11-01 ～ 2026-11-30",
+                "早餐",
+                "晚餐",
+                "计划在家：是",
+                "计划在家：否",
+                "下厨",
+                "方式未填写",
+                "炒菜",
+                "快手",
+                "关键词：番茄",
+            ),
+            chips.map { it.label },
+        )
+
+        // Removing a single item in each multi-select dimension keeps the remaining selections intact.
+        assertEquals(listOf(MealSlot.DINNER), chips.first { it.label == "早餐" }.cleared.slots)
+        assertEquals(listOf(false), chips.first { it.label == "计划在家：是" }.cleared.atHome)
+        assertEquals(listOf(MealFilter.NO_METHOD), chips.first { it.label == "下厨" }.cleared.methods)
+        val afterOneCategory = chips.first { it.label == "炒菜" }.cleared
+        assertEquals(listOf(snack.id), afterOneCategory.categories)
+        assertEquals(false, afterOneCategory.isEmpty)
+
+        // Removing each condition one by one leads to isEmpty == true.
+        var current: MealFilter = full
+        while (true) {
+            val nextChip = current.chips(expanded).firstOrNull() ?: break
+            current = nextChip.cleared
+        }
+        assertEquals(true, current.isEmpty)
+        assertEquals(MealFilter(), current)
+
+        // Statistics chips omit date range so removing the last non-date chip preserves dates.
+        val stats = MealFilter(start = "2026-10-01", end = "2026-10-31", query = "番茄")
+        val statsChips = stats.chips(expanded, includeDates = false)
+        assertEquals(listOf("关键词：番茄"), statsChips.map { it.label })
+        assertEquals(MealFilter(start = "2026-10-01", end = "2026-10-31"), statsChips.single().cleared)
+    }
 }
