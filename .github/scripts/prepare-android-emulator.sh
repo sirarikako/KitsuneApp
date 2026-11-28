@@ -2,53 +2,180 @@
 set -euo pipefail
 
 gestural_ime=false
-if [[ "${1:-}" == "--gestural-ime" ]]; then
-  gestural_ime=true
+case "${1:-}" in
+  "") ;;
+  --gestural-ime) gestural_ime=true ;;
+  *)
+    echo "Usage: $0 [--gestural-ime]" >&2
+    exit 2
+    ;;
+esac
+if (( $# > 1 )); then
+  echo "Usage: $0 [--gestural-ime]" >&2
+  exit 2
 fi
 
-adb wait-for-device
-for _ in $(seq 1 60); do
-  booted=$(adb shell getprop sys.boot_completed | tr -d '\r[:space:]')
-  bootanim=$(adb shell getprop init.svc.bootanim | tr -d '\r[:space:]')
+boot_timeout_sec=${EMULATOR_BOOT_TIMEOUT_SEC:-60}
+focus_timeout_sec=${EMULATOR_FOCUS_TIMEOUT_SEC:-30}
+
+if ! timeout "${boot_timeout_sec}s" adb wait-for-device; then
+  echo "ERROR: Timed out waiting for adb device." >&2
+  exit 1
+fi
+
+boot_ready=false
+booted=""
+bootanim=""
+for _ in $(seq 1 "$boot_timeout_sec"); do
+  booted=$(timeout 10s adb shell getprop sys.boot_completed | tr -d '\r[:space:]' || true)
+  bootanim=$(timeout 10s adb shell getprop init.svc.bootanim | tr -d '\r[:space:]' || true)
   if [[ "$booted" == "1" && ( -z "$bootanim" || "$bootanim" == "stopped" ) ]]; then
+    boot_ready=true
     break
   fi
   sleep 1
 done
 
-# Suppress background/launcher ANR or crash dialogs during CI instrumentation runs.
-adb shell settings put global hide_error_dialogs 1
-adb shell settings put secure anr_show_background 0
-adb shell wm dismiss-keyguard || true
-
-if [[ "$gestural_ime" == "true" ]]; then
-  adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.gestural
-  adb shell settings put secure show_ime_with_hard_keyboard 1
+if [[ "$boot_ready" != "true" ]]; then
+  echo "ERROR: Timed out waiting for emulator boot completion (sys.boot_completed=${booted:-<empty>}, init.svc.bootanim=${bootanim:-<empty>})." >&2
+  exit 1
 fi
 
-# Clean up any system ANR/crash modal (e.g. cold-boot Pixel Launcher ANR) that appeared before hide_error_dialogs=1.
-for attempt in $(seq 1 20); do
-  state=$(adb shell dumpsys window windows | python3 -c '
+read_setting() {
+  local val
+  val=$(timeout 10s adb shell settings get "$1" "$2" | tr -d '\r[:space:]')
+  if [[ -z "$val" || "$val" == "null" ]]; then
+    printf 'null'
+  else
+    printf '%s' "$val"
+  fi
+}
+
+restore_setting() {
+  local namespace=$1 key=$2 orig=$3
+  if [[ "$orig" == "null" ]]; then
+    timeout 10s adb shell settings delete "$namespace" "$key" >/dev/null
+  else
+    timeout 10s adb shell settings put "$namespace" "$key" "$orig" >/dev/null
+  fi
+}
+
+orig_hide_error_dialogs=$(read_setting global hide_error_dialogs)
+orig_anr_show_background=$(read_setting secure anr_show_background)
+settings_modified=false
+
+restore_error_dialog_settings() {
+  if [[ "$settings_modified" == "true" ]]; then
+    restore_setting global hide_error_dialogs "$orig_hide_error_dialogs"
+    restore_setting secure anr_show_background "$orig_anr_show_background"
+    settings_modified=false
+  fi
+}
+
+cleanup() {
+  local status=$?
+  timeout 10s adb shell rm -f /data/local/tmp/boot-dialog.xml >/dev/null 2>&1 || true
+  restore_error_dialog_settings || true
+  exit "$status"
+}
+trap cleanup EXIT
+
+# Temporarily suppress background ANR dialogs only during post-boot system UI initialization.
+timeout 10s adb shell settings put global hide_error_dialogs 1 >/dev/null
+timeout 10s adb shell settings put secure anr_show_background 0 >/dev/null
+settings_modified=true
+
+timeout 10s adb shell wm dismiss-keyguard >/dev/null 2>&1 || true
+
+if [[ "$gestural_ime" == "true" ]]; then
+  timeout 15s adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.gestural
+  timeout 10s adb shell settings put secure show_ime_with_hard_keyboard 1
+fi
+
+inspect_windows() {
+  timeout 15s adb shell dumpsys window windows | python3 -c '
 import re, sys
+
+LAUNCHER_ANR_TITLE = "Application Not Responding: com.google.android.apps.nexuslauncher"
+ERROR_PREFIXES = (
+    "Application Not Responding:",
+    "Application Error:",
+    "Strict Mode Violation:",
+    "Factory Error",
+)
+
 text = sys.stdin.read()
-dialogs = re.findall(r"Window #\d+ Window\{[^}]*Application (?:Not Responding|Error): ([^\s:}]+)\}", text)
-focused = bool(re.search(r"mCurrentFocus=Window\{", text))
-if dialogs:
-    print("DIALOG:" + dialogs[0])
-elif focused:
-    print("READY")
+header_re = re.compile(r"(?m)^  Window #\d+ Window\{[0-9a-f]+ u\d+ ([^}]+)\}:")
+matches = list(header_re.finditer(text))
+
+launcher_anr_active = False
+launcher_anr_exiting = False
+unexpected = []
+
+for idx, match in enumerate(matches):
+    raw_title = match.group(1).strip()
+    end = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)
+    block = text[match.start():end]
+    exiting = raw_title.endswith(" EXITING")
+    title = raw_title[:-len(" EXITING")].strip() if exiting else raw_title
+    is_error = title.startswith(ERROR_PREFIXES) or bool(re.search(r"\bSYSTEM_ERROR\b", block))
+    if not is_error:
+        continue
+    if title == LAUNCHER_ANR_TITLE:
+        if exiting:
+            launcher_anr_exiting = True
+        else:
+            launcher_anr_active = True
+    else:
+        unexpected.append(title)
+
+focus_match = re.search(r"(?m)^\s*(?:mCurrentFocus|currentFocus)=Window\{[0-9a-f]+ u\d+ ([^}]+)\}", text)
+focus_raw = focus_match.group(1).strip() if focus_match else ""
+focus_exiting = focus_raw.endswith(" EXITING")
+focus_title = focus_raw[:-len(" EXITING")].strip() if focus_exiting else focus_raw
+
+if focus_title.startswith(ERROR_PREFIXES) and focus_title != LAUNCHER_ANR_TITLE:
+    if focus_title not in unexpected:
+        unexpected.append(focus_title)
+
+if unexpected:
+    print("UNEXPECTED_DIALOG:" + unexpected[0])
+elif launcher_anr_active or focus_title == LAUNCHER_ANR_TITLE:
+    if launcher_anr_exiting and not launcher_anr_active and focus_exiting:
+        print("WAIT_EXITING")
+    else:
+        print("LAUNCHER_ANR")
+elif launcher_anr_exiting:
+    print("WAIT_EXITING")
+elif focus_title and not focus_exiting:
+    print("READY:" + focus_title)
 else:
     print("WAIT_FOCUS")
-')
-  if [[ "$state" == "READY" ]]; then
-    break
-  fi
-  if [[ "$state" == DIALOG:* ]]; then
-    pkg=${state#DIALOG:}
-    echo "Warning: dismissing boot system dialog for $pkg (attempt $attempt)" >&2
-    tapped=false
-    if (( attempt == 1 )) && adb shell uiautomator dump /data/local/tmp/boot-dialog.xml >/dev/null 2>&1; then
-      coords=$(adb exec-out cat /data/local/tmp/boot-dialog.xml | python3 -c '
+'
+}
+
+window_ready=false
+launcher_anr_attempts=0
+launcher_force_stopped=false
+state=""
+for _ in $(seq 1 "$focus_timeout_sec"); do
+  state=$(inspect_windows)
+  case "$state" in
+    READY:*)
+      window_ready=true
+      break
+      ;;
+    UNEXPECTED_DIALOG:*)
+      echo "ERROR: Unexpected system error/ANR dialog during emulator setup: ${state#UNEXPECTED_DIALOG:}" >&2
+      exit 1
+      ;;
+    LAUNCHER_ANR)
+      launcher_anr_attempts=$((launcher_anr_attempts + 1))
+      echo "Warning: dismissing cold-boot Pixel Launcher ANR dialog (attempt $launcher_anr_attempts)" >&2
+      tapped=false
+      coords=""
+      if (( launcher_anr_attempts <= 2 )) && timeout 10s adb shell uiautomator dump /data/local/tmp/boot-dialog.xml >/dev/null 2>&1; then
+        coords=$(timeout 10s adb exec-out cat /data/local/tmp/boot-dialog.xml | python3 -c '
 import re, sys, xml.etree.ElementTree as ET
 data = sys.stdin.read()
 if "<hierarchy" in data:
@@ -62,25 +189,74 @@ if "<hierarchy" in data:
                 print(f"{(x1 + x2) // 2} {(y1 + y2) // 2}")
                 break
 ' || true)
-      adb shell rm -f /data/local/tmp/boot-dialog.xml || true
-      if [[ -n "$coords" ]]; then
-        adb shell input tap $coords
-        tapped=true
+        timeout 10s adb shell rm -f /data/local/tmp/boot-dialog.xml >/dev/null 2>&1 || true
       fi
-    fi
-    if [[ "$tapped" == "false" ]]; then
-      adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS >/dev/null 2>&1 || true
-      adb shell am force-stop "$pkg" || true
-    fi
-  fi
+      recheck=$(inspect_windows)
+      if [[ "$recheck" == UNEXPECTED_DIALOG:* ]]; then
+        echo "ERROR: Unexpected system error/ANR dialog during emulator setup: ${recheck#UNEXPECTED_DIALOG:}" >&2
+        exit 1
+      fi
+      if [[ "$recheck" == "LAUNCHER_ANR" ]]; then
+        if [[ -n "$coords" ]]; then
+          timeout 10s adb shell input tap $coords
+          tapped=true
+        fi
+        if [[ "$tapped" == "false" && "$launcher_force_stopped" == "false" ]] && (( launcher_anr_attempts >= 2 )); then
+          launcher_force_stopped=true
+          timeout 10s adb shell am force-stop com.google.android.apps.nexuslauncher
+          timeout 15s adb shell am start -W -a android.intent.action.MAIN -c android.intent.category.HOME >/dev/null 2>&1 || true
+        fi
+      fi
+      ;;
+    WAIT_EXITING|WAIT_FOCUS)
+      ;;
+    *)
+      echo "ERROR: Unrecognized window inspection state: ${state:-<empty>}" >&2
+      exit 1
+      ;;
+  esac
   sleep 1
 done
 
-adb shell dumpsys window windows | python3 -c '
-import re, sys
-text = sys.stdin.read()
-dialogs = re.findall(r"Window #\d+ Window\{[^}]*Application (?:Not Responding|Error): ([^\s:}]+)\}", text)
-if dialogs:
-    sys.stderr.write(f"Active system error dialog remained before tests: {dialogs}\n")
-    sys.exit(1)
-'
+if [[ "$window_ready" != "true" ]]; then
+  echo "ERROR: Timed out waiting for emulator window focus and Pixel Launcher ANR cleanup (last state: ${state:-<empty>})." >&2
+  exit 1
+fi
+
+# Restore original error-dialog settings so subsequent tests surface any real ANRs.
+restore_error_dialog_settings
+
+restored_hide=$(read_setting global hide_error_dialogs)
+restored_anr=$(read_setting secure anr_show_background)
+if [[ "$restored_hide" != "$orig_hide_error_dialogs" || "$restored_anr" != "$orig_anr_show_background" ]]; then
+  echo "ERROR: Failed to restore error-dialog settings (hide_error_dialogs=$restored_hide expected $orig_hide_error_dialogs, anr_show_background=$restored_anr expected $orig_anr_show_background)." >&2
+  exit 1
+fi
+
+post_restore_ready=false
+final_state=""
+for _ in $(seq 1 5); do
+  final_state=$(inspect_windows)
+  case "$final_state" in
+    READY:*)
+      post_restore_ready=true
+      break
+      ;;
+    UNEXPECTED_DIALOG:*|LAUNCHER_ANR)
+      echo "ERROR: System error/ANR dialog present after emulator setup: $final_state" >&2
+      exit 1
+      ;;
+    WAIT_EXITING|WAIT_FOCUS)
+      sleep 1
+      ;;
+    *)
+      echo "ERROR: Unrecognized post-restore window state: ${final_state:-<empty>}" >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [[ "$post_restore_ready" != "true" ]]; then
+  echo "ERROR: Emulator lacked a focused window after setup completed (state: ${final_state:-<empty>})." >&2
+  exit 1
+fi
