@@ -93,7 +93,7 @@ if [[ "$gestural_ime" == "true" ]]; then
 fi
 
 inspect_windows() {
-  timeout 15s adb shell dumpsys window windows | python3 -c '
+  timeout 15s adb shell dumpsys window | python3 -c '
 import re, sys
 
 LAUNCHER_ANR_TITLE = "Application Not Responding: com.google.android.apps.nexuslauncher"
@@ -104,9 +104,21 @@ ERROR_PREFIXES = (
     "Factory Error",
 )
 
-text = sys.stdin.read()
+full_text = sys.stdin.read()
+sections = {}
+section_re = re.compile(r"(?m)^WINDOW MANAGER ([A-Z ]+?)(?: \([^)]*\))?:?\s*$")
+sec_matches = list(section_re.finditer(full_text))
+for idx, match in enumerate(sec_matches):
+    name = match.group(1).strip()
+    start = match.end()
+    end = sec_matches[idx + 1].start() if idx + 1 < len(sec_matches) else len(full_text)
+    sections[name] = full_text[start:end]
+
+displays_text = sections.get("DISPLAY CONTENTS", full_text)
+windows_text = sections.get("WINDOWS", full_text)
+
 header_re = re.compile(r"(?m)^  Window #\d+ Window\{[0-9a-f]+ u\d+ ([^}]+)\}:")
-matches = list(header_re.finditer(text))
+matches = list(header_re.finditer(windows_text))
 
 launcher_anr_active = False
 launcher_anr_exiting = False
@@ -114,8 +126,8 @@ unexpected = []
 
 for idx, match in enumerate(matches):
     raw_title = match.group(1).strip()
-    end = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)
-    block = text[match.start():end]
+    end = matches[idx + 1].start() if idx + 1 < len(matches) else len(windows_text)
+    block = windows_text[match.start():end]
     exiting = raw_title.endswith(" EXITING")
     title = raw_title[:-len(" EXITING")].strip() if exiting else raw_title
     is_error = title.startswith(ERROR_PREFIXES) or bool(re.search(r"\bSYSTEM_ERROR\b", block))
@@ -129,7 +141,7 @@ for idx, match in enumerate(matches):
     else:
         unexpected.append(title)
 
-focus_match = re.search(r"(?m)^\s*(?:mCurrentFocus|currentFocus)=Window\{[0-9a-f]+ u\d+ ([^}]+)\}", text)
+focus_match = re.search(r"(?m)^\s*mCurrentFocus=Window\{[0-9a-f]+ u\d+ ([^}]+)\}", displays_text)
 focus_raw = focus_match.group(1).strip() if focus_match else ""
 focus_exiting = focus_raw.endswith(" EXITING")
 focus_title = focus_raw[:-len(" EXITING")].strip() if focus_exiting else focus_raw
